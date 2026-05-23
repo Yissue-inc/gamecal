@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAMECAL Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .edit-panel { transition: transform 0.2s ease, opacity 0.2s ease; }
+    .edit-panel.open { transform: translateX(0); opacity: 1; }
+    .edit-panel.closed { transform: translateX(100%); opacity: 0; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" x-data="app()" x-init="init()" x-cloak>
+
+  <!-- ── TOAST ─────────────────────────────────────────────────────── -->
+  <div class="fixed top-4 right-4 z-50 space-y-2" x-show="toast.show" x-transition>
+    <div :class="toast.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'"
+         class="px-4 py-3 rounded-lg shadow-xl text-sm font-medium flex items-center gap-2 min-w-64">
+      <span x-text="toast.type === 'error' ? '✗' : '✓'"></span>
+      <span x-text="toast.message"></span>
+    </div>
+  </div>
+
+  <!-- ── CONFIRM DIALOG ──────────────────────────────────────────── -->
+  <div x-show="confirm.show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+    <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-96 shadow-2xl">
+      <p class="text-gray-100 mb-1 font-semibold" x-text="confirm.title"></p>
+      <p class="text-gray-400 text-sm mb-6" x-text="confirm.message"></p>
+      <div class="flex gap-3 justify-end">
+        <button @click="confirm.show = false" class="px-4 py-2 text-sm rounded-lg bg-gray-700 hover:bg-gray-600">Cancel</button>
+        <button @click="confirm.ok()" class="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-500">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SETUP SCREEN                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div x-show="!configured" class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
+      <div class="text-center mb-6">
+        <div class="text-3xl mb-2">🎮</div>
+        <h1 class="text-xl font-bold text-white">GAMECAL Admin Setup</h1>
+        <p class="text-gray-400 text-sm mt-1">로컬에만 저장됩니다 (localStorage)</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Supabase Project URL</label>
+          <input x-model="cfg.supabaseUrl" type="text" placeholder="https://xxx.supabase.co"
+            class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">
+            Service Role Key <span class="text-red-400">(⚠️ 로컬 전용 — 절대 공유 금지)</span>
+          </label>
+          <input x-model="cfg.serviceKey" type="password" placeholder="eyJhbGci..."
+            class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Admin Secret (크롤러 실행용)</label>
+          <input x-model="cfg.adminSecret" type="password" placeholder="your-admin-secret"
+            class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">사이트 URL (크롤러 API 호출용)</label>
+          <input x-model="cfg.siteUrl" type="text" placeholder="https://gamecal.vercel.app"
+            class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <button @click="saveConfig()" :disabled="!cfg.supabaseUrl || !cfg.serviceKey"
+          class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg py-2.5 text-sm font-medium transition-colors">
+          Connect & Enter Admin
+        </button>
+      </div>
+      <p class="text-center text-xs text-gray-600 mt-4">설정은 브라우저 localStorage에 저장됩니다</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- MAIN APP                                                      -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div x-show="configured" class="flex flex-col min-h-screen">
+
+    <!-- HEADER -->
+    <header class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+      <div class="flex items-center gap-3">
+        <span class="text-lg">🎮</span>
+        <span class="font-bold text-white">GAMECAL</span>
+        <span class="text-gray-600 text-sm">Admin</span>
+      </div>
+      <nav class="flex gap-1">
+        <template x-for="tab in tabs" :key="tab.id">
+          <button @click="switchTab(tab.id)"
+            :class="currentTab === tab.id
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800'"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5">
+            <span x-text="tab.icon"></span>
+            <span x-text="tab.label"></span>
+          </button>
+        </template>
+      </nav>
+      <button @click="resetConfig()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">⚙ 재설정</button>
+    </header>
+
+    <!-- LOADING BAR -->
+    <div x-show="loading" class="h-0.5 bg-indigo-600 animate-pulse"></div>
+
+    <!-- ── TAB: DASHBOARD ──────────────────────────────────────── -->
+    <div x-show="currentTab === 'dashboard'" class="flex-1 p-6 space-y-6">
+      <h2 class="text-lg font-bold">Dashboard</h2>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <template x-for="card in statCards" :key="card.label">
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p class="text-xs text-gray-500 mb-1" x-text="card.label"></p>
+            <p class="text-2xl font-bold text-white" x-text="card.value"></p>
+            <p class="text-xs mt-1" :class="card.subColor || 'text-gray-500'" x-text="card.sub"></p>
+          </div>
+        </template>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Game Breakdown -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <h3 class="text-sm font-semibold mb-4 text-gray-300">게임별 이벤트 수</h3>
+          <div class="space-y-3">
+            <template x-for="g in gameStats" :key="g.name">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full inline-block" :style="`background:${g.color}`"></span>
+                    <span x-text="g.name"></span>
+                  </span>
+                  <span class="text-gray-400" x-text="g.count + '개'"></span>
+                </div>
+                <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all"
+                    :style="`width:${g.pct}%; background:${g.color}`"></div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Crawl Status -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <h3 class="text-sm font-semibold mb-4 text-gray-300">크롤링 현황</h3>
+          <div class="space-y-2">
+            <template x-for="log in crawlStatus" :key="log.game">
+              <div class="flex items-center justify-between text-xs py-1.5 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                  <span :class="log.status === 'success' ? 'text-emerald-400' : log.status === 'error' ? 'text-red-400' : 'text-yellow-400'"
+                    x-text="log.status === 'success' ? '✓' : log.status === 'error' ? '✗' : '?'"></span>
+                  <span x-text="log.game" class="text-gray-300"></span>
+                </div>
+                <span class="text-gray-500" x-text="log.ago"></span>
+              </div>
+            </template>
+            <p x-show="crawlStatus.length === 0" class="text-xs text-gray-600 py-2">크롤 기록 없음</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: EVENTS ─────────────────────────────────────────── -->
+    <div x-show="currentTab === 'events'" class="flex-1 flex overflow-hidden" style="height: calc(100vh - 57px)">
+
+      <!-- Filter Sidebar -->
+      <aside class="w-48 bg-gray-900 border-r border-gray-800 p-4 space-y-4 flex-shrink-0 overflow-y-auto">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">게임</p>
+          <div class="space-y-1">
+            <label class="flex items-center gap-2 text-xs cursor-pointer hover:text-white">
+              <input type="radio" x-model="evFilter.game" value="" class="accent-indigo-500"> All
+            </label>
+            <template x-for="g in games" :key="g.id">
+              <label class="flex items-center gap-2 text-xs cursor-pointer hover:text-white">
+                <input type="radio" x-model="evFilter.game" :value="g.id" class="accent-indigo-500">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" :style="`background:${g.brand_color}`"></span>
+                <span class="truncate" x-text="g.name"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">타입</p>
+          <select x-model="evFilter.type" @change="loadEvents()"
+            class="w-full bg-gray-800 border border-gray-700 rounded text-xs px-2 py-1.5 focus:outline-none">
+            <option value="">All Types</option>
+            <template x-for="[val, label] in Object.entries(eventTypeLabels)" :key="val">
+              <option :value="val" x-text="label"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">상태</p>
+          <div class="space-y-1">
+            <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="radio" x-model="evFilter.status" value="" class="accent-indigo-500"> All</label>
+            <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="radio" x-model="evFilter.status" value="published" class="accent-indigo-500"> Published</label>
+            <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="radio" x-model="evFilter.status" value="draft" class="accent-indigo-500"> Draft</label>
+          </div>
+        </div>
+        <button @click="evFilter = {game:'',type:'',status:'',search:''}; loadEvents()"
+          class="w-full text-xs text-gray-500 hover:text-white py-1 border border-gray-700 rounded hover:border-gray-500 transition-colors">
+          필터 초기화
+        </button>
+      </aside>
+
+      <!-- Events Table -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Toolbar -->
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-800 bg-gray-950">
+          <input x-model="evFilter.search" @input.debounce.300ms="loadEvents()"
+            placeholder="🔍 이벤트 검색..."
+            class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-indigo-500">
+          <span class="text-xs text-gray-500" x-text="`${events.length}개`"></span>
+          <div class="flex-1"></div>
+          <button @click="openNewEvent()"
+            class="bg-indigo-600 hover:bg-indigo-500 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5">
+            <span>+</span> Add Event
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div class="flex-1 overflow-auto">
+          <table class="w-full text-sm border-collapse">
+            <thead class="sticky top-0 bg-gray-900 z-10">
+              <tr class="text-xs text-gray-500 uppercase">
+                <th class="text-left px-4 py-2.5 font-medium">게임</th>
+                <th class="text-left px-4 py-2.5 font-medium">제목</th>
+                <th class="text-left px-4 py-2.5 font-medium">타입</th>
+                <th class="text-left px-4 py-2.5 font-medium">시작</th>
+                <th class="text-left px-4 py-2.5 font-medium">종료</th>
+                <th class="text-left px-4 py-2.5 font-medium">상태</th>
+                <th class="px-4 py-2.5"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="ev in events" :key="ev.id">
+                <tr @click="openEdit(ev)"
+                  class="border-b border-gray-800/50 hover:bg-gray-900/60 cursor-pointer transition-colors"
+                  :class="editingEvent?.id === ev.id ? 'bg-gray-900/80' : ''">
+                  <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        :style="`background:${ev.games?.brand_color || '#6366f1'}`"></span>
+                      <span class="text-xs text-gray-400 truncate max-w-20" x-text="ev.games?.name || '—'"></span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="font-medium text-gray-200" x-text="ev.title"></span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                      :class="eventTypeBadge(ev.event_type)"
+                      x-text="eventTypeLabels[ev.event_type] || ev.event_type">
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5 text-xs text-gray-400" x-text="fmtDate(ev.start_at)"></td>
+                  <td class="px-4 py-2.5 text-xs text-gray-400" x-text="ev.end_at ? fmtDate(ev.end_at) : '—'"></td>
+                  <td class="px-4 py-2.5">
+                    <span :class="ev.is_published ? 'bg-emerald-900/50 text-emerald-400' : 'bg-gray-800 text-gray-500'"
+                      class="text-xs px-2 py-0.5 rounded-full"
+                      x-text="ev.is_published ? 'Published' : 'Draft'">
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5" @click.stop>
+                    <button @click="askDelete(ev)"
+                      class="text-gray-600 hover:text-red-400 text-xs px-2 py-1 rounded transition-colors">✕</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="events.length === 0 && !loading">
+                <td colspan="7" class="text-center text-gray-600 text-sm py-16">이벤트가 없습니다</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Edit Panel -->
+      <aside class="w-96 bg-gray-900 border-l border-gray-800 flex-shrink-0 flex flex-col overflow-hidden edit-panel"
+        :class="showEditPanel ? 'open' : 'closed'">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-800">
+          <h3 class="font-semibold text-sm" x-text="editingEvent?.id ? '이벤트 편집' : '새 이벤트'"></h3>
+          <button @click="showEditPanel = false; editingEvent = null" class="text-gray-500 hover:text-white text-lg leading-none">✕</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+          <!-- Game -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">게임 *</label>
+            <select x-model="editForm.game_id"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+              <option value="">선택...</option>
+              <template x-for="g in games" :key="g.id">
+                <option :value="g.id" x-text="g.name"></option>
+              </template>
+            </select>
+          </div>
+          <!-- Title -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">제목 *</label>
+            <input x-model="editForm.title" type="text"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <!-- Event Type -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">이벤트 타입 *</label>
+            <select x-model="editForm.event_type"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+              <option value="">선택...</option>
+              <template x-for="[val, label] in Object.entries(eventTypeLabels)" :key="val">
+                <option :value="val" x-text="label"></option>
+              </template>
+            </select>
+          </div>
+          <!-- Importance -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-2">중요도</label>
+            <div class="flex gap-2">
+              <template x-for="imp in ['critical','high','normal','low']" :key="imp">
+                <label :class="editForm.importance === imp
+                    ? 'bg-indigo-600 border-indigo-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500'"
+                  class="flex-1 text-center text-xs py-1.5 rounded-lg border cursor-pointer transition-colors capitalize">
+                  <input type="radio" x-model="editForm.importance" :value="imp" class="sr-only">
+                  <span x-text="imp"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+          <!-- Start -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">시작 (UTC) *</label>
+            <input x-model="editForm.start_at" type="datetime-local"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <!-- End -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">종료 (UTC)</label>
+            <input x-model="editForm.end_at" type="datetime-local"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <!-- Description -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">설명</label>
+            <textarea x-model="editForm.description" rows="3"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+          </div>
+          <!-- Source URL -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">출처 URL</label>
+            <input x-model="editForm.source_url" type="url" placeholder="https://..."
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <!-- Published -->
+          <div class="flex items-center justify-between py-2">
+            <label class="text-sm text-gray-300">Published</label>
+            <button @click="editForm.is_published = !editForm.is_published"
+              :class="editForm.is_published ? 'bg-indigo-600' : 'bg-gray-700'"
+              class="w-10 h-5 rounded-full transition-colors relative">
+              <span :class="editForm.is_published ? 'translate-x-5' : 'translate-x-0.5'"
+                class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Panel Footer -->
+        <div class="border-t border-gray-800 p-4 flex gap-2">
+          <button @click="saveEvent()" :disabled="saving"
+            class="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 rounded-lg py-2 text-sm font-medium transition-colors">
+            <span x-text="saving ? '저장 중...' : '저장'"></span>
+          </button>
+          <button x-show="editingEvent?.id" @click="askDelete(editingEvent)"
+            class="px-3 py-2 text-sm rounded-lg bg-gray-800 hover:bg-red-900/50 hover:text-red-400 transition-colors">✕</button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ── TAB: GAMES ──────────────────────────────────────────── -->
+    <div x-show="currentTab === 'games'" class="flex-1 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold">게임 관리</h2>
+        <button @click="openNewGame()"
+          class="bg-indigo-600 hover:bg-indigo-500 text-sm px-4 py-2 rounded-lg font-medium transition-colors">
+          + 게임 추가
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <template x-for="g in games" :key="g.id">
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors">
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex-shrink-0" :style="`background:${g.brand_color}22; border: 2px solid ${g.brand_color}`"></div>
+                <div>
+                  <p class="font-semibold text-sm" x-text="g.name"></p>
+                  <p class="text-xs text-gray-500" x-text="'/' + g.slug"></p>
+                </div>
+              </div>
+              <span :class="g.is_active ? 'bg-emerald-900/50 text-emerald-400' : 'bg-gray-800 text-gray-500'"
+                class="text-xs px-2 py-0.5 rounded-full"
+                x-text="g.is_active ? 'Active' : 'Hidden'">
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-1 mb-3">
+              <template x-for="p in (g.platform || [])" :key="p">
+                <span class="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded" x-text="p"></span>
+              </template>
+            </div>
+            <div class="flex gap-2 pt-3 border-t border-gray-800">
+              <div class="flex items-center gap-1.5">
+                <label class="text-xs text-gray-500">컬러:</label>
+                <input type="color" :value="g.brand_color" @change="updateGameColor(g, $event.target.value)"
+                  class="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0">
+              </div>
+              <div class="flex-1"></div>
+              <button @click="toggleGameActive(g)"
+                class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors"
+                x-text="g.is_active ? '비활성화' : '활성화'">
+              </button>
+              <button @click="openEditGame(g)"
+                class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors">편집</button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Game Edit Modal -->
+      <div x-show="showGameModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-96 shadow-2xl">
+          <h3 class="font-semibold mb-4" x-text="gameForm.id ? '게임 편집' : '게임 추가'"></h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Slug (영문, 하이픈)</label>
+              <input x-model="gameForm.slug" :disabled="!!gameForm.id" type="text" placeholder="fortnite"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">게임 이름</label>
+              <input x-model="gameForm.name" type="text"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">브랜드 컬러</label>
+              <div class="flex gap-2 items-center">
+                <input type="color" x-model="gameForm.brand_color"
+                  class="w-10 h-9 rounded cursor-pointer bg-transparent border-gray-700 border rounded-lg">
+                <input x-model="gameForm.brand_color" type="text" placeholder="#6366f1"
+                  class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-2">플랫폼</label>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="p in ['PC','PS5','Xbox','Mobile','Switch']" :key="p">
+                  <label :class="(gameForm.platform||[]).includes(p) ? 'bg-indigo-600 border-indigo-500' : 'bg-gray-800 border-gray-700'"
+                    class="text-xs px-2.5 py-1 rounded-lg border cursor-pointer transition-colors">
+                    <input type="checkbox" class="sr-only"
+                      :checked="(gameForm.platform||[]).includes(p)"
+                      @change="togglePlatform(p)">
+                    <span x-text="p"></span>
+                  </label>
+                </template>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button @click="showGameModal = false" class="flex-1 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700">취소</button>
+            <button @click="saveGame()" class="flex-1 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium">저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: RELEASES ───────────────────────────────────────── -->
+    <div x-show="currentTab === 'releases'" class="flex-1 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-bold">New Releases</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Featured 최대 3개</p>
+        </div>
+        <button @click="openNewRelease()"
+          class="bg-indigo-600 hover:bg-indigo-500 text-sm px-4 py-2 rounded-lg font-medium transition-colors">
+          + 추가
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <template x-for="r in releases" :key="r.id">
+          <div :class="r.is_featured ? 'border-yellow-600/50 bg-yellow-900/10' : 'border-gray-800'"
+            class="bg-gray-900 border rounded-xl p-5">
+            <div class="flex items-start justify-between mb-2">
+              <span x-show="r.is_featured" class="text-xs text-yellow-400 font-medium">⭐ FEATURED</span>
+              <span x-show="!r.is_featured" class="text-xs text-gray-600">—</span>
+              <span class="text-xs text-gray-500" x-text="fmtDateOnly(r.release_date)"></span>
+            </div>
+            <p class="font-semibold text-sm mb-1" x-text="r.title"></p>
+            <p class="text-xs text-gray-500 mb-2" x-text="[r.genre, r.developer].filter(Boolean).join(' · ')"></p>
+            <div class="flex flex-wrap gap-1 mb-3">
+              <template x-for="p in (r.platform || [])" :key="p">
+                <span class="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded" x-text="p"></span>
+              </template>
+            </div>
+            <!-- D-Day -->
+            <p class="text-xs font-mono" :class="dday(r.release_date) > 0 ? 'text-indigo-400' : 'text-gray-600'"
+               x-text="dday(r.release_date) > 0 ? `D-${dday(r.release_date)}` : '출시됨'">
+            </p>
+            <div class="flex gap-2 mt-3 pt-3 border-t border-gray-800">
+              <button @click="toggleFeatured(r)"
+                :class="r.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-500 hover:text-yellow-400'"
+                class="text-xs transition-colors" x-text="r.is_featured ? '⭐ Featured' : '☆ Featured 설정'">
+              </button>
+              <div class="flex-1"></div>
+              <button @click="openEditRelease(r)" class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400">편집</button>
+              <button @click="askDeleteRelease(r)" class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-red-900/50 hover:text-red-400 text-gray-600">✕</button>
+            </div>
+          </div>
+        </template>
+        <p x-show="releases.length === 0 && !loading" class="text-gray-600 text-sm col-span-3 py-16 text-center">릴리즈가 없습니다</p>
+      </div>
+
+      <!-- Release Edit Modal -->
+      <div x-show="showReleaseModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-96 shadow-2xl">
+          <h3 class="font-semibold mb-4" x-text="releaseForm.id ? '릴리즈 편집' : '릴리즈 추가'"></h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">게임 제목 *</label>
+              <input x-model="releaseForm.title" type="text"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">장르</label>
+                <input x-model="releaseForm.genre" type="text"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">개발사</label>
+                <input x-model="releaseForm.developer" type="text"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">출시일 *</label>
+              <input x-model="releaseForm.release_date" type="date"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-2">플랫폼</label>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="p in ['PC','PS5','Xbox','Mobile','Switch']" :key="p">
+                  <label :class="(releaseForm.platform||[]).includes(p) ? 'bg-indigo-600 border-indigo-500' : 'bg-gray-800 border-gray-700'"
+                    class="text-xs px-2.5 py-1 rounded-lg border cursor-pointer transition-colors">
+                    <input type="checkbox" class="sr-only"
+                      :checked="(releaseForm.platform||[]).includes(p)"
+                      @change="toggleReleasePlatform(p)">
+                    <span x-text="p"></span>
+                  </label>
+                </template>
+              </div>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <label class="text-sm text-gray-300">Featured</label>
+              <button @click="releaseForm.is_featured = !releaseForm.is_featured"
+                :class="releaseForm.is_featured ? 'bg-yellow-500' : 'bg-gray-700'"
+                class="w-10 h-5 rounded-full transition-colors relative">
+                <span :class="releaseForm.is_featured ? 'translate-x-5' : 'translate-x-0.5'"
+                  class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow"></span>
+              </button>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-5">
+            <button @click="showReleaseModal = false" class="flex-1 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700">취소</button>
+            <button @click="saveRelease()" class="flex-1 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium">저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: CRAWLERS ──────────────────────────────────────── -->
+    <div x-show="currentTab === 'crawlers'" class="flex-1 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-bold">크롤러 관리</h2>
+          <p class="text-xs text-gray-500 mt-0.5">사이트 URL: <span x-text="cfg.siteUrl || '미설정'"></span></p>
+        </div>
+        <button @click="runAllCrawlers()" :disabled="crawling"
+          class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 text-sm px-4 py-2 rounded-lg font-medium transition-colors">
+          <span x-text="crawling ? '실행 중...' : '전체 실행'"></span>
+        </button>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-xs text-gray-500 uppercase border-b border-gray-800">
+              <th class="text-left px-5 py-3 font-medium">게임</th>
+              <th class="text-left px-5 py-3 font-medium">데이터 소스</th>
+              <th class="text-left px-5 py-3 font-medium">마지막 실행</th>
+              <th class="text-left px-5 py-3 font-medium">결과</th>
+              <th class="px-5 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="g in games" :key="g.id">
+              <tr class="border-b border-gray-800/50">
+                <td class="px-5 py-3">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full" :style="`background:${g.brand_color}`"></span>
+                    <span x-text="g.name"></span>
+                  </div>
+                </td>
+                <td class="px-5 py-3 text-xs text-gray-500" x-text="crawlerSource(g.slug)"></td>
+                <td class="px-5 py-3 text-xs text-gray-500" x-text="lastCrawl(g.id)"></td>
+                <td class="px-5 py-3 text-xs">
+                  <template x-if="crawlResults[g.slug]">
+                    <span :class="crawlResults[g.slug].ok ? 'text-emerald-400' : 'text-red-400'"
+                      x-text="crawlResults[g.slug].msg"></span>
+                  </template>
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <button @click="runCrawler(g.slug)" :disabled="crawlRunning[g.slug]"
+                    class="text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-indigo-600 disabled:opacity-50 text-gray-300 hover:text-white transition-colors">
+                    <span x-text="crawlRunning[g.slug] ? '⟳' : '▶ 실행'"></span>
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Recent Crawl Logs -->
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <h3 class="text-sm font-semibold mb-3 text-gray-300">최근 크롤 로그</h3>
+        <div class="space-y-1.5 max-h-64 overflow-y-auto">
+          <template x-for="log in crawlLogs" :key="log.id">
+            <div class="flex items-center gap-3 text-xs py-1 border-b border-gray-800/50">
+              <span :class="log.status === 'success' ? 'text-emerald-400' : log.status === 'error' ? 'text-red-400' : 'text-yellow-400'"
+                x-text="log.status === 'success' ? '✓' : log.status === 'running' ? '⟳' : '✗'"></span>
+              <span class="text-gray-400 w-28 flex-shrink-0" x-text="gameNameById(log.game_id)"></span>
+              <span class="text-gray-600" x-text="`+${log.events_added} 추가`"></span>
+              <span class="text-gray-600 ml-auto" x-text="timeAgo(log.created_at)"></span>
+              <span x-show="log.error" class="text-red-400 truncate max-w-48" x-text="log.error"></span>
+            </div>
+          </template>
+          <p x-show="crawlLogs.length === 0" class="text-gray-600 text-xs py-4 text-center">크롤 기록 없음</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: HEALTH ─────────────────────────────────────────── -->
+    <div x-show="currentTab === 'health'" class="flex-1 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold">데이터 품질</h2>
+        <button @click="loadHealth()" class="text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors">
+          새로고침
+        </button>
+      </div>
+
+      <!-- Score -->
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-gray-300">전체 품질 점수</h3>
+          <span class="text-2xl font-bold" :class="healthScore >= 85 ? 'text-emerald-400' : healthScore >= 60 ? 'text-yellow-400' : 'text-red-400'"
+            x-text="healthScore + '/100'"></span>
+        </div>
+        <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all"
+            :class="healthScore >= 85 ? 'bg-emerald-500' : healthScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'"
+            :style="`width:${healthScore}%`"></div>
+        </div>
+      </div>
+
+      <!-- Warnings -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <template x-for="w in healthWarnings" :key="w.key">
+          <div :class="w.count > 0 ? (w.critical ? 'border-red-800/50 bg-red-900/10' : 'border-yellow-800/50 bg-yellow-900/5') : 'border-gray-800'"
+            class="bg-gray-900 border rounded-xl p-4">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-sm font-medium" :class="w.count > 0 ? (w.critical ? 'text-red-400' : 'text-yellow-400') : 'text-emerald-400'"
+                  x-text="w.label"></p>
+                <p class="text-xs text-gray-500 mt-0.5" x-text="w.desc"></p>
+              </div>
+              <span class="text-2xl font-bold ml-4"
+                :class="w.count > 0 ? (w.critical ? 'text-red-400' : 'text-yellow-400') : 'text-emerald-400'"
+                x-text="w.count"></span>
+            </div>
+            <button x-show="w.count > 0" @click="filterToWarning(w.key)"
+              class="text-xs text-gray-500 hover:text-white mt-2 transition-colors">
+              이벤트 보기 →
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+
+  </div><!-- /main app -->
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- ALPINE.JS LOGIC                                               -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <script>
+  function app() {
+    return {
+      // ── Config ──────────────────────────────────────────────────
+      cfg: { supabaseUrl: '', serviceKey: '', adminSecret: '', siteUrl: '' },
+      configured: false,
+      db: null,
+
+      // ── UI State ────────────────────────────────────────────────
+      currentTab: 'dashboard',
+      loading: false,
+      saving: false,
+      crawling: false,
+      toast: { show: false, message: '', type: 'success' },
+      confirm: { show: false, title: '', message: '', ok: () => {} },
+
+      tabs: [
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'events',    label: 'Events',    icon: '📅' },
+        { id: 'games',     label: 'Games',     icon: '🎮' },
+        { id: 'releases',  label: 'Releases',  icon: '🚀' },
+        { id: 'crawlers',  label: 'Crawlers',  icon: '🤖' },
+        { id: 'health',    label: 'Health',    icon: '🏥' },
+      ],
+
+      // ── Event Types ─────────────────────────────────────────────
+      eventTypeLabels: {
+        weekly_reset:      'Weekly Reset',
+        daily_reset:       'Daily Reset',
+        biweekly_reset:    'Biweekly Reset',
+        season_start:      'Season Start',
+        season_end:        'Season End',
+        patch_release:     'Patch Release',
+        content_vault:     'Content Vault',
+        live_event:        'Live Event',
+        limited_reward:    'Limited Reward',
+        double_xp:         'Double XP',
+        collab_event:      'Collab Event',
+        anniversary_event: 'Anniversary',
+        tournament:        'Tournament',
+        ranked_reset:      'Ranked Reset',
+        beta_test:         'Beta Test',
+        loot_rotation:     'Loot Rotation',
+        banner_end:        'Banner End',
+        sale_event:        'Sale Event',
+        maintenance:       'Maintenance',
+        other:             'Other',
+      },
+
+      // ── Dashboard ───────────────────────────────────────────────
+      statCards: [],
+      gameStats: [],
+      crawlStatus: [],
+
+      // ── Events ──────────────────────────────────────────────────
+      events: [],
+      evFilter: { game: '', type: '', status: '', search: '' },
+      showEditPanel: false,
+      editingEvent: null,
+      editForm: {},
+
+      // ── Games ───────────────────────────────────────────────────
+      games: [],
+      showGameModal: false,
+      gameForm: {},
+
+      // ── Releases ────────────────────────────────────────────────
+      releases: [],
+      showReleaseModal: false,
+      releaseForm: {},
+
+      // ── Crawlers ────────────────────────────────────────────────
+      crawlLogs: [],
+      crawlRunning: {},
+      crawlResults: {},
+
+      // ── Health ──────────────────────────────────────────────────
+      healthScore: 0,
+      healthWarnings: [],
+
+      // ────────────────────────────────────────────────────────────
+      // INIT
+      // ────────────────────────────────────────────────────────────
+      async init() {
+        const saved = localStorage.getItem('gcal_cfg')
+        if (saved) {
+          this.cfg = JSON.parse(saved)
+          if (this.cfg.supabaseUrl && this.cfg.serviceKey) {
+            this.connect()
+          }
+        }
+      },
+
+      connect() {
+        this.db = supabase.createClient(this.cfg.supabaseUrl, this.cfg.serviceKey, {
+          auth: { persistSession: false }
+        })
+        this.configured = true
+        this.loadGames().then(() => this.loadDashboard())
+      },
+
+      saveConfig() {
+        localStorage.setItem('gcal_cfg', JSON.stringify(this.cfg))
+        this.connect()
+      },
+
+      resetConfig() {
+        if (!confirm('설정을 초기화하시겠습니까?')) return
+        localStorage.removeItem('gcal_cfg')
+        this.configured = false
+        this.cfg = { supabaseUrl: '', serviceKey: '', adminSecret: '', siteUrl: '' }
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // TAB SWITCH
+      // ────────────────────────────────────────────────────────────
+      switchTab(tab) {
+        this.currentTab = tab
+        this.showEditPanel = false
+        this.editingEvent = null
+        if (tab === 'dashboard') this.loadDashboard()
+        else if (tab === 'events') this.loadEvents()
+        else if (tab === 'games') this.loadGames()
+        else if (tab === 'releases') this.loadReleases()
+        else if (tab === 'crawlers') this.loadCrawlLogs()
+        else if (tab === 'health') this.loadHealth()
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // DASHBOARD
+      // ────────────────────────────────────────────────────────────
+      async loadDashboard() {
+        this.loading = true
+        try {
+          const now = new Date().toISOString()
+          const today = new Date(); today.setHours(0,0,0,0)
+          const todayStr = today.toISOString()
+          const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1)
+
+          const [evRes, gamesRes, logRes] = await Promise.all([
+            this.db.from('events').select('id, is_published, start_at, game_id'),
+            this.db.from('games').select('id, name, brand_color').eq('is_active', true),
+            this.db.from('crawl_logs').select('game_id, status, created_at').order('created_at', {ascending: false}).limit(30)
+          ])
+
+          const evs = evRes.data || []
+          const gs  = gamesRes.data || []
+          const logs = logRes.data || []
+
+          const total       = evs.length
+          const today_evs   = evs.filter(e => e.start_at >= todayStr && e.start_at < tomorrow.toISOString()).length
+          const unpublished = evs.filter(e => !e.is_published).length
+          const expired_pub = evs.filter(e => e.is_published && e.start_at < now).length
+
+          this.statCards = [
+            { label: '총 이벤트', value: total,       sub: '전체 등록됨',     subColor: 'text-gray-500' },
+            { label: '오늘 이벤트', value: today_evs, sub: '오늘 진행 중',    subColor: 'text-indigo-400' },
+            { label: '미발행',     value: unpublished, sub: 'Draft 상태',     subColor: 'text-yellow-500' },
+            { label: '만료 발행',  value: expired_pub, sub: '종료된 이벤트',  subColor: expired_pub > 0 ? 'text-red-400' : 'text-gray-500' },
+          ]
+
+          // Game breakdown
+          const maxCount = Math.max(...gs.map(g => evs.filter(e => e.game_id === g.id).length), 1)
+          this.gameStats = gs.map(g => {
+            const count = evs.filter(e => e.game_id === g.id).length
+            return { name: g.name, color: g.brand_color, count, pct: Math.round(count / maxCount * 100) }
+          }).sort((a,b) => b.count - a.count)
+
+          // Crawl status per game
+          const seen = new Set()
+          this.crawlStatus = logs
+            .filter(l => { if (seen.has(l.game_id)) return false; seen.add(l.game_id); return true })
+            .slice(0, 6)
+            .map(l => ({
+              game: this.gameNameById(l.game_id),
+              status: l.status,
+              ago: this.timeAgo(l.created_at)
+            }))
+        } catch(e) { this.showToast('대시보드 로드 실패: ' + e.message, 'error') }
+        this.loading = false
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // EVENTS
+      // ────────────────────────────────────────────────────────────
+      async loadEvents() {
+        this.loading = true
+        try {
+          let q = this.db.from('events')
+            .select('*, games(name, brand_color, slug)')
+            .order('start_at', { ascending: true })
+            .limit(200)
+
+          if (this.evFilter.game)   q = q.eq('game_id', this.evFilter.game)
+          if (this.evFilter.type)   q = q.eq('event_type', this.evFilter.type)
+          if (this.evFilter.status === 'published') q = q.eq('is_published', true)
+          if (this.evFilter.status === 'draft')     q = q.eq('is_published', false)
+          if (this.evFilter.search) q = q.ilike('title', `%${this.evFilter.search}%`)
+
+          const { data, error } = await q
+          if (error) throw error
+          this.events = data || []
+        } catch(e) { this.showToast('이벤트 로드 실패: ' + e.message, 'error') }
+        this.loading = false
+      },
+
+      openNewEvent() {
+        this.editingEvent = null
+        this.editForm = {
+          game_id: this.evFilter.game || '',
+          title: '',
+          event_type: '',
+          importance: 'normal',
+          start_at: this.toLocalDT(new Date()),
+          end_at: '',
+          description: '',
+          source_url: '',
+          is_published: true,
+        }
+        this.showEditPanel = true
+      },
+
+      openEdit(ev) {
+        this.editingEvent = ev
+        this.editForm = {
+          game_id:     ev.game_id || '',
+          title:       ev.title || '',
+          event_type:  ev.event_type || '',
+          importance:  ev.importance || 'normal',
+          start_at:    ev.start_at ? this.toLocalDT(new Date(ev.start_at)) : '',
+          end_at:      ev.end_at   ? this.toLocalDT(new Date(ev.end_at))   : '',
+          description: ev.description || '',
+          source_url:  ev.source_url || '',
+          is_published: ev.is_published !== false,
+        }
+        this.showEditPanel = true
+      },
+
+      async saveEvent() {
+        if (!this.editForm.game_id || !this.editForm.title || !this.editForm.event_type || !this.editForm.start_at) {
+          return this.showToast('게임, 제목, 타입, 시작일은 필수입니다', 'error')
+        }
+        this.saving = true
+        try {
+          const payload = {
+            game_id:     this.editForm.game_id,
+            title:       this.editForm.title.trim(),
+            event_type:  this.editForm.event_type,
+            importance:  this.editForm.importance,
+            start_at:    new Date(this.editForm.start_at).toISOString(),
+            end_at:      this.editForm.end_at ? new Date(this.editForm.end_at).toISOString() : null,
+            description: this.editForm.description || null,
+            source_url:  this.editForm.source_url || null,
+            is_published: this.editForm.is_published,
+          }
+
+          let error
+          if (this.editingEvent?.id) {
+            ;({ error } = await this.db.from('events').update(payload).eq('id', this.editingEvent.id))
+          } else {
+            ;({ error } = await this.db.from('events').insert(payload))
+          }
+          if (error) throw error
+
+          this.showToast(this.editingEvent?.id ? '저장 완료 ✓' : '이벤트 추가 완료 ✓')
+          this.showEditPanel = false
+          this.editingEvent = null
+          await this.loadEvents()
+        } catch(e) { this.showToast('저장 실패: ' + e.message, 'error') }
+        this.saving = false
+      },
+
+      askDelete(ev) {
+        this.confirm = {
+          show: true,
+          title: '이벤트 삭제',
+          message: `"${ev.title}"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+          ok: async () => {
+            this.confirm.show = false
+            await this.deleteEvent(ev.id)
+          }
+        }
+      },
+
+      async deleteEvent(id) {
+        const { error } = await this.db.from('events').delete().eq('id', id)
+        if (error) return this.showToast('삭제 실패: ' + error.message, 'error')
+        this.showToast('삭제 완료')
+        this.showEditPanel = false
+        this.editingEvent = null
+        await this.loadEvents()
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // GAMES
+      // ────────────────────────────────────────────────────────────
+      async loadGames() {
+        const { data } = await this.db.from('games').select('*').order('sort_order')
+        this.games = data || []
+      },
+
+      openNewGame() {
+        this.gameForm = { slug: '', name: '', brand_color: '#6366f1', platform: [], is_active: true }
+        this.showGameModal = true
+      },
+
+      openEditGame(g) {
+        this.gameForm = { ...g, platform: [...(g.platform || [])] }
+        this.showGameModal = true
+      },
+
+      togglePlatform(p) {
+        const arr = this.gameForm.platform || []
+        const idx = arr.indexOf(p)
+        idx >= 0 ? arr.splice(idx, 1) : arr.push(p)
+        this.gameForm.platform = [...arr]
+      },
+
+      async saveGame() {
+        if (!this.gameForm.slug || !this.gameForm.name) return this.showToast('Slug와 이름은 필수입니다', 'error')
+        const payload = {
+          slug: this.gameForm.slug,
+          name: this.gameForm.name,
+          brand_color: this.gameForm.brand_color,
+          platform: this.gameForm.platform,
+          is_active: this.gameForm.is_active !== false,
+        }
+        let error
+        if (this.gameForm.id) {
+          ;({ error } = await this.db.from('games').update(payload).eq('id', this.gameForm.id))
+        } else {
+          const maxOrder = Math.max(0, ...this.games.map(g => g.sort_order || 0))
+          ;({ error } = await this.db.from('games').insert({ ...payload, sort_order: maxOrder + 1 }))
+        }
+        if (error) return this.showToast('저장 실패: ' + error.message, 'error')
+        this.showToast('게임 저장 완료 ✓')
+        this.showGameModal = false
+        await this.loadGames()
+      },
+
+      async toggleGameActive(g) {
+        const { error } = await this.db.from('games').update({ is_active: !g.is_active }).eq('id', g.id)
+        if (error) return this.showToast('업데이트 실패', 'error')
+        g.is_active = !g.is_active
+        this.showToast(g.is_active ? '게임 활성화됨' : '게임 비활성화됨')
+      },
+
+      async updateGameColor(g, color) {
+        g.brand_color = color
+        await this.db.from('games').update({ brand_color: color }).eq('id', g.id)
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // RELEASES
+      // ────────────────────────────────────────────────────────────
+      async loadReleases() {
+        const { data } = await this.db.from('new_releases')
+          .select('*').order('release_date')
+        this.releases = data || []
+      },
+
+      openNewRelease() {
+        this.releaseForm = { title: '', genre: '', developer: '', release_date: '', platform: [], is_featured: false }
+        this.showReleaseModal = true
+      },
+
+      openEditRelease(r) {
+        this.releaseForm = { ...r, platform: [...(r.platform || [])] }
+        this.showReleaseModal = true
+      },
+
+      toggleReleasePlatform(p) {
+        const arr = this.releaseForm.platform || []
+        const idx = arr.indexOf(p)
+        idx >= 0 ? arr.splice(idx, 1) : arr.push(p)
+        this.releaseForm.platform = [...arr]
+      },
+
+      async saveRelease() {
+        if (!this.releaseForm.title || !this.releaseForm.release_date) return this.showToast('제목과 출시일은 필수입니다', 'error')
+        if (this.releaseForm.is_featured) {
+          const featuredCount = this.releases.filter(r => r.is_featured && r.id !== this.releaseForm.id).length
+          if (featuredCount >= 3) return this.showToast('Featured는 최대 3개까지 가능합니다', 'error')
+        }
+        const payload = {
+          title: this.releaseForm.title,
+          genre: this.releaseForm.genre || null,
+          developer: this.releaseForm.developer || null,
+          release_date: this.releaseForm.release_date,
+          platform: this.releaseForm.platform,
+          is_featured: this.releaseForm.is_featured || false,
+        }
+        let error
+        if (this.releaseForm.id) {
+          ;({ error } = await this.db.from('new_releases').update(payload).eq('id', this.releaseForm.id))
+        } else {
+          ;({ error } = await this.db.from('new_releases').insert(payload))
+        }
+        if (error) return this.showToast('저장 실패: ' + error.message, 'error')
+        this.showToast('저장 완료 ✓')
+        this.showReleaseModal = false
+        await this.loadReleases()
+      },
+
+      async toggleFeatured(r) {
+        if (!r.is_featured) {
+          const featuredCount = this.releases.filter(x => x.is_featured && x.id !== r.id).length
+          if (featuredCount >= 3) return this.showToast('Featured는 최대 3개까지 가능합니다', 'error')
+        }
+        const { error } = await this.db.from('new_releases').update({ is_featured: !r.is_featured }).eq('id', r.id)
+        if (error) return this.showToast('실패: ' + error.message, 'error')
+        r.is_featured = !r.is_featured
+      },
+
+      askDeleteRelease(r) {
+        this.confirm = {
+          show: true,
+          title: '릴리즈 삭제',
+          message: `"${r.title}"을(를) 삭제하시겠습니까?`,
+          ok: async () => {
+            this.confirm.show = false
+            const { error } = await this.db.from('new_releases').delete().eq('id', r.id)
+            if (error) return this.showToast('삭제 실패', 'error')
+            this.showToast('삭제 완료')
+            await this.loadReleases()
+          }
+        }
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // CRAWLERS
+      // ────────────────────────────────────────────────────────────
+      async loadCrawlLogs() {
+        const { data } = await this.db.from('crawl_logs')
+          .select('*').order('created_at', { ascending: false }).limit(50)
+        this.crawlLogs = data || []
+      },
+
+      async runCrawler(slug) {
+        if (!this.cfg.siteUrl) return this.showToast('사이트 URL을 설정에서 입력해주세요', 'error')
+        this.crawlRunning = { ...this.crawlRunning, [slug]: true }
+        try {
+          const res = await fetch(`${this.cfg.siteUrl}/api/admin/crawl/${slug}`, {
+            method: 'POST',
+            headers: { 'x-admin-secret': this.cfg.adminSecret }
+          })
+          const body = await res.json().catch(() => ({}))
+          if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`)
+          this.crawlResults = {
+            ...this.crawlResults,
+            [slug]: { ok: true, msg: `✓ +${body.events_added || 0} 추가` }
+          }
+          this.showToast(`${slug} 크롤 완료: ${body.events_added || 0}개 추가`)
+          await this.loadCrawlLogs()
+        } catch(e) {
+          this.crawlResults = { ...this.crawlResults, [slug]: { ok: false, msg: '✗ ' + e.message } }
+          this.showToast(`${slug} 크롤 실패: ${e.message}`, 'error')
+        }
+        this.crawlRunning = { ...this.crawlRunning, [slug]: false }
+      },
+
+      async runAllCrawlers() {
+        this.crawling = true
+        for (const g of this.games) {
+          await this.runCrawler(g.slug)
+          await new Promise(r => setTimeout(r, 2000))
+        }
+        this.crawling = false
+        this.showToast('전체 크롤링 완료')
+      },
+
+      crawlerSource(slug) {
+        const map = {
+          'fortnite':    'fortnite-api.com',
+          'wow':         'Battle.net API',
+          'pokemon-go':  'leekduck.com',
+          'genshin':     'HoYoLAB API',
+          'lol':         'riot news crawl',
+          'honkai-star-rail': 'HoYoLAB API',
+          'zenless-zone-zero': 'HoYoLAB API',
+          'valorant':    'Riot API',
+          'clash-of-clans': 'Supercell API',
+          'brawl-stars': 'Supercell API',
+          'guild-wars-2': 'api.guildwars2.com',
+          'warframe':    'warframestat.us',
+        }
+        return map[slug] || '—'
+      },
+
+      lastCrawl(gameId) {
+        const log = this.crawlLogs.find(l => l.game_id === gameId)
+        return log ? this.timeAgo(log.created_at) : '기록 없음'
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // HEALTH
+      // ────────────────────────────────────────────────────────────
+      async loadHealth() {
+        this.loading = true
+        try {
+          const now = new Date().toISOString()
+          const { data: evs } = await this.db.from('events')
+            .select('id, title, description, source_url, end_at, is_published, start_at, game_id')
+
+          const all = evs || []
+          const noDesc     = all.filter(e => !e.description || e.description.trim() === '').length
+          const noSource   = all.filter(e => !e.source_url).length
+          const noEndDate  = all.filter(e => !e.end_at).length
+          const expiredPub = all.filter(e => e.is_published && e.end_at && e.end_at < now).length
+
+          // Duplicate detection (same title + game within 3 days)
+          const dupes = all.filter((e, i) =>
+            all.findIndex(x => x.id !== e.id && x.game_id === e.game_id &&
+              x.title.toLowerCase() === e.title.toLowerCase() &&
+              Math.abs(new Date(x.start_at) - new Date(e.start_at)) < 3 * 86400000
+            ) >= 0
+          ).length
+
+          this.healthWarnings = [
+            { key: 'no_description', label: '설명 없음',        desc: 'description이 비어있는 이벤트',   count: noDesc,     critical: false },
+            { key: 'no_source',      label: '출처 URL 없음',     desc: 'source_url이 없는 이벤트',        count: noSource,   critical: false },
+            { key: 'no_end_date',    label: '종료일 없음',       desc: 'end_at이 없는 이벤트',            count: noEndDate,  critical: false },
+            { key: 'expired_pub',    label: '만료된 발행 이벤트', desc: '종료됐지만 Published 상태',       count: expiredPub, critical: true  },
+            { key: 'duplicates',     label: '중복 의심',         desc: '같은 게임+제목이 3일 내에 중복',  count: dupes,      critical: false },
+          ]
+
+          // Score: 100 - penalty
+          const penalty = Math.min(
+            noDesc * 2 + noSource * 1 + noEndDate * 1 + expiredPub * 5 + dupes * 3,
+            100
+          )
+          this.healthScore = Math.max(0, 100 - penalty)
+        } catch(e) { this.showToast('Health 로드 실패: ' + e.message, 'error') }
+        this.loading = false
+      },
+
+      filterToWarning(key) {
+        const filterMap = {
+          expired_pub: () => { this.evFilter.status = 'published'; this.switchTab('events') },
+          duplicates:  () => this.switchTab('events'),
+          no_description: () => this.switchTab('events'),
+        }
+        if (filterMap[key]) filterMap[key]()
+        else this.switchTab('events')
+      },
+
+      // ────────────────────────────────────────────────────────────
+      // HELPERS
+      // ────────────────────────────────────────────────────────────
+      showToast(message, type = 'success') {
+        this.toast = { show: true, message, type }
+        setTimeout(() => { this.toast.show = false }, 3000)
+      },
+
+      fmtDate(iso) {
+        if (!iso) return '—'
+        return new Date(iso).toLocaleString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short'
+        })
+      },
+
+      fmtDateOnly(d) {
+        if (!d) return '—'
+        return new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+      },
+
+      dday(dateStr) {
+        if (!dateStr) return -1
+        const target = new Date(dateStr + 'T00:00:00Z')
+        const now = new Date(); now.setUTCHours(0,0,0,0)
+        return Math.ceil((target - now) / 86400000)
+      },
+
+      timeAgo(iso) {
+        if (!iso) return '—'
+        const diff = (Date.now() - new Date(iso)) / 1000
+        if (diff < 60)   return `${Math.floor(diff)}초 전`
+        if (diff < 3600) return `${Math.floor(diff/60)}분 전`
+        if (diff < 86400) return `${Math.floor(diff/3600)}시간 전`
+        return `${Math.floor(diff/86400)}일 전`
+      },
+
+      toLocalDT(d) {
+        // datetime-local input needs YYYY-MM-DDTHH:MM format (local time, but we label UTC)
+        const p = n => String(n).padStart(2, '0')
+        return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`
+      },
+
+      gameNameById(id) {
+        return this.games.find(g => g.id === id)?.name || id?.slice(0,8) || '—'
+      },
+
+      eventTypeBadge(type) {
+        const map = {
+          banner_end:     'bg-red-900/50 text-red-400',
+          limited_reward: 'bg-red-900/50 text-red-400',
+          content_vault:  'bg-orange-900/50 text-orange-400',
+          season_end:     'bg-orange-900/50 text-orange-400',
+          live_event:     'bg-purple-900/50 text-purple-400',
+          collab_event:   'bg-purple-900/50 text-purple-400',
+          weekly_reset:   'bg-blue-900/50 text-blue-400',
+          daily_reset:    'bg-blue-900/50 text-blue-300',
+          patch_release:  'bg-cyan-900/50 text-cyan-400',
+          maintenance:    'bg-yellow-900/50 text-yellow-400',
+          tournament:     'bg-emerald-900/50 text-emerald-400',
+          double_xp:      'bg-green-900/50 text-green-400',
+        }
+        return map[type] || 'bg-gray-800 text-gray-400'
+      },
+    }
+  }
+  </script>
+
+</body>
+</html>

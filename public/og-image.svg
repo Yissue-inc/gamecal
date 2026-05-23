@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0f0f0f"/>
+  <text x="600" y="300" font-family="Arial,sans-serif" font-size="96" font-weight="bold" fill="#ffffff" text-anchor="middle">GAME</text>
+  <text x="600" y="380" font-family="Arial,sans-serif" font-size="96" font-weight="bold" fill="#6366f1" text-anchor="middle">CAL</text>
+  <text x="600" y="460" font-family="Arial,sans-serif" font-size="32" fill="#a1a1aa" text-anchor="middle">Gaming Event Calendar</text>
+</svg>

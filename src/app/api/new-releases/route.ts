@@ -1,0 +1,46 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { MOCK_RELEASES, isSupabaseConfigured } from '@/lib/mock-data'
+import { verifyAdminSecret } from '@/lib/utils'
+
+export async function GET(request: NextRequest) {
+  const featured = request.nextUrl.searchParams.get('featured') === 'true'
+
+  if (!isSupabaseConfigured()) {
+    let releases = MOCK_RELEASES
+    if (featured) releases = releases.filter((r) => r.is_featured)
+    return NextResponse.json({ releases })
+  }
+
+  const admin = createAdminClient()
+  let query = admin.from('new_releases').select('*').eq('is_published', true).order('release_date')
+
+  if (featured) query = query.eq('is_featured', true)
+
+  const { data, error } = await query
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ releases: data })
+}
+
+export async function POST(request: NextRequest) {
+  if (!verifyAdminSecret(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json()
+  const admin = createAdminClient()
+
+  if (body.is_featured) {
+    const { count } = await admin
+      .from('new_releases')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_featured', true)
+    if ((count ?? 0) >= 3) {
+      return NextResponse.json({ error: 'Maximum 3 featured releases allowed' }, { status: 400 })
+    }
+  }
+
+  const { data, error } = await admin.from('new_releases').insert(body).select().single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ release: data })
+}
