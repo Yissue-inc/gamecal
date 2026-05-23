@@ -10,28 +10,34 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      ADMIN_SECRET: ci-admin-secret
+      CRON_SECRET: ci-cron-secret
+      PORT: '3000'
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
+
       - run: pnpm install
+
       - run: pnpm exec playwright install --with-deps chromium
+
       - run: pnpm build
-      - run: pnpm test:smoke
-        env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
-          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
-      - run: pnpm dev &
-      - run: npx wait-on http://localhost:3000 --timeout 60000
-      - run: pnpm test:api
-        env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
-          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+
+      - name: Start server and run smoke + API tests
+        run: |
+          pnpm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+          pnpm test:smoke
+          pnpm test:api
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
