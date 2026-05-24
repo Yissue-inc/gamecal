@@ -142,7 +142,7 @@ export function GameCalendar({
   }, [releases, releasesByDate, mountReleaseArt])
 
   return (
-    <div className="gamecal-calendar relative flex-1 overflow-hidden p-4" data-testid="calendar-grid">
+    <div className="gamecal-calendar relative min-h-0 flex-1 overflow-hidden p-4" data-testid="calendar-grid">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0f0f0f]/50">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -199,8 +199,16 @@ export function GameCalendar({
           --fc-today-bg-color: rgba(99, 102, 241, 0.08);
           --fc-neutral-bg-color: #1a1a1a;
           --fc-page-bg-color: #0f0f0f;
+          height: 100%;
+          min-height: 0;
         }
-        .gamecal-calendar .fc { color: #fff; }
+        .gamecal-calendar .fc {
+          color: #fff;
+          height: 100% !important;
+        }
+        .gamecal-calendar .fc-view-harness {
+          height: 100% !important;
+        }
         .gamecal-calendar .fc-col-header-cell {
           background: #1a1a1a;
           padding: 8px 0;

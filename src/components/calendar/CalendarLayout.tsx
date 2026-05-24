@@ -106,16 +106,16 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
       <LiveBanner events={events} onEventClick={handleFeedEventClick} />
       <DailyCheckIn />
       <MobileGameChips games={games} selectedGames={selectedGames} onToggle={handleToggle} />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <GameSidebar
           games={games}
           selectedGames={selectedGames}
           onToggle={handleToggle}
           onToggleAll={handleToggleAll}
         />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <WeeklyHighlights events={events} onEventClick={handleEventClick} />
-          <div className="relative flex-1 overflow-hidden">
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
             <GameCalendar
               calendarRef={calendarRef}
               selectedGames={selectedGames}

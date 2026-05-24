@@ -85,7 +85,7 @@ export function WeeklyHighlights({
   if (!highlights.length) return null
 
   return (
-    <div data-testid="weekly-highlights" className="border-b border-zinc-800 px-4 py-3">
+    <div data-testid="weekly-highlights" className="shrink-0 border-b border-zinc-800 px-4 py-3">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-sm font-bold text-white">🔥 THIS WEEK</span>
         <span className="text-xs text-zinc-500">— {highlights.length} major events</span>
