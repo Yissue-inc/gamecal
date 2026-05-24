@@ -56,6 +56,6 @@ test.describe('Calendar UI', () => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await expect(page.locator('[data-testid="calendar-grid"]')).toBeVisible()
-    await expect(page.locator('[data-testid="calendar-header"]')).toBeVisible()
+    await expect(page.locator('[data-testid="mobile-game-chips"]')).toBeVisible()
   })
 })

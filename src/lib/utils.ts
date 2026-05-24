@@ -2,7 +2,6 @@ import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import {
   format,
-  formatDistanceToNowStrict,
   isBefore,
   parseISO,
   differenceInHours,
@@ -38,23 +37,44 @@ export function getEventTypeLabel(type: EventType): string {
   return labels[type] ?? type
 }
 
-export function getEventTypeEmoji(type: EventType): string {
-  const emojis: Record<EventType, string> = {
+export function getEventTypeIcon(type: EventType): string {
+  const icons: Record<EventType, string> = {
     weekly_reset: '🔄',
-    season_start: '🎬',
+    season_start: '🚀',
     season_end: '🏁',
     live_event: '🎉',
-    limited_reward: '🔴',
+    limited_reward: '🎁',
     patch_release: '🔧',
     tournament: '🏆',
-    ranked_reset: '⚔️',
-    banner_end: '🎴',
-    double_xp: '✨',
-    maintenance: '🔧',
-    new_content: '🆕',
+    ranked_reset: '📊',
+    banner_end: '⏳',
+    double_xp: '⚡',
+    maintenance: '🛠',
+    new_content: '✨',
     other: '📌',
   }
-  return emojis[type] ?? '📌'
+  return icons[type] ?? '📌'
+}
+
+/** @deprecated Use getEventTypeIcon */
+export function getEventTypeEmoji(type: EventType): string {
+  return getEventTypeIcon(type)
+}
+
+export function getPlatformColor(platform: string): string {
+  const colors: Record<string, string> = {
+    PS5: '#003087',
+    Xbox: '#107c10',
+    Switch: '#e4000f',
+    PC: '#1b2838',
+    Mobile: '#6366f1',
+  }
+  return colors[platform] ?? '#1a1a2e'
+}
+
+export function getReleaseHeroColor(platforms: string[]): string {
+  if (platforms.length === 0) return '#1a1a2e'
+  return getPlatformColor(platforms[0])
 }
 
 export function getImportanceColor(importance: Importance): string {
@@ -119,32 +139,77 @@ export function isEndingSoon(date: string, hours = 48): boolean {
   return differenceInHours(target, now) <= hours
 }
 
-export function getCountdown(date: string): string {
-  const target = parseISO(date)
+export function getGameTextColor(brandColor: string): string {
+  const lightened: Record<string, string> = {
+    '#00d4ff': '#00d4ff',
+    '#e33c3c': '#ef8080',
+    '#ff4655': '#ff8090',
+    '#c89b3c': '#e6bb6a',
+    '#4f91cd': '#7db3e0',
+    '#b45309': '#d97706',
+    '#f59e0b': '#fbbf24',
+    '#eab308': '#fcd34d',
+    '#4ade80': '#86efac',
+  }
+  return lightened[brandColor.toLowerCase()] ?? brandColor
+}
+
+const IMPORTANCE_ORDER: Record<Importance, number> = {
+  critical: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+}
+
+export function getGamerCountdown(start: string, end?: string): string {
   const now = new Date()
-  if (isBefore(target, now)) return 'Ended'
-  return formatDistanceToNowStrict(target, { addSuffix: false })
-    .replace(' seconds', 's')
-    .replace(' second', 's')
-    .replace(' minutes', 'm')
-    .replace(' minute', 'm')
-    .replace(' hours', 'h')
-    .replace(' hour', 'h')
-    .replace(' days', 'd')
-    .replace(' day', 'd')
+  const startDate = parseISO(start)
+  const endDate = end ? parseISO(end) : startDate
+
+  if (isBefore(endDate, now) && isBefore(startDate, now)) {
+    return `Ended · ${format(endDate, 'MMM d')}`
+  }
+  if (isBefore(startDate, now) && !isBefore(endDate, now)) {
+    return '🔴 LIVE'
+  }
+
+  const diffMs = startDate.getTime() - now.getTime()
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const days = Math.floor(totalHours / 24)
+
+  if (totalHours <= 24) {
+    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+    return `Starts in ${totalHours}h ${mins}m`
+  }
+  if (days <= 7) {
+    return `${days} day${days === 1 ? '' : 's'} left`
+  }
+  return `D-${days}`
+}
+
+export function getCountdown(date: string): string {
+  return getGamerCountdown(date)
 }
 
 export function gameEventToCalendarEvent(event: GameEvent, game: Game): CalendarEvent {
   const color = game.brand_color
+  const classNames = [`importance-${event.importance}`]
+  if (event.importance === 'critical') classNames.push('critical-event')
+
   return {
     id: event.id,
-    title: event.title,
+    title: `${getEventTypeIcon(event.event_type)} ${event.title}`,
     start: event.start_at,
     end: event.end_at ?? undefined,
-    backgroundColor: `${color}33`,
+    backgroundColor: hexToRgba(color, 0.125),
     borderColor: color,
-    textColor: '#ffffff',
-    extendedProps: { gameEvent: event, game },
+    textColor: getGameTextColor(color),
+    classNames,
+    extendedProps: {
+      gameEvent: event,
+      game,
+      importanceOrder: IMPORTANCE_ORDER[event.importance],
+    },
   }
 }
 

@@ -24,7 +24,8 @@ test.describe('Guest experience', () => {
   test('게스트 배너(blur-overlay)에 가입 CTA가 있다', async ({ page }) => {
     const overlay = page.locator('[data-testid="blur-overlay"]')
     await expect(overlay).toBeVisible()
-    await expect(overlay).toContainText('Sign up')
+    await expect(overlay).toContainText('Sign in to unlock the full calendar')
+    await expect(page.locator('[data-testid="sign-in-free-button"]')).toBeVisible()
   })
 
   test('헤더에 Sign In 버튼이 표시된다', async ({ page }) => {
@@ -32,7 +33,7 @@ test.describe('Guest experience', () => {
   })
 
   test('가입 CTA 클릭 시 Auth 모달이 열린다', async ({ page }) => {
-    await page.click('[data-testid="create-account-button"]')
+    await page.click('[data-testid="sign-in-free-button"]')
     await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible()
   })
 

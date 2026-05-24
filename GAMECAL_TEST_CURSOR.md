@@ -49,7 +49,12 @@
 □ 홈페이지 로드 후 캘린더가 보임 (로그인 없이)
 □ 오늘 날짜에 이벤트 바가 표시됨
 □ 오늘 날짜 외 다른 날짜는 blur 처리됨 (흐릿하게 보임)
-□ blur 위에 "Sign up to see all events" CTA 텍스트 보임
+□ blur 위에 "Sign in to unlock the full calendar" + "Sign in free →" CTA 보임
+□ 사이드바 헤더가 "🎮 GAMES" 스타일로 표시됨 (Game Select placeholder 없음)
+□ 게임 항목 아래 플랫폼 칩 표시됨 (PC, PS5 등)
+□ 이벤트 바에 타입 아이콘 prefix 표시됨 (🔄 🏆 🎁 등)
+□ critical 이벤트(시즌 종료·토너먼트)에 빨간 glow + dot 강조
+□ 오늘 날짜 셀에 인디고 glow 원 표시됨
 □ 왼쪽 게임 리스트 5개 체크박스 보임 (Fortnite, WoW, Pokémon GO, Genshin, LoL)
 □ 헤더에 "Sign In" 버튼 보임
 ```
@@ -79,7 +84,11 @@
 □ 왼쪽 Fortnite 체크박스 해제 → 캘린더에서 Fortnite 이벤트 사라짐
 □ 다시 체크 → 이벤트 복원됨
 □ [All] 체크박스 해제 → 모든 이벤트 사라짐
-□ 모바일 (375px로 창 줄이기) → 레이아웃 깨지지 않음
+□ 모바일 (375px로 창 줄이기) → 가로 스크롤 게임 칩 + 캘린더 표시
+□ 출시일 셀에 게임 커버 art + D-day 표시됨
+□ 출시 셀 클릭 → 릴리즈 상세 패널 슬라이드인
+□ 이벤트 패널 Share 버튼 (Discord/Reddit/Copy) 동작
+□ 이벤트 패널 게이머 카운트다운 (D-N / X days left / LIVE)
 ```
 
 ### ✅ STEP 4 — 이벤트 상세 패널 검증
@@ -149,7 +158,9 @@ Google Calendar 구독 테스트:
 
 ```
 □ /new-releases 접근 → 페이지 정상 표시
-□ 게임 카드 리스트 표시됨
+□ 상단 BIG 히어로 카드 (첫 Featured 릴리즈 풀 블리드)
+□ 서브타이틀: "PC · Console · Mobile — upcoming titles"
+□ 릴리즈 카드 상단 gradient 커버 플레이스홀더 표시됨
 □ is_featured=true 게임이 상단에 강조 표시됨
 □ 플랫폼 배지 표시됨 (PC, PS5, Mobile 등)
 □ 출시일 표시됨

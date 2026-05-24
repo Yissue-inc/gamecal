@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { AddToCalendar } from '@/components/calendar/AddToCalendar'
+import { ShareEvent } from '@/components/calendar/ShareEvent'
 import {
   formatDateRange,
   formatTimeRange,
-  getCountdown,
+  getGamerCountdown,
   getEventTypeLabel,
   getImportanceEmoji,
 } from '@/lib/utils'
@@ -26,36 +27,51 @@ interface EventDetailPanelProps {
 
 function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: Game; onClose: () => void }) {
   const { preferences } = usePreferences()
-  const endDate = event.end_at ?? event.start_at
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-zinc-800 p-4">
-        <span className="text-sm text-muted-foreground">Event Details</span>
-        <Button data-testid="close-event-panel" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+      <div
+        data-testid="event-panel-hero"
+        className="relative h-32 shrink-0 bg-cover bg-center"
+        style={{
+          backgroundImage: event.image_url
+            ? `url(${event.image_url})`
+            : `linear-gradient(135deg, ${game.brand_color}55 0%, #1a1a2e 100%)`,
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/40 to-transparent" />
+        <Button
+          data-testid="close-event-panel"
+          variant="ghost"
+          size="icon"
+          className="absolute right-2 top-2 bg-black/40"
+          onClick={onClose}
+          aria-label="Close"
+        >
           <X className="h-4 w-4" />
         </Button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <div className="flex items-center gap-3">
+        <div className="absolute bottom-3 left-4 flex items-center gap-2">
           <div
             data-testid="event-game-icon"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-lg font-bold"
-            style={{ backgroundColor: `${game.brand_color}33`, color: game.brand_color }}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold"
+            style={{ backgroundColor: `${game.brand_color}66`, color: game.brand_color }}
           >
             {game.name[0]}
           </div>
-          <span data-testid="event-game-name" className="text-sm text-muted-foreground">{game.name}</span>
+          <span data-testid="event-game-name" className="text-sm font-medium text-zinc-200">{game.name}</span>
         </div>
+      </div>
 
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <h2 data-testid="event-title" className="text-2xl font-bold leading-tight">{event.title}</h2>
 
         <div className="flex flex-wrap items-center gap-2">
           <Badge data-testid="event-type-badge" variant="secondary" className="uppercase">
             {getImportanceEmoji(event.importance)} {getEventTypeLabel(event.event_type)}
           </Badge>
-          <Badge data-testid="event-countdown" variant="outline">⏱ {getCountdown(endDate)}</Badge>
+          <Badge data-testid="event-countdown" variant="outline">
+            ⏳ {getGamerCountdown(event.start_at, event.end_at)}
+          </Badge>
         </div>
 
         <div className="space-y-2 text-sm">
@@ -74,6 +90,7 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
         )}
 
         <AddToCalendar event={event} game={game} />
+        <ShareEvent event={event} game={game} />
 
         {event.source_url && (
           <Button variant="outline" className="w-full border-zinc-700" asChild>

@@ -1,11 +1,16 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Rajdhani } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { PreferencesProvider } from '@/hooks/usePreferences'
 import { Toaster } from '@/components/ui/sonner'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const rajdhani = Rajdhani({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-rajdhani',
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
@@ -23,7 +28,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-[#0f0f0f] text-white`}>
+      <body className={`${inter.className} ${rajdhani.variable} bg-[#0f0f0f] text-white`}>
         <AuthProvider>
           <PreferencesProvider>
             {children}

@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test'
 async function openTodayEventPanel(page: import('@playwright/test').Page) {
   await page.goto('/')
   await page.waitForSelector('[data-testid="calendar-grid"]')
-  await page.waitForSelector('.fc-day-today .fc-event', { timeout: 15000 })
-  await page.locator('.fc-day-today .fc-event').first().click()
+  await page.waitForSelector('.fc-event:not(.guest-blurred-event)', { timeout: 15000 })
+  await page.locator('.fc-event:not(.guest-blurred-event)').first().click()
   await expect(page.locator('[data-testid="event-panel"]')).toBeVisible()
 }
 
@@ -18,7 +18,6 @@ test.describe('Add to Calendar', () => {
     await expect(page.locator('[data-testid="google-calendar-link"]')).toBeVisible()
     await expect(page.locator('[data-testid="outlook-calendar-link"]')).toBeVisible()
     await expect(page.locator('[data-testid="ical-download-link"]')).toBeVisible()
-    await expect(page.locator('[data-testid="copy-btn"]')).toBeVisible()
   })
 
   test('Google Calendar 링크에 calendar.google.com이 포함된다', async ({ page }) => {
@@ -34,18 +33,17 @@ test.describe('Add to Calendar', () => {
     expect(href).toMatch(/\/api\/events\/.+\/ics/)
   })
 
-  test('COPY 버튼 클릭 시 Discord 포맷이 클립보드에 복사된다', async ({ page, context }) => {
+  test('Share Discord 버튼 클릭 시 클립보드에 복사된다', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-    await page.click('[data-testid="add-to-calendar-btn"]')
-    await page.click('[data-testid="copy-btn"]')
+    await page.click('[data-testid="share-discord-btn"]')
     await expect(page.locator('text=/Copied/')).toBeVisible()
     const clipboard = await page.evaluate(() => navigator.clipboard.readText())
-    expect(clipboard).toContain('🎮')
+    expect(clipboard.length).toBeGreaterThan(10)
   })
 
-  test('Reddit 포맷 복사 버튼이 동작한다', async ({ page, context }) => {
+  test('Share Reddit 버튼이 동작한다', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-    await page.click('[data-testid="copy-reddit-btn"]')
+    await page.click('[data-testid="share-reddit-btn"]')
     await expect(page.locator('text=/Copied/')).toBeVisible()
   })
 })

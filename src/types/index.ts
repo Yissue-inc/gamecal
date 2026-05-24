@@ -51,6 +51,7 @@ export interface NewRelease {
   release_date: string
   description?: string
   image_url?: string
+  hero_color?: string
   steam_url?: string
   nintendo_url?: string
   is_featured: boolean
@@ -79,7 +80,7 @@ export interface CalendarEvent {
   borderColor: string
   textColor: string
   classNames?: string[]
-  extendedProps: { gameEvent: GameEvent; game: Game }
+  extendedProps: { gameEvent: GameEvent; game: Game; importanceOrder?: number }
 }
 
 export const DEFAULT_SELECTED_GAMES = [

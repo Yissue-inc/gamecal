@@ -24,6 +24,9 @@ const config: Config = {
         md: 'calc(0.5rem - 2px)',
         sm: 'calc(0.5rem - 4px)',
       },
+      fontFamily: {
+        rajdhani: ['var(--font-rajdhani)', 'sans-serif'],
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],

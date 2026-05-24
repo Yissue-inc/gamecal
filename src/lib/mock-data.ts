@@ -1,11 +1,15 @@
 import type { Game, GameEvent, NewRelease } from '@/types'
 
 export const MOCK_GAMES: Game[] = [
-  { id: '1', slug: 'fortnite', name: 'Fortnite', brand_color: '#00d4ff', platform: ['PC', 'PS5', 'Xbox', 'Mobile', 'Switch'], sort_order: 1 },
-  { id: '2', slug: 'wow', name: 'World of Warcraft', brand_color: '#f59e0b', platform: ['PC'], sort_order: 2 },
-  { id: '3', slug: 'pokemon-go', name: 'Pokémon GO', brand_color: '#ffcc00', platform: ['Mobile'], sort_order: 3 },
-  { id: '4', slug: 'genshin', name: 'Genshin Impact', brand_color: '#4ade80', platform: ['PC', 'PS5', 'Mobile'], sort_order: 4 },
-  { id: '5', slug: 'lol', name: 'League of Legends', brand_color: '#c89b3c', platform: ['PC'], sort_order: 5 },
+  { id: '1', slug: 'fortnite',   name: 'Fortnite',           brand_color: '#00d4ff', platform: ['PC','PS5','Xbox','Mobile','Switch'], sort_order: 1 },
+  { id: '2', slug: 'apex',       name: 'Apex Legends',        brand_color: '#e33c3c', platform: ['PC','PS5','Xbox'],                   sort_order: 2 },
+  { id: '3', slug: 'valorant',   name: 'Valorant',            brand_color: '#ff4655', platform: ['PC'],                                sort_order: 3 },
+  { id: '4', slug: 'lol',        name: 'League of Legends',   brand_color: '#c89b3c', platform: ['PC'],                                sort_order: 4 },
+  { id: '5', slug: 'destiny2',   name: 'Destiny 2',           brand_color: '#4f91cd', platform: ['PC','PS5','Xbox'],                   sort_order: 5 },
+  { id: '6', slug: 'diablo4',    name: 'Diablo IV',           brand_color: '#b45309', platform: ['PC','PS5','Xbox'],                   sort_order: 6 },
+  { id: '7', slug: 'wow',        name: 'World of Warcraft',   brand_color: '#f59e0b', platform: ['PC'],                                sort_order: 7 },
+  { id: '8', slug: 'pokemon-go', name: 'Pokémon GO',          brand_color: '#eab308', platform: ['Mobile'],                            sort_order: 8 },
+  { id: '9', slug: 'genshin',    name: 'Genshin Impact',      brand_color: '#4ade80', platform: ['PC','PS5','Mobile'],                 sort_order: 9 },
 ]
 
 function evt(
@@ -84,6 +88,7 @@ export const MOCK_RELEASES: NewRelease[] = [
     release_date: '2026-06-15',
     description: 'The long-awaited sequel to Hollow Knight',
     is_featured: true,
+    hero_color: '#1a1a2e',
     steam_url: 'https://store.steampowered.com',
   },
   {
@@ -94,6 +99,7 @@ export const MOCK_RELEASES: NewRelease[] = [
     release_date: '2026-07-01',
     description: 'Return to the Metroid universe',
     is_featured: true,
+    hero_color: '#e4000f',
     nintendo_url: 'https://nintendo.com',
   },
   {
@@ -104,6 +110,7 @@ export const MOCK_RELEASES: NewRelease[] = [
     release_date: '2026-05-30',
     description: 'Co-op survival expansion',
     is_featured: true,
+    hero_color: '#1b2838',
     steam_url: 'https://store.steampowered.com',
   },
   {
@@ -114,6 +121,7 @@ export const MOCK_RELEASES: NewRelease[] = [
     release_date: '2026-08-12',
     description: 'New looter shooter adventure',
     is_featured: false,
+    hero_color: '#f59e0b',
     steam_url: 'https://store.steampowered.com',
   },
 ]

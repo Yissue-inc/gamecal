@@ -8,8 +8,14 @@ test.describe('New Releases', () => {
 
   test('Featured 및 전체 출시 목록이 표시된다', async ({ page }) => {
     await page.goto('/new-releases')
-    await expect(page.locator('text=Featured')).toBeVisible()
-    await expect(page.locator('text=All Upcoming')).toBeVisible()
+    await expect(page.locator('[data-testid="new-releases-hero"]')).toBeVisible()
+    await expect(page.locator('[data-testid="all-releases-section"]')).toBeVisible()
+  })
+
+  test('서브타이틀과 커버 플레이스홀더가 표시된다', async ({ page }) => {
+    await page.goto('/new-releases')
+    await expect(page.locator('[data-testid="new-releases-subtitle"]')).toContainText('PC · Console · Mobile')
+    await expect(page.locator('[data-testid="release-hero-placeholder"]').first()).toBeVisible()
   })
 
   test('/newtitle 리다이렉트가 /new-releases로 동작한다', async ({ page }) => {

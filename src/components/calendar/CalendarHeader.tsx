@@ -26,7 +26,7 @@ export function CalendarHeader({ currentTitle, onToday, onPrev, onNext, onSignIn
   return (
     <header data-testid="calendar-header" className="flex h-14 items-center justify-between border-b border-zinc-800 bg-[#0f0f0f] px-4">
       <div className="flex items-center gap-4">
-        <Link href="/" data-testid="logo-link" className="text-xl font-bold tracking-tight">
+        <Link href="/" data-testid="logo-link" className="font-rajdhani text-xl font-bold tracking-tight">
           GAME<span className="text-primary">CAL</span>
         </Link>
       </div>
@@ -41,7 +41,7 @@ export function CalendarHeader({ currentTitle, onToday, onPrev, onNext, onSignIn
         <Button data-testid="nav-next" variant="ghost" size="icon" onClick={onNext}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <span data-testid="calendar-month-title" className="min-w-[140px] text-lg font-medium">{currentTitle}</span>
+        <span data-testid="calendar-month-title" className="font-rajdhani min-w-[140px] text-lg font-semibold">{currentTitle}</span>
       </div>
 
       <div className="flex items-center gap-3">

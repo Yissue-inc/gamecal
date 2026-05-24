@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getDaysUntil } from '@/lib/utils'
+import { getDaysUntil, getReleaseHeroColor } from '@/lib/utils'
 import type { NewRelease } from '@/types'
 
 export default function NewReleasesPage() {
@@ -21,30 +21,40 @@ export default function NewReleasesPage() {
       .then((d) => setAll(d.releases ?? []))
   }, [])
 
+  const hero = featured[0]
+
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
+    <div className="min-h-screen bg-[#0f0f0f]" data-testid="new-releases-page">
       <header className="border-b border-zinc-800 px-6 py-4">
-        <Link href="/" className="text-xl font-bold">
+        <Link href="/" className="font-rajdhani text-xl font-bold">
           GAME<span className="text-primary">CAL</span>
         </Link>
-        <h1 className="mt-4 text-2xl font-semibold">New Releases</h1>
-        <p className="text-sm text-muted-foreground">Upcoming Switch & Steam titles</p>
+        <h1 className="font-rajdhani mt-4 text-2xl font-semibold">New Releases</h1>
+        <p data-testid="new-releases-subtitle" className="mt-1 text-sm text-zinc-400">
+          PC · Console · Mobile — upcoming titles
+        </p>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8 space-y-12">
-        {featured.length > 0 && (
-          <section>
-            <h2 className="mb-6 text-lg font-semibold text-primary">Featured</h2>
+      <main className="mx-auto max-w-6xl space-y-12 px-6 py-8">
+        {hero && (
+          <section data-testid="new-releases-hero">
+            <HeroReleaseCard release={hero} />
+          </section>
+        )}
+
+        {featured.length > 1 && (
+          <section data-testid="featured-releases-section">
+            <h2 className="font-rajdhani mb-6 text-lg font-semibold text-primary">Featured</h2>
             <div className="grid gap-6 md:grid-cols-3">
-              {featured.map((release) => (
+              {featured.slice(1).map((release) => (
                 <ReleaseCard key={release.id} release={release} featured />
               ))}
             </div>
           </section>
         )}
 
-        <section>
-          <h2 className="mb-6 text-lg font-semibold">All Upcoming</h2>
+        <section data-testid="all-releases-section">
+          <h2 className="font-rajdhani mb-6 text-lg font-semibold">All Upcoming</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {all.map((release) => (
               <ReleaseCard key={release.id} release={release} />
@@ -56,12 +66,79 @@ export default function NewReleasesPage() {
   )
 }
 
+function HeroReleaseCard({ release }: { release: NewRelease }) {
+  const days = getDaysUntil(release.release_date)
+  const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
+  const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
+
+  return (
+    <div
+      data-testid="new-releases-hero-card"
+      className="relative overflow-hidden rounded-xl border border-zinc-800"
+      style={{
+        backgroundImage: release.image_url
+          ? `linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%), url(${release.image_url})`
+          : `linear-gradient(135deg, ${heroColor} 0%, #0f0f0f 100%)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="flex min-h-[280px] flex-col justify-end p-8 md:min-h-[360px]">
+        <Badge data-testid="hero-dday-badge" variant="outline" className="mb-3 w-fit border-yellow-500/50 text-yellow-400">
+          {dday}
+        </Badge>
+        <h2 data-testid="hero-release-title" className="font-rajdhani max-w-2xl text-3xl font-bold md:text-5xl">
+          {release.title}
+        </h2>
+        {release.developer && (
+          <p className="mt-2 text-lg text-zinc-300">{release.developer}</p>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {release.platform.map((p) => (
+            <Badge key={p} variant="secondary">{p}</Badge>
+          ))}
+        </div>
+        {release.description && (
+          <p className="mt-4 max-w-xl text-sm text-zinc-400">{release.description}</p>
+        )}
+        <div className="mt-6 flex gap-3">
+          {release.steam_url && (
+            <Button data-testid="hero-steam-btn" asChild>
+              <a href={release.steam_url} target="_blank" rel="noopener noreferrer">Wishlist on Steam</a>
+            </Button>
+          )}
+          <Button variant="outline" asChild>
+            <Link href="/" data-testid="hero-calendar-btn">View Calendar</Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ReleaseCard({ release, featured = false }: { release: NewRelease; featured?: boolean }) {
   const days = getDaysUntil(release.release_date)
   const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
+  const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
 
   return (
-    <Card className={featured ? 'border-primary/30 bg-zinc-900' : 'bg-zinc-900/50'}>
+    <Card
+      data-testid={`release-card-${release.id}`}
+      className={`overflow-hidden ${featured ? 'border-primary/30 bg-zinc-900' : 'bg-zinc-900/50'}`}
+    >
+      <div
+        data-testid="release-hero-placeholder"
+        className="flex h-36 w-full items-end rounded-t-lg p-4"
+        style={{
+          background: release.image_url
+            ? `linear-gradient(to top, rgba(0,0,0,0.8), transparent), url(${release.image_url}) center/cover`
+            : `linear-gradient(135deg, ${heroColor} 0%, #1a1a2e 100%)`,
+        }}
+      >
+        <span className="truncate text-3xl font-black leading-none text-white/20">
+          {release.title}
+        </span>
+      </div>
       <CardHeader>
         <div className="flex flex-wrap gap-1">
           {release.platform.map((p) => (

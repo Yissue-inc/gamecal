@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAMECAL — Diamond Ad Demo: WoW Cinematic Takeover</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f0f0f;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── Simulated GAMECAL calendar behind the takeover ── */
+  #gamecal-bg {
+    position: fixed; inset: 0;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 56px 1fr;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  #gamecal-bg.visible { opacity: 1; }
+
+  .bg-header {
+    grid-column: 1 / -1;
+    background: #0f0f0f;
+    border-bottom: 1px solid #27272a;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+  }
+  .bg-logo { font-size: 20px; font-weight: 900; color: white; letter-spacing: -0.5px; }
+  .bg-logo span { color: #6366f1; }
+  .bg-sidebar {
+    background: #1a1a1a;
+    border-right: 1px solid #27272a;
+    padding: 16px;
+  }
+  .bg-cal {
+    background: #0f0f0f;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: 32px repeat(5, 1fr);
+    gap: 1px;
+    background: #27272a;
+    padding: 16px;
+  }
+  .cal-header { background: #1a1a1a; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #71717a; font-weight: 700; text-transform: uppercase; }
+  .cal-cell { background: #0f0f0f; padding: 6px; position: relative; }
+  .cell-num { font-size: 11px; color: #52525b; margin-bottom: 4px; }
+  .event-bar { height: 14px; border-radius: 3px; margin-bottom: 2px; border-left: 3px solid; opacity: 0.7; }
+  .e-fn { background: rgba(0,212,255,0.15); border-color: #00d4ff; }
+  .e-wow { background: rgba(245,158,11,0.15); border-color: #f59e0b; }
+  .e-lol { background: rgba(200,155,60,0.15); border-color: #c89b3c; }
+  .e-d2 { background: rgba(79,145,205,0.15); border-color: #4f91cd; }
+  .e-apex { background: rgba(227,60,60,0.15); border-color: #e33c3c; }
+
+  /* ── Cinematic Overlay ── */
+  #cinematic {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+
+  /* Letterbox bars */
+  #bar-top, #bar-bottom {
+    position: fixed; left: 0; right: 0; z-index: 110;
+    background: #000;
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 0;
+  }
+  #bar-top { top: 0; }
+  #bar-bottom { bottom: 0; }
+  #bar-top.open, #bar-bottom.open { height: 80px; }
+
+  /* Atmospheric canvas */
+  #atmos-canvas {
+    position: fixed; inset: 0; z-index: 105;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  #atmos-canvas.visible { opacity: 1; }
+
+  /* Dragon canvas */
+  #dragon-canvas {
+    position: fixed; inset: 0; z-index: 115;
+    pointer-events: none;
+  }
+
+  /* Text overlay */
+  #text-overlay {
+    position: fixed; inset: 0; z-index: 120;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    pointer-events: none;
+    gap: 12px;
+  }
+
+  .cin-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #f59e0b;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .cin-title {
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 900;
+    color: white;
+    text-align: center;
+    letter-spacing: -1px;
+    line-height: 1.05;
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    transition: opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s;
+    text-shadow: 0 0 80px rgba(245,158,11,0.5), 0 2px 4px rgba(0,0,0,0.8);
+  }
+  .cin-title span { color: #f59e0b; }
+  .cin-sub {
+    font-size: 16px;
+    color: #a1a1aa;
+    letter-spacing: 1px;
+    opacity: 0;
+    transition: opacity 0.6s ease 0.2s;
+  }
+  .cin-cta {
+    margin-top: 8px;
+    display: flex; gap: 12px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+    pointer-events: none;
+  }
+  .btn-primary {
+    background: #f59e0b;
+    color: #0f0f0f;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 24px rgba(245,158,11,0.4);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(245,158,11,0.6); }
+  .btn-secondary {
+    background: transparent;
+    color: #d4d4d8;
+    border: 1px solid #52525b;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-secondary:hover { border-color: #a1a1aa; color: white; }
+
+  .show {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .cin-cta.show { pointer-events: auto; }
+
+  /* Skip button */
+  #skip-btn {
+    position: fixed; top: 100px; right: 28px; z-index: 200;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #a1a1aa;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+    transition: background 0.15s, color 0.15s;
+    backdrop-filter: blur(8px);
+  }
+  #skip-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+  #skip-btn.visible { display: block; }
+
+  /* GAMECAL watermark during cinematic */
+  #cin-logo {
+    position: fixed; top: 96px; left: 28px; z-index: 200;
+    font-size: 13px; font-weight: 900; color: rgba(255,255,255,0.4);
+    letter-spacing: 1px;
+    display: none;
+  }
+  #cin-logo.visible { display: block; }
+  #cin-logo span { color: rgba(99,102,241,0.7); }
+
+  /* Progress bar */
+  #progress-bar {
+    position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
+    z-index: 200;
+    width: 120px; height: 2px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    display: none;
+  }
+  #progress-bar.visible { display: block; }
+  #progress-fill {
+    height: 100%; width: 0;
+    background: #f59e0b;
+    border-radius: 2px;
+    transition: width linear;
+  }
+
+  /* "Sponsored" tag */
+  #sponsored-tag {
+    position: fixed; bottom: 90px; right: 28px; z-index: 200;
+    font-size: 9px; color: rgba(255,255,255,0.3);
+    letter-spacing: 2px; text-transform: uppercase;
+    display: none;
+  }
+  #sponsored-tag.visible { display: block; }
+
+  /* Replay button (after animation) */
+  #replay-btn {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 300;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    color: #a1a1aa;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    transition: all 0.15s;
+  }
+  #replay-btn:hover { background: #3f3f46; color: white; }
+  #replay-btn.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Simulated GAMECAL Calendar (background) -->
+<div id="gamecal-bg">
+  <div class="bg-header">
+    <div class="bg-logo">GAME<span>CAL</span></div>
+    <div style="color:#52525b; font-size:13px;">Today ‹ › &nbsp; June 2026</div>
+  </div>
+  <div class="bg-sidebar">
+    <div style="color:#71717a; font-size:9px; letter-spacing:3px; font-weight:700; text-transform:uppercase; margin-bottom:12px;">🎮 Games</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#d4d4d8;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;flex-shrink:0"></span> World of Warcraft</div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#71717a;"><span style="width:8px;height:8px;border-radius:50%;background:#00d4ff;display:inline-block;flex-shrink:0"></span> Fortnite</div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#71717a;"><span style="width:8px;height:8px;border-radius:50%;background:#e33c3c;display:inline-block;flex-shrink:0"></span> Apex Legends</div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#71717a;"><span style="width:8px;height:8px;border-radius:50%;background:#c89b3c;display:inline-block;flex-shrink:0"></span> League of Legends</div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#71717a;"><span style="width:8px;height:8px;border-radius:50%;background:#4f91cd;display:inline-block;flex-shrink:0"></span> Destiny 2</div>
+    </div>
+  </div>
+  <div class="bg-cal">
+    <div class="cal-header">Sun</div><div class="cal-header">Mon</div><div class="cal-header">Tue</div>
+    <div class="cal-header">Wed</div><div class="cal-header">Thu</div><div class="cal-header">Fri</div><div class="cal-header">Sat</div>
+    <div class="cal-cell"><div class="cell-num">1</div><div class="event-bar e-fn"></div></div>
+    <div class="cal-cell"><div class="cell-num">2</div><div class="event-bar e-d2"></div></div>
+    <div class="cal-cell"><div class="cell-num">3</div><div class="event-bar e-wow"></div><div class="event-bar e-d2"></div></div>
+    <div class="cal-cell"><div class="cell-num">4</div><div class="event-bar e-apex"></div></div>
+    <div class="cal-cell"><div class="cell-num">5</div><div class="event-bar e-fn"></div><div class="event-bar e-lol"></div></div>
+    <div class="cal-cell"><div class="cell-num">6</div></div>
+    <div class="cal-cell"><div class="cell-num">7</div><div class="event-bar e-fn"></div></div>
+    <div class="cal-cell"><div class="cell-num">8</div><div class="event-bar e-d2"></div></div>
+    <div class="cal-cell"><div class="cell-num">9</div><div class="event-bar e-wow"></div><div class="event-bar e-fn"></div><div class="event-bar e-lol"></div></div>
+    <div class="cal-cell"><div class="cell-num">10</div><div class="event-bar e-apex"></div><div class="event-bar e-wow"></div></div>
+    <div class="cal-cell"><div class="cell-num">11</div><div class="event-bar e-fn"></div></div>
+    <div class="cal-cell"><div class="cell-num">12</div><div class="event-bar e-lol"></div></div>
+    <div class="cal-cell"><div class="cell-num">13</div><div class="event-bar e-fn"></div></div>
+    <div class="cal-cell"><div class="cell-num">14</div><div class="event-bar e-fn"></div><div class="event-bar e-lol"></div></div>
+    <div class="cal-cell"><div class="cell-num">15</div><div class="event-bar e-wow"></div></div>
+    <div class="cal-cell"><div class="cell-num">16</div><div class="event-bar e-wow"></div></div>
+    <div class="cal-cell"><div class="cell-num">17</div><div class="event-bar e-apex"></div><div class="event-bar e-d2"></div></div>
+    <div class="cal-cell"><div class="cell-num">18</div><div class="event-bar e-fn"></div></div>
+    <div class="cal-cell"><div class="cell-num">19</div><div class="event-bar e-lol"></div></div>
+    <div class="cal-cell"><div class="cell-num">20</div><div class="event-bar e-wow"></div><div class="event-bar e-d2"></div></div>
+    <div class="cal-cell"><div class="cell-num">21</div><div class="event-bar e-wow"></div><div class="event-bar e-fn"></div></div>
+    <div class="cal-cell"><div class="cell-num">22</div></div>
+    <div class="cal-cell"><div class="cell-num">23</div><div class="event-bar e-apex"></div></div>
+    <div class="cal-cell"><div class="cell-num">24</div><div class="event-bar e-lol"></div></div>
+    <div class="cal-cell"><div class="cell-num">25</div><div class="event-bar e-fn"></div><div class="event-bar e-wow"></div></div>
+    <div class="cal-cell"><div class="cell-num">26</div><div class="event-bar e-d2"></div></div>
+    <div class="cal-cell"><div class="cell-num">27</div><div class="event-bar e-wow"></div></div>
+    <div class="cal-cell"><div class="cell-num">28</div><div class="event-bar e-fn"></div></div>
+    <div class="cal-cell"><div class="cell-num">29</div></div>
+    <div class="cal-cell"><div class="cell-num">30</div><div class="event-bar e-wow"></div></div>
+  </div>
+</div>
+
+<!-- Letterbox bars -->
+<div id="bar-top"></div>
+<div id="bar-bottom"></div>
+
+<!-- Atmospheric canvas (fog + embers) -->
+<canvas id="atmos-canvas"></canvas>
+
+<!-- Dragon canvas -->
+<canvas id="dragon-canvas"></canvas>
+
+<!-- Text overlay -->
+<div id="text-overlay">
+  <div class="cin-eyebrow" id="txt-eyebrow">World of Warcraft</div>
+  <div class="cin-title" id="txt-title">Patch 11.2<br><span>Seeds of Renewal</span></div>
+  <div class="cin-sub" id="txt-sub">New Raid · New Zone · New Season — Live Now</div>
+  <div class="cin-cta" id="txt-cta">
+    <button class="btn-primary" onclick="handleCTA()">+ Add to GAMECAL</button>
+    <button class="btn-secondary" onclick="dismiss()">View Calendar</button>
+  </div>
+</div>
+
+<!-- UI chrome -->
+<div id="cin-logo">GAME<span>CAL</span></div>
+<button id="skip-btn" onclick="skipToEnd()">Skip →</button>
+<div id="progress-bar"><div id="progress-fill"></div></div>
+<div id="sponsored-tag">Sponsored</div>
+<button id="replay-btn" onclick="location.reload()">↺ Replay Demo</button>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const TOTAL_DURATION = 5200; // ms
+
+// ─── CANVAS SETUP ─────────────────────────────────────────────────────────────
+const atmosCanvas = document.getElementById('atmos-canvas');
+const dragCanvas  = document.getElementById('dragon-canvas');
+const actx = atmosCanvas.getContext('2d');
+const dctx  = dragCanvas.getContext('2d');
+
+function resize() {
+  atmosCanvas.width = dragCanvas.width = window.innerWidth;
+  atmosCanvas.height = dragCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const W = () => dragCanvas.width;
+const H = () => dragCanvas.height;
+
+// ─── EMBERS PARTICLE SYSTEM ───────────────────────────────────────────────────
+const embers = [];
+function spawnEmber(x, y, burst = false) {
+  const count = burst ? 12 : 1;
+  for (let i = 0; i < count; i++) {
+    embers.push({
+      x, y,
+      vx: (Math.random() - 0.5) * (burst ? 6 : 2),
+      vy: -(Math.random() * 3 + 1) * (burst ? 2 : 1),
+      life: 1,
+      decay: Math.random() * 0.012 + 0.006,
+      size: Math.random() * 3 + 1,
+      color: Math.random() > 0.5 ? '#f97316' : '#fbbf24',
+    });
+  }
+}
+
+// ─── FOG LAYERS ───────────────────────────────────────────────────────────────
+const fogLayers = Array.from({length: 3}, (_, i) => ({
+  x: Math.random() * window.innerWidth,
+  y: H() * 0.3 + i * 80,
+  w: 300 + Math.random() * 400,
+  h: 80 + Math.random() * 100,
+  vx: 0.3 + Math.random() * 0.3,
+  alpha: 0.04 + Math.random() * 0.06,
+}));
+
+// ─── DRAGON ───────────────────────────────────────────────────────────────────
+// Bezier path: bottom-left → center (banking turn) → top-right
+const PATH = {
+  p0: { x: -0.25, y: 1.1 },   // start off-screen bottom-left
+  p1: { x: 0.15,  y: 0.6 },   // first control
+  p2: { x: 0.55,  y: 0.35 },  // second control (pulls through center)
+  p3: { x: 1.3,   y: -0.15 }, // end off-screen top-right
+};
+
+function bezier(t, p0, p1, p2, p3) {
+  const mt = 1 - t;
+  return {
+    x: mt*mt*mt*p0.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*p3.x,
+    y: mt*mt*mt*p0.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*p3.y,
+  };
+}
+
+function bezierTangent(t, p0, p1, p2, p3) {
+  const mt = 1 - t;
+  return {
+    x: 3*(mt*mt*(p1.x-p0.x) + 2*mt*t*(p2.x-p1.x) + t*t*(p3.x-p2.x)),
+    y: 3*(mt*mt*(p1.y-p0.y) + 2*mt*t*(p2.y-p1.y) + t*t*(p3.y-p2.y)),
+  };
+}
+
+// Dragon body segments (procedural)
+function drawDragon(ctx, cx, cy, angle, t, wingPhase) {
+  const scale = Math.min(W(), H()) * 0.0012;
+  const sz = 90 * scale;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  // FIRE BREATH
+  if (t > 0.1) {
+    const fireLen = sz * (2.5 + Math.sin(Date.now() * 0.015) * 0.5);
+    const fireGrad = ctx.createLinearGradient(sz * 0.8, 0, sz * 0.8 + fireLen, 0);
+    fireGrad.addColorStop(0, 'rgba(255, 200, 50, 0.95)');
+    fireGrad.addColorStop(0.3, 'rgba(255, 120, 20, 0.8)');
+    fireGrad.addColorStop(0.7, 'rgba(200, 50, 10, 0.4)');
+    fireGrad.addColorStop(1, 'rgba(150, 20, 5, 0)');
+    ctx.beginPath();
+    ctx.moveTo(sz * 0.7, -sz * 0.12);
+    ctx.bezierCurveTo(
+      sz * 0.9, -sz * 0.06,
+      sz * 0.8 + fireLen * 0.5, sz * 0.15,
+      sz * 0.8 + fireLen, sz * 0.1 * Math.sin(Date.now() * 0.008)
+    );
+    ctx.bezierCurveTo(
+      sz * 0.8 + fireLen * 0.5, -sz * 0.18,
+      sz * 0.9, -sz * 0.22,
+      sz * 0.7, -sz * 0.12
+    );
+    ctx.fillStyle = fireGrad;
+    ctx.fill();
+
+    // Fire core
+    const coreGrad = ctx.createLinearGradient(sz * 0.8, 0, sz * 0.8 + fireLen * 0.5, 0);
+    coreGrad.addColorStop(0, 'rgba(255, 255, 200, 1)');
+    coreGrad.addColorStop(1, 'rgba(255, 200, 50, 0)');
+    ctx.beginPath();
+    ctx.moveTo(sz * 0.75, -sz * 0.04);
+    ctx.bezierCurveTo(sz * 0.85, -sz * 0.02, sz * 0.8 + fireLen * 0.4, sz * 0.04, sz * 0.8 + fireLen * 0.5, 0);
+    ctx.bezierCurveTo(sz * 0.8 + fireLen * 0.4, -sz * 0.04, sz * 0.85, -sz * 0.07, sz * 0.75, -sz * 0.04);
+    ctx.fillStyle = coreGrad;
+    ctx.fill();
+  }
+
+  // WINGS
+  const wingSin = Math.sin(wingPhase);
+  const wingSpread = 0.6 + wingSin * 0.4;
+
+  // Upper wing (top)
+  ctx.beginPath();
+  ctx.moveTo(-sz * 0.1, -sz * 0.05);
+  ctx.bezierCurveTo(-sz * 0.1, -sz * (0.5 + wingSpread * 0.8),
+                     sz * 0.4,  -sz * (0.8 + wingSpread * 0.6),
+                     sz * 0.5,  -sz * (0.3 + wingSpread * 0.3));
+  ctx.bezierCurveTo(sz * 0.3,  -sz * 0.15, sz * 0.1, -sz * 0.08, -sz * 0.1, -sz * 0.05);
+  const wingGrad1 = ctx.createLinearGradient(0, -sz * 1.2, sz * 0.5, 0);
+  wingGrad1.addColorStop(0, 'rgba(40, 20, 5, 0.9)');
+  wingGrad1.addColorStop(1, 'rgba(80, 40, 10, 0.7)');
+  ctx.fillStyle = wingGrad1;
+  ctx.fill();
+
+  // Wing membrane veins
+  ctx.strokeStyle = 'rgba(180, 100, 20, 0.3)';
+  ctx.lineWidth = 0.5 * scale * 100;
+  for (let v = 0; v < 4; v++) {
+    const vt = (v + 1) / 5;
+    ctx.beginPath();
+    ctx.moveTo(-sz * 0.05, -sz * 0.05);
+    ctx.lineTo(sz * (0.4 * vt), -sz * (0.7 + wingSpread * 0.6) * vt);
+    ctx.stroke();
+  }
+
+  // Lower wing (bottom, smaller)
+  ctx.beginPath();
+  ctx.moveTo(sz * 0.05, sz * 0.05);
+  ctx.bezierCurveTo(sz * 0.1, sz * (0.3 + wingSpread * 0.4),
+                     sz * 0.4, sz * (0.5 + wingSpread * 0.35),
+                     sz * 0.5, sz * (0.15 + wingSpread * 0.15));
+  ctx.bezierCurveTo(sz * 0.3, sz * 0.08, sz * 0.1, sz * 0.06, sz * 0.05, sz * 0.05);
+  const wingGrad2 = ctx.createLinearGradient(0, sz * 0.8, sz * 0.5, 0);
+  wingGrad2.addColorStop(0, 'rgba(35, 15, 5, 0.85)');
+  wingGrad2.addColorStop(1, 'rgba(70, 35, 8, 0.65)');
+  ctx.fillStyle = wingGrad2;
+  ctx.fill();
+
+  // BODY
+  const bodyGrad = ctx.createLinearGradient(-sz * 0.5, -sz * 0.2, sz * 0.8, sz * 0.2);
+  bodyGrad.addColorStop(0, '#1a0a02');
+  bodyGrad.addColorStop(0.4, '#3d1a05');
+  bodyGrad.addColorStop(1, '#1a0a02');
+  ctx.beginPath();
+  ctx.ellipse(sz * 0.1, 0, sz * 0.62, sz * 0.18, 0, 0, Math.PI * 2);
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+
+  // Body scales highlight
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+  ctx.lineWidth = 1.5 * scale * 100;
+  ctx.beginPath();
+  ctx.ellipse(sz * 0.1, -sz * 0.04, sz * 0.58, sz * 0.1, 0, Math.PI, Math.PI * 2);
+  ctx.stroke();
+
+  // TAIL
+  ctx.beginPath();
+  ctx.moveTo(-sz * 0.45, sz * 0.05);
+  ctx.bezierCurveTo(-sz * 0.7, sz * 0.12, -sz * 0.9, sz * 0.3, -sz * 1.1, sz * 0.05);
+  ctx.bezierCurveTo(-sz * 0.9, -sz * 0.08, -sz * 0.7, -sz * 0.03, -sz * 0.45, sz * 0.05);
+  ctx.fillStyle = '#2a0e03';
+  ctx.fill();
+
+  // NECK
+  ctx.beginPath();
+  ctx.moveTo(sz * 0.6, -sz * 0.08);
+  ctx.bezierCurveTo(sz * 0.72, -sz * 0.18, sz * 0.76, -sz * 0.22, sz * 0.72, -sz * 0.12);
+  ctx.bezierCurveTo(sz * 0.72, -sz * 0.02, sz * 0.66, sz * 0.04, sz * 0.6, sz * 0.06);
+  ctx.closePath();
+  ctx.fillStyle = '#3d1a05';
+  ctx.fill();
+
+  // HEAD
+  ctx.beginPath();
+  ctx.ellipse(sz * 0.78, -sz * 0.13, sz * 0.16, sz * 0.09, -0.4, 0, Math.PI * 2);
+  ctx.fillStyle = '#2a0e03';
+  ctx.fill();
+
+  // EYE — glowing amber
+  ctx.beginPath();
+  ctx.arc(sz * 0.84, -sz * 0.15, sz * 0.028, 0, Math.PI * 2);
+  ctx.fillStyle = '#fbbf24';
+  ctx.fill();
+  ctx.shadowColor = '#f59e0b';
+  ctx.shadowBlur = 6 * scale * 80;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // HORNS
+  ctx.strokeStyle = '#5c2a08';
+  ctx.lineWidth = 2 * scale * 100;
+  ctx.beginPath();
+  ctx.moveTo(sz * 0.82, -sz * 0.2);
+  ctx.lineTo(sz * 0.86, -sz * 0.34);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(sz * 0.76, -sz * 0.19);
+  ctx.lineTo(sz * 0.78, -sz * 0.31);
+  ctx.stroke();
+
+  // Ambient glow around body
+  const glowGrad = ctx.createRadialGradient(sz * 0.1, 0, 0, sz * 0.1, 0, sz * 0.8);
+  glowGrad.addColorStop(0, 'rgba(245, 158, 11, 0.12)');
+  glowGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+  ctx.beginPath();
+  ctx.ellipse(sz * 0.1, 0, sz * 0.8, sz * 0.4, 0, 0, Math.PI * 2);
+  ctx.fillStyle = glowGrad;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ─── ANIMATION STATE ──────────────────────────────────────────────────────────
+let animStart   = null;
+let dragonT     = 0;        // 0..1 along path
+let dragonPhase = 0;        // wing flap phase
+let dragonActive = false;
+let emberTimer  = 0;
+let showText    = false;
+let dismissed   = false;
+let animFrame   = null;
+
+// ─── MAIN RENDER LOOP ─────────────────────────────────────────────────────────
+function render(ts) {
+  if (!animStart) animStart = ts;
+  if (dismissed) return;
+  const elapsed = ts - animStart;
+
+  actx.clearRect(0, 0, W(), H());
+  dctx.clearRect(0, 0, W(), H());
+
+  // ── Fog ──
+  fogLayers.forEach(fog => {
+    fog.x += fog.vx;
+    if (fog.x > W() + fog.w) fog.x = -fog.w;
+    const g = actx.createRadialGradient(fog.x, fog.y, 0, fog.x, fog.y, fog.w * 0.5);
+    g.addColorStop(0, `rgba(245,158,11,${fog.alpha})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    actx.fillStyle = g;
+    actx.beginPath();
+    actx.ellipse(fog.x, fog.y, fog.w * 0.5, fog.h * 0.5, 0, 0, Math.PI * 2);
+    actx.fill();
+  });
+
+  // ── Dragon ──
+  if (dragonActive && dragonT <= 1.02) {
+    const speed = 0.0006;
+    dragonT = Math.min((elapsed - 400) / (TOTAL_DURATION * 0.5) * 1.1, 1.05);
+    dragonPhase += 0.08;
+
+    const norm = { x: W(), y: H() };
+    const p0 = { x: PATH.p0.x * norm.x, y: PATH.p0.y * norm.y };
+    const p1 = { x: PATH.p1.x * norm.x, y: PATH.p1.y * norm.y };
+    const p2 = { x: PATH.p2.x * norm.x, y: PATH.p2.y * norm.y };
+    const p3 = { x: PATH.p3.x * norm.x, y: PATH.p3.y * norm.y };
+
+    const pos = bezier(Math.min(dragonT, 1), p0, p1, p2, p3);
+    const tan = bezierTangent(Math.min(dragonT, 1), p0, p1, p2, p3);
+    const angle = Math.atan2(tan.y, tan.x);
+
+    if (dragonT < 1.0) {
+      drawDragon(dctx, pos.x, pos.y, angle, dragonT, dragonPhase);
+
+      // Spawn embers from fire
+      emberTimer++;
+      if (emberTimer % 2 === 0) {
+        const fireX = pos.x + Math.cos(angle) * 80;
+        const fireY = pos.y + Math.sin(angle) * 80;
+        spawnEmber(fireX, fireY, dragonT > 0.2);
+        spawnEmber(pos.x - Math.cos(angle) * 20, pos.y - Math.sin(angle) * 20);
+      }
+    }
+  }
+
+  // ── Embers ──
+  for (let i = embers.length - 1; i >= 0; i--) {
+    const e = embers[i];
+    e.x  += e.vx;
+    e.y  += e.vy;
+    e.vx *= 0.98;
+    e.vy  = e.vy * 0.98 - 0.03;
+    e.life -= e.decay;
+    if (e.life <= 0) { embers.splice(i, 1); continue; }
+    actx.save();
+    actx.globalAlpha = e.life * 0.9;
+    actx.fillStyle = e.color;
+    actx.shadowColor = e.color;
+    actx.shadowBlur = 4;
+    actx.beginPath();
+    actx.arc(e.x, e.y, e.size * e.life, 0, Math.PI * 2);
+    actx.fill();
+    actx.restore();
+  }
+
+  animFrame = requestAnimationFrame(render);
+}
+
+// ─── SEQUENCE ─────────────────────────────────────────────────────────────────
+function sequence() {
+  // 0ms — letterbox opens
+  setTimeout(() => {
+    document.getElementById('bar-top').classList.add('open');
+    document.getElementById('bar-bottom').classList.add('open');
+    document.getElementById('cin-logo').classList.add('visible');
+    document.getElementById('sponsored-tag').classList.add('visible');
+  }, 0);
+
+  // 200ms — atmosphere fades in, dragon starts
+  setTimeout(() => {
+    document.getElementById('atmos-canvas').classList.add('visible');
+    dragonActive = true;
+    animFrame = requestAnimationFrame(render);
+  }, 200);
+
+  // 400ms — skip button appears
+  setTimeout(() => {
+    document.getElementById('skip-btn').classList.add('visible');
+  }, 400);
+
+  // 800ms — calendar background fades in behind
+  setTimeout(() => {
+    document.getElementById('gamecal-bg').classList.add('visible');
+  }, 800);
+
+  // 2600ms — dragon mostly passed, text begins
+  setTimeout(() => {
+    document.getElementById('txt-eyebrow').classList.add('show');
+  }, 2600);
+
+  setTimeout(() => {
+    document.getElementById('txt-title').classList.add('show');
+    // Burst embers at center
+    for (let i = 0; i < 30; i++) {
+      spawnEmber(W() * 0.5 + (Math.random()-0.5)*200, H() * 0.5, true);
+    }
+  }, 2900);
+
+  setTimeout(() => {
+    document.getElementById('txt-sub').classList.add('show');
+  }, 3300);
+
+  setTimeout(() => {
+    document.getElementById('txt-cta').classList.add('show');
+    document.getElementById('progress-bar').classList.add('visible');
+    // Animate progress
+    const fill = document.getElementById('progress-fill');
+    fill.style.transition = 'width 1800ms linear';
+    requestAnimationFrame(() => { fill.style.width = '100%'; });
+  }, 3700);
+
+  // 5500ms — auto dismiss
+  setTimeout(() => {
+    if (!dismissed) dismiss();
+  }, 5500);
+}
+
+function skipToEnd() {
+  // Fast-forward text in
+  ['txt-eyebrow','txt-title','txt-sub','txt-cta'].forEach(id => {
+    document.getElementById(id).classList.add('show');
+  });
+  document.getElementById('txt-cta').classList.add('show');
+  const fill = document.getElementById('progress-fill');
+  fill.style.transition = 'width 0.5s linear';
+  fill.style.width = '100%';
+  document.getElementById('progress-bar').classList.add('visible');
+  setTimeout(() => { if (!dismissed) dismiss(); }, 500);
+}
+
+function dismiss() {
+  dismissed = true;
+  cancelAnimationFrame(animFrame);
+
+  // Fade out letterbox
+  const barTop = document.getElementById('bar-top');
+  const barBot = document.getElementById('bar-bottom');
+  barTop.style.transition = 'height 0.5s ease';
+  barBot.style.transition = 'height 0.5s ease';
+  barTop.classList.remove('open');
+  barBot.classList.remove('open');
+
+  // Fade out overlays
+  ['atmos-canvas','dragon-canvas','text-overlay','cin-logo','skip-btn','progress-bar','sponsored-tag']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      el.style.transition = 'opacity 0.5s ease';
+      el.style.opacity = '0';
+    });
+
+  // Show replay
+  setTimeout(() => {
+    document.getElementById('replay-btn').classList.add('visible');
+    document.getElementById('gamecal-bg').style.opacity = '1';
+  }, 600);
+}
+
+function handleCTA() {
+  // Simulate "Added to Calendar" feedback
+  const btn = document.querySelector('.btn-primary');
+  btn.textContent = '✓ Added to GAMECAL!';
+  btn.style.background = '#16a34a';
+  setTimeout(() => dismiss(), 800);
+}
+
+// ─── START ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Short delay for visual weight
+  setTimeout(sequence, 200);
+});
+</script>
+</body>
+</html>
