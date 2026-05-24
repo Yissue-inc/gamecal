@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useMemo, useState } from 'react'
+import { useCallback, useRef, useMemo, useState, useEffect } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -129,6 +129,17 @@ export function GameCalendar({
     },
     [isGuest, onEventClick, onGuestEventClick]
   )
+
+  useEffect(() => {
+    if (!releases.length) return
+    document.querySelectorAll('.gamecal-calendar .fc-daygrid-day').forEach((node) => {
+      const cell = node as HTMLElement
+      const dateKey = cell.getAttribute('data-date')
+      if (!dateKey) return
+      const release = releasesByDate[dateKey]
+      if (release) mountReleaseArt(cell, release)
+    })
+  }, [releases, releasesByDate, mountReleaseArt])
 
   return (
     <div className="gamecal-calendar relative flex-1 overflow-hidden p-4" data-testid="calendar-grid">

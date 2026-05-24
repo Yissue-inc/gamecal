@@ -1,16 +1,9 @@
 import { test, expect } from '@playwright/test'
-
-async function openTodayEventPanel(page: import('@playwright/test').Page) {
-  await page.goto('/')
-  await page.waitForSelector('[data-testid="calendar-grid"]')
-  await page.waitForSelector('.fc-event:not(.guest-blurred-event)', { timeout: 15000 })
-  await page.locator('.fc-event:not(.guest-blurred-event)').first().click()
-  await expect(page.locator('[data-testid="event-panel"]')).toBeVisible()
-}
+import { openEventPanel } from '../helpers/event-panel'
 
 test.describe('Add to Calendar', () => {
   test.beforeEach(async ({ page }) => {
-    await openTodayEventPanel(page)
+    await openEventPanel(page)
   })
 
   test('Add to Calendar 드롭다운이 열린다', async ({ page }) => {

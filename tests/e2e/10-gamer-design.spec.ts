@@ -1,13 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { hasAuthCredentials, loginWithEmail } from '../helpers/auth'
-
-async function openEventPanel(page: import('@playwright/test').Page) {
-  await page.goto('/')
-  await page.waitForSelector('[data-testid="calendar-grid"]')
-  await page.waitForSelector('.fc-event:not(.guest-blurred-event)', { timeout: 15000 })
-  await page.locator('.fc-event:not(.guest-blurred-event)').first().click()
-  await expect(page.locator('[data-testid="event-panel"]')).toBeVisible()
-}
+import { openEventPanel } from '../helpers/event-panel'
 
 test.describe('Gamer Design — Share & Countdown', () => {
   test('이벤트 패널에 Share 버튼(Discord/Reddit/Copy)이 표시된다', async ({ page }) => {

@@ -44,6 +44,7 @@ CREATE TABLE new_releases (
   release_date  DATE NOT NULL,
   description   TEXT,
   image_url     TEXT,
+  hero_color    TEXT,
   steam_url     TEXT,
   nintendo_url  TEXT,
   is_featured   BOOLEAN DEFAULT false,
