@@ -10,7 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { PrestigeBar } from '@/components/engagement/PrestigeBar'
+import { formatTimezoneLabel } from '@/lib/push'
 import { useAuth } from '@/hooks/useAuth'
+import { useEffect, useState } from 'react'
 
 interface CalendarHeaderProps {
   currentTitle: string
@@ -22,6 +25,11 @@ interface CalendarHeaderProps {
 
 export function CalendarHeader({ currentTitle, onToday, onPrev, onNext, onSignIn }: CalendarHeaderProps) {
   const { user, isGuest, signOut } = useAuth()
+  const [timezone, setTimezone] = useState('UTC')
+
+  useEffect(() => {
+    setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
+  }, [])
 
   return (
     <header data-testid="calendar-header" className="flex h-14 items-center justify-between border-b border-zinc-800 bg-[#0f0f0f] px-4">
@@ -45,6 +53,14 @@ export function CalendarHeader({ currentTitle, onToday, onPrev, onNext, onSignIn
       </div>
 
       <div className="flex items-center gap-3">
+        <span
+          data-testid="timezone-label"
+          className="hidden text-[10px] text-zinc-500 sm:inline"
+          title={timezone}
+        >
+          🌍 {formatTimezoneLabel(timezone)}
+        </span>
+        <PrestigeBar />
         <Button variant="ghost" size="sm" asChild>
           <Link href="/new-releases" data-testid="new-releases-link">New Releases</Link>
         </Button>
@@ -64,6 +80,12 @@ export function CalendarHeader({ currentTitle, onToday, onPrev, onNext, onSignIn
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/my-schedule" data-testid="header-my-schedule">My Schedule</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/profile" data-testid="header-profile">Profile & Badges</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings">Settings</Link>
               </DropdownMenuItem>

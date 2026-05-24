@@ -4,6 +4,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { DigestSubscribe } from '@/components/calendar/DigestSubscribe'
 import type { Game } from '@/types'
 
 interface GameSidebarProps {
@@ -17,7 +19,7 @@ export function GameSidebar({ games, selectedGames, onToggle, onToggleAll }: Gam
   const allSelected = games.every((g) => selectedGames.includes(g.slug))
 
   return (
-    <aside data-testid="game-sidebar" className="hidden w-[260px] shrink-0 flex-col border-r border-zinc-800 bg-[#1a1a1a] md:flex">
+    <aside data-testid="game-sidebar" className="hidden w-[220px] shrink-0 flex-col border-r border-zinc-800 bg-[#1a1a1a] md:flex">
       <div className="p-4">
         <div className="flex items-center gap-2">
           <span className="text-base" aria-hidden="true">🎮</span>
@@ -79,13 +81,20 @@ export function GameSidebar({ games, selectedGames, onToggle, onToggleAll }: Gam
       </div>
 
       <Separator />
-      <div className="p-4">
+      <div className="space-y-2 p-4">
         <Button variant="outline" className="w-full border-zinc-700 text-sm" asChild>
           <a href="/api/feed/all" data-testid="subscribe-all-link" target="_blank" rel="noopener noreferrer">
             + Subscribe All Calendars
           </a>
         </Button>
+        <Button variant="ghost" className="w-full text-sm text-zinc-400" asChild>
+          <Link href="/my-schedule" data-testid="my-schedule-link">My Schedule</Link>
+        </Button>
+        <Button variant="ghost" className="w-full text-sm text-zinc-400" asChild>
+          <Link href="/profile" data-testid="profile-link">Profile & Badges</Link>
+        </Button>
       </div>
+      <DigestSubscribe />
     </aside>
   )
 }

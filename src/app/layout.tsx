@@ -4,6 +4,7 @@ import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { PreferencesProvider } from '@/hooks/usePreferences'
 import { Toaster } from '@/components/ui/sonner'
+import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const rajdhani = Rajdhani({
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PreferencesProvider>
             {children}
             <Toaster />
+            <ServiceWorkerRegister />
           </PreferencesProvider>
         </AuthProvider>
       </body>

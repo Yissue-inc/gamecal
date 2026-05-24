@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { AddToCalendar } from '@/components/calendar/AddToCalendar'
 import { ShareEvent } from '@/components/calendar/ShareEvent'
+import { WishlistButton } from '@/components/wishlist/WishlistButton'
+import { ReminderPicker } from '@/components/wishlist/ReminderPicker'
 import {
   formatDateRange,
   formatTimeRange,
@@ -15,6 +17,7 @@ import {
   getEventTypeLabel,
   getImportanceEmoji,
 } from '@/lib/utils'
+import { getTrackingCount } from '@/lib/push'
 import { usePreferences } from '@/hooks/usePreferences'
 import type { Game, GameEvent } from '@/types'
 
@@ -23,6 +26,7 @@ interface EventDetailPanelProps {
   game: Game | null
   isOpen: boolean
   onClose: () => void
+  overlay?: boolean
 }
 
 function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: Game; onClose: () => void }) {
@@ -74,6 +78,16 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </Badge>
         </div>
 
+        <div data-testid="tracking-counter" className="text-xs text-zinc-500">
+          👁 {getTrackingCount(event.id).toLocaleString()} gamers tracking this event
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <WishlistButton eventId={event.id} />
+        </div>
+
+        <ReminderPicker eventId={event.id} eventStartAt={event.start_at} />
+
         <div className="space-y-2 text-sm">
           <div data-testid="event-date-range" className="flex items-center gap-2 text-zinc-300">
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -119,7 +133,7 @@ function useIsMobileViewport() {
   return isMobile
 }
 
-export function EventDetailPanel({ event, game, isOpen, onClose }: EventDetailPanelProps) {
+export function EventDetailPanel({ event, game, isOpen, onClose, overlay }: EventDetailPanelProps) {
   const isMobile = useIsMobileViewport()
 
   if (!event || !game) return null
@@ -134,11 +148,15 @@ export function EventDetailPanel({ event, game, isOpen, onClose }: EventDetailPa
     )
   }
 
+  const positionClass = overlay
+    ? 'absolute right-0 top-0 z-50 h-full'
+    : 'fixed right-0 top-14 z-50 h-[calc(100vh-3.5rem)]'
+
   return (
     <div
       data-testid="event-panel"
-      className={`fixed right-0 top-14 z-50 h-[calc(100vh-3.5rem)] w-[380px] border-l border-zinc-800 bg-[#1a1a1a] transition-transform duration-300 ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
+      className={`${positionClass} w-[380px] border-l border-zinc-800 bg-[#1a1a1a] shadow-2xl transition-transform duration-300 ${
+        isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
       }`}
     >
       <EventDetailContent event={event} game={game} onClose={onClose} />

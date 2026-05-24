@@ -9,9 +9,17 @@ import { GameCalendar } from '@/components/calendar/GameCalendar'
 import { EventDetailPanel } from '@/components/calendar/EventDetailPanel'
 import { ReleaseDetailPanel } from '@/components/calendar/ReleaseDetailPanel'
 import { GuestBanner } from '@/components/calendar/GuestBlur'
+import { WeeklyHighlights } from '@/components/calendar/WeeklyHighlights'
+import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
+import { CommandSearch } from '@/components/calendar/CommandSearch'
+import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
+import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
+import { CalEventBridge } from '@/components/engagement/CalEventBridge'
+import { BadgeUnlockModal } from '@/components/engagement/BadgeUnlockModal'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
 import { usePreferences } from '@/hooks/usePreferences'
+import { useLayoutEvents } from '@/hooks/useLayoutEvents'
 import type { Game, GameEvent, NewRelease } from '@/types'
 
 interface CalendarLayoutProps {
@@ -33,6 +41,8 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [isReleaseOpen, setIsReleaseOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [currentTitle, setCurrentTitle] = useState('')
+
+  const { events } = useLayoutEvents(selectedGames)
 
   const handleToggle = (slug: string) => {
     const next = selectedGames.includes(slug)
@@ -56,6 +66,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
     setIsDetailOpen(true)
   }
 
+  const handleFeedEventClick = (event: GameEvent) => {
+    if (event.game) handleEventClick(event, event.game)
+  }
+
   const handleReleaseClick = (release: NewRelease) => {
     setSelectedEvent(null)
     setSelectedGame(null)
@@ -72,7 +86,11 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const goPrev = () => calendarRef.current?.getApi().prev()
   const goNext = () => calendarRef.current?.getApi().next()
 
-  const panelOpen = isDetailOpen || isReleaseOpen
+  const closeDetail = () => {
+    setIsDetailOpen(false)
+    setSelectedEvent(null)
+    setSelectedGame(null)
+  }
 
   return (
     <div className="flex h-screen flex-col bg-[#0f0f0f]">
@@ -84,6 +102,9 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         onSignIn={() => setAuthModalOpen(true)}
       />
       {isGuest && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
+      <PwaInstallBanner />
+      <LiveBanner events={events} onEventClick={handleFeedEventClick} />
+      <DailyCheckIn />
       <MobileGameChips games={games} selectedGames={selectedGames} onToggle={handleToggle} />
       <div className="flex flex-1 overflow-hidden">
         <GameSidebar
@@ -92,28 +113,31 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           onToggle={handleToggle}
           onToggleAll={handleToggleAll}
         />
-        <div className={`flex flex-1 flex-col overflow-hidden transition-all ${panelOpen ? 'md:mr-[380px]' : ''}`}>
-          <GameCalendar
-            calendarRef={calendarRef}
-            selectedGames={selectedGames}
-            isGuest={isGuest}
-            onEventClick={handleEventClick}
-            onGuestEventClick={() => setAuthModalOpen(true)}
-            onReleaseClick={handleReleaseClick}
-            onDatesChange={handleDatesChange}
-          />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <WeeklyHighlights events={events} onEventClick={handleEventClick} />
+          <div className="relative flex-1 overflow-hidden">
+            <GameCalendar
+              calendarRef={calendarRef}
+              selectedGames={selectedGames}
+              isGuest={isGuest}
+              onEventClick={handleEventClick}
+              onGuestEventClick={() => setAuthModalOpen(true)}
+              onReleaseClick={handleReleaseClick}
+              onDatesChange={handleDatesChange}
+            />
+            <EventDetailPanel
+              event={selectedEvent}
+              game={selectedGame}
+              isOpen={isDetailOpen}
+              onClose={closeDetail}
+              overlay
+            />
+          </div>
+        </div>
+        <div className="hidden md:flex">
+          <UpcomingFeed events={events} onEventClick={handleFeedEventClick} />
         </div>
       </div>
-      <EventDetailPanel
-        event={selectedEvent}
-        game={selectedGame}
-        isOpen={isDetailOpen}
-        onClose={() => {
-          setIsDetailOpen(false)
-          setSelectedEvent(null)
-          setSelectedGame(null)
-        }}
-      />
       <ReleaseDetailPanel
         release={selectedRelease}
         isOpen={isReleaseOpen}
@@ -122,6 +146,9 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           setSelectedRelease(null)
         }}
       />
+      <CommandSearch events={events} onSelect={handleFeedEventClick} />
+      <CalEventBridge onPromptLogin={() => setAuthModalOpen(true)} />
+      <BadgeUnlockModal />
       <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </div>
   )

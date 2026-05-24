@@ -57,6 +57,10 @@
 □ 오늘 날짜 셀에 인디고 glow 원 표시됨
 □ 왼쪽 게임 리스트 5개 체크박스 보임 (Fortnite, WoW, Pokémon GO, Genshin, LoL)
 □ 헤더에 "Sign In" 버튼 보임
+□ 우측 NEXT UP 피드 + THIS WEEK 하이라이트 카드 표시됨 (md 이상)
+□ Cmd+K 검색 오버레이 동작
+□ 이벤트 패널에 Wishlist / Remind me / tracking counter 표시됨
+□ /profile 에 뱃지 갤러리, /my-schedule 페이지 접근 가능
 ```
 
 ### ✅ STEP 2 — Auth 플로우 검증
