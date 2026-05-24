@@ -6,16 +6,25 @@ import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { DigestSubscribe } from '@/components/calendar/DigestSubscribe'
-import type { Game } from '@/types'
+import { GameIcon } from '@/components/calendar/GameIcon'
+import { getEventSummary } from '@/lib/event-summary'
+import type { Game, GameEvent } from '@/types'
 
 interface GameSidebarProps {
   games: Game[]
   selectedGames: string[]
   onToggle: (slug: string) => void
   onToggleAll: (all: boolean) => void
+  events?: GameEvent[]
 }
 
-export function GameSidebar({ games, selectedGames, onToggle, onToggleAll }: GameSidebarProps) {
+export function GameSidebar({
+  games,
+  selectedGames,
+  onToggle,
+  onToggleAll,
+  events = [],
+}: GameSidebarProps) {
   const allSelected = games.every((g) => selectedGames.includes(g.slug))
 
   return (
@@ -45,39 +54,53 @@ export function GameSidebar({ games, selectedGames, onToggle, onToggleAll }: Gam
           </Label>
         </div>
 
-        {games.map((game) => (
-          <div key={game.slug} className="py-1.5">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id={game.slug}
-                data-testid={`game-checkbox-${game.slug}`}
-                checked={selectedGames.includes(game.slug)}
-                onCheckedChange={() => onToggle(game.slug)}
-              />
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: game.brand_color }}
-              />
-              <Label htmlFor={game.slug} className="cursor-pointer text-sm font-medium">
-                {game.name}
-              </Label>
-            </div>
-            <div
-              data-testid={`game-platforms-${game.slug}`}
-              className="ml-8 mt-0.5 flex flex-wrap gap-1"
-            >
-              {game.platform.map((p) => (
-                <span
-                  key={p}
-                  data-testid={`platform-chip-${game.slug}-${p.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500"
+        {games.map((game) => {
+          const summary = getEventSummary(events, game.id)
+          const isSelected = selectedGames.includes(game.slug)
+
+          return (
+            <div key={game.slug} className="py-1.5">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={game.slug}
+                  data-testid={`game-checkbox-${game.slug}`}
+                  checked={isSelected}
+                  onCheckedChange={() => onToggle(game.slug)}
+                />
+                <GameIcon
+                  slug={game.slug}
+                  color={isSelected ? game.brand_color : '#52525b'}
+                  size={15}
+                />
+                <Label
+                  htmlFor={game.slug}
+                  className="cursor-pointer text-sm font-medium leading-none"
+                  style={{ color: isSelected ? '#e4e4e7' : '#71717a' }}
                 >
-                  {p}
-                </span>
-              ))}
+                  {game.name}
+                </Label>
+              </div>
+
+              {summary.length > 0 && (
+                <div
+                  data-testid={`game-event-summary-${game.slug}`}
+                  className="ml-[26px] mt-1 flex flex-wrap gap-x-2 gap-y-0.5"
+                >
+                  {summary.map((s) => (
+                    <span
+                      key={s.type}
+                      title={s.label}
+                      className="flex items-center gap-0.5 text-[10px] text-zinc-500"
+                    >
+                      <span>{s.icon}</span>
+                      <span className="font-mono">×{s.count}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <Separator />

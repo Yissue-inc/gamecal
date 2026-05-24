@@ -61,6 +61,7 @@ function AdminGate({ children }: { children: React.ReactNode }) {
       <nav className="border-b border-zinc-800 px-6 py-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="font-bold">GAMECAL Admin</Link>
+          <Link href="/admin" className="text-sm text-zinc-400 hover:text-white">Dashboard</Link>
           <Link href="/admin/events" className="text-sm text-zinc-400 hover:text-white">Events</Link>
           <Link href="/admin/releases" className="text-sm text-zinc-400 hover:text-white">Releases</Link>
         </div>

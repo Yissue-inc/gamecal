@@ -52,6 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
             await supabase.from('user_preferences').insert({ id: session.user.id, timezone: tz })
           }
+          const { identifyUser } = await import('@/lib/posthog')
+          identifyUser(session.user.id, { email: session.user.email })
         }
       })
 
@@ -95,8 +97,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     if (!supabaseConfigured) return
     const { createClient } = await import('@/lib/supabase/client')
+    const { resetUser } = await import('@/lib/posthog')
     const supabase = createClient()
     await supabase.auth.signOut()
+    resetUser()
   }, [supabaseConfigured])
 
   return (

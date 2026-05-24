@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { usePreferences } from '@/hooks/usePreferences'
 import { detectBrowserTimezone, formatTimezoneLabel } from '@/lib/timezone'
+import { trackOnboardingCompleted } from '@/lib/posthog'
 import type { Game } from '@/types'
 
 const PLATFORMS = [
@@ -100,6 +101,11 @@ export function SignupOnboarding({ open, games, onComplete }: SignupOnboardingPr
       platform,
       signup_source: source || undefined,
       onboarding_completed: true,
+    })
+    trackOnboardingCompleted({
+      games: selectedGames,
+      platform,
+      signup_source: source || undefined,
     })
     setSaving(false)
     onComplete()

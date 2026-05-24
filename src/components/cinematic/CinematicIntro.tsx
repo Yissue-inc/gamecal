@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { bezier, bezierTangent, drawDragon, DRAGON_PATH } from './dragon-renderer'
+import { trackCinematicSeen } from '@/lib/posthog'
 
 export interface CinematicFeaturedEvent {
   eyebrow: string
@@ -71,6 +72,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
     if (dismissedRef.current) return
     dismissedRef.current = true
     markCinematicSeen()
+    trackCinematicSeen(false)
     cancelAnimationFrame(rafRef.current)
     onDismiss()
   }, [onDismiss])
@@ -214,6 +216,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
   }, [accent])
 
   const skipToEnd = () => {
+    trackCinematicSeen(true)
     setPhase({
       letterbox: true,
       atmos: true,

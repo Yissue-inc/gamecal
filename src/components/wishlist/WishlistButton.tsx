@@ -8,22 +8,33 @@ import {
   isWishlistedLocal,
   toggleWishlistLocal,
 } from '@/lib/engagement-store'
+import { isSupabaseConfigured } from '@/lib/mock-data'
+import { trackWishlistAdded } from '@/lib/posthog'
 import { getCalWishlistMessage } from '@/lib/cal-messages'
 import { toast } from 'sonner'
 
 interface WishlistButtonProps {
   eventId: string
+  gameSlug?: string
   size?: 'sm' | 'md'
 }
 
-export function WishlistButton({ eventId, size = 'md' }: WishlistButtonProps) {
+export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButtonProps) {
   const { user, isGuest } = useAuth()
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const useApi = isSupabaseConfigured()
 
   useEffect(() => {
-    setIsWishlisted(isWishlistedLocal(eventId))
-  }, [eventId])
+    if (useApi && user) {
+      fetch('/api/wishlist')
+        .then((r) => (r.ok ? r.json() : { eventIds: [] }))
+        .then((d) => setIsWishlisted((d.eventIds ?? []).includes(eventId)))
+        .catch(() => setIsWishlisted(isWishlistedLocal(eventId)))
+    } else {
+      setIsWishlisted(isWishlistedLocal(eventId))
+    }
+  }, [eventId, useApi, user])
 
   const toggle = useCallback(async () => {
     if (isGuest || !user) {
@@ -31,15 +42,39 @@ export function WishlistButton({ eventId, size = 'md' }: WishlistButtonProps) {
       return
     }
     setLoading(true)
-    const wasWishlisted = isWishlistedLocal(eventId)
-    const next = toggleWishlistLocal(eventId)
-    setIsWishlisted(next)
-    if (next && !wasWishlisted) {
-      toast.success(getCalWishlistMessage(), { icon: '🤓' })
-      window.dispatchEvent(new CustomEvent('cal:wishlist-added', { detail: { eventId } }))
+    const wasWishlisted = isWishlisted
+
+    try {
+      if (useApi) {
+        const res = await fetch('/api/wishlist', {
+          method: wasWishlisted ? 'DELETE' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId }),
+        })
+        if (res.ok) {
+          setIsWishlisted(!wasWishlisted)
+          if (!wasWishlisted) {
+            trackWishlistAdded(eventId, gameSlug)
+            toast.success(getCalWishlistMessage(), { icon: '🤓' })
+            window.dispatchEvent(new CustomEvent('cal:wishlist-added', { detail: { eventId } }))
+          }
+        } else {
+          const next = toggleWishlistLocal(eventId)
+          setIsWishlisted(next)
+        }
+      } else {
+        const next = toggleWishlistLocal(eventId)
+        setIsWishlisted(next)
+        if (next && !wasWishlisted) {
+          trackWishlistAdded(eventId, gameSlug)
+          toast.success(getCalWishlistMessage(), { icon: '🤓' })
+          window.dispatchEvent(new CustomEvent('cal:wishlist-added', { detail: { eventId } }))
+        }
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [eventId, isGuest, user])
+  }, [eventId, gameSlug, isGuest, isWishlisted, useApi, user])
 
   return (
     <button
@@ -66,14 +101,27 @@ export function WishlistButton({ eventId, size = 'md' }: WishlistButtonProps) {
 }
 
 export function useWishlistEventIds(): string[] {
+  const { user } = useAuth()
   const [ids, setIds] = useState<string[]>([])
+  const useApi = isSupabaseConfigured()
 
   useEffect(() => {
-    setIds(getWishlistIds())
+    if (useApi && user) {
+      fetch('/api/wishlist')
+        .then((r) => (r.ok ? r.json() : { eventIds: [] }))
+        .then((d) => setIds(d.eventIds ?? []))
+        .catch(() => setIds(getWishlistIds()))
+    } else {
+      setIds(getWishlistIds())
+    }
     const refresh = () => setIds(getWishlistIds())
     window.addEventListener('storage', refresh)
-    return () => window.removeEventListener('storage', refresh)
-  }, [])
+    window.addEventListener('cal:wishlist-added', refresh)
+    return () => {
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener('cal:wishlist-added', refresh)
+    }
+  }, [useApi, user])
 
   return ids
 }

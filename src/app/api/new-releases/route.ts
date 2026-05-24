@@ -12,8 +12,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ releases })
   }
 
+  const isAdmin = verifyAdminSecret(request)
+
   const admin = createAdminClient()
-  let query = admin.from('new_releases').select('*').eq('is_published', true).order('release_date')
+  let query = admin.from('new_releases').select('*').order('release_date')
+
+  if (!isAdmin) {
+    query = query.eq('is_published', true)
+  }
 
   if (featured) query = query.eq('is_featured', true)
 

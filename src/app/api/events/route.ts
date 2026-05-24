@@ -34,11 +34,15 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient()
+  const isAdmin = verifyAdminSecret(request)
   let query = supabase
     .from('events')
     .select('*, game:games(*)')
-    .eq('is_published', true)
     .order('start_at')
+
+  if (!isAdmin) {
+    query = query.eq('is_published', true)
+  }
 
   const game = params.get('game')
   const start = params.get('start')

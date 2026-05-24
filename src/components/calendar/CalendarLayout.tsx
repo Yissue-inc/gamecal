@@ -158,6 +158,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           selectedGames={selectedGames}
           onToggle={handleToggle}
           onToggleAll={handleToggleAll}
+          events={events}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <WeeklyHighlights events={events} onEventClick={handleEventClick} />

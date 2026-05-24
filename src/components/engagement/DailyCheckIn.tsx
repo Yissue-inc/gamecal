@@ -7,6 +7,8 @@ import {
   getAttendanceLocal,
   isCheckedInToday,
 } from '@/lib/engagement-store'
+import { isSupabaseConfigured } from '@/lib/mock-data'
+import { trackCheckinDone } from '@/lib/posthog'
 import { getCalStreakMessage } from '@/lib/cal-messages'
 import { CalCharacter } from './CalCharacter'
 
@@ -15,20 +17,51 @@ export function DailyCheckIn() {
   const [streak, setStreak] = useState(0)
   const [todayChecked, setTodayChecked] = useState(false)
   const [justChecked, setJustChecked] = useState(false)
+  const useApi = isSupabaseConfigured()
 
   useEffect(() => {
-    const state = getAttendanceLocal()
-    setStreak(state.currentStreak)
-    setTodayChecked(isCheckedInToday())
-  }, [])
+    if (useApi && user) {
+      fetch('/api/checkin')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d) {
+            setStreak(d.currentStreak ?? 0)
+            setTodayChecked(!!d.checkedToday)
+          }
+        })
+        .catch(() => {
+          const state = getAttendanceLocal()
+          setStreak(state.currentStreak)
+          setTodayChecked(isCheckedInToday())
+        })
+    } else {
+      const state = getAttendanceLocal()
+      setStreak(state.currentStreak)
+      setTodayChecked(isCheckedInToday())
+    }
+  }, [useApi, user])
 
   if (isGuest || !user) return null
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
+    if (useApi) {
+      const res = await fetch('/api/checkin', { method: 'POST' })
+      if (res.ok) {
+        const d = await res.json()
+        setStreak(d.currentStreak ?? 0)
+        setTodayChecked(true)
+        setJustChecked(true)
+        if (!d.alreadyChecked) trackCheckinDone(d.currentStreak ?? 0)
+        setTimeout(() => setJustChecked(false), 4000)
+        return
+      }
+    }
+
     const next = checkInLocal()
     setStreak(next.currentStreak)
     setTodayChecked(true)
     setJustChecked(true)
+    trackCheckinDone(next.currentStreak)
     setTimeout(() => setJustChecked(false), 4000)
   }
 

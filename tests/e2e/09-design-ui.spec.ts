@@ -14,10 +14,10 @@ test.describe('Design UI — Sidebar & Calendar', () => {
     await expect(header).not.toContainText('Game Select')
   })
 
-  test('게임 항목에 플랫폼 칩이 표시된다', async ({ page }) => {
-    const platforms = page.locator('[data-testid="game-platforms-fortnite"]')
-    await expect(platforms).toBeVisible()
-    await expect(page.locator('[data-testid="platform-chip-fortnite-pc"]')).toBeVisible()
+  test('게임 항목에 이벤트 요약이 표시된다', async ({ page }) => {
+    const summary = page.locator('[data-testid="game-event-summary-fortnite"]')
+    await expect(summary).toBeVisible()
+    await expect(summary).toContainText('×')
   })
 
   test('이벤트 바에 타입 아이콘이 prefix로 표시된다', async ({ page }) => {
