@@ -1,5 +1,5 @@
 # GAMECAL — 현재 상태 & 다음 작업 지시서
-### 최종 업데이트: 2026-05-23
+### 최종 업데이트: 2026-05-24
 
 ---
 
@@ -9,7 +9,7 @@
 | 항목 | 상태 | 비고 |
 |------|------|------|
 | Vercel 배포 | ✅ Live | `gamecal-beryl.vercel.app` |
-| GitHub CI E2E | ✅ 통과 | Actions #5 — a6d8ee4 기준 |
+| GitHub CI E2E | ✅ 통과 | Actions — d39c31c 기준 |
 | Supabase DB | ✅ 연결 완료 | `yaniatixajpbmdwdisbj` |
 | Vercel Env Vars | ✅ 전부 설정 | 6개 변수 production 등록 |
 | Cron 제거 | ✅ | Hobby Plan 제한 — Pro 업그레이드 후 복원 |
@@ -50,6 +50,31 @@
   - 5개 wing finger bone, 2겹 날개, 3겹 fire breath, 꼬리 fin
   - 이번 주 critical/high 이벤트 게임 컬러·제목으로 CTA 표시
 
+### Phase 2 — Analytics + Engagement API + Admin CMS + Sidebar (commit d39c31c)
+- ✅ **[P1] hero_color 시드 완료**
+  - `scripts/seed-releases-colors.ts` 생성 및 실행
+  - Hollow Knight `#1a1a2e`, Metroid `#e4000f`, Elden Ring `#1b2838` 적용
+  - Borderlands 4 — DB 미등록으로 스킵
+- ✅ **[P2] PostHog 분석 연동**
+  - `posthog-js` 설치, `PostHogProvider`, `src/lib/posthog.ts`
+  - 트래킹: `cinematic_seen/skipped`, `wishlist_added`, `checkin_done`, `onboarding_completed`
+  - ⚠️ **Vercel 환경변수 추가 필요**: `NEXT_PUBLIC_POSTHOG_KEY` (없으면 analytics no-op)
+- ✅ **[P3] Supabase Engagement API 연동**
+  - `GET/POST/DELETE /api/wishlist` — Supabase wishlists 테이블
+  - `GET/POST /api/checkin` — attendance + user_stats streak 계산
+  - `scripts/seed-badges.ts` — 25개 badge_definitions 시드 완료
+  - WishlistButton, DailyCheckIn → API 우선, 실패 시 localStorage 폴백
+- ✅ **[P5] 어드민 CMS**
+  - `/admin` — 대시보드 + 크롤러 수동 트리거 (Fortnite/WoW/LoL/Genshin/Pokémon GO)
+  - `/admin/events` — 검색·날짜 필터·발행/비발행 토글
+  - `/admin/releases` — hero_color 색상 피커, featured/published 토글
+  - `PUT /api/new-releases/[id]` API 추가
+- ✅ **[Sidebar S1–S4] 사이드바 게임 아이콘 + 이벤트 요약**
+  - `src/components/calendar/GameIcon.tsx` — 9개 게임 SVG 아이콘 (fortnite/apex/valorant/lol/destiny2/diablo4/wow/pokemon-go/genshin)
+  - `src/lib/event-summary.ts` — `getEventSummary()` 타입별 집계, 우선순위 정렬, 최대 4개
+  - `GameSidebar.tsx` — 색상 dot → SVG 아이콘, 플랫폼 칩 → 이벤트 카테고리 요약
+  - `CalendarLayout.tsx` — `events` prop 전달
+
 ### Supabase Schema 최신화
 - ✅ `new_releases.hero_color TEXT` 컬럼 추가
 - ✅ 004_engagement.sql 적용 (RLS 활성화):
@@ -60,53 +85,6 @@
 ---
 
 ## 🔜 다음 작업 (우선순위 순)
-
-### [P1] hero_color 시드 데이터 채우기 ← **첫 번째로 할 것**
-> Supabase Dashboard SQL Editor에서 실행
-
-```sql
-UPDATE new_releases SET hero_color = '#1a1a2e' WHERE title ILIKE '%Hollow Knight%';
-UPDATE new_releases SET hero_color = '#e4000f' WHERE title ILIKE '%Metroid%';
-UPDATE new_releases SET hero_color = '#1b2838' WHERE title ILIKE '%Elden Ring%';
-UPDATE new_releases SET hero_color = '#f59e0b' WHERE title ILIKE '%Borderlands%';
-```
-
-또는 `pnpm tsx scripts/seed-releases-colors.ts` (GAMECAL_PHASE2_CURSOR.md 참고)
-
----
-
-### [P2] PostHog 분석 연동 ← **두 번째**
-> MVP → PMF 판단을 위한 핵심 지표 수집
-
-설치:
-```bash
-pnpm add posthog-js posthog-node
-```
-
-`src/lib/posthog.ts` 생성 후 트래킹 이벤트:
-- `cinematic_seen` / `cinematic_skipped`
-- `wishlist_added` / `reminder_set`
-- `checkin_done` / `badge_unlocked`
-- `onboarding_completed` (게임 선택, 플랫폼 선택)
-- `share_discord` / `share_reddit`
-- `signup_started` / `signup_completed`
-
-PostHog 프로젝트 생성: https://app.posthog.com
-무료 월 100만 이벤트, Next.js 연동 쉬움.
-
----
-
-### [P3] Supabase Engagement API 연동 ← **세 번째**
-> 현재 localStorage MVP → 실제 DB
-
-- `src/app/api/wishlist/route.ts` — GET/POST/DELETE
-- `src/app/api/checkin/route.ts` — POST + streak 계산 → `user_stats` upsert
-- `badges` 시드 실행: `pnpm tsx scripts/seed-badges.ts`
-- Supabase RLS 정책 추가 (각 테이블 `user_id = auth.uid()`)
-
-자세한 코드: `GAMECAL_PHASE2_CURSOR.md` SESSION P2 참고
-
----
 
 ### [P4] CommandSearch 실제 검색 연동
 > 현재 Cmd+K 패널이 있지만 이벤트 DB 검색 미연동
@@ -121,15 +99,14 @@ const { data } = await supabase
 
 ---
 
-### [P5] 어드민 CMS (Admin Dashboard)
-> 이벤트·릴리즈 CRUD, 수동 크롤러 트리거
+### [PostHog] Vercel 환경변수 활성화 ← **즉시 할 것**
+> PostHog 코드는 배포됐으나 KEY가 없어 analytics가 no-op 상태
 
-- `src/app/admin/` 페이지 (ADMIN_SECRET 기반 인증)
-- 이벤트 CRUD (발행/비발행, 날짜 범위 필터)
-- New Releases 관리 (hero_color 색상 피커 포함)
-- 크롤러 수동 트리거 버튼
+1. https://app.posthog.com 에서 프로젝트 생성 → API Key 복사
+2. Vercel → Settings → Environment Variables → `NEXT_PUBLIC_POSTHOG_KEY` 추가
+3. Vercel 재배포 (또는 자동 트리거)
 
-자세한 스펙: `GAMECAL_DESIGN_CURSOR.md` Session A1–A4 참고
+무료 월 100만 이벤트.
 
 ---
 
@@ -156,58 +133,75 @@ gamecal/
 │   │   ├── settings/
 │   │   ├── my-schedule/
 │   │   ├── profile/
+│   │   ├── admin/
+│   │   │   ├── page.tsx              ← 어드민 대시보드 + 크롤러
+│   │   │   ├── layout.tsx
+│   │   │   ├── events/page.tsx       ← 이벤트 CRUD
+│   │   │   └── releases/page.tsx     ← 릴리즈 + hero_color 피커
 │   │   └── api/
 │   │       ├── events/
+│   │       ├── wishlist/route.ts     ← Supabase wishlists
+│   │       ├── checkin/route.ts      ← Supabase attendance + streak
+│   │       ├── new-releases/[id]/route.ts ← PUT (hero_color 등)
 │   │       ├── digest/subscribe/
 │   │       ├── push/subscribe/
 │   │       └── cron/reminders/
 │   ├── components/
 │   │   ├── calendar/
-│   │   │   ├── CalendarLayout.tsx    ← 3-col 레이아웃
+│   │   │   ├── CalendarLayout.tsx    ← 3-col 레이아웃 (events prop 전달)
+│   │   │   ├── GameIcon.tsx          ← 9-game SVG 아이콘 ✨NEW
+│   │   │   ├── GameSidebar.tsx       ← 아이콘 + 이벤트 요약 ✨NEW
 │   │   │   ├── WeeklyHighlights.tsx
 │   │   │   ├── UpcomingFeed.tsx
 │   │   │   ├── CommandSearch.tsx
 │   │   │   └── DigestSubscribe.tsx
+│   │   ├── PostHogProvider.tsx       ← PostHog 래퍼 ✨NEW
 │   │   ├── cinematic/
-│   │   │   ├── CinematicIntro.tsx    ← 드래곤 인트로
+│   │   │   ├── CinematicIntro.tsx
 │   │   │   └── dragon-renderer.ts
 │   │   ├── onboarding/
-│   │   │   └── SignupOnboarding.tsx  ← 회원가입 온보딩
+│   │   │   └── SignupOnboarding.tsx
 │   │   ├── engagement/
-│   │   │   ├── DailyCheckIn.tsx
+│   │   │   ├── DailyCheckIn.tsx      ← Supabase API 연동
 │   │   │   ├── BadgeGallery.tsx
 │   │   │   └── PrestigeBar.tsx
 │   │   └── wishlist/
-│   │       ├── WishlistButton.tsx
+│   │       ├── WishlistButton.tsx    ← Supabase API 연동
 │   │       └── ReminderPicker.tsx
+│   ├── hooks/
+│   │   └── useAuth.tsx
 │   └── lib/
-│       ├── timezone.ts               ← 타임존 유틸
-│       ├── engagement-store.ts       ← localStorage MVP
+│       ├── posthog.ts                ← PostHog 유틸 ✨NEW
+│       ├── event-summary.ts          ← 이벤트 카테고리 집계 ✨NEW
+│       ├── admin-fetch.ts            ← 어드민 fetch 유틸 ✨NEW
+│       ├── timezone.ts
+│       ├── engagement-store.ts       ← localStorage 폴백
 │       ├── calendar-dates.ts
 │       └── push.ts
 ├── supabase/migrations/
-│   └── 004_engagement.sql            ← Supabase 적용 완료
+│   └── 004_engagement.sql
 ├── scripts/
-│   ├── seed-badges.ts
-│   └── seed-releases-colors.ts       ← 작성 필요 (P1)
+│   ├── seed-badges.ts                ← 25개 뱃지 시드 완료
+│   └── seed-releases-colors.ts       ← hero_color 시드 완료
 ├── tests/e2e/
+│   ├── 09-design-ui.spec.ts          ← 사이드바 assertion 업데이트
 │   ├── 10-gamer-design.spec.ts
 │   └── 11-ux-engage.spec.ts
-├── schema.sql
-├── GAMECAL_STATUS.md                 ← 이 파일 (현재 상태)
-├── GAMECAL_PHASE2_CURSOR.md          ← P2-P4 Cursor 지시서
-├── GAMECAL_ENGAGE_CURSOR.md          ← E1-E4 원본 지시서
-└── GAMECAL_UX2_CURSOR.md             ← U1-U4 원본 지시서
+├── GAMECAL_STATUS.md                 ← 이 파일
+├── GAMECAL_PHASE2_CURSOR.md
+├── GAMECAL_SIDEBAR_CURSOR.md
+├── GAMECAL_ENGAGE_CURSOR.md
+└── GAMECAL_UX2_CURSOR.md
 ```
 
 ---
 
 ## ⚠️ 알려진 이슈 & 주의사항
 
-1. **dragon-renderer.ts 수정본 미커밋**: `git status`에 M 표시 — 다음 커밋에 포함
-2. **Engagement 데이터 localStorage**: Supabase RLS 정책 미설정 — P3 완료 후 전환
+1. **PostHog KEY 미설정**: `NEXT_PUBLIC_POSTHOG_KEY` Vercel 환경변수 추가 필요 — 없으면 analytics 비활성화
+2. **Borderlands 4 hero_color 미설정**: DB에 해당 타이틀 없어 스킵됨 — 릴리즈 추가 후 어드민에서 색상 설정
 3. **Cron 비활성화**: Vercel Pro 전까지 자동 이벤트 수집 없음
-4. **hero_color Supabase 컬럼**: 추가됨, 데이터 미입력 — P1 실행 필요
+4. **Supabase RLS 정책**: engagement 테이블 RLS 활성화됨, 인증된 유저만 write 가능 (게스트는 read-only)
 
 ---
 
@@ -220,4 +214,5 @@ gamecal/
 | Settings | https://gamecal-beryl.vercel.app/settings |
 | My Schedule | https://gamecal-beryl.vercel.app/my-schedule |
 | Profile | https://gamecal-beryl.vercel.app/profile |
+| 어드민 | https://gamecal-beryl.vercel.app/admin?secret=YOUR_SECRET |
 | GitHub | https://github.com/Yissue-inc/gamecal |
