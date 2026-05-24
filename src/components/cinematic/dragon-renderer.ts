@@ -1,4 +1,4 @@
-/** Upgraded procedural dragon for cinematic intro canvas */
+/** Hand-crafted pixel-art dragon for cinematic intro — side view, head faces +X */
 
 export interface DragonPath {
   p0: { x: number; y: number }
@@ -42,27 +42,165 @@ export function bezierTangent(
   }
 }
 
-function drawScalePlate(
+type Px =
+  | '.'
+  | 'O'
+  | 'D'
+  | 'd'
+  | 'B'
+  | 'b'
+  | 'L'
+  | 'l'
+  | 'G'
+  | 'R'
+  | 'H'
+  | 'K'
+  | 'Y'
+  | 'y'
+  | 'n'
+  | 'W'
+  | 'w'
+  | 'V'
+
+const BODY_W = 76
+const BODY_H = 36
+const WING_W = 36
+const WING_H = 20
+
+/** Pivot: body center for rotation along flight path */
+const ANCHOR_X = 38
+const ANCHOR_Y = 18
+
+function buildPalette(accent: string): Record<Exclude<Px, '.'>, string> {
+  return {
+    O: '#0c0604',
+    D: '#160a06',
+    d: '#281208',
+    B: '#3d1a0a',
+    b: '#5c3018',
+    L: '#7a5030',
+    l: '#4a2818',
+    G: '#a08058',
+    R: accent,
+    H: '#9a7820',
+    K: '#362010',
+    Y: '#fef08a',
+    y: '#120a06',
+    n: '#0a0404',
+    W: '#100804',
+    w: '#241008',
+    V: '#5c3818',
+  }
+}
+
+/** Tail ← · scaled belly · back ridges · neck · head/snout/eye → */
+const BODY_SPRITE: string[] = [
+  '............................................................H.......H...H...',
+  '...........................................................H.......H.....H..',
+  '..........................................................H.................',
+  '............................................................................',
+  '............................................................................',
+  '................................................RRRRRRRRRRRRRRRRRRRRRR......',
+  '..............................................RRRRRRRRRRRRRRRRRRRRRRRRRR....',
+  '............................................RRRRRRRRRRRRRRRRRRRRRRYyRRR.....',
+  '..........................................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..',
+  '..........................................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRD.',
+  '..........................................RRRRRRRRRRbbbbbbbbbbbbbbbbbbbb.n..',
+  '................H...H...H...H...H...H...H.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbO.',
+  '................H...R...H...R...H...R...H.bbbbbbbbbbbbbbbbbbbbbbbbbbbb......',
+  '..............DDDDDDDDDDDDDDDDDDDDDDDDDDDDbbbbbbbbbbbbbbbb.................',
+  '................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...........................',
+  '................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...........................',
+  '................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...........................',
+  '................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...........................',
+  '................BBLlGLlGLlGLlGLlGLlGLlGLlGLlBBBB...........................',
+  '................BBlGLlGLlGLlGLlGLlGLlGLlGLlGBBBB...........................',
+  '................BBGLlGLlGLlGLlGLlGLlGLlGLlGLBBBB...........................',
+  '................BBLlGLlGLlGLlGLlGLlGLlGLlGLlBBBB...........................',
+  'BBBBBBBBBBBBBBBBBBlGLlGD...................................................',
+  'BBBBBBBBBBBBBBBBBBGLlDKK...................................................',
+  'BBBBBBBBBBBBBBBBBBBR..KK............KK.....................................',
+  'BBBBBBBBBBBBBBBBBH....KK............KK.....................................',
+  'BBBBBBBBBBBBBBHD......KK............KK.....................................',
+  'bbbbbbbbbbbRbD.......K..K...........KK.....................................',
+  'bbbbbbbbbbbD.......................K..K....................................',
+  'bbbbbbbbbD.................................................................',
+  'bbbbbbbD...................................................................',
+  'bbbbbD.....................................................................',
+  '............................................................................',
+  '............................................................................',
+  '............................................................................',
+  '............................................................................',
+]
+
+const WING_DOWN: string[] = [
+  '....................................',
+  '....................................',
+  '....................................',
+  '.................................Ww.',
+  '.........................VVVVVVVVVw.',
+  '........................VVVVVVVVVVw.',
+  '.......................VVVVVVVVVVVw.',
+  '......................wWwWwWwWwWwWw.',
+  '.....................wWwWwWwWwWwWww.',
+  '....................wWwWwWwWwWwWwWw.',
+  '................VV...wWwWwWwWwWwWww.',
+  '..................VVVVwWwWwWwWwWwWw.',
+  '......................VVVVWwWwWwWww.',
+  '........................wWVVVVwWwWw.',
+  '.........................wWwWwVVVVw.',
+  '.................................Ww.',
+  '....................................',
+  '....................................',
+  '....................................',
+  '....................................',
+]
+
+const WING_UP: string[] = [
+  '.......................VVVVVVVVVVVw.',
+  '......................wWwWVVVVVVVVw.',
+  '.....................wWwWwwWwWwWwWw.',
+  '................VV..wWwWwWWwWwWwWww.',
+  '.....................wWwWwwWwWwWwWw.',
+  '..................VVVVwWwWWwWwWwWww.',
+  '......................VVVVwWwWwWwWw.',
+  '........................wWWwWwWwWww.',
+  '.........................wVVVVwWwWw.',
+  '..........................WwWwVVVVw.',
+  '.................................Ww.',
+  '..................................w.',
+  '....................................',
+  '....................................',
+  '....................................',
+  '....................................',
+  '....................................',
+  '....................................',
+  '....................................',
+  '....................................',
+]
+
+function drawPixelLayer(
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  rot: number,
-  fill: string,
-  stroke: string
+  sprite: string[],
+  palette: Record<Exclude<Px, '.'>, string>,
+  ox: number,
+  oy: number,
+  px: number
 ) {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(rot)
-  ctx.beginPath()
-  ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2)
-  ctx.fillStyle = fill
-  ctx.fill()
-  ctx.strokeStyle = stroke
-  ctx.lineWidth = 0.6
-  ctx.stroke()
-  ctx.restore()
+  const prevSmooth = ctx.imageSmoothingEnabled
+  ctx.imageSmoothingEnabled = false
+
+  for (let y = 0; y < sprite.length; y++) {
+    const row = sprite[y]
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x] as Px
+      if (ch === '.') continue
+      ctx.fillStyle = palette[ch]
+      ctx.fillRect(ox + x * px, oy + y * px, px, px)
+    }
+  }
+
+  ctx.imageSmoothingEnabled = prevSmooth
 }
 
 export function drawDragon(
@@ -75,216 +213,56 @@ export function drawDragon(
   accentColor: string,
   canvasScale: number
 ) {
-  const sz = 105 * canvasScale
+  const px = Math.max(2.5, (110 * canvasScale * 2.4) / BODY_W)
+  const palette = buildPalette(accentColor)
+  const bodyOx = -ANCHOR_X * px
+  const bodyOy = -ANCHOR_Y * px
 
   ctx.save()
   ctx.translate(cx, cy)
   ctx.rotate(angle)
 
-  // Ambient body glow
-  const glowGrad = ctx.createRadialGradient(sz * 0.1, 0, 0, sz * 0.1, 0, sz * 1.1)
-  glowGrad.addColorStop(0, `${accentColor}33`)
-  glowGrad.addColorStop(0.5, `${accentColor}14`)
-  glowGrad.addColorStop(1, 'rgba(0,0,0,0)')
+  // Soft accent glow behind dragon
+  const glowR = BODY_W * px * 0.55
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowR)
+  glow.addColorStop(0, `${accentColor}28`)
+  glow.addColorStop(0.55, `${accentColor}10`)
+  glow.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = glow
   ctx.beginPath()
-  ctx.ellipse(sz * 0.05, 0, sz * 1.0, sz * 0.45, 0, 0, Math.PI * 2)
-  ctx.fillStyle = glowGrad
+  ctx.arc(0, 0, glowR, 0, Math.PI * 2)
   ctx.fill()
 
   const wingSin = Math.sin(wingPhase)
-  const wingSpread = 0.55 + wingSin * 0.45
+  const wingSprite = wingSin > 0 ? WING_UP : WING_DOWN
+  const wingLift = Math.max(0, wingSin) * px * 3.5
 
-  // Back wing (depth layer)
-  ctx.globalAlpha = 0.55
-  ctx.beginPath()
-  ctx.moveTo(-sz * 0.15, -sz * 0.08)
-  ctx.bezierCurveTo(
-    -sz * 0.2,
-    -sz * (0.65 + wingSpread * 0.75),
-    sz * 0.35,
-    -sz * (0.95 + wingSpread * 0.55),
-    sz * 0.48,
-    -sz * (0.35 + wingSpread * 0.25)
-  )
-  ctx.bezierCurveTo(sz * 0.25, -sz * 0.18, sz * 0.05, -sz * 0.1, -sz * 0.15, -sz * 0.08)
-  ctx.fillStyle = 'rgba(15, 8, 2, 0.85)'
-  ctx.fill()
+  // Back wing (slightly dimmed, offset down)
+  ctx.globalAlpha = 0.45
+  drawPixelLayer(ctx, wingSprite, palette, bodyOx - 10 * px, bodyOy - 14 * px + px * 2, px)
   ctx.globalAlpha = 1
 
-  // Main upper wing with membrane
-  ctx.beginPath()
-  ctx.moveTo(-sz * 0.08, -sz * 0.04)
-  ctx.bezierCurveTo(
-    -sz * 0.05,
-    -sz * (0.55 + wingSpread * 0.85),
-    sz * 0.42,
-    -sz * (0.88 + wingSpread * 0.65),
-    sz * 0.55,
-    -sz * (0.32 + wingSpread * 0.28)
-  )
-  ctx.bezierCurveTo(sz * 0.32, -sz * 0.14, sz * 0.12, -sz * 0.07, -sz * 0.08, -sz * 0.04)
-  const wingGrad = ctx.createLinearGradient(-sz * 0.1, -sz * 1.3, sz * 0.55, 0)
-  wingGrad.addColorStop(0, '#120804')
-  wingGrad.addColorStop(0.5, '#3d1f08')
-  wingGrad.addColorStop(1, '#6b3412')
-  ctx.fillStyle = wingGrad
-  ctx.fill()
-  ctx.strokeStyle = `${accentColor}55`
-  ctx.lineWidth = 1.2 * canvasScale * 100
-  ctx.stroke()
+  // Body
+  drawPixelLayer(ctx, BODY_SPRITE, palette, bodyOx, bodyOy, px)
 
-  // Wing finger bones
-  ctx.strokeStyle = 'rgba(220, 140, 40, 0.35)'
-  ctx.lineWidth = 1 * canvasScale * 100
-  for (let i = 1; i <= 5; i++) {
-    const ft = i / 6
-    ctx.beginPath()
-    ctx.moveTo(-sz * 0.04, -sz * 0.04)
-    ctx.quadraticCurveTo(
-      sz * (0.15 * ft),
-      -sz * (0.5 + wingSpread * 0.7) * ft,
-      sz * (0.48 * ft),
-      -sz * (0.75 + wingSpread * 0.55) * ft
-    )
-    ctx.stroke()
-  }
+  // Fore wing
+  drawPixelLayer(ctx, wingSprite, palette, bodyOx - 10 * px, bodyOy - 14 * px - wingLift, px)
 
-  // Lower wing
-  ctx.beginPath()
-  ctx.moveTo(sz * 0.08, sz * 0.06)
-  ctx.bezierCurveTo(
-    sz * 0.12,
-    sz * (0.35 + wingSpread * 0.45),
-    sz * 0.42,
-    sz * (0.58 + wingSpread * 0.38),
-    sz * 0.52,
-    sz * (0.18 + wingSpread * 0.12)
-  )
-  ctx.bezierCurveTo(sz * 0.32, sz * 0.1, sz * 0.14, sz * 0.07, sz * 0.08, sz * 0.06)
-  ctx.fillStyle = '#1a0a03'
-  ctx.fill()
+  // Eye glow
+  const eyeX = bodyOx + 66 * px + px * 0.5
+  const eyeY = bodyOy + 7 * px + px * 0.5
+  ctx.shadowColor = accentColor
+  ctx.shadowBlur = px * 2.5
+  ctx.fillStyle = '#fef08a'
+  ctx.fillRect(eyeX, eyeY, px, px)
+  ctx.shadowBlur = 0
 
-  // Tail with fin
-  ctx.beginPath()
-  ctx.moveTo(-sz * 0.48, sz * 0.04)
-  ctx.bezierCurveTo(-sz * 0.72, sz * 0.1, -sz * 0.95, sz * 0.28, -sz * 1.15, sz * 0.02)
-  ctx.bezierCurveTo(-sz * 1.05, -sz * 0.12, -sz * 0.88, -sz * 0.06, -sz * 0.72, -sz * 0.02)
-  ctx.bezierCurveTo(-sz * 0.85, -sz * 0.18, -sz * 0.95, -sz * 0.22, -sz * 1.05, -sz * 0.08)
-  ctx.bezierCurveTo(-sz * 0.9, -sz * 0.04, -sz * 0.68, sz * 0.02, -sz * 0.48, sz * 0.04)
-  ctx.fillStyle = '#2a0e03'
-  ctx.fill()
-
-  // Body core
-  const bodyGrad = ctx.createLinearGradient(-sz * 0.55, -sz * 0.22, sz * 0.75, sz * 0.22)
-  bodyGrad.addColorStop(0, '#0d0502')
-  bodyGrad.addColorStop(0.35, '#4a2008')
-  bodyGrad.addColorStop(0.65, '#6b3010')
-  bodyGrad.addColorStop(1, '#1a0a02')
-  ctx.beginPath()
-  ctx.ellipse(sz * 0.08, 0, sz * 0.66, sz * 0.2, 0, 0, Math.PI * 2)
-  ctx.fillStyle = bodyGrad
-  ctx.fill()
-
-  // Spine ridge spikes
-  for (let i = 0; i < 7; i++) {
-    const sx = -sz * 0.35 + i * sz * 0.12
-    const sh = sz * (0.08 + (i % 2) * 0.03)
-    ctx.beginPath()
-    ctx.moveTo(sx, -sz * 0.12)
-    ctx.lineTo(sx - sz * 0.025, -sz * 0.12 - sh)
-    ctx.lineTo(sx + sz * 0.025, -sz * 0.12 - sh)
-    ctx.closePath()
-    ctx.fillStyle = i > 4 ? accentColor : '#5c2a08'
-    ctx.fill()
-  }
-
-  // Scale plates along body
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 8; col++) {
-      const px = -sz * 0.3 + col * sz * 0.11
-      const py = -sz * 0.02 + row * sz * 0.07
-      drawScalePlate(
-        ctx,
-        px,
-        py,
-        sz * 0.045,
-        sz * 0.028,
-        col * 0.15,
-        row === 0 ? '#5c3010' : '#3d1a05',
-        `${accentColor}44`
-      )
-    }
-  }
-
-  // Neck
-  ctx.beginPath()
-  ctx.moveTo(sz * 0.62, -sz * 0.06)
-  ctx.bezierCurveTo(sz * 0.74, -sz * 0.2, sz * 0.8, -sz * 0.24, sz * 0.76, -sz * 0.14)
-  ctx.bezierCurveTo(sz * 0.76, -sz * 0.04, sz * 0.68, sz * 0.05, sz * 0.62, sz * 0.07)
-  ctx.closePath()
-  ctx.fillStyle = '#4a2008'
-  ctx.fill()
-
-  // Head + snout
-  ctx.beginPath()
-  ctx.ellipse(sz * 0.8, -sz * 0.14, sz * 0.17, sz * 0.1, -0.35, 0, Math.PI * 2)
-  ctx.fillStyle = '#2a0e03'
-  ctx.fill()
-
-  ctx.beginPath()
-  ctx.moveTo(sz * 0.88, -sz * 0.12)
-  ctx.lineTo(sz * 1.02, -sz * 0.1)
-  ctx.lineTo(sz * 0.9, -sz * 0.06)
-  ctx.closePath()
-  ctx.fillStyle = '#1a0802'
-  ctx.fill()
-
-  // Jaw highlight
-  ctx.beginPath()
-  ctx.moveTo(sz * 0.72, -sz * 0.08)
-  ctx.quadraticCurveTo(sz * 0.9, -sz * 0.04, sz * 0.98, -sz * 0.09)
-  ctx.strokeStyle = `${accentColor}66`
-  ctx.lineWidth = 1.5 * canvasScale * 100
-  ctx.stroke()
-
-  // Eyes (both) with glow
-  for (const [ex, ey] of [
-    [sz * 0.86, -sz * 0.16],
-    [sz * 0.82, -sz * 0.155],
-  ] as const) {
-    ctx.shadowColor = accentColor
-    ctx.shadowBlur = 10 * canvasScale * 80
-    ctx.beginPath()
-    ctx.ellipse(ex, ey, sz * 0.032, sz * 0.022, -0.3, 0, Math.PI * 2)
-    ctx.fillStyle = '#fef08a'
-    ctx.fill()
-    ctx.beginPath()
-    ctx.arc(ex + sz * 0.008, ey, sz * 0.012, 0, Math.PI * 2)
-    ctx.fillStyle = '#0f0f0f'
-    ctx.fill()
-    ctx.shadowBlur = 0
-  }
-
-  // Horns (crown)
-  const horns: [number, number, number, number][] = [
-    [sz * 0.84, -sz * 0.22, sz * 0.9, -sz * 0.38],
-    [sz * 0.78, -sz * 0.21, sz * 0.8, -sz * 0.34],
-    [sz * 0.74, -sz * 0.19, sz * 0.72, -sz * 0.3],
-  ]
-  ctx.strokeStyle = '#8b4513'
-  ctx.lineWidth = 2.5 * canvasScale * 100
-  ctx.lineCap = 'round'
-  for (const [x1, y1, x2, y2] of horns) {
-    ctx.beginPath()
-    ctx.moveTo(x1, y1)
-    ctx.lineTo(x2, y2)
-    ctx.stroke()
-  }
-
-  // Fire breath (multi-layer)
+  // Fire breath from snout
   if (t > 0.08) {
     const flicker = Math.sin(Date.now() * 0.018) * 0.15
-    const fireLen = sz * (2.8 + flicker)
+    const snoutX = (74 - ANCHOR_X) * px
+    const snoutY = (10 - ANCHOR_Y) * px
+    const fireLen = BODY_W * px * (0.55 + flicker)
 
     const layers = [
       { alpha: 0.95, colors: ['#fff7cc', '#ffd54f', '#ff8c00', 'rgba(200,40,0,0)'], width: 1.0 },
@@ -294,26 +272,27 @@ export function drawDragon(
 
     for (const layer of layers) {
       ctx.globalAlpha = layer.alpha
-      const fireGrad = ctx.createLinearGradient(sz * 0.75, 0, sz * 0.75 + fireLen * layer.width, 0)
+      const fireGrad = ctx.createLinearGradient(snoutX, snoutY, snoutX + fireLen * layer.width, snoutY)
       layer.colors.forEach((c, i) => fireGrad.addColorStop(i / (layer.colors.length - 1), c))
 
+      const wobble = Math.sin(Date.now() * 0.009) * px * 2
       ctx.beginPath()
-      ctx.moveTo(sz * 0.72, -sz * 0.1)
+      ctx.moveTo(snoutX, snoutY - px)
       ctx.bezierCurveTo(
-        sz * 0.95,
-        -sz * 0.04,
-        sz * 0.85 + fireLen * 0.45,
-        sz * 0.18 * Math.sin(Date.now() * 0.009),
-        sz * 0.78 + fireLen * layer.width,
-        sz * 0.06 * Math.sin(Date.now() * 0.007)
+        snoutX + fireLen * 0.25,
+        snoutY - px * 3 + wobble,
+        snoutX + fireLen * 0.55,
+        snoutY + px * 4 - wobble,
+        snoutX + fireLen * layer.width,
+        snoutY + px * 0.5
       )
       ctx.bezierCurveTo(
-        sz * 0.85 + fireLen * 0.45,
-        -sz * 0.2,
-        sz * 0.95,
-        -sz * 0.22,
-        sz * 0.72,
-        -sz * 0.1
+        snoutX + fireLen * 0.55,
+        snoutY - px * 2,
+        snoutX + fireLen * 0.25,
+        snoutY - px * 4,
+        snoutX,
+        snoutY - px
       )
       ctx.fillStyle = fireGrad
       ctx.fill()
