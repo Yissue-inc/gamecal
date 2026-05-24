@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { CalendarLayout } from '@/components/calendar/CalendarLayout'
 import { MOCK_GAMES } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/mock-data'
@@ -24,5 +25,9 @@ async function getGames(): Promise<Game[]> {
 
 export default async function HomePage() {
   const games = await getGames()
-  return <CalendarLayout games={games} />
+  return (
+    <Suspense fallback={null}>
+      <CalendarLayout games={games} />
+    </Suspense>
+  )
 }

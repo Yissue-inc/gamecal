@@ -152,7 +152,19 @@ export function SettingsForm({ email, onSaved }: SettingsFormProps) {
               </div>
             )}
             <div className="flex items-center gap-2">
-              <Checkbox id="auto-tz" defaultChecked />
+              <Checkbox
+                id="auto-tz"
+                checked={form.auto_timezone !== false}
+                onCheckedChange={(checked) => {
+                  const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+                  if (checked) {
+                    localStorage.removeItem('gamecal_tz_manual')
+                    setForm((prev) => ({ ...prev, auto_timezone: true, timezone: detected }))
+                  } else {
+                    setForm((prev) => ({ ...prev, auto_timezone: false }))
+                  }
+                }}
+              />
               <Label htmlFor="auto-tz">Auto-detect timezone from browser</Label>
             </div>
             <Button data-testid="settings-save-btn" onClick={handleSave}>Save</Button>

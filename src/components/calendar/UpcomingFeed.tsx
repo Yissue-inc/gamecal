@@ -1,5 +1,6 @@
 'use client'
 
+import { usePreferences } from '@/hooks/usePreferences'
 import type { GameEvent } from '@/types'
 import {
   formatShortTime,
@@ -11,7 +12,17 @@ import {
 } from '@/lib/calendar-dates'
 import { getEventTypeIcon } from '@/lib/utils'
 
-function UpcomingItem({ event, onClick }: { event: GameEvent; onClick: () => void }) {
+function UpcomingItem({
+  event,
+  onClick,
+  timezone,
+  timeFormat,
+}: {
+  event: GameEvent
+  onClick: () => void
+  timezone: string
+  timeFormat: '12h' | '24h'
+}) {
   const isLive = isCurrentlyActive(event)
   const game = event.game!
 
@@ -35,7 +46,7 @@ function UpcomingItem({ event, onClick }: { event: GameEvent; onClick: () => voi
             </div>
           ) : (
             <div className="mb-0.5 text-[10px] text-zinc-500">
-              {getEventTypeIcon(event.event_type)} {formatShortTime(event.start_at)}
+              {getEventTypeIcon(event.event_type)} {formatShortTime(event.start_at, timezone, timeFormat)}
             </div>
           )}
           <div className="line-clamp-2 text-xs font-semibold leading-tight text-zinc-200 group-hover:text-white">
@@ -60,11 +71,12 @@ export function UpcomingFeed({
   events: GameEvent[]
   onEventClick: (event: GameEvent) => void
 }) {
+  const { preferences } = usePreferences()
   const upcoming = events
     .filter((e) => e.game && (isUpcoming(e.start_at) || isCurrentlyActive(e)) && isWithinDays(e.start_at, 14))
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
 
-  const groups = groupEventsByDay(upcoming)
+  const groups = groupEventsByDay(upcoming, preferences.timezone)
 
   return (
     <aside
@@ -82,7 +94,13 @@ export function UpcomingFeed({
               {day}
             </div>
             {dayEvents.map((event) => (
-              <UpcomingItem key={event.id} event={event} onClick={() => onEventClick(event)} />
+              <UpcomingItem
+                key={event.id}
+                event={event}
+                onClick={() => onEventClick(event)}
+                timezone={preferences.timezone}
+                timeFormat={preferences.time_format}
+              />
             ))}
           </div>
         ))}

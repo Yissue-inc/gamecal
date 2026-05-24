@@ -11,9 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { PrestigeBar } from '@/components/engagement/PrestigeBar'
-import { formatTimezoneLabel } from '@/lib/push'
+import { formatTimezoneLabel } from '@/lib/timezone'
 import { useAuth } from '@/hooks/useAuth'
-import { useEffect, useState } from 'react'
+import { usePreferences } from '@/hooks/usePreferences'
 
 interface CalendarHeaderProps {
   currentTitle: string
@@ -25,11 +25,8 @@ interface CalendarHeaderProps {
 
 export function CalendarHeader({ currentTitle, onToday, onPrev, onNext, onSignIn }: CalendarHeaderProps) {
   const { user, isGuest, signOut } = useAuth()
-  const [timezone, setTimezone] = useState('UTC')
-
-  useEffect(() => {
-    setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
-  }, [])
+  const { preferences } = usePreferences()
+  const timezone = preferences.timezone
 
   return (
     <header data-testid="calendar-header" className="flex h-14 items-center justify-between border-b border-zinc-800 bg-[#0f0f0f] px-4">
@@ -53,13 +50,14 @@ export function CalendarHeader({ currentTitle, onToday, onPrev, onNext, onSignIn
       </div>
 
       <div className="flex items-center gap-3">
-        <span
+        <Link
+          href="/settings"
           data-testid="timezone-label"
-          className="hidden text-[10px] text-zinc-500 sm:inline"
-          title={timezone}
+          className="hidden text-[10px] text-zinc-500 transition hover:text-zinc-300 sm:inline"
+          title={`Events shown in ${timezone}`}
         >
           🌍 {formatTimezoneLabel(timezone)}
-        </span>
+        </Link>
         <PrestigeBar />
         <Button variant="ghost" size="sm" asChild>
           <Link href="/new-releases" data-testid="new-releases-link">New Releases</Link>

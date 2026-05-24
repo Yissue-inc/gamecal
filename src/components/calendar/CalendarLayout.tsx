@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import FullCalendar from '@fullcalendar/react'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { GameSidebar } from '@/components/calendar/GameSidebar'
@@ -16,8 +17,11 @@ import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
 import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
 import { CalEventBridge } from '@/components/engagement/CalEventBridge'
 import { BadgeUnlockModal } from '@/components/engagement/BadgeUnlockModal'
+import { CinematicIntro, hasSeenCinematic } from '@/components/cinematic/CinematicIntro'
+import { SignupOnboarding, shouldShowOnboarding } from '@/components/onboarding/SignupOnboarding'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
+import { getEventTypeLabel } from '@/lib/utils'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useLayoutEvents } from '@/hooks/useLayoutEvents'
 import type { Game, GameEvent, NewRelease } from '@/types'
@@ -27,7 +31,8 @@ interface CalendarLayoutProps {
 }
 
 export function CalendarLayout({ games }: CalendarLayoutProps) {
-  const { isGuest } = useAuth()
+  const { isGuest, user } = useAuth()
+  const searchParams = useSearchParams()
   const { preferences, setSelectedGames } = usePreferences()
   const calendarRef = useRef<FullCalendar>(null!)
 
@@ -40,9 +45,50 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isReleaseOpen, setIsReleaseOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [showCinematic, setShowCinematic] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [currentTitle, setCurrentTitle] = useState('')
 
   const { events } = useLayoutEvents(selectedGames)
+
+  useEffect(() => {
+    const replay = searchParams.get('replay') === 'cinematic'
+    if (replay || !hasSeenCinematic()) {
+      setShowCinematic(true)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!isGuest && user && shouldShowOnboarding()) {
+      setShowOnboarding(true)
+    }
+  }, [isGuest, user])
+
+  const featuredEvent = useMemo(() => {
+    const hero =
+      events.find((e) => e.importance === 'critical' && e.game) ??
+      events.find((e) => e.importance === 'high' && e.game) ??
+      events.find((e) => e.game)
+
+    if (!hero?.game) {
+      return {
+        eyebrow: 'World of Warcraft',
+        title: 'Patch 11.2 / Seeds of Renewal',
+        subtitle: 'New Raid · New Zone · Live Now',
+        accentColor: '#f59e0b',
+      }
+    }
+
+    const parts = hero.title.split('—').map((s) => s.trim())
+    return {
+      eyebrow: hero.game.name,
+      title: parts[0] ?? hero.title,
+      titleAccent: parts[1],
+      subtitle: `${getEventTypeLabel(hero.event_type)} · Live Now`,
+      accentColor: hero.game.brand_color,
+      eventId: hero.id,
+    }
+  }, [events])
 
   const handleToggle = (slug: string) => {
     const next = selectedGames.includes(slug)
@@ -149,6 +195,24 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
       <CommandSearch events={events} onSelect={handleFeedEventClick} />
       <CalEventBridge onPromptLogin={() => setAuthModalOpen(true)} />
       <BadgeUnlockModal />
+      {showCinematic && (
+        <CinematicIntro
+          featured={featuredEvent}
+          onDismiss={() => setShowCinematic(false)}
+          onAddToCalendar={() => {
+            if (isGuest) setAuthModalOpen(true)
+            else if (featuredEvent.eventId) {
+              const match = events.find((e) => e.id === featuredEvent.eventId)
+              if (match?.game) handleEventClick(match, match.game)
+            }
+          }}
+        />
+      )}
+      <SignupOnboarding
+        open={showOnboarding}
+        games={games}
+        onComplete={() => setShowOnboarding(false)}
+      />
       <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </div>
   )

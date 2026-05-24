@@ -49,7 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           const { data } = await supabase.from('user_preferences').select('id').eq('id', session.user.id).single()
           if (!data) {
-            await supabase.from('user_preferences').insert({ id: session.user.id })
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+            await supabase.from('user_preferences').insert({ id: session.user.id, timezone: tz })
           }
         }
       })

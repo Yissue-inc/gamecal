@@ -7,8 +7,8 @@ import interactionPlugin from '@fullcalendar/interaction'
 import type { EventClickArg, DatesSetArg } from '@fullcalendar/core'
 import { format } from 'date-fns'
 import { useEvents } from '@/hooks/useEvents'
-import { useReleases } from '@/hooks/useReleases'
 import { usePreferences } from '@/hooks/usePreferences'
+import { useReleases } from '@/hooks/useReleases'
 import {
   gameEventToCalendarEvent,
   getDaysUntil,
@@ -61,7 +61,7 @@ export function GameCalendar({
       .filter((e) => e.game && selectedGames.includes(e.game.slug))
       .map((e) => {
         const cal = gameEventToCalendarEvent(e, e.game!)
-        if (isGuest && !isToday(e.start_at)) {
+        if (isGuest && !isToday(e.start_at, preferences.timezone)) {
           return {
             ...cal,
             title: '🔒 Hidden Event',
@@ -75,7 +75,7 @@ export function GameCalendar({
         const orderB = b.extendedProps.importanceOrder ?? 2
         return orderA - orderB
       })
-  }, [events, selectedGames, isGuest])
+  }, [events, selectedGames, isGuest, preferences.timezone])
 
   const mountReleaseArt = useCallback(
     (cell: HTMLElement, release: NewRelease) => {
@@ -121,13 +121,13 @@ export function GameCalendar({
   const handleEventClick = useCallback(
     (info: EventClickArg) => {
       const { gameEvent, game } = info.event.extendedProps as { gameEvent: GameEvent; game: Game }
-      if (isGuest && !isToday(gameEvent.start_at)) {
+      if (isGuest && !isToday(gameEvent.start_at, preferences.timezone)) {
         onGuestEventClick()
         return
       }
       onEventClick(gameEvent, game)
     },
-    [isGuest, onEventClick, onGuestEventClick]
+    [isGuest, onEventClick, onGuestEventClick, preferences.timezone]
   )
 
   useEffect(() => {
@@ -159,6 +159,7 @@ export function GameCalendar({
         firstDay={preferences.week_starts_on}
         weekends={preferences.show_weekends}
         height="100%"
+        timeZone={preferences.timezone}
         dayMaxEvents={4}
         eventDisplay="block"
         fixedWeekCount={false}

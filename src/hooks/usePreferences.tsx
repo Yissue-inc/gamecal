@@ -3,9 +3,20 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import type { UserPreferences } from '@/types'
 import { DEFAULT_PREFERENCES } from '@/types'
+import { detectBrowserTimezone } from '@/lib/timezone'
 import { useAuth } from '@/hooks/useAuth'
 
 const STORAGE_KEY = 'gamecal_preferences'
+const TZ_MANUAL_KEY = 'gamecal_tz_manual'
+
+function applyAutoTimezone(prefs: UserPreferences): UserPreferences {
+  if (typeof window === 'undefined') return prefs
+  if (prefs.auto_timezone === false) return prefs
+  if (localStorage.getItem(TZ_MANUAL_KEY) === '1') return prefs
+  const detected = detectBrowserTimezone()
+  if (prefs.timezone === detected) return prefs
+  return { ...prefs, timezone: detected, auto_timezone: true }
+}
 
 interface PreferencesContextValue {
   preferences: UserPreferences
@@ -22,11 +33,13 @@ function loadLocalPreferences(): UserPreferences {
   }
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) return { id: 'guest', ...DEFAULT_PREFERENCES, ...JSON.parse(stored) }
+    const base = stored
+      ? { id: 'guest', ...DEFAULT_PREFERENCES, ...JSON.parse(stored) }
+      : { id: 'guest', ...DEFAULT_PREFERENCES }
+    return applyAutoTimezone(base)
   } catch {
-    // ignore
+    return applyAutoTimezone({ id: 'guest', ...DEFAULT_PREFERENCES })
   }
-  return { id: 'guest', ...DEFAULT_PREFERENCES }
 }
 
 function saveLocalPreferences(prefs: Partial<UserPreferences>) {
@@ -65,6 +78,10 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   const updatePreferences = useCallback(
     async (updates: Partial<UserPreferences>) => {
+      if (updates.timezone && updates.auto_timezone !== true) {
+        localStorage.setItem(TZ_MANUAL_KEY, '1')
+      }
+
       if (!user) {
         const merged = saveLocalPreferences(updates)
         setPreferences(merged)

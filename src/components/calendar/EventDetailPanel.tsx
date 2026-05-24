@@ -95,7 +95,7 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </div>
           <div data-testid="event-time-range" className="flex items-center gap-2 text-zinc-300">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            {formatTimeRange(event.start_at, event.end_at, preferences.time_format)}
+            {formatTimeRange(event.start_at, event.end_at, preferences.time_format, preferences.timezone)}
           </div>
         </div>
 

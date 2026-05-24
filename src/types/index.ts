@@ -63,6 +63,7 @@ export interface UserPreferences {
   timezone: string
   secondary_timezone?: string
   timezone_label: string
+  auto_timezone?: boolean
   language: string
   date_format: string
   time_format: '12h' | '24h'
@@ -92,8 +93,9 @@ export const DEFAULT_SELECTED_GAMES = [
 ]
 
 export const DEFAULT_PREFERENCES: Omit<UserPreferences, 'id'> = {
-  timezone: 'America/New_York',
+  timezone: 'UTC',
   timezone_label: 'Home',
+  auto_timezone: true,
   language: 'en',
   date_format: 'MM/DD/YYYY',
   time_format: '12h',

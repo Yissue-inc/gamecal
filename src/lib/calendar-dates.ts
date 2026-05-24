@@ -1,5 +1,6 @@
 import { format, parseISO, isAfter, isBefore, addDays, startOfDay, differenceInDays } from 'date-fns'
 import type { GameEvent } from '@/types'
+import { formatDateKeyInTimezone, formatShortTimeInTimezone } from '@/lib/timezone'
 
 export function isThisWeek(dateStr: string): boolean {
   const date = parseISO(dateStr)
@@ -33,13 +34,13 @@ export function formatShortDate(dateStr: string): string {
   return format(parseISO(dateStr), 'MMM d')
 }
 
-export function formatShortTime(dateStr: string, tz?: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-    timeZoneName: 'short',
-  }).format(parseISO(dateStr))
+export function formatShortTime(
+  dateStr: string,
+  timezone?: string,
+  timeFormat: '12h' | '24h' = '12h'
+): string {
+  const tz = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  return formatShortTimeInTimezone(dateStr, tz, timeFormat)
 }
 
 export function getDday(dateStr: string): string {
@@ -60,17 +61,21 @@ export function getTimeUntilEnd(endStr?: string): string {
   return `${Math.floor(hours / 24)}d`
 }
 
-export function groupEventsByDay(events: GameEvent[]): Record<string, GameEvent[]> {
+export function groupEventsByDay(
+  events: GameEvent[],
+  timezone?: string
+): Record<string, GameEvent[]> {
   const groups: Record<string, GameEvent[]> = {}
-  const today = startOfDay(new Date())
-  const tomorrow = addDays(today, 1)
+  const tz = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  const todayKey = formatDateKeyInTimezone(new Date().toISOString(), tz)
+  const tomorrowKey = formatDateKeyInTimezone(addDays(new Date(), 1).toISOString(), tz)
 
   for (const event of events) {
-    const day = startOfDay(parseISO(event.start_at))
+    const eventKey = formatDateKeyInTimezone(event.start_at, tz)
     let label: string
-    if (day.getTime() === today.getTime()) label = 'TODAY'
-    else if (day.getTime() === tomorrow.getTime()) label = 'TOMORROW'
-    else label = format(day, 'MMM d').toUpperCase()
+    if (eventKey === todayKey) label = 'TODAY'
+    else if (eventKey === tomorrowKey) label = 'TOMORROW'
+    else label = format(parseISO(event.start_at), 'MMM d').toUpperCase()
 
     if (!groups[label]) groups[label] = []
     groups[label].push(event)

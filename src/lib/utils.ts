@@ -6,6 +6,12 @@ import {
   parseISO,
   differenceInHours,
 } from 'date-fns'
+import {
+  detectBrowserTimezone,
+  formatTimeInTimezone,
+  formatTimeRangeInTimezone,
+  isTodayInTimezone,
+} from '@/lib/timezone'
 import type {
   CalendarEvent,
   EventType,
@@ -115,21 +121,23 @@ export function formatDateRange(start: string, end?: string): string {
   return `${format(startDate, 'MMM d')}–${format(endDate, 'MMM d, yyyy')}`
 }
 
-export function formatTime(iso: string, timeFormat: '12h' | '24h' = '12h'): string {
-  const date = parseISO(iso)
-  return format(date, timeFormat === '24h' ? 'HH:mm' : 'h:mm a')
+export function formatTime(
+  iso: string,
+  timeFormat: '12h' | '24h' = '12h',
+  timezone?: string
+): string {
+  const tz = timezone ?? detectBrowserTimezone()
+  return formatTimeInTimezone(iso, tz, timeFormat)
 }
 
 export function formatTimeRange(
   start: string,
   end?: string,
-  timeFormat: '12h' | '24h' = '12h'
+  timeFormat: '12h' | '24h' = '12h',
+  timezone?: string
 ): string {
-  const fmt = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
-  const startStr = format(parseISO(start), fmt)
-  if (!end) return `${startStr} UTC`
-  const endStr = format(parseISO(end), fmt)
-  return `${startStr} – ${endStr} UTC`
+  const tz = timezone ?? detectBrowserTimezone()
+  return formatTimeRangeInTimezone(start, end, tz, timeFormat)
 }
 
 export function isEndingSoon(date: string, hours = 48): boolean {
@@ -229,7 +237,8 @@ export function getDaysUntil(dateStr: string): number {
   return Math.ceil((targetDay.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-export function isToday(dateStr: string): boolean {
+export function isToday(dateStr: string, timezone?: string): boolean {
+  if (timezone) return isTodayInTimezone(dateStr, timezone)
   const date = parseISO(dateStr)
   const now = new Date()
   return (
