@@ -67,6 +67,9 @@ const BODY_H = 36
 const WING_W = 36
 const WING_H = 20
 
+/** On-screen width in CSS px — fixed so pixels stay crisp, not giant blocks on 4K */
+const DRAGON_DISPLAY_W = 300
+
 /** Pivot: body center for rotation along flight path */
 const ANCHOR_X = 38
 const ANCHOR_Y = 18
@@ -80,7 +83,7 @@ function buildPalette(accent: string): Record<Exclude<Px, '.'>, string> {
     b: '#5c3018',
     L: '#7a5030',
     l: '#4a2818',
-    G: '#a08058',
+    G: '#8b6530',
     R: accent,
     H: '#9a7820',
     K: '#362010',
@@ -113,12 +116,12 @@ const BODY_SPRITE: string[] = [
   '................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...........................',
   '................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...........................',
   '................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...........................',
-  '................BBLlGLlGLlGLlGLlGLlGLlGLlGLlBBBB...........................',
-  '................BBlGLlGLlGLlGLlGLlGLlGLlGLlGBBBB...........................',
-  '................BBGLlGLlGLlGLlGLlGLlGLlGLlGLBBBB...........................',
-  '................BBLlGLlGLlGLlGLlGLlGLlGLlGLlBBBB...........................',
-  'BBBBBBBBBBBBBBBBBBlGLlGD...................................................',
-  'BBBBBBBBBBBBBBBBBBGLlDKK...................................................',
+  '................BBbbbbbbbbbbbbbbbbbbbbbbbbbbbbBB...........................',
+  '................BbbbbbllllllllllllllllllbbbbbbB...........................',
+  '................BBbbbbllllllllllllllllbbbbbbbbB...........................',
+  '................BBbbbbllllllllllllllllbbbbbbbbB...........................',
+  'BBBBBBBBBBBBBBBBBBbbbblD...................................................',
+  'BBBBBBBBBBBBBBBBBBbbbbKK...................................................',
   'BBBBBBBBBBBBBBBBBBBR..KK............KK.....................................',
   'BBBBBBBBBBBBBBBBBH....KK............KK.....................................',
   'BBBBBBBBBBBBBBHD......KK............KK.....................................',
@@ -179,27 +182,48 @@ const WING_UP: string[] = [
   '....................................',
 ]
 
+const rasterCache = new Map<string, HTMLCanvasElement>()
+
+function rasterizeSprite(sprite: string[], palette: Record<Exclude<Px, '.'>, string>): HTMLCanvasElement {
+  const key = sprite.join('\n') + '|' + palette.R
+  const cached = rasterCache.get(key)
+  if (cached) return cached
+
+  const w = sprite[0]?.length ?? 0
+  const h = sprite.length
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const rctx = canvas.getContext('2d')
+  if (!rctx) return canvas
+
+  for (let y = 0; y < h; y++) {
+    const row = sprite[y]
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x] as Px
+      if (ch === '.') continue
+      rctx.fillStyle = palette[ch]
+      rctx.fillRect(x, y, 1, 1)
+    }
+  }
+
+  rasterCache.set(key, canvas)
+  return canvas
+}
+
 function drawPixelLayer(
   ctx: CanvasRenderingContext2D,
   sprite: string[],
   palette: Record<Exclude<Px, '.'>, string>,
   ox: number,
   oy: number,
-  px: number
+  displayW: number,
+  displayH: number
 ) {
+  const raster = rasterizeSprite(sprite, palette)
   const prevSmooth = ctx.imageSmoothingEnabled
   ctx.imageSmoothingEnabled = false
-
-  for (let y = 0; y < sprite.length; y++) {
-    const row = sprite[y]
-    for (let x = 0; x < row.length; x++) {
-      const ch = row[x] as Px
-      if (ch === '.') continue
-      ctx.fillStyle = palette[ch]
-      ctx.fillRect(ox + x * px, oy + y * px, px, px)
-    }
-  }
-
+  ctx.drawImage(raster, ox, oy, displayW, displayH)
   ctx.imageSmoothingEnabled = prevSmooth
 }
 
@@ -211,19 +235,23 @@ export function drawDragon(
   t: number,
   wingPhase: number,
   accentColor: string,
-  canvasScale: number
+  _canvasScale: number
 ) {
-  const px = Math.max(2.5, (110 * canvasScale * 2.4) / BODY_W)
+  const px = DRAGON_DISPLAY_W / BODY_W
   const palette = buildPalette(accentColor)
   const bodyOx = -ANCHOR_X * px
   const bodyOy = -ANCHOR_Y * px
+  const bodyDw = BODY_W * px
+  const bodyDh = BODY_H * px
+  const wingDw = WING_W * px
+  const wingDh = WING_H * px
 
   ctx.save()
   ctx.translate(cx, cy)
   ctx.rotate(angle)
 
   // Soft accent glow behind dragon
-  const glowR = BODY_W * px * 0.55
+  const glowR = bodyDw * 0.55
   const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowR)
   glow.addColorStop(0, `${accentColor}28`)
   glow.addColorStop(0.55, `${accentColor}10`)
@@ -239,14 +267,14 @@ export function drawDragon(
 
   // Back wing (slightly dimmed, offset down)
   ctx.globalAlpha = 0.45
-  drawPixelLayer(ctx, wingSprite, palette, bodyOx - 10 * px, bodyOy - 14 * px + px * 2, px)
+  drawPixelLayer(ctx, wingSprite, palette, bodyOx - 10 * px, bodyOy - 14 * px + px * 2, wingDw, wingDh)
   ctx.globalAlpha = 1
 
   // Body
-  drawPixelLayer(ctx, BODY_SPRITE, palette, bodyOx, bodyOy, px)
+  drawPixelLayer(ctx, BODY_SPRITE, palette, bodyOx, bodyOy, bodyDw, bodyDh)
 
   // Fore wing
-  drawPixelLayer(ctx, wingSprite, palette, bodyOx - 10 * px, bodyOy - 14 * px - wingLift, px)
+  drawPixelLayer(ctx, wingSprite, palette, bodyOx - 10 * px, bodyOy - 14 * px - wingLift, wingDw, wingDh)
 
   // Eye glow
   const eyeX = bodyOx + 66 * px + px * 0.5
