@@ -11,6 +11,7 @@ import {
   isWithinDays,
 } from '@/lib/calendar-dates'
 import { getEventTypeIcon } from '@/lib/utils'
+import { formatDateKeyInTimezone } from '@/lib/timezone'
 
 function UpcomingItem({
   event,
@@ -119,7 +120,18 @@ export function LiveBanner({
   events: GameEvent[]
   onEventClick: (event: GameEvent) => void
 }) {
-  const liveEvents = events.filter(isCurrentlyActive)
+  const { preferences } = usePreferences()
+  const now = new Date()
+  const todayKey = formatDateKeyInTimezone(now.toISOString(), preferences.timezone)
+  const liveEvents = events.filter((event) => {
+    if (!event.game) return false
+    if (isCurrentlyActive(event)) return true
+    if (event.end_at) return false
+
+    const start = new Date(event.start_at)
+    if (Number.isNaN(start.getTime()) || start > now) return false
+    return formatDateKeyInTimezone(event.start_at, preferences.timezone) === todayKey
+  })
 
   if (!liveEvents.length) return null
 
@@ -149,7 +161,9 @@ export function LiveBanner({
             <span style={{ color: e.game?.brand_color }}>● {e.game?.name}</span>
             {' '}— {e.title}
             {' '}
-            <span className="text-zinc-500">ends {getTimeUntilEnd(e.end_at)}</span>
+            <span className="text-zinc-500">
+              {e.end_at ? `ends ${getTimeUntilEnd(e.end_at)}` : 'live today'}
+            </span>
           </button>
         ))}
         </div>
