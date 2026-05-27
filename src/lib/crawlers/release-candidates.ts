@@ -140,6 +140,39 @@ function normalizeIgdbImage(value?: string): string | undefined {
   return url.replace('t_thumb', 't_cover_big').replace('t_micro', 't_cover_big')
 }
 
+async function isReachableImageUrl(value?: string): Promise<boolean> {
+  if (!value) return false
+
+  try {
+    const response = await axios.head(value, {
+      timeout: 8000,
+      maxRedirects: 3,
+      headers: {
+        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; image validation)',
+      },
+      validateStatus: (status) => status >= 200 && status < 400,
+    })
+    return response.headers['content-type']?.toString().startsWith('image/') ?? true
+  } catch {
+    try {
+      const response = await axios.get(value, {
+        timeout: 8000,
+        maxRedirects: 3,
+        responseType: 'stream',
+        headers: {
+          'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; image validation)',
+          Range: 'bytes=0-1023',
+        },
+        validateStatus: (status) => status >= 200 && status < 400,
+      })
+      response.data?.destroy?.()
+      return response.headers['content-type']?.toString().startsWith('image/') ?? true
+    } catch {
+      return false
+    }
+  }
+}
+
 function compactDescription(value?: string, maxLength = 420): string | undefined {
   const text = normalizeTitle(stripHtml(value) ?? value ?? '')
   if (!text) return undefined
@@ -378,6 +411,8 @@ async function enrichSteamCandidates(
       candidate.release_date_precision !== 'unknown'
         ? candidate.release_date_precision
         : detailDate.precision
+    const steamImageUrl = details.header_image ?? details.background_raw ?? candidate.image_url
+    const hasReachableSteamImage = await isReachableImageUrl(steamImageUrl)
 
     enriched.push({
       ...candidate,
@@ -389,16 +424,18 @@ async function enrichSteamCandidates(
         candidate.description ??
         stripHtml(details.short_description) ??
         stripHtml(details.detailed_description),
-      image_url: details.header_image ?? details.background_raw ?? candidate.image_url,
+      image_url: hasReachableSteamImage ? steamImageUrl : undefined,
       confidence_score: Math.min(
         98,
         candidate.confidence_score +
-          (details.header_image && !candidate.image_url ? 4 : 0) +
+          (hasReachableSteamImage && steamImageUrl && !candidate.image_url ? 4 : 0) +
           (details.short_description ? 4 : 0)
       ),
       signals: {
         ...candidate.signals,
         appdetails_enriched: true,
+        steam_image_valid: hasReachableSteamImage,
+        steam_image_rejected: !hasReachableSteamImage && Boolean(steamImageUrl),
         steam_developers: details.developers ?? null,
         steam_publishers: details.publishers ?? null,
       },
@@ -913,9 +950,15 @@ async function enrichCandidateMetadata(
   const [rawg, igdb] = await Promise.all([fetchRawgGame(candidate), fetchIgdbGame(candidate)])
   const withRawg = applyRawgMetadata(candidate, rawg)
   const withIgdb = applyIgdbMetadata(withRawg, igdb)
+  const hasReachableImage = await isReachableImageUrl(withIgdb.image_url)
+  const fallbackIgdbImage = normalizeIgdbImage(igdb?.cover?.url) ?? normalizeIgdbImage(igdb?.artworks?.[0]?.url)
+  const fallbackRawgImage = rawg?.background_image ?? undefined
+  const fallbackImage = fallbackIgdbImage ?? fallbackRawgImage
+  const imageUrl = hasReachableImage ? withIgdb.image_url : fallbackImage
 
   return {
     ...withIgdb,
+    image_url: imageUrl,
     signals: {
       ...withIgdb.signals,
       metadata_completeness: metadataCompleteness(withIgdb),
@@ -923,6 +966,14 @@ async function enrichCandidateMetadata(
         rawg ? 'RAWG' : null,
         igdb ? 'IGDB' : null,
       ].filter(Boolean),
+      image_validated: Boolean(imageUrl),
+      image_fallback_source: hasReachableImage
+        ? null
+        : fallbackIgdbImage
+          ? 'IGDB'
+          : fallbackRawgImage
+            ? 'RAWG'
+            : null,
     },
   }
 }
@@ -1007,6 +1058,116 @@ export async function upsertReleaseCandidates(
   }
 
   return { inserted, updated, skipped }
+}
+
+export async function repairReleaseCandidateImages(status = 'pending', limit = 200) {
+  if (!isSupabaseConfigured()) {
+    return { checked: 0, repaired: 0, skipped: 0, failed: 0 }
+  }
+
+  const admin = createAdminClient()
+  let query = admin
+    .from('release_candidates')
+    .select('*')
+    .order('confidence_score', { ascending: false })
+    .order('last_seen_at', { ascending: false })
+    .limit(limit)
+
+  if (status !== 'all') query = query.eq('status', status)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  let checked = 0
+  let repaired = 0
+  let skipped = 0
+  let failed = 0
+
+  for (const row of data ?? []) {
+    checked++
+    if (await isReachableImageUrl(row.image_url)) {
+      skipped++
+      continue
+    }
+
+    const candidate = {
+      title: row.title,
+      developer: row.developer ?? undefined,
+      platforms: row.platforms ?? [],
+      release_date: row.release_date,
+      release_date_precision: row.release_date_precision ?? 'unknown',
+      description: row.description ?? undefined,
+      image_url: undefined,
+      source: row.source,
+      source_url: row.source_url,
+      external_id: row.external_id,
+      confidence_score: row.confidence_score ?? 0,
+      signals: row.signals ?? {},
+      raw_payload: row.raw_payload ?? {},
+    } satisfies ReleaseCandidateInput
+
+    let imageUrl: string | undefined
+    let imageFallbackSource: string | null = null
+    let steamDetails: SteamAppDetails | null = null
+    let igdb: IgdbGame | null = null
+
+    if (row.source === 'steam' && row.external_id) {
+      steamDetails = await fetchSteamAppDetails(row.external_id)
+      const steamImageUrl = steamDetails?.header_image ?? steamDetails?.background_raw
+      if (await isReachableImageUrl(steamImageUrl)) {
+        imageUrl = steamImageUrl
+        imageFallbackSource = 'Steam appdetails'
+      }
+    }
+
+    if (!imageUrl) {
+      igdb = await fetchIgdbGame(candidate)
+      const igdbImageUrl = normalizeIgdbImage(igdb?.cover?.url) ?? normalizeIgdbImage(igdb?.artworks?.[0]?.url)
+      if (await isReachableImageUrl(igdbImageUrl)) {
+        imageUrl = igdbImageUrl
+        imageFallbackSource = 'IGDB'
+      }
+    }
+
+    if (!imageUrl) {
+      failed++
+      continue
+    }
+
+    const { error: updateError } = await admin
+      .from('release_candidates')
+      .update({
+        image_url: imageUrl,
+        signals: {
+          ...(row.signals ?? {}),
+          image_validated: true,
+          image_repaired_at: new Date().toISOString(),
+          image_fallback_source: imageFallbackSource,
+          steam_image_rejected: Boolean(row.image_url),
+          igdb_enriched: Boolean((row.signals ?? {}).igdb_enriched || igdb),
+          igdb_id: igdb?.id ?? (row.signals ?? {}).igdb_id ?? null,
+          igdb_genres:
+            igdb?.genres?.map((genre) => genre.name).filter(Boolean) ??
+            (row.signals ?? {}).igdb_genres ??
+            [],
+        },
+        raw_payload: {
+          ...(row.raw_payload ?? {}),
+          ...(steamDetails ? { steam_appdetails: steamDetails } : {}),
+          ...(igdb ? { igdb } : {}),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', row.id)
+
+    if (updateError) {
+      failed++
+    } else {
+      repaired++
+    }
+  }
+
+  return { checked, repaired, skipped, failed }
 }
 
 export async function crawlReleaseCandidates(source = 'all') {
