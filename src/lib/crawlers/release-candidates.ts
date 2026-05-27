@@ -66,6 +66,12 @@ function parseSteamDate(value: string): { date: string | null; precision: Releas
   return { date: null, precision: 'unknown' }
 }
 
+function isPastRelease(date?: string | null): boolean {
+  if (!date) return false
+  const today = new Date().toISOString().slice(0, 10)
+  return date < today
+}
+
 function scoreCandidate(input: {
   officialSource: boolean
   hasExactDate: boolean
@@ -106,6 +112,8 @@ async function crawlSteamSearchPage(
 
     const releaseText = normalizeTitle(row.find('.search_released').text())
     const parsedDate = parseSteamDate(releaseText)
+    if (isPastRelease(parsedDate.date)) return
+
     const imageUrl = normalizeSteamImage(row.find('img').attr('src'))
     const platforms = ['PC']
     const priceText = normalizeTitle(row.find('.search_price').text())
