@@ -250,7 +250,7 @@ export function GameCalendar({
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
-      <div className="min-h-[420px] flex-1 overflow-hidden">
+      <div className={`${selectedDateKey ? 'min-h-[260px]' : 'min-h-[420px]'} flex-1 overflow-hidden`}>
         <FullCalendar
           ref={ref}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -291,7 +291,7 @@ export function GameCalendar({
             if (info.isToday) {
               info.el.setAttribute('data-testid', 'today-cell')
             }
-            const dateKey = format(info.date, 'yyyy-MM-dd')
+            const dateKey = info.el.getAttribute('data-date') ?? format(info.date, 'yyyy-MM-dd')
             info.el.addEventListener('click', (event) => {
               if ((event.target as HTMLElement).closest('.fc-event, .release-cell-art')) return
               setSelectedDateKey(dateKey)
@@ -306,7 +306,7 @@ export function GameCalendar({
       {selectedDateKey && (
         <section
           data-testid="selected-date-events"
-          className="mt-3 shrink-0 border-t border-zinc-800 pt-3"
+          className="mt-3 shrink-0 border-t border-zinc-800 pt-3 md:max-h-[32vh]"
         >
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
@@ -326,7 +326,7 @@ export function GameCalendar({
               Close
             </button>
           </div>
-          <div className="max-h-52 overflow-y-auto pr-1">
+          <div className="max-h-52 overflow-y-auto pr-1 md:max-h-[calc(32vh-72px)]">
             {selectedDateEvents.length > 0 ? (
               <div className="divide-y divide-zinc-800">
                 {selectedDateEvents.map((event) => (

@@ -172,19 +172,6 @@ const EVENTS: EventDef[] = [
   { slug:'genshin', title:'Version 5.9 Update',            event_type:'new_content',   importance:'critical',start_at:'2026-08-20T06:00:00Z', description:'Tsurumi Island expansion continuation. New weekly boss Dvalin Resurgent added to rotation.' },
 ]
 
-// ─── NEW RELEASES ─────────────────────────────────────────────────────────────
-const RELEASES = [
-  { title: 'Hollow Knight: Silksong',    developer: 'Team Cherry',      platform: ['Switch','PC'],          release_date: '2026-06-15', is_featured: true, is_published: true, description: 'The long-awaited sequel. Play as Hornet across an entirely new kingdom.' },
-  { title: 'Metroid Prime 4: Beyond',    developer: 'Nintendo / Retro', platform: ['Switch'],               release_date: '2026-07-01', is_featured: true, is_published: true, description: 'Samus returns in the long-awaited fourth entry of the first-person Metroid series.' },
-  { title: 'Elden Ring: Nightreign',     developer: 'FromSoftware',     platform: ['PC','PS5','Xbox'],      release_date: '2026-05-30', is_featured: true, is_published: true, description: 'Standalone co-op roguelite. Three Nightfarers hunt the Nightlord across condensed expeditions.' },
-  { title: 'Path of Exile 2 — EA Update 0.3', developer: 'Grinding Gear Games', platform: ['PC'],          release_date: '2026-06-06', is_featured: false, is_published: true, description: 'Early Access 0.3 adds the Druid class, Act 4, and a complete skill gem overhaul.' },
-  { title: 'Monster Hunter Wilds: First Expansion', developer: 'Capcom', platform: ['PC','PS5','Xbox'],    release_date: '2026-06-26', is_featured: true, is_published: true, description: 'Title Update 1 introduces the elder dragon Zinogre Tempest and the Oilwell Basin night cycle.' },
-  { title: 'Hades II — Full Release',   developer: 'Supergiant Games',  platform: ['PC','Switch'],          release_date: '2026-07-18', is_featured: true, is_published: true, description: 'Exits Early Access with full story, 2 new weapons, and the Olympus surface act.' },
-  { title: 'Grand Theft Auto VI',        developer: 'Rockstar Games',   platform: ['PS5','Xbox'],           release_date: '2026-09-17', is_featured: true, is_published: true, description: 'Return to Vice City. Dual protagonists Jason and Lucia in the largest GTA map ever built.' },
-  { title: 'Fable (2026)',               developer: 'Playground Games',  platform: ['PC','Xbox'],            release_date: '2026-08-20', is_featured: true, is_published: true, description: 'Reboot of the beloved RPG series. Albion reimagined with next-gen open world systems.' },
-  { title: 'Dead by Daylight 2',         developer: 'Behaviour Interactive', platform: ['PC','PS5','Xbox'], release_date: '2026-07-09', is_featured: false, is_published: true, description: 'Full sequel to the asymmetric horror classic. New engine, new mechanics, and 5v1 mode.' },
-]
-
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function seed() {
   console.log('🎮 Seeding GAMECAL database...\n')
@@ -192,7 +179,6 @@ async function seed() {
   // Clear existing data
   console.log('🗑  Clearing existing data...')
   await supabase.from('events').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-  await supabase.from('new_releases').delete().neq('id', '00000000-0000-0000-0000-000000000000')
   await supabase.from('games').delete().neq('id', '00000000-0000-0000-0000-000000000000')
   console.log('   Done.\n')
 
@@ -233,19 +219,8 @@ async function seed() {
   }
   console.log(`   ✓ ${eventCount} events inserted\n`)
 
-  // Insert new releases
-  console.log('🚀 Seeding new releases...')
-  for (const r of RELEASES) {
-    const { error } = await supabase.from('new_releases').insert(r)
-    if (error && !error.message.includes('duplicate')) {
-      console.error(`   ❌ ${r.title}:`, error.message)
-    } else {
-      console.log(`   ✓ ${r.title}`)
-    }
-  }
-
   console.log('\n✅ Seed complete!')
-  console.log(`   ${GAMES.length} games · ${eventCount} events · ${RELEASES.length} releases`)
+  console.log(`   ${GAMES.length} games · ${eventCount} events`)
 }
 
 seed().catch(console.error)

@@ -1,4 +1,4 @@
-import type { Game, GameEvent, NewRelease } from '@/types'
+import type { Game, GameEvent } from '@/types'
 
 export const MOCK_GAMES: Game[] = [
   { id: '1', slug: 'fortnite',   name: 'Fortnite',           brand_color: '#00d4ff', platform: ['PC','PS5','Xbox','Mobile','Switch'], sort_order: 1 },
@@ -77,53 +77,6 @@ export const MOCK_EVENTS: GameEvent[] = [
   evt('e11', lol.id, lol, 'Patch 16.11 — Balance Update', 'patch_release', 'high', '2026-05-27T14:00:00Z'),
   evt('e12', lol.id, lol, 'Night Market Opens', 'limited_reward', 'high', '2026-06-05T00:00:00Z', '2026-06-19T23:59:00Z', 'Exclusive skins available'),
   evt('e13', lol.id, lol, 'MSI 2026 — Finals', 'tournament', 'critical', '2026-06-20T12:00:00Z', '2026-06-20T18:00:00Z'),
-]
-
-export const MOCK_RELEASES: NewRelease[] = [
-  {
-    id: 'r1',
-    title: 'Hollow Knight: Silksong',
-    developer: 'Team Cherry',
-    platform: ['Switch', 'PC'],
-    release_date: '2026-06-15',
-    description: 'The long-awaited sequel to Hollow Knight',
-    is_featured: true,
-    hero_color: '#1a1a2e',
-    steam_url: 'https://store.steampowered.com',
-  },
-  {
-    id: 'r2',
-    title: 'Metroid Prime 4',
-    developer: 'Nintendo',
-    platform: ['Switch'],
-    release_date: '2026-07-01',
-    description: 'Return to the Metroid universe',
-    is_featured: true,
-    hero_color: '#e4000f',
-    nintendo_url: 'https://nintendo.com',
-  },
-  {
-    id: 'r3',
-    title: 'Elden Ring: Nightreign',
-    developer: 'FromSoftware',
-    platform: ['PC', 'PS5', 'Xbox'],
-    release_date: '2026-05-30',
-    description: 'Co-op survival expansion',
-    is_featured: true,
-    hero_color: '#1b2838',
-    steam_url: 'https://store.steampowered.com',
-  },
-  {
-    id: 'r4',
-    title: 'Borderlands 4',
-    developer: 'Gearbox',
-    platform: ['PC', 'PS5', 'Xbox'],
-    release_date: '2026-08-12',
-    description: 'New looter shooter adventure',
-    is_featured: false,
-    hero_color: '#f59e0b',
-    steam_url: 'https://store.steampowered.com',
-  },
 ]
 
 export function isSupabaseConfigured(): boolean {
