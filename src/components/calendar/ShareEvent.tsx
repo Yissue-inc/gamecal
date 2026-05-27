@@ -19,14 +19,46 @@ export function ShareEvent({ event, game }: ShareEventProps) {
     plain: formatForPlainText(event, game),
   }
 
+  const copyWithFallback = (text: string) => {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.top = '0'
+    textarea.style.left = '0'
+    textarea.style.opacity = '0'
+    textarea.style.pointerEvents = 'none'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    textarea.setSelectionRange(0, text.length)
+
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } finally {
+      document.body.removeChild(textarea)
+    }
+
+    return copied
+  }
+
   const copy = async (type: keyof typeof formats) => {
+    const label = type === 'plain' ? 'Plain Text' : type.charAt(0).toUpperCase() + type.slice(1)
+
     try {
       await navigator.clipboard.writeText(formats[type])
       setCopied(type)
-      toast.success(`Copied for ${type === 'plain' ? 'Plain Text' : type.charAt(0).toUpperCase() + type.slice(1)}! ✓`)
+      toast.success(`Copied for ${label}! ✓`)
       setTimeout(() => setCopied(null), 2000)
     } catch {
-      toast.error('Clipboard permission was blocked. Select and copy from the share text manually.')
+      if (copyWithFallback(formats[type])) {
+        setCopied(type)
+        toast.success(`Copied for ${label}! ✓`)
+        setTimeout(() => setCopied(null), 2000)
+      } else {
+        toast.error('Clipboard permission was blocked. Select and copy from the share text manually.')
+      }
     }
   }
 

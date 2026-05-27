@@ -26,6 +26,20 @@ const STEAM_COMING_SOON_URL =
 const STEAM_PREMIUM_UPCOMING_URL =
   'https://store.steampowered.com/search/?filter=comingsoon&category1=998&os=win&sort_by=Price_DESC&supportedlang=english&ndl=1'
 
+interface SteamAppDetails {
+  name?: string
+  short_description?: string
+  detailed_description?: string
+  header_image?: string
+  developers?: string[]
+  publishers?: string[]
+  release_date?: {
+    coming_soon?: boolean
+    date?: string
+  }
+  background_raw?: string
+}
+
 function normalizeTitle(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
@@ -33,6 +47,12 @@ function normalizeTitle(value: string): string {
 function normalizeSteamImage(value?: string): string | undefined {
   if (!value) return undefined
   return value.replace('capsule_sm_120', 'header').replace('capsule_231x87', 'header')
+}
+
+function stripHtml(value?: string): string | undefined {
+  if (!value) return undefined
+  const text = cheerio.load(value).text().replace(/\s+/g, ' ').trim()
+  return text || undefined
 }
 
 function parseSteamDate(value: string): { date: string | null; precision: ReleaseDatePrecision } {
@@ -158,6 +178,81 @@ async function crawlSteamSearchPage(
   return candidates
 }
 
+async function fetchSteamAppDetails(appId: string): Promise<SteamAppDetails | null> {
+  try {
+    const response = await axios.get('https://store.steampowered.com/api/appdetails', {
+      timeout: 12000,
+      params: {
+        appids: appId,
+        filters: 'basic',
+      },
+      headers: {
+        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; release discovery)',
+      },
+    })
+
+    const envelope = response.data?.[appId]
+    if (!envelope?.success) return null
+    return envelope.data ?? null
+  } catch {
+    return null
+  }
+}
+
+async function enrichSteamCandidates(
+  candidates: ReleaseCandidateInput[]
+): Promise<ReleaseCandidateInput[]> {
+  const enriched: ReleaseCandidateInput[] = []
+
+  for (const candidate of candidates) {
+    const details = await fetchSteamAppDetails(candidate.external_id)
+    if (!details) {
+      enriched.push(candidate)
+      continue
+    }
+
+    const detailDate = details.release_date?.date
+      ? parseSteamDate(details.release_date.date)
+      : { date: null, precision: 'unknown' as ReleaseDatePrecision }
+    const nextDate = candidate.release_date ?? detailDate.date
+    const nextPrecision =
+      candidate.release_date_precision !== 'unknown'
+        ? candidate.release_date_precision
+        : detailDate.precision
+
+    enriched.push({
+      ...candidate,
+      title: normalizeTitle(details.name ?? candidate.title),
+      developer: candidate.developer ?? details.developers?.[0] ?? details.publishers?.[0],
+      release_date: nextDate,
+      release_date_precision: nextPrecision,
+      description:
+        candidate.description ??
+        stripHtml(details.short_description) ??
+        stripHtml(details.detailed_description),
+      image_url: candidate.image_url ?? details.header_image ?? details.background_raw,
+      confidence_score: Math.min(
+        98,
+        candidate.confidence_score +
+          (details.header_image && !candidate.image_url ? 4 : 0) +
+          (details.short_description ? 4 : 0)
+      ),
+      signals: {
+        ...candidate.signals,
+        appdetails_enriched: true,
+        steam_developers: details.developers ?? null,
+        steam_publishers: details.publishers ?? null,
+      },
+      raw_payload: {
+        ...candidate.raw_payload,
+        steam_appdetails: details,
+      },
+    })
+  }
+
+  return enriched
+}
+
 export async function crawlSteamReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
   const [popular, premium] = await Promise.all([
     crawlSteamSearchPage(
@@ -193,9 +288,11 @@ export async function crawlSteamReleaseCandidates(): Promise<ReleaseCandidateInp
     }
   }
 
-  return Array.from(map.values())
+  const deduped = Array.from(map.values())
     .sort((a, b) => b.confidence_score - a.confidence_score)
     .slice(0, 60)
+
+  return enrichSteamCandidates(deduped)
 }
 
 export async function upsertReleaseCandidates(

@@ -97,6 +97,7 @@ export function GameCalendar({
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' })
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
   const shouldCenterTodayRef = useRef(true)
+  const selectedEventsRef = useRef<HTMLElement>(null)
 
   const { events, loading } = useEvents({
     start: dateRange.start,
@@ -204,7 +205,7 @@ export function GameCalendar({
   const handleEventClick = useCallback(
     (info: EventClickArg) => {
       const { gameEvent, game } = info.event.extendedProps as { gameEvent: GameEvent; game: Game }
-      if (isGuest && !isToday(gameEvent.start_at, preferences.timezone)) {
+      if (isGuest) {
         onGuestEventClick()
         return
       }
@@ -215,10 +216,29 @@ export function GameCalendar({
 
   const handleDateClick = useCallback(
     (info: DateClickArg) => {
+      if (isGuest) {
+        onGuestEventClick()
+        return
+      }
       setSelectedDateKey(info.dateStr)
     },
-    []
+    [isGuest, onGuestEventClick]
   )
+
+  useEffect(() => {
+    document.querySelectorAll('.gamecal-calendar .fc-daygrid-day').forEach((node) => {
+      const cell = node as HTMLElement
+      cell.classList.toggle('gamecal-selected-day', cell.getAttribute('data-date') === selectedDateKey)
+    })
+
+    if (!selectedDateKey) return
+    window.setTimeout(() => {
+      selectedEventsRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: window.innerWidth < 768 ? 'center' : 'nearest',
+      })
+    }, 80)
+  }, [selectedDateKey])
 
   useEffect(() => {
     if (!visibleReleases.length) return
@@ -263,7 +283,7 @@ export function GameCalendar({
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
-      <div className={`${selectedDateKey ? 'min-h-[260px]' : 'min-h-[420px]'} flex-1 overflow-hidden`}>
+      <div className={`${selectedDateKey ? 'min-h-[180px] md:min-h-[260px]' : 'min-h-[420px]'} flex-1 overflow-hidden`}>
         <FullCalendar
           ref={ref}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -307,6 +327,10 @@ export function GameCalendar({
             const dateKey = info.el.getAttribute('data-date') ?? format(info.date, 'yyyy-MM-dd')
             info.el.addEventListener('click', (event) => {
               if ((event.target as HTMLElement).closest('.fc-event, .release-cell-art')) return
+              if (isGuest) {
+                onGuestEventClick()
+                return
+              }
               setSelectedDateKey(dateKey)
             })
             const release = releasesByDate[dateKey]
@@ -318,8 +342,9 @@ export function GameCalendar({
       </div>
       {selectedDateKey && (
         <section
+          ref={selectedEventsRef}
           data-testid="selected-date-events"
-          className="mt-3 shrink-0 border-t border-zinc-800 bg-[#0f0f0f] pt-4 md:max-h-[34vh]"
+          className="mt-3 shrink-0 border-t border-zinc-800 bg-[#0f0f0f] pb-28 pt-4 md:max-h-[34vh] md:pb-0"
         >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
@@ -346,12 +371,27 @@ export function GameCalendar({
                   <button
                     key={event.id}
                     type="button"
-                    onClick={() => event.game && onEventClick(event, event.game)}
-                    className="grid w-full grid-cols-[4px_1fr_auto] gap-5 py-4 text-left transition-colors hover:bg-zinc-900/60"
+                    onClick={() => {
+                      if (isGuest) {
+                        onGuestEventClick()
+                        return
+                      }
+                      if (event.game) onEventClick(event, event.game)
+                    }}
+                    className="grid w-full grid-cols-[4px_56px_1fr_auto] gap-3 py-4 text-left transition-colors hover:bg-zinc-900/60 sm:grid-cols-[4px_64px_1fr_auto] sm:gap-5"
                   >
                     <span
-                      className="mt-1 h-24 rounded-full"
+                      className="mt-1 h-full rounded-full"
                       style={{ backgroundColor: event.game?.brand_color ?? '#6366f1' }}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className="h-14 w-14 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 bg-cover bg-center sm:h-16 sm:w-16"
+                      style={{
+                        backgroundImage: event.image_url
+                          ? `linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0)), url(${event.image_url})`
+                          : `linear-gradient(135deg, ${event.game?.brand_color ?? '#6366f1'}66, #18181b)`,
+                      }}
                       aria-hidden="true"
                     />
                     <span className="min-w-0">
@@ -378,7 +418,7 @@ export function GameCalendar({
                         </span>
                       )}
                     </span>
-                    <span className="whitespace-nowrap pt-9 text-sm font-semibold text-zinc-300">
+                    <span className="whitespace-nowrap pt-8 text-sm font-semibold text-zinc-300">
                       {formatTime(event.start_at, preferences.time_format, preferences.timezone)}
                     </span>
                   </button>
@@ -436,6 +476,16 @@ export function GameCalendar({
           margin: 4px;
           box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);
           font-weight: 700;
+        }
+        .gamecal-calendar .gamecal-selected-day {
+          outline: 2px solid rgba(99, 102, 241, 0.75);
+          outline-offset: -2px;
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.18), rgba(99, 102, 241, 0.04)) !important;
+          box-shadow: inset 0 0 24px rgba(99, 102, 241, 0.16);
+        }
+        .gamecal-calendar .gamecal-selected-day .fc-daygrid-day-number {
+          color: #fff;
+          font-weight: 800;
         }
         .gamecal-calendar .fc-event {
           border-radius: 4px;

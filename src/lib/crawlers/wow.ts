@@ -41,6 +41,7 @@ export async function crawlWow() {
           importance: 'high',
           start_at: item.creation_date ?? new Date().toISOString(),
           source_url: item.url ?? 'https://worldofwarcraft.com',
+          image_url: item.thumbnail_url ?? item.image_url,
         })
       }
     } catch {
@@ -55,14 +56,20 @@ export async function crawlWow() {
       const title = $(el).find('title').text()
       const link = $(el).find('link').text()
       const pubDate = $(el).find('pubDate').text()
+      const description = $(el).find('description').text().replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      const imageUrl =
+        $(el).find('media\\:content, content').attr('url') ||
+        $(el).find('enclosure').attr('url')
       const parsed = pubDate ? new Date(pubDate) : null
       if (title && parsed && !Number.isNaN(parsed.getTime())) {
         events.push({
           title,
+          description,
           event_type: 'new_content',
           importance: 'normal',
           start_at: parsed.toISOString(),
           source_url: link || 'https://worldofwarcraft.com',
+          image_url: imageUrl,
         })
       }
     })
@@ -81,6 +88,7 @@ export async function crawlWow() {
 
     events.push({
       title: 'Weekly Reset',
+      description: 'Mythic+ weekly chest, raid lockouts, world quests, and weekly activities reset.',
       event_type: 'weekly_reset',
       importance: 'high',
       start_at: tuesday.toISOString(),

@@ -12,16 +12,19 @@ export async function crawlGenshin() {
     $('a[href*="/news/detail/"], .news-item, article').slice(0, 10).each((_, el) => {
       const title = $(el).find('h3, .title, span').first().text().trim() || $(el).text().trim()
       const timeText = $(el).find('time, .date').first().attr('datetime') || $(el).find('time, .date').first().text().trim()
+      const imageUrl = $(el).find('img').first().attr('src')
       const parsed = timeText ? new Date(timeText) : null
       if (!title || title.length < 5) return
       if (!parsed || Number.isNaN(parsed.getTime())) return
 
       events.push({
         title: title.slice(0, 120),
+        description: title.slice(0, 180),
         event_type: title.toLowerCase().includes('version') ? 'new_content' : 'live_event',
         importance: title.toLowerCase().includes('version') ? 'critical' : 'high',
         start_at: parsed.toISOString(),
         source_url: 'https://genshin.hoyoverse.com',
+        image_url: imageUrl?.startsWith('//') ? `https:${imageUrl}` : imageUrl,
       })
     })
   } catch {
@@ -36,6 +39,7 @@ export async function crawlGenshin() {
       if (reset <= now) continue
       events.push({
         title: 'Spiral Abyss Reset',
+        description: 'Twice-monthly Spiral Abyss rotation and reward reset.',
         event_type: 'weekly_reset',
         importance: 'normal',
         start_at: reset.toISOString(),

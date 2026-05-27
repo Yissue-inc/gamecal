@@ -44,6 +44,7 @@ export async function crawlPokemonGo() {
       const title = $(el).find('h2, h3, .event-title').first().text().trim()
         || $(el).find('.event-text').first().contents().filter((_, node) => node.type === 'text').text().trim()
       const dateText = $(el).text().trim()
+      const imageUrl = $(el).find('img').first().attr('src')
       if (!title) return
 
       const parsed = parseLeekDuckDate(dateText)
@@ -55,6 +56,8 @@ export async function crawlPokemonGo() {
         importance: title.toLowerCase().includes('community day') ? 'critical' : 'high',
         start_at: parsed.toISOString(),
         source_url: 'https://pokemongolive.com',
+        description: dateText.replace(/\s+/g, ' ').slice(0, 220),
+        image_url: imageUrl?.startsWith('//') ? `https:${imageUrl}` : imageUrl,
       })
     })
   } catch {

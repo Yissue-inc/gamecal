@@ -17,6 +17,15 @@ const STATUS_OPTIONS: Array<{ value: ReleaseCandidateStatus | 'all'; label: stri
   { value: 'all', label: 'All' },
 ]
 
+const PLATFORM_OPTIONS = [
+  { value: 'all', label: 'All platforms' },
+  { value: 'PC', label: 'PC' },
+  { value: 'PS5', label: 'PlayStation' },
+  { value: 'Xbox', label: 'Xbox' },
+  { value: 'Switch', label: 'Nintendo Switch' },
+  { value: 'Mobile', label: 'Mobile' },
+]
+
 function platformsToText(platforms: string[]) {
   return platforms.join(', ')
 }
@@ -47,6 +56,7 @@ export default function ReleaseCandidatesPage() {
   const [candidates, setCandidates] = useState<ReleaseCandidate[]>([])
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
+  const [platformFilter, setPlatformFilter] = useState('all')
   const [editing, setEditing] = useState<Record<string, Partial<ReleaseCandidate>>>({})
 
   const counts = useMemo(() => {
@@ -58,6 +68,11 @@ export default function ReleaseCandidatesPage() {
       { pending: 0, approved: 0, rejected: 0 } as Record<ReleaseCandidateStatus, number>
     )
   }, [candidates])
+
+  const filteredCandidates = useMemo(() => {
+    if (platformFilter === 'all') return candidates
+    return candidates.filter((candidate) => candidate.platforms.includes(platformFilter))
+  }, [candidates, platformFilter])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -180,31 +195,47 @@ export default function ReleaseCandidatesPage() {
             <p className="mt-1 text-2xl font-bold">{counts.rejected}</p>
           </div>
         </div>
-        <label className="flex min-w-40 flex-col gap-2 text-xs text-zinc-500">
-          Status
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value as ReleaseCandidateStatus | 'all')}
-            className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white"
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex min-w-40 flex-col gap-2 text-xs text-zinc-500">
+            Status
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value as ReleaseCandidateStatus | 'all')}
+              className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-40 flex-col gap-2 text-xs text-zinc-500">
+            Platform
+            <select
+              value={platformFilter}
+              onChange={(event) => setPlatformFilter(event.target.value)}
+              className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white"
+            >
+              {PLATFORM_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {loading ? (
         <p className="text-muted-foreground">Loading...</p>
-      ) : candidates.length === 0 ? (
+      ) : filteredCandidates.length === 0 ? (
         <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">
           No candidates in this view. Run the source crawler or switch status.
         </div>
       ) : (
         <div className="space-y-4">
-          {candidates.map((candidate) => {
+          {filteredCandidates.map((candidate) => {
             const draft = { ...candidate, ...editing[candidate.id] }
             const signalText = getSignalText(candidate)
             const dirty = Boolean(editing[candidate.id])

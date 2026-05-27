@@ -52,16 +52,38 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [showCinematic, setShowCinematic] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [introSettings, setIntroSettings] = useState({
+    show_cinematic_intro: true,
+    show_signup_onboarding: true,
+  })
   const [currentTitle, setCurrentTitle] = useState('')
 
   const { events } = useLayoutEvents(selectedGames)
 
   useEffect(() => {
+    let cancelled = false
+
+    fetch('/api/site-settings')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.settings) {
+          setIntroSettings((prev) => ({ ...prev, ...data.settings }))
+        }
+      })
+      .catch(() => undefined)
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!introSettings.show_cinematic_intro) return
     const replay = searchParams.get('replay') === 'cinematic'
     if (replay || !hasSeenCinematic()) {
       setShowCinematic(true)
     }
-  }, [searchParams])
+  }, [introSettings.show_cinematic_intro, searchParams])
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -72,10 +94,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }, [])
 
   useEffect(() => {
-    if (!isGuest && user && shouldShowOnboarding()) {
+    if (introSettings.show_signup_onboarding && !isGuest && user && shouldShowOnboarding()) {
       setShowOnboarding(true)
     }
-  }, [isGuest, user])
+  }, [introSettings.show_signup_onboarding, isGuest, user])
 
   const featuredEvent = useMemo(() => {
     const hero =
@@ -124,6 +146,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }
 
   const handleEventClick = (event: GameEvent, game: Game) => {
+    if (isGuest) {
+      setAuthModalOpen(true)
+      return
+    }
     setSelectedRelease(null)
     setIsReleaseOpen(false)
     setSelectedEvent(event)
@@ -136,6 +162,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }
 
   const handleReleaseClick = (release: NewRelease) => {
+    if (isGuest) {
+      setAuthModalOpen(true)
+      return
+    }
     setSelectedEvent(null)
     setSelectedGame(null)
     setIsDetailOpen(false)

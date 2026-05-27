@@ -15,15 +15,21 @@ export async function crawlLol() {
       const title = $(el).find('title').text()
       const link = $(el).find('link').text()
       const pubDate = $(el).find('pubDate').text()
+      const description = $(el).find('description').text().replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      const imageUrl =
+        $(el).find('media\\:content, content').attr('url') ||
+        $(el).find('enclosure').attr('url')
       if (!title) return
 
       const isPatch = title.toLowerCase().includes('patch')
       events.push({
         title,
+        description,
         event_type: isPatch ? 'patch_release' : 'new_content',
         importance: isPatch ? 'high' : 'normal',
         start_at: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
         source_url: link || 'https://leagueoflegends.com',
+        image_url: imageUrl,
       })
     })
   } catch {
@@ -40,6 +46,7 @@ export async function crawlLol() {
       for (const incident of (data?.incidents ?? []).slice(0, 3)) {
         events.push({
           title: `Server Status: ${incident.name ?? 'Maintenance'}`,
+          description: incident.updates?.[0]?.content ?? 'Riot service status incident.',
           event_type: 'maintenance',
           importance: 'high',
           start_at: incident.created_at ?? new Date().toISOString(),

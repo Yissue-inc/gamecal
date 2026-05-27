@@ -5,7 +5,26 @@ export async function crawlFortnite() {
   const events: Parameters<typeof upsertEvents>[0] = []
 
   try {
-    await axios.get('https://fortnite-api.com/v2/news?language=en', { timeout: 10000 })
+    const { data } = await axios.get('https://fortnite-api.com/v2/news?language=en', { timeout: 10000 })
+    const newsItems = [
+      ...(data?.data?.br?.motds ?? []),
+      ...(data?.data?.stw?.messages ?? []),
+      ...(data?.data?.creative?.motds ?? []),
+    ]
+
+    for (const item of newsItems.slice(0, 8)) {
+      const title = item.title ?? item.tabTitle
+      if (!title) continue
+      events.push({
+        title,
+        description: item.body ?? item.description ?? '',
+        event_type: title.toLowerCase().includes('patch') ? 'patch_release' : 'new_content',
+        importance: 'normal',
+        start_at: new Date().toISOString(),
+        source_url: 'https://fortnite.com/news',
+        image_url: item.image ?? item.tileImage,
+      })
+    }
   } catch {
     // API unavailable — continue with confirmed recurring reset windows.
   }

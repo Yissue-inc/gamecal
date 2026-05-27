@@ -65,6 +65,7 @@ function AdminGate({ children }: { children: React.ReactNode }) {
           <Link href="/admin/events" className="text-sm text-zinc-400 hover:text-white">Events</Link>
           <Link href="/admin/releases" className="text-sm text-zinc-400 hover:text-white">Releases</Link>
           <Link href="/admin/release-candidates" className="text-sm text-zinc-400 hover:text-white">Candidate Queue</Link>
+          <Link href="/admin/settings" className="text-sm text-zinc-400 hover:text-white">Settings</Link>
         </div>
       </nav>
       {children}

@@ -53,22 +53,23 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
         })
         if (res.ok) {
           setIsWishlisted(!wasWishlisted)
+          window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
           if (!wasWishlisted) {
             trackWishlistAdded(eventId, gameSlug)
             toast.success(getCalWishlistMessage(), { icon: '🤓' })
-            window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
           }
         } else {
           const next = toggleWishlistLocal(eventId)
           setIsWishlisted(next)
+          window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
         }
       } else {
         const next = toggleWishlistLocal(eventId)
         setIsWishlisted(next)
+        window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
         if (next && !wasWishlisted) {
           trackWishlistAdded(eventId, gameSlug)
           toast.success(getCalWishlistMessage(), { icon: '🤓' })
-          window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
         }
       }
     } finally {
