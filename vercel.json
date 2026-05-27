@@ -5,6 +5,7 @@
     { "path": "/api/cron/pokemon-go", "schedule": "0 */8 * * *" },
     { "path": "/api/cron/genshin", "schedule": "0 */12 * * *" },
     { "path": "/api/cron/lol", "schedule": "0 */12 * * *" },
-    { "path": "/api/cron/release-candidates", "schedule": "30 4 * * *" }
+    { "path": "/api/cron/release-candidates", "schedule": "30 4 * * *" },
+    { "path": "/api/cron/reminders", "schedule": "*/5 * * * *" }
   ]
 }

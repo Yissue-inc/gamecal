@@ -25,6 +25,13 @@ const STEAM_COMING_SOON_URL =
   'https://store.steampowered.com/search/?filter=popularcomingsoon&category1=998&supportedlang=english&ndl=1'
 const STEAM_PREMIUM_UPCOMING_URL =
   'https://store.steampowered.com/search/?filter=comingsoon&category1=998&os=win&sort_by=Price_DESC&supportedlang=english&ndl=1'
+const NINTENDO_COMING_SOON_URL = 'https://www.nintendo.com/us/store/games/coming-soon/'
+const PLAYSTATION_PS5_GAMES_URL = 'https://www.playstation.com/en-us/ps5/games/'
+const XBOX_UPCOMING_URL = 'https://www.xbox.com/en-US/games/all-games?cat=upcoming'
+const POCKET_GAMER_UPCOMING_URL = 'https://www.pocketgamer.com/upcoming/'
+const GAMESPOT_2026_RELEASES_URL =
+  'https://www.gamespot.com/articles/2026-upcoming-games-schedule/1100-6534941/'
+const RELEASE_WINDOW_DAYS = 35
 
 interface SteamAppDetails {
   name?: string
@@ -53,6 +60,34 @@ function stripHtml(value?: string): string | undefined {
   if (!value) return undefined
   const text = cheerio.load(value).text().replace(/\s+/g, ' ').trim()
   return text || undefined
+}
+
+function canonicalUrl(href: string | undefined, baseUrl: string): string {
+  if (!href) return baseUrl
+  try {
+    return new URL(href, baseUrl).toString()
+  } catch {
+    return baseUrl
+  }
+}
+
+function normalizeImageUrl(value: string | undefined, baseUrl: string): string | undefined {
+  if (!value) return undefined
+  if (value.startsWith('//')) return `https:${value}`
+  if (value.startsWith('http')) return value
+  return canonicalUrl(value, baseUrl)
+}
+
+function slugify(value: string): string {
+  return normalizeTitle(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function decodeJsonString(value?: string): string | undefined {
+  if (!value) return undefined
+  return value.replace(/\\u002F/g, '/').replace(/\\"/g, '"')
 }
 
 function parseSteamDate(value: string): { date: string | null; precision: ReleaseDatePrecision } {
@@ -90,6 +125,35 @@ function isPastRelease(date?: string | null): boolean {
   if (!date) return false
   const today = new Date().toISOString().slice(0, 10)
   return date < today
+}
+
+function isWithinReleaseWindow(date?: string | null): boolean {
+  if (!date) return false
+  const release = new Date(`${date}T00:00:00Z`)
+  if (Number.isNaN(release.getTime())) return false
+  const start = new Date()
+  start.setUTCHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setUTCDate(end.getUTCDate() + RELEASE_WINDOW_DAYS)
+  return release >= start && release <= end
+}
+
+function parseFlexibleDate(value: string): { date: string | null; precision: ReleaseDatePrecision } {
+  const cleaned = value.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1')
+  const explicit = cleaned.match(/\b([A-Z][a-z]+)\s+(\d{1,2}),?\s+(20\d{2})\b/)
+  if (explicit) return parseSteamDate(`${explicit[1]} ${explicit[2]}, ${explicit[3]}`)
+
+  const implicitYear = cleaned.match(/\b([A-Z][a-z]+)\s+(\d{1,2})\b/)
+  if (implicitYear) {
+    const year = new Date().getUTCFullYear()
+    const parsed = parseSteamDate(`${implicitYear[1]} ${implicitYear[2]}, ${year}`)
+    if (parsed.date && isPastRelease(parsed.date)) {
+      return parseSteamDate(`${implicitYear[1]} ${implicitYear[2]}, ${year + 1}`)
+    }
+    return parsed
+  }
+
+  return parseSteamDate(cleaned)
 }
 
 function scoreCandidate(input: {
@@ -292,7 +356,259 @@ export async function crawlSteamReleaseCandidates(): Promise<ReleaseCandidateInp
     .sort((a, b) => b.confidence_score - a.confidence_score)
     .slice(0, 60)
 
-  return enrichSteamCandidates(deduped)
+  const enriched = await enrichSteamCandidates(deduped)
+  return enriched
+    .filter((candidate) => isWithinReleaseWindow(candidate.release_date))
+    .slice(0, 25)
+}
+
+function dedupeCandidates(candidates: ReleaseCandidateInput[], limit = 25): ReleaseCandidateInput[] {
+  const map = new Map<string, ReleaseCandidateInput>()
+  for (const candidate of candidates) {
+    if (!isWithinReleaseWindow(candidate.release_date)) continue
+    const key = `${candidate.source}:${candidate.external_id || slugify(candidate.title)}`
+    const existing = map.get(key)
+    if (!existing || candidate.confidence_score > existing.confidence_score) {
+      map.set(key, candidate)
+    }
+  }
+  return Array.from(map.values())
+    .sort((a, b) => {
+      const dateA = a.release_date ?? '9999-12-31'
+      const dateB = b.release_date ?? '9999-12-31'
+      if (dateA !== dateB) return dateA.localeCompare(dateB)
+      return b.confidence_score - a.confidence_score
+    })
+    .slice(0, limit)
+}
+
+export async function crawlNintendoReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
+  const { data: html } = await axios.get(NINTENDO_COMING_SOON_URL, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+  })
+  const candidates: ReleaseCandidateInput[] = []
+  const productRegex =
+    /"name":"([^"]+)"[\s\S]{0,1800}?"platform":\{"__typename":"Platform","label":"([^"]+)"[\s\S]{0,1400}?"productImageSquare":\{"__typename":"CloudinaryAsset","url":"([^"]+)"[\s\S]{0,900}?"releaseDate":"([^"]+)"/g
+
+  for (const match of Array.from(html.matchAll(productRegex)) as RegExpMatchArray[]) {
+    const title = normalizeTitle(match[1].replace(/™|®/g, ''))
+    const platformLabel = match[2]
+    const imageUrl = match[3]
+    const releaseDate = new Date(match[4]).toISOString().slice(0, 10)
+    if (!title || !isWithinReleaseWindow(releaseDate)) continue
+
+    candidates.push({
+      title,
+      developer: 'Nintendo',
+      platforms: ['Switch'],
+      release_date: releaseDate,
+      release_date_precision: 'exact',
+      description: `${title} is listed as an upcoming ${platformLabel} release on Nintendo's official store.`,
+      image_url: imageUrl,
+      source: 'nintendo',
+      source_url: `${NINTENDO_COMING_SOON_URL}${slugify(title)}`,
+      external_id: `nintendo-${slugify(title)}-${releaseDate}`,
+      confidence_score: 90,
+      signals: {
+        official_store: true,
+        source_label: 'Nintendo Coming Soon',
+        release_text: releaseDate,
+        ranking_sources: ['Nintendo official coming soon'],
+      },
+      raw_payload: { platform_label: platformLabel },
+    })
+  }
+
+  return dedupeCandidates(candidates, 20)
+}
+
+export async function crawlPlayStationReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
+  const { data: html } = await axios.get(PLAYSTATION_PS5_GAMES_URL, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+  })
+  const $ = cheerio.load(html)
+  const candidates: ReleaseCandidateInput[] = []
+
+  $('h2, h3, h4').each((_, heading) => {
+    const title = normalizeTitle($(heading).text())
+    if (!title || title.length < 3 || title.length > 90) return
+    const block = $(heading).parent().text().replace(/\s+/g, ' ')
+    const dateMatch = block.match(/Release Date:\s*([A-Z][a-z]+\s+\d{1,2},\s+20\d{2})/)
+    if (!dateMatch) return
+    const parsed = parseFlexibleDate(dateMatch[1])
+    if (!isWithinReleaseWindow(parsed.date)) return
+
+    const imageUrl = normalizeImageUrl(
+      $(heading).closest('section, article, div').find('img').first().attr('src') ??
+        $(heading).closest('section, article, div').find('source').first().attr('srcset')?.split(' ')[0],
+      PLAYSTATION_PS5_GAMES_URL
+    )
+
+    candidates.push({
+      title,
+      platforms: ['PS5'],
+      release_date: parsed.date,
+      release_date_precision: parsed.precision,
+      description: `${title} is listed on PlayStation's PS5 games page with a ${dateMatch[1]} release date.`,
+      image_url: imageUrl,
+      source: 'playstation',
+      source_url: PLAYSTATION_PS5_GAMES_URL,
+      external_id: `playstation-${slugify(title)}-${parsed.date}`,
+      confidence_score: 86,
+      signals: {
+        official_store: true,
+        source_label: 'PlayStation PS5 Games',
+        release_text: dateMatch[1],
+        ranking_sources: ['PlayStation official games page'],
+      },
+    })
+  })
+
+  return dedupeCandidates(candidates, 20)
+}
+
+export async function crawlXboxReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
+  const { data: html } = await axios.get(XBOX_UPCOMING_URL, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+  })
+  const candidates: ReleaseCandidateInput[] = []
+  const productRegex =
+    /"description":"([^"]*)"[\s\S]{0,800}?"developerName":"([^"]*)"[\s\S]{0,1800}?"boxArt":\{"url":"([^"]+)"[\s\S]{0,2600}?"publisherName":"([^"]*)"[\s\S]{0,900}?"releaseDate":"([^"]+)"[\s\S]{0,900}?"shortDescription":"([^"]*)"[\s\S]{0,2200}?"title":"([^"]+)"/g
+
+  for (const match of Array.from(html.matchAll(productRegex)) as RegExpMatchArray[]) {
+    const releaseDate = new Date(match[5]).toISOString().slice(0, 10)
+    if (!isWithinReleaseWindow(releaseDate)) continue
+    const title = normalizeTitle(decodeJsonString(match[7]) ?? '')
+    if (!title) continue
+
+    candidates.push({
+      title,
+      developer: decodeJsonString(match[2]) || decodeJsonString(match[4]),
+      platforms: ['Xbox'],
+      release_date: releaseDate,
+      release_date_precision: 'exact',
+      description: normalizeTitle(decodeJsonString(match[6]) || decodeJsonString(match[1]) || '').slice(0, 300),
+      image_url: decodeJsonString(match[3]),
+      source: 'xbox',
+      source_url: XBOX_UPCOMING_URL,
+      external_id: `xbox-${slugify(title)}-${releaseDate}`,
+      confidence_score: 88,
+      signals: {
+        official_store: true,
+        source_label: 'Xbox Upcoming Games',
+        release_text: releaseDate,
+        ranking_sources: ['Xbox official upcoming games'],
+      },
+    })
+  }
+
+  return dedupeCandidates(candidates, 20)
+}
+
+async function crawlPocketGamerArticle(url: string, headline: string): Promise<ReleaseCandidateInput | null> {
+  try {
+    const { data: html } = await axios.get(url, {
+      timeout: 12000,
+      headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+    })
+    const $ = cheerio.load(html)
+    const title = normalizeTitle($('h1').first().text() || headline)
+    const text = $('article, main').first().text().replace(/\s+/g, ' ')
+    const parsed = parseFlexibleDate(text)
+    if (!isWithinReleaseWindow(parsed.date)) return null
+    const description =
+      $('meta[name="description"]').attr('content') ??
+      $('meta[property="og:description"]').attr('content') ??
+      text.slice(0, 220)
+    const imageUrl = normalizeImageUrl($('meta[property="og:image"]').attr('content'), url)
+
+    return {
+      title: title.replace(/\s+(opens pre-registration|reveals|will launch|is coming).*$/i, ''),
+      platforms: ['Mobile'],
+      release_date: parsed.date,
+      release_date_precision: parsed.precision,
+      description: normalizeTitle(description).slice(0, 300),
+      image_url: imageUrl,
+      source: 'pocketgamer',
+      source_url: url,
+      external_id: `pocketgamer-${slugify(title)}-${parsed.date}`,
+      confidence_score: 72,
+      signals: {
+        official_store: false,
+        source_label: 'Pocket Gamer Upcoming',
+        release_text: parsed.date,
+        ranking_sources: ['Pocket Gamer upcoming mobile games'],
+      },
+    }
+  } catch {
+    return null
+  }
+}
+
+export async function crawlMobileReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
+  const { data: html } = await axios.get(POCKET_GAMER_UPCOMING_URL, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+  })
+  const $ = cheerio.load(html)
+  const links = $('a[href]')
+    .map((_, link) => {
+      const headline = normalizeTitle($(link).text())
+      const href = canonicalUrl($(link).attr('href'), POCKET_GAMER_UPCOMING_URL)
+      return headline.length > 20 && href.includes('pocketgamer.com') ? { headline, href } : null
+    })
+    .get()
+    .filter(Boolean)
+    .slice(0, 20) as Array<{ headline: string; href: string }>
+
+  const candidates = await Promise.all(links.map((item) => crawlPocketGamerArticle(item.href, item.headline)))
+  return dedupeCandidates(candidates.filter(Boolean) as ReleaseCandidateInput[], 15)
+}
+
+export async function crawlMediaReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
+  const { data: html } = await axios.get(GAMESPOT_2026_RELEASES_URL, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+  })
+  const $ = cheerio.load(html)
+  const text = $('main, article, body').text().replace(/\s+/g, ' ')
+  const candidates: ReleaseCandidateInput[] = []
+  const regex = /([A-Z0-9][A-Za-z0-9:'’&.,+\-\s]{2,80})\s*[-–—]\s*(PS5|Xbox Series X\|S|Xbox|Switch 2|Switch|PC|Nintendo Switch|PlayStation 5)[^A-Z]{0,120}?([A-Z][a-z]+\s+\d{1,2},\s+20\d{2})/g
+
+  for (const match of Array.from(text.matchAll(regex)) as RegExpMatchArray[]) {
+    const parsed = parseFlexibleDate(match[3])
+    if (!isWithinReleaseWindow(parsed.date)) continue
+    const platformText = match[2]
+    const platforms = [
+      /PlayStation|PS5/i.test(platformText) ? 'PS5' : null,
+      /Xbox/i.test(platformText) ? 'Xbox' : null,
+      /Switch|Nintendo/i.test(platformText) ? 'Switch' : null,
+      /\bPC\b/i.test(platformText) ? 'PC' : null,
+    ].filter(Boolean) as string[]
+
+    candidates.push({
+      title: normalizeTitle(match[1]),
+      platforms: platforms.length ? platforms : ['PC'],
+      release_date: parsed.date,
+      release_date_precision: parsed.precision,
+      description: `${normalizeTitle(match[1])} appeared in a current release-date roundup for ${match[3]}.`,
+      source: 'gamespot',
+      source_url: GAMESPOT_2026_RELEASES_URL,
+      external_id: `gamespot-${slugify(match[1])}-${parsed.date}`,
+      confidence_score: 68,
+      signals: {
+        official_store: false,
+        source_label: 'GameSpot 2026 Release Schedule',
+        release_text: match[3],
+        ranking_sources: ['GameSpot release schedule'],
+      },
+    })
+  }
+
+  return dedupeCandidates(candidates, 20)
 }
 
 export async function upsertReleaseCandidates(
@@ -357,10 +673,17 @@ export async function upsertReleaseCandidates(
 }
 
 export async function crawlReleaseCandidates(source = 'all') {
-  const sources =
-    source === 'all' || source === 'steam'
-      ? [{ source: 'steam', crawl: crawlSteamReleaseCandidates }]
-      : []
+  const allSources = [
+    { source: 'steam', crawl: crawlSteamReleaseCandidates },
+    { source: 'nintendo', crawl: crawlNintendoReleaseCandidates },
+    { source: 'playstation', crawl: crawlPlayStationReleaseCandidates },
+    { source: 'xbox', crawl: crawlXboxReleaseCandidates },
+    { source: 'mobile', crawl: crawlMobileReleaseCandidates },
+    { source: 'media', crawl: crawlMediaReleaseCandidates },
+  ]
+  const sources = source === 'all'
+    ? allSources
+    : allSources.filter((item) => item.source === source)
 
   if (!sources.length) throw new Error(`Unknown release source: ${source}`)
 
@@ -370,12 +693,23 @@ export async function crawlReleaseCandidates(source = 'all') {
   let totalSkipped = 0
 
   for (const item of sources) {
-    const candidates = await item.crawl()
-    const result = await upsertReleaseCandidates(candidates)
-    totalInserted += result.inserted
-    totalUpdated += result.updated
-    totalSkipped += result.skipped
-    results.push({ source: item.source, fetched: candidates.length, ...result })
+    try {
+      const candidates = await item.crawl()
+      const result = await upsertReleaseCandidates(candidates)
+      totalInserted += result.inserted
+      totalUpdated += result.updated
+      totalSkipped += result.skipped
+      results.push({ source: item.source, fetched: candidates.length, ...result })
+    } catch (error) {
+      results.push({
+        source: item.source,
+        fetched: 0,
+        inserted: 0,
+        updated: 0,
+        skipped: 0,
+        error: error instanceof Error ? error.message : 'Source crawl failed',
+      })
+    }
   }
 
   return {

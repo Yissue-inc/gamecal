@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { getRemindersLocal, toggleReminderLocal } from '@/lib/engagement-store'
+import { ensurePushSubscription } from '@/lib/push'
+import { trackReminderSet } from '@/lib/posthog'
+import { toast } from 'sonner'
 
 const OFFSETS = [
   { label: '10 min before', value: 10 },
@@ -22,19 +25,69 @@ export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
   const [activeOffsets, setActiveOffsets] = useState<number[]>([])
 
   useEffect(() => {
-    setActiveOffsets(getRemindersLocal(eventId))
-  }, [eventId])
+    let cancelled = false
+
+    if (user) {
+      fetch('/api/reminders')
+        .then((res) => (res.ok ? res.json() : { reminders: [] }))
+        .then((data) => {
+          if (cancelled) return
+          const offsets = (data.reminders ?? [])
+            .filter((reminder: { event_id: string }) => reminder.event_id === eventId)
+            .map((reminder: { offset_min: number }) => reminder.offset_min)
+          setActiveOffsets(offsets)
+        })
+        .catch(() => setActiveOffsets(getRemindersLocal(eventId)))
+    } else {
+      setActiveOffsets(getRemindersLocal(eventId))
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [eventId, user])
 
   const toggleOffset = async (offsetMin: number) => {
     if (isGuest || !user) {
       window.dispatchEvent(new CustomEvent('cal:prompt-login', { detail: { reason: 'reminder' } }))
       return
     }
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      await Notification.requestPermission()
+    const wasActive = activeOffsets.includes(offsetMin)
+    const optimistic = wasActive
+      ? activeOffsets.filter((offset) => offset !== offsetMin)
+      : [...activeOffsets, offsetMin]
+    setActiveOffsets(optimistic)
+
+    try {
+      if (wasActive) {
+        const res = await fetch(`/api/reminders?event_id=${eventId}&offset_min=${offsetMin}`, {
+          method: 'DELETE',
+        })
+        if (!res.ok) throw new Error('Reminder remove failed')
+        toast.success('Reminder removed')
+        return
+      }
+
+      const push = await ensurePushSubscription()
+      const res = await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, offsetMin }),
+      })
+      if (!res.ok) throw new Error('Reminder save failed')
+
+      const next = toggleReminderLocal(eventId, offsetMin, eventStartAt)
+      setActiveOffsets(Array.from(new Set([...optimistic, ...next])))
+      trackReminderSet(eventId, offsetMin)
+      toast.success(
+        push.ok
+          ? 'Reminder set. CAL will notify this browser.'
+          : 'Reminder saved. Browser push needs notification permission or VAPID keys.'
+      )
+    } catch {
+      setActiveOffsets(activeOffsets)
+      toast.error('Could not update reminder. Please try again.')
     }
-    const next = toggleReminderLocal(eventId, offsetMin, eventStartAt)
-    setActiveOffsets(next)
   }
 
   return (
