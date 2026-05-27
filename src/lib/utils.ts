@@ -203,10 +203,16 @@ export function gameEventToCalendarEvent(event: GameEvent, game: Game): Calendar
   const color = game.brand_color
   const classNames = [`importance-${event.importance}`]
   if (event.importance === 'critical') classNames.push('critical-event')
+  const acronym = game.name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   return {
     id: event.id,
-    title: `${getEventTypeIcon(event.event_type)} ${event.title}`,
+    title: `${acronym} · ${getEventTypeIcon(event.event_type)} ${event.title}`,
     start: event.start_at,
     end: event.end_at ?? undefined,
     backgroundColor: hexToRgba(color, 0.125),

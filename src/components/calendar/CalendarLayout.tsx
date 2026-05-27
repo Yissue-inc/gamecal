@@ -38,6 +38,12 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [selectedGames, setLocalSelectedGames] = useState<string[]>(
     preferences.selected_games.length ? preferences.selected_games : games.map((g) => g.slug)
   )
+  const [selectedReleasePlatforms, setSelectedReleasePlatforms] = useState<string[]>([
+    'PC',
+    'PS5',
+    'Switch',
+    'Mobile',
+  ])
   const [selectedEvent, setSelectedEvent] = useState<GameEvent | null>(null)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [selectedRelease, setSelectedRelease] = useState<NewRelease | null>(null)
@@ -111,6 +117,12 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
     setSelectedGames(next)
   }
 
+  const handleToggleReleasePlatform = (platform: string) => {
+    setSelectedReleasePlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((item) => item !== platform) : [...prev, platform]
+    )
+  }
+
   const handleEventClick = (event: GameEvent, game: Game) => {
     setSelectedRelease(null)
     setIsReleaseOpen(false)
@@ -162,6 +174,8 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         selectedGames={selectedGames}
         onToggleGame={handleToggle}
         onToggleAllGames={handleToggleAll}
+        selectedReleasePlatforms={selectedReleasePlatforms}
+        onToggleReleasePlatform={handleToggleReleasePlatform}
         events={events}
       />
       {isGuest && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
@@ -174,10 +188,16 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           selectedGames={selectedGames}
           onToggle={handleToggle}
           onToggleAll={handleToggleAll}
+          selectedReleasePlatforms={selectedReleasePlatforms}
+          onToggleReleasePlatform={handleToggleReleasePlatform}
           events={events}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <WeeklyHighlights events={events} onEventClick={handleEventClick} />
+          <WeeklyHighlights
+            events={events}
+            onEventClick={handleEventClick}
+            onReleaseClick={handleReleaseClick}
+          />
           <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
             <GameCalendar
               calendarRef={calendarRef}
@@ -187,6 +207,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
               onGuestEventClick={() => setAuthModalOpen(true)}
               onReleaseClick={handleReleaseClick}
               onDatesChange={handleDatesChange}
+              selectedReleasePlatforms={selectedReleasePlatforms}
             />
             <EventDetailPanel
               event={selectedEvent}

@@ -133,9 +133,12 @@ export function LiveBanner({
     return formatDateKeyInTimezone(event.start_at, preferences.timezone) === todayKey
   })
 
-  if (!liveEvents.length) return null
-
-  const marqueeEvents = liveEvents.length > 1 ? [...liveEvents, ...liveEvents] : liveEvents
+  const fallbackEvents = events
+    .filter((event) => event.game && isUpcoming(event.start_at))
+    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
+    .slice(0, 3)
+  const displayEvents = liveEvents.length ? liveEvents : fallbackEvents
+  const marqueeEvents = displayEvents.length > 1 ? [...displayEvents, ...displayEvents] : displayEvents
 
   return (
     <div
@@ -147,8 +150,11 @@ export function LiveBanner({
         LIVE NOW
       </span>
       <div className="min-w-0 flex-1 overflow-hidden">
+        {displayEvents.length === 0 ? (
+          <span className="text-xs text-zinc-500">No live events right now</span>
+        ) : (
         <div
-          className={liveEvents.length > 1 ? 'live-now-marquee flex w-max gap-8' : 'flex gap-3'}
+          className={displayEvents.length > 1 ? 'live-now-marquee flex w-max gap-8' : 'flex gap-3'}
         >
         {marqueeEvents.map((e, index) => (
           <button
@@ -162,11 +168,14 @@ export function LiveBanner({
             {' '}— {e.title}
             {' '}
             <span className="text-zinc-500">
-              {e.end_at ? `ends ${getTimeUntilEnd(e.end_at)}` : 'live today'}
+              {liveEvents.length
+                ? e.end_at ? `ends ${getTimeUntilEnd(e.end_at)}` : 'live today'
+                : 'next up'}
             </span>
           </button>
         ))}
         </div>
+        )}
       </div>
       <style jsx>{`
         .live-now-marquee {

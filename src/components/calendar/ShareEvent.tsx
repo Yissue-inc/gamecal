@@ -20,10 +20,14 @@ export function ShareEvent({ event, game }: ShareEventProps) {
   }
 
   const copy = async (type: keyof typeof formats) => {
-    await navigator.clipboard.writeText(formats[type])
-    setCopied(type)
-    toast.success(`Copied for ${type === 'plain' ? 'Plain Text' : type.charAt(0).toUpperCase() + type.slice(1)}! ✓`)
-    setTimeout(() => setCopied(null), 2000)
+    try {
+      await navigator.clipboard.writeText(formats[type])
+      setCopied(type)
+      toast.success(`Copied for ${type === 'plain' ? 'Plain Text' : type.charAt(0).toUpperCase() + type.slice(1)}! ✓`)
+      setTimeout(() => setCopied(null), 2000)
+    } catch {
+      toast.error('Clipboard permission was blocked. Select and copy from the share text manually.')
+    }
   }
 
   const buttons = [

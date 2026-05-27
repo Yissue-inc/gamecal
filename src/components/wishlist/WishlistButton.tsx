@@ -56,7 +56,7 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
           if (!wasWishlisted) {
             trackWishlistAdded(eventId, gameSlug)
             toast.success(getCalWishlistMessage(), { icon: '🤓' })
-            window.dispatchEvent(new CustomEvent('cal:wishlist-added', { detail: { eventId } }))
+            window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
           }
         } else {
           const next = toggleWishlistLocal(eventId)
@@ -68,7 +68,7 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
         if (next && !wasWishlisted) {
           trackWishlistAdded(eventId, gameSlug)
           toast.success(getCalWishlistMessage(), { icon: '🤓' })
-          window.dispatchEvent(new CustomEvent('cal:wishlist-added', { detail: { eventId } }))
+          window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
         }
       }
     } finally {
@@ -125,10 +125,10 @@ export function useWishlistEventIds(): string[] {
       }
     }
     window.addEventListener('storage', refresh)
-    window.addEventListener('cal:wishlist-added', refresh)
+    window.addEventListener('cal:wishlist-changed', refresh)
     return () => {
       window.removeEventListener('storage', refresh)
-      window.removeEventListener('cal:wishlist-added', refresh)
+      window.removeEventListener('cal:wishlist-changed', refresh)
     }
   }, [useApi, user])
 

@@ -1,19 +1,48 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
-import { useLayoutEvents } from '@/hooks/useLayoutEvents'
-import { useWishlistEventIds } from '@/components/wishlist/WishlistButton'
-import { GameCalendar } from '@/components/calendar/GameCalendar'
-import { WeeklyHighlights } from '@/components/calendar/WeeklyHighlights'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
+import { getWishlistIds } from '@/lib/engagement-store'
+import { isSupabaseConfigured } from '@/lib/mock-data'
+import type { GameEvent } from '@/types'
 
 export default function MySchedulePage() {
   const { user, isGuest } = useAuth()
-  const wishlistIds = useWishlistEventIds()
-  const { events } = useLayoutEvents([])
+  const [wishlisted, setWishlisted] = useState<GameEvent[]>([])
 
-  const wishlisted = events.filter((e) => wishlistIds.includes(e.id))
+  useEffect(() => {
+    async function loadWishlist() {
+      if (!isSupabaseConfigured() || !user) {
+        const ids = getWishlistIds()
+        if (!ids.length) {
+          setWishlisted([])
+          return
+        }
+        const start = new Date()
+        start.setFullYear(start.getFullYear() - 1)
+        const end = new Date()
+        end.setFullYear(end.getFullYear() + 2)
+        const params = new URLSearchParams({
+          start: start.toISOString(),
+          end: end.toISOString(),
+        })
+        const res = await fetch(`/api/events?${params}`)
+        const data = await res.json()
+        setWishlisted((data.events ?? []).filter((event: GameEvent) => ids.includes(event.id)))
+        return
+      }
+
+      const res = await fetch('/api/wishlist')
+      const data = await res.json()
+      setWishlisted(data.events ?? [])
+    }
+
+    loadWishlist()
+    window.addEventListener('cal:wishlist-changed', loadWishlist)
+    return () => window.removeEventListener('cal:wishlist-changed', loadWishlist)
+  }, [user])
 
   if (isGuest || !user) {
     return (
@@ -33,7 +62,7 @@ export default function MySchedulePage() {
         <Link href="/" className="font-rajdhani text-xl font-bold">
           Gamer<span className="text-primary">Clock</span>
         </Link>
-        <h1 className="font-rajdhani mt-4 text-2xl font-semibold">My Schedule</h1>
+        <h1 className="font-rajdhani mt-4 text-2xl font-semibold">My Wishlists</h1>
         <p className="mt-1 text-sm text-zinc-400">Events you wishlisted — CAL is watching them.</p>
       </header>
       <main className="mx-auto max-w-4xl space-y-4 px-6 py-8">

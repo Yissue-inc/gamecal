@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { X, ExternalLink, Calendar, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -108,10 +107,10 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
 
         {event.source_url && (
           <Button variant="outline" className="w-full border-zinc-700" asChild>
-            <Link href={event.source_url} data-testid="official-source-link" target="_blank" rel="noopener noreferrer">
+            <a href={event.source_url} data-testid="official-source-link" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 h-4 w-4" />
               Official Source
-            </Link>
+            </a>
           </Button>
         )}
       </div>

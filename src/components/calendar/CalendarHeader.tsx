@@ -28,6 +28,8 @@ interface CalendarHeaderProps {
   selectedGames: string[]
   onToggleGame: (slug: string) => void
   onToggleAllGames: (all: boolean) => void
+  selectedReleasePlatforms: string[]
+  onToggleReleasePlatform: (platform: string) => void
   events: GameEvent[]
 }
 
@@ -41,6 +43,8 @@ export function CalendarHeader({
   selectedGames,
   onToggleGame,
   onToggleAllGames,
+  selectedReleasePlatforms,
+  onToggleReleasePlatform,
   events,
 }: CalendarHeaderProps) {
   const { user, isGuest, signOut } = useAuth()
@@ -110,6 +114,8 @@ export function CalendarHeader({
               selectedGames={selectedGames}
               onToggle={onToggleGame}
               onToggleAll={onToggleAllGames}
+              selectedReleasePlatforms={selectedReleasePlatforms}
+              onToggleReleasePlatform={onToggleReleasePlatform}
               events={events}
             />
           </SheetContent>
@@ -177,7 +183,7 @@ function UserMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <Link href="/my-schedule" data-testid="header-my-schedule">My Schedule</Link>
+          <Link href="/my-schedule" data-testid="header-my-schedule">My Wishlists</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/profile" data-testid="header-profile">Profile & Badges</Link>

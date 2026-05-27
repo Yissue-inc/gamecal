@@ -1,12 +1,21 @@
 'use client'
 
-import type { Game, GameEvent } from '@/types'
+import { useReleases } from '@/hooks/useReleases'
+import type { Game, GameEvent, NewRelease } from '@/types'
 import {
   getEventTypeIcon,
   getEventTypeLabel,
   getGameTextColor,
 } from '@/lib/utils'
 import { formatShortDate, getDday, isThisWeek } from '@/lib/calendar-dates'
+
+const FALLBACK_ART: Record<string, string> = {
+  Fortnite: 'linear-gradient(135deg,#082f49 0%,#0f172a 55%,#00d4ff 140%)',
+  'World of Warcraft': 'linear-gradient(135deg,#451a03 0%,#0f172a 60%,#f59e0b 130%)',
+  'Pokémon GO': 'linear-gradient(135deg,#422006 0%,#0f172a 60%,#eab308 130%)',
+  'Genshin Impact': 'linear-gradient(135deg,#052e16 0%,#0f172a 60%,#4ade80 130%)',
+  'League of Legends': 'linear-gradient(135deg,#1f2937 0%,#111827 55%,#c89b3c 130%)',
+}
 
 function HighlightCard({
   event,
@@ -23,7 +32,7 @@ function HighlightCard({
         backgroundSize: 'cover' as const,
         backgroundPosition: 'center' as const,
       }
-    : { background: `linear-gradient(135deg, ${game.brand_color}40 0%, #0f0f0f 100%)` }
+    : { background: FALLBACK_ART[game.name] ?? `linear-gradient(135deg, ${game.brand_color}40 0%, #0f0f0f 100%)` }
 
   const barColor = event.importance === 'critical' ? '#ef4444' : game.brand_color
 
@@ -70,25 +79,67 @@ function HighlightCard({
   )
 }
 
+function ReleaseHighlightCard({
+  release,
+  onClick,
+}: {
+  release: NewRelease
+  onClick: () => void
+}) {
+  const bgStyle = release.image_url
+    ? {
+        backgroundImage: `url(${release.image_url})`,
+        backgroundSize: 'cover' as const,
+        backgroundPosition: 'center' as const,
+      }
+    : { background: `linear-gradient(135deg, ${release.hero_color ?? '#1b2838'} 0%, #0f0f0f 100%)` }
+
+  return (
+    <button
+      type="button"
+      data-testid={`highlight-release-${release.id}`}
+      onClick={onClick}
+      className="group relative h-40 w-60 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-800 transition-all duration-200 hover:scale-[1.02] hover:border-zinc-600"
+    >
+      <div className="absolute inset-0" style={bgStyle} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+      <div className="absolute left-2 top-2 rounded-full border border-indigo-400/40 bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold text-indigo-200">
+        NEW / {release.platform[0] ?? 'Game'}
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 border-t-2 border-indigo-400 bg-gradient-to-t from-black to-black/20 px-3 py-2.5">
+        <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+          New Release
+        </div>
+        <div className="line-clamp-2 text-sm font-bold leading-tight text-white">{release.title}</div>
+        <div className="mt-0.5 text-[10px] text-zinc-400">{release.release_date}</div>
+      </div>
+    </button>
+  )
+}
+
 export function WeeklyHighlights({
   events,
   onEventClick,
+  onReleaseClick,
 }: {
   events: GameEvent[]
   onEventClick: (event: GameEvent, game: Game) => void
+  onReleaseClick?: (release: NewRelease) => void
 }) {
+  const { releases } = useReleases()
   const highlights = events
-    .filter((e) => e.game && isThisWeek(e.start_at) && ['critical', 'high'].includes(e.importance))
+    .filter((e) => e.game && (isThisWeek(e.start_at) || new Date(e.start_at) > new Date()))
     .sort((a, b) => (a.importance === 'critical' ? 0 : 1) - (b.importance === 'critical' ? 0 : 1))
-    .slice(0, 8)
+    .slice(0, Math.max(0, 8 - releases.length))
+  const releaseHighlights = releases.slice(0, Math.max(0, 8 - highlights.length))
 
-  if (!highlights.length) return null
+  if (!highlights.length && !releaseHighlights.length) return null
 
   return (
     <div data-testid="weekly-highlights" className="shrink-0 border-b border-zinc-800 px-4 py-3">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-sm font-bold text-white">🔥 THIS WEEK</span>
-        <span className="text-xs text-zinc-500">— {highlights.length} major events</span>
+        <span className="text-xs text-zinc-500">— {highlights.length + releaseHighlights.length} major events</span>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
         {highlights.map((e) => (
@@ -97,6 +148,13 @@ export function WeeklyHighlights({
             event={e}
             game={e.game!}
             onClick={() => onEventClick(e, e.game!)}
+          />
+        ))}
+        {releaseHighlights.map((release) => (
+          <ReleaseHighlightCard
+            key={release.id}
+            release={release}
+            onClick={() => onReleaseClick?.(release)}
           />
         ))}
       </div>

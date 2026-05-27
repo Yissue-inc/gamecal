@@ -27,6 +27,7 @@ interface GameCalendarProps {
   onGuestEventClick: () => void
   onReleaseClick: (release: NewRelease) => void
   onDatesChange: (start: Date, end: Date, title: string) => void
+  selectedReleasePlatforms?: string[]
   calendarRef?: React.RefObject<FullCalendar>
 }
 
@@ -86,6 +87,7 @@ export function GameCalendar({
   onGuestEventClick,
   onReleaseClick,
   onDatesChange,
+  selectedReleasePlatforms = [],
   calendarRef,
 }: GameCalendarProps) {
   const internalRef = useRef<FullCalendar>(null)
@@ -102,13 +104,24 @@ export function GameCalendar({
     games: selectedGames,
   })
 
+  const visibleReleases = useMemo(() => {
+    if (!selectedReleasePlatforms.length) return []
+    return releases.filter((release) =>
+      release.platform.some((platform) => {
+        if (selectedReleasePlatforms.includes(platform)) return true
+        if (platform === 'Xbox' && selectedReleasePlatforms.includes('PS5')) return true
+        return false
+      })
+    )
+  }, [releases, selectedReleasePlatforms])
+
   const releasesByDate = useMemo(() => {
     const map: Record<string, NewRelease> = {}
-    for (const release of releases) {
+    for (const release of visibleReleases) {
       map[release.release_date] = release
     }
     return map
-  }, [releases])
+  }, [visibleReleases])
 
   const calendarEvents = useMemo(() => {
     return events
@@ -163,7 +176,7 @@ export function GameCalendar({
       art.style.backgroundPosition = 'center'
       art.innerHTML = `
         <span class="release-cell-dday">${dday}</span>
-        <span class="release-cell-title">${release.title}</span>
+        <span class="release-cell-title">NEW / ${release.title}</span>
         ${release.developer ? `<span class="release-cell-dev">${release.developer}</span>` : ''}
       `
       art.addEventListener('click', (e) => {
@@ -208,7 +221,7 @@ export function GameCalendar({
   )
 
   useEffect(() => {
-    if (!releases.length) return
+    if (!visibleReleases.length) return
     document.querySelectorAll('.gamecal-calendar .fc-daygrid-day').forEach((node) => {
       const cell = node as HTMLElement
       const dateKey = cell.getAttribute('data-date')
@@ -216,7 +229,7 @@ export function GameCalendar({
       const release = releasesByDate[dateKey]
       if (release) mountReleaseArt(cell, release)
     })
-  }, [releases, releasesByDate, mountReleaseArt])
+  }, [visibleReleases, releasesByDate, mountReleaseArt])
 
   useEffect(() => {
     if (!shouldCenterTodayRef.current) return
@@ -231,7 +244,7 @@ export function GameCalendar({
     )
 
     return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [events, releases, dateRange.start, dateRange.end])
+  }, [events, visibleReleases, dateRange.start, dateRange.end])
 
   useEffect(() => {
     const centerHandler = () => {
@@ -306,9 +319,9 @@ export function GameCalendar({
       {selectedDateKey && (
         <section
           data-testid="selected-date-events"
-          className="mt-3 shrink-0 border-t border-zinc-800 pt-3 md:max-h-[32vh]"
+          className="mt-3 shrink-0 border-t border-zinc-800 bg-[#0f0f0f] pt-4 md:max-h-[34vh]"
         >
-          <div className="mb-3 flex items-end justify-between gap-3">
+          <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <h3 className="font-rajdhani text-2xl font-bold leading-none text-white">
                 {formatSelectedDate(selectedDateKey)}
@@ -326,7 +339,7 @@ export function GameCalendar({
               Close
             </button>
           </div>
-          <div className="max-h-52 overflow-y-auto pr-1 md:max-h-[calc(32vh-72px)]">
+          <div className="max-h-60 overflow-y-auto pr-1 md:max-h-[calc(34vh-76px)]">
             {selectedDateEvents.length > 0 ? (
               <div className="divide-y divide-zinc-800">
                 {selectedDateEvents.map((event) => (
@@ -334,10 +347,10 @@ export function GameCalendar({
                     key={event.id}
                     type="button"
                     onClick={() => event.game && onEventClick(event, event.game)}
-                    className="grid w-full grid-cols-[4px_1fr_auto] gap-3 py-3 text-left transition-colors hover:bg-zinc-900/60"
+                    className="grid w-full grid-cols-[4px_1fr_auto] gap-5 py-4 text-left transition-colors hover:bg-zinc-900/60"
                   >
                     <span
-                      className="mt-1 h-16 rounded-full"
+                      className="mt-1 h-24 rounded-full"
                       style={{ backgroundColor: event.game?.brand_color ?? '#6366f1' }}
                       aria-hidden="true"
                     />
@@ -365,7 +378,7 @@ export function GameCalendar({
                         </span>
                       )}
                     </span>
-                    <span className="whitespace-nowrap pt-6 text-xs font-semibold text-zinc-300">
+                    <span className="whitespace-nowrap pt-9 text-sm font-semibold text-zinc-300">
                       {formatTime(event.start_at, preferences.time_format, preferences.timezone)}
                     </span>
                   </button>

@@ -19,11 +19,21 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('wishlists')
-    .select('event_id')
+    .select('event_id, event:events(*, game:games(*))')
     .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ eventIds: (data ?? []).map((r) => r.event_id) })
+  const events = (data ?? [])
+    .map((row) => {
+      const event = Array.isArray(row.event) ? row.event[0] : row.event
+      if (!event) return null
+      return {
+        ...event,
+        game: Array.isArray(event.game) ? event.game[0] : event.game,
+      }
+    })
+    .filter(Boolean)
+  return NextResponse.json({ eventIds: (data ?? []).map((r) => r.event_id), events })
 }
 
 export async function POST(request: NextRequest) {

@@ -10,6 +10,12 @@ function inferHeroColor(platforms: string[]): string {
   return '#1b2838'
 }
 
+function normalizePlatforms(platforms: string[]): string[] {
+  const set = new Set(platforms)
+  if (set.has('PS5')) set.add('Xbox')
+  return Array.from(set)
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -43,7 +49,7 @@ export async function POST(
   const releasePayload = {
     title: candidate.title,
     developer: candidate.developer,
-    platform: candidate.platforms,
+    platform: normalizePlatforms(candidate.platforms ?? []),
     release_date: candidate.release_date,
     description: candidate.description,
     image_url: candidate.image_url,

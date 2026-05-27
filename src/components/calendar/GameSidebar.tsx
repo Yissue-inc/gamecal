@@ -26,8 +26,17 @@ interface GameSidebarProps {
   onToggle: (slug: string) => void
   onToggleAll: (all: boolean) => void
   events?: GameEvent[]
+  selectedReleasePlatforms?: string[]
+  onToggleReleasePlatform?: (platform: string) => void
   mobile?: boolean
 }
+
+const RELEASE_PLATFORMS = [
+  { id: 'PC', label: 'PC' },
+  { id: 'PS5', label: 'PlayStation / Xbox' },
+  { id: 'Switch', label: 'Nintendo Switch' },
+  { id: 'Mobile', label: 'Mobile' },
+]
 
 export function GameSidebar({
   games,
@@ -35,6 +44,8 @@ export function GameSidebar({
   onToggle,
   onToggleAll,
   events = [],
+  selectedReleasePlatforms = [],
+  onToggleReleasePlatform,
   mobile = false,
 }: GameSidebarProps) {
   const allSelected = games.every((g) => selectedGames.includes(g.slug))
@@ -124,6 +135,29 @@ export function GameSidebar({
             </div>
           )
         })}
+
+        <div className="pt-3">
+          <div className="mb-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+            New Release
+          </div>
+          {RELEASE_PLATFORMS.map((platform) => (
+            <div key={platform.id} className="flex items-center gap-2 py-1.5">
+              <Checkbox
+                id={`release-${platform.id}`}
+                data-testid={`release-platform-${platform.id}`}
+                checked={selectedReleasePlatforms.includes(platform.id)}
+                onCheckedChange={() => onToggleReleasePlatform?.(platform.id)}
+              />
+              <Label
+                htmlFor={`release-${platform.id}`}
+                className="cursor-pointer text-sm font-medium leading-none"
+                style={{ color: selectedReleasePlatforms.includes(platform.id) ? '#e4e4e7' : '#71717a' }}
+              >
+                {platform.label}
+              </Label>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Separator />
@@ -134,7 +168,7 @@ export function GameSidebar({
           </a>
         </Button>
         <Button variant="ghost" className="w-full text-sm text-zinc-400" asChild>
-          <Link href="/my-schedule" data-testid="my-schedule-link">My Schedule</Link>
+          <Link href="/my-schedule" data-testid="my-schedule-link">My Wishlists</Link>
         </Button>
         <Button variant="ghost" className="w-full text-sm text-zinc-400" asChild>
           <Link href="/profile" data-testid="profile-link">Profile & Badges</Link>
