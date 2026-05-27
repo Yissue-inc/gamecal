@@ -1,36 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { MOCK_EVENTS, isSupabaseConfigured } from '@/lib/mock-data'
+import { isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
-import type { GameEvent } from '@/types'
-
-function filterMockEvents(params: URLSearchParams): GameEvent[] {
-  let events = [...MOCK_EVENTS]
-  const game = params.get('game')
-  const start = params.get('start')
-  const end = params.get('end')
-
-  if (game && game !== 'all') {
-    const slugs = game.split(',')
-    events = events.filter((e) => e.game && slugs.includes(e.game.slug))
-  }
-  if (start) {
-    const startDate = new Date(start)
-    events = events.filter((e) => new Date(e.end_at ?? e.start_at) >= startDate)
-  }
-  if (end) {
-    const endDate = new Date(end)
-    events = events.filter((e) => new Date(e.start_at) <= endDate)
-  }
-  return events
-}
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ events: filterMockEvents(params) })
+    return NextResponse.json({ events: [] })
   }
 
   const supabase = await createClient()

@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
+    "crawl": "tsx scripts/run-crawlers.ts",
+    "purge:demo-events": "tsx scripts/purge-demo-events.ts",
     "db:reset": "echo 'Run supabase db reset locally if using Supabase CLI'",
     "test:smoke": "playwright test tests/smoke.spec.ts --project=chromium --reporter=list",
     "test:e2e": "playwright test tests/e2e/ --project=chromium --reporter=html",

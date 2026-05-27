@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { MOCK_RELEASES, isSupabaseConfigured } from '@/lib/mock-data'
+import { isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   const featured = request.nextUrl.searchParams.get('featured') === 'true'
 
   if (!isSupabaseConfigured()) {
-    let releases = MOCK_RELEASES
-    if (featured) releases = releases.filter((r) => r.is_featured)
-    return NextResponse.json({ releases })
+    return NextResponse.json({ releases: [] })
   }
 
   const isAdmin = verifyAdminSecret(request)

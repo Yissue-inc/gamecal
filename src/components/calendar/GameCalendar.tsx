@@ -5,13 +5,16 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import type { EventClickArg, DatesSetArg } from '@fullcalendar/core'
+import type { DateClickArg } from '@fullcalendar/interaction'
 import { format } from 'date-fns'
 import { useEvents } from '@/hooks/useEvents'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useReleases } from '@/hooks/useReleases'
 import {
   gameEventToCalendarEvent,
+  formatTime,
   getDaysUntil,
+  getEventTypeLabel,
   getReleaseHeroColor,
   isToday,
 } from '@/lib/utils'
@@ -51,6 +54,31 @@ export function centerTodayInCalendar(calendarEl?: HTMLElement | null) {
   return true
 }
 
+function dateKeyInTimezone(value: string | Date, timezone: string): string {
+  const date = typeof value === 'string' ? new Date(value) : value
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value ?? '0000'
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01'
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01'
+  return `${year}-${month}-${day}`
+}
+
+function isEventOnDate(event: GameEvent, dateKey: string, timezone: string): boolean {
+  const startKey = dateKeyInTimezone(event.start_at, timezone)
+  const endKey = dateKeyInTimezone(event.end_at ?? event.start_at, timezone)
+  return startKey <= dateKey && endKey >= dateKey
+}
+
+function formatSelectedDate(dateKey: string): string {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return format(new Date(year, month - 1, day), 'MMM d, yyyy')
+}
+
 export function GameCalendar({
   selectedGames,
   isGuest,
@@ -65,6 +93,7 @@ export function GameCalendar({
   const { preferences } = usePreferences()
   const { releases } = useReleases()
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' })
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
   const shouldCenterTodayRef = useRef(true)
 
   const { events, loading } = useEvents({
@@ -101,6 +130,19 @@ export function GameCalendar({
         return orderA - orderB
       })
   }, [events, selectedGames, isGuest, preferences.timezone])
+
+  const selectedDateEvents = useMemo(() => {
+    if (!selectedDateKey) return []
+    return events
+      .filter((event) => event.game && selectedGames.includes(event.game.slug))
+      .filter((event) => isEventOnDate(event, selectedDateKey, preferences.timezone))
+      .sort((a, b) => {
+        const importanceOrder = { critical: 0, high: 1, normal: 2, low: 3 }
+        const order = importanceOrder[a.importance] - importanceOrder[b.importance]
+        if (order !== 0) return order
+        return new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+      })
+  }, [events, selectedDateKey, selectedGames, preferences.timezone])
 
   const mountReleaseArt = useCallback(
     (cell: HTMLElement, release: NewRelease) => {
@@ -158,6 +200,13 @@ export function GameCalendar({
     [isGuest, onEventClick, onGuestEventClick, preferences.timezone]
   )
 
+  const handleDateClick = useCallback(
+    (info: DateClickArg) => {
+      setSelectedDateKey(info.dateStr)
+    },
+    []
+  )
+
   useEffect(() => {
     if (!releases.length) return
     document.querySelectorAll('.gamecal-calendar .fc-daygrid-day').forEach((node) => {
@@ -195,58 +244,141 @@ export function GameCalendar({
   }, [ref])
 
   return (
-    <div className="gamecal-calendar relative min-h-0 flex-1 overflow-hidden p-4" data-testid="calendar-grid">
+    <div className="gamecal-calendar relative flex min-h-0 flex-1 flex-col overflow-hidden p-4" data-testid="calendar-grid">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0f0f0f]/50">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
-      <FullCalendar
-        ref={ref}
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        headerToolbar={false}
-        events={calendarEvents}
-        eventClick={handleEventClick}
-        datesSet={handleDatesSet}
-        firstDay={preferences.week_starts_on}
-        weekends={preferences.show_weekends}
-        height="100%"
-        timeZone={preferences.timezone}
-        dayMaxEvents={4}
-        eventDisplay="block"
-        fixedWeekCount={false}
-        eventDidMount={(info) => {
-          const game = info.event.extendedProps?.game as { slug?: string } | undefined
-          const gameEvent = info.event.extendedProps?.gameEvent as { event_type?: string; importance?: string } | undefined
-          if (game?.slug) {
-            info.el.setAttribute('data-game', game.slug)
-            info.el.setAttribute('data-testid', `calendar-event-${game.slug}`)
-          }
-          if (gameEvent?.event_type) {
-            info.el.setAttribute('data-event-type', gameEvent.event_type)
-          }
-          if (gameEvent?.importance) {
-            info.el.setAttribute('data-importance', gameEvent.importance)
-          }
-          if (info.el.classList.contains('critical-event')) {
-            info.el.setAttribute('data-testid', 'critical-event-bar')
-          }
-          if (info.el.closest('.fc-day-today')) {
-            info.el.setAttribute('data-testid', 'today-event')
-          }
-        }}
-        dayCellDidMount={(info) => {
-          if (info.isToday) {
-            info.el.setAttribute('data-testid', 'today-cell')
-          }
-          const dateKey = format(info.date, 'yyyy-MM-dd')
-          const release = releasesByDate[dateKey]
-          if (release) {
-            mountReleaseArt(info.el, release)
-          }
-        }}
-      />
+      <div className="min-h-[420px] flex-1 overflow-hidden">
+        <FullCalendar
+          ref={ref}
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          headerToolbar={false}
+          events={calendarEvents}
+          eventClick={handleEventClick}
+          dateClick={handleDateClick}
+          datesSet={handleDatesSet}
+          firstDay={preferences.week_starts_on}
+          weekends={preferences.show_weekends}
+          height="100%"
+          timeZone={preferences.timezone}
+          dayMaxEvents={4}
+          eventDisplay="block"
+          fixedWeekCount={false}
+          eventDidMount={(info) => {
+            const game = info.event.extendedProps?.game as { slug?: string } | undefined
+            const gameEvent = info.event.extendedProps?.gameEvent as { event_type?: string; importance?: string } | undefined
+            if (game?.slug) {
+              info.el.setAttribute('data-game', game.slug)
+              info.el.setAttribute('data-testid', `calendar-event-${game.slug}`)
+            }
+            if (gameEvent?.event_type) {
+              info.el.setAttribute('data-event-type', gameEvent.event_type)
+            }
+            if (gameEvent?.importance) {
+              info.el.setAttribute('data-importance', gameEvent.importance)
+            }
+            if (info.el.classList.contains('critical-event')) {
+              info.el.setAttribute('data-testid', 'critical-event-bar')
+            }
+            if (info.el.closest('.fc-day-today')) {
+              info.el.setAttribute('data-testid', 'today-event')
+            }
+          }}
+          dayCellDidMount={(info) => {
+            if (info.isToday) {
+              info.el.setAttribute('data-testid', 'today-cell')
+            }
+            const dateKey = format(info.date, 'yyyy-MM-dd')
+            info.el.addEventListener('click', (event) => {
+              if ((event.target as HTMLElement).closest('.fc-event, .release-cell-art')) return
+              setSelectedDateKey(dateKey)
+            })
+            const release = releasesByDate[dateKey]
+            if (release) {
+              mountReleaseArt(info.el, release)
+            }
+          }}
+        />
+      </div>
+      {selectedDateKey && (
+        <section
+          data-testid="selected-date-events"
+          className="mt-3 shrink-0 border-t border-zinc-800 pt-3"
+        >
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <h3 className="font-rajdhani text-2xl font-bold leading-none text-white">
+                {formatSelectedDate(selectedDateKey)}
+              </h3>
+              <p className="mt-1 text-xs text-zinc-500">
+                {selectedDateEvents.length} event{selectedDateEvents.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedDateKey(null)}
+              className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-900 hover:text-white"
+              aria-label="Close selected date events"
+            >
+              Close
+            </button>
+          </div>
+          <div className="max-h-52 overflow-y-auto pr-1">
+            {selectedDateEvents.length > 0 ? (
+              <div className="divide-y divide-zinc-800">
+                {selectedDateEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => event.game && onEventClick(event, event.game)}
+                    className="grid w-full grid-cols-[4px_1fr_auto] gap-3 py-3 text-left transition-colors hover:bg-zinc-900/60"
+                  >
+                    <span
+                      className="mt-1 h-16 rounded-full"
+                      style={{ backgroundColor: event.game?.brand_color ?? '#6366f1' }}
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0">
+                      <span className="mb-1 flex flex-wrap items-center gap-1.5">
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          style={{
+                            backgroundColor: `${event.game?.brand_color ?? '#6366f1'}22`,
+                            color: event.game?.brand_color ?? '#a5b4fc',
+                          }}
+                        >
+                          {event.game?.name}
+                        </span>
+                        <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-zinc-400">
+                          {getEventTypeLabel(event.event_type)}
+                        </span>
+                      </span>
+                      <span className="line-clamp-2 text-sm font-bold leading-tight text-zinc-100">
+                        {event.title}
+                      </span>
+                      {event.description && (
+                        <span className="mt-1 line-clamp-1 block text-xs text-zinc-500">
+                          {event.description}
+                        </span>
+                      )}
+                    </span>
+                    <span className="whitespace-nowrap pt-6 text-xs font-semibold text-zinc-300">
+                      {formatTime(event.start_at, preferences.time_format, preferences.timezone)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-4 text-sm text-zinc-500">
+                No events on this date.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
       <style jsx global>{`
         .gamecal-calendar {
           --fc-border-color: #27272a;

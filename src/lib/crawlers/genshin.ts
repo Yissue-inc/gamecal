@@ -11,13 +11,16 @@ export async function crawlGenshin() {
 
     $('a[href*="/news/detail/"], .news-item, article').slice(0, 10).each((_, el) => {
       const title = $(el).find('h3, .title, span').first().text().trim() || $(el).text().trim()
+      const timeText = $(el).find('time, .date').first().attr('datetime') || $(el).find('time, .date').first().text().trim()
+      const parsed = timeText ? new Date(timeText) : null
       if (!title || title.length < 5) return
+      if (!parsed || Number.isNaN(parsed.getTime())) return
 
       events.push({
         title: title.slice(0, 120),
         event_type: title.toLowerCase().includes('version') ? 'new_content' : 'live_event',
         importance: title.toLowerCase().includes('version') ? 'critical' : 'high',
-        start_at: new Date().toISOString(),
+        start_at: parsed.toISOString(),
         source_url: 'https://genshin.hoyoverse.com',
       })
     })
@@ -26,11 +29,11 @@ export async function crawlGenshin() {
   }
 
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  for (const day of [1, 16]) {
-    const reset = new Date(Date.UTC(year, month, day, 4, 0, 0))
-    if (reset > now) {
+  for (let offset = 0; offset < 3; offset++) {
+    const base = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1, 4, 0, 0))
+    for (const day of [1, 16]) {
+      const reset = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), day, 4, 0, 0))
+      if (reset <= now) continue
       events.push({
         title: 'Spiral Abyss Reset',
         event_type: 'weekly_reset',

@@ -123,19 +123,24 @@ export function LiveBanner({
 
   if (!liveEvents.length) return null
 
+  const marqueeEvents = liveEvents.length > 1 ? [...liveEvents, ...liveEvents] : liveEvents
+
   return (
     <div
       data-testid="live-now-banner"
-      className="flex items-center gap-3 border-b border-red-900/50 bg-red-950/50 px-4 py-2"
+      className="mt-1 flex items-center gap-3 overflow-hidden border-y border-red-900/50 bg-red-950/50 px-4 py-2.5"
     >
       <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-red-400">
         <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
         LIVE NOW
       </span>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar">
-        {liveEvents.map((e) => (
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <div
+          className={liveEvents.length > 1 ? 'live-now-marquee flex w-max gap-8' : 'flex gap-3'}
+        >
+        {marqueeEvents.map((e, index) => (
           <button
-            key={e.id}
+            key={`${e.id}-${index}`}
             type="button"
             data-testid={`live-event-${e.id}`}
             onClick={() => onEventClick(e)}
@@ -147,7 +152,20 @@ export function LiveBanner({
             <span className="text-zinc-500">ends {getTimeUntilEnd(e.end_at)}</span>
           </button>
         ))}
+        </div>
       </div>
+      <style jsx>{`
+        .live-now-marquee {
+          animation: live-now-scroll 34s linear infinite;
+        }
+        .live-now-marquee:hover {
+          animation-play-state: paused;
+        }
+        @keyframes live-now-scroll {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   )
 }

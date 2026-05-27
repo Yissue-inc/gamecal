@@ -13,6 +13,26 @@ function classifyEvent(title: string): EventType {
   return 'live_event'
 }
 
+function parseLeekDuckDate(text: string): Date | null {
+  const dateMatch = text.match(
+    /(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+[A-Z][a-z]{2}\s+\d{1,2},\s+(?:at\s+)?\d{1,2}:\d{2}\s+[AP]M\b/i
+  )
+  if (!dateMatch) return null
+
+  const cleaned = dateMatch[0]
+    .replace(/Starts?:/i, '')
+    .replace(/Ends?:.*/i, '')
+    .replace(/\s+Local Time/i, '')
+    .replace(/\bat\b/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!cleaned) return null
+  const withYear = /\b\d{4}\b/.test(cleaned) ? cleaned : `${cleaned}, ${new Date().getFullYear()}`
+  const parsed = new Date(withYear)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export async function crawlPokemonGo() {
   const events: Parameters<typeof upsertEvents>[0] = []
 
@@ -20,13 +40,14 @@ export async function crawlPokemonGo() {
     const { data: html } = await axios.get('https://leekduck.com/events/', { timeout: 15000 })
     const $ = cheerio.load(html)
 
-    $('.event-item, article, .event').slice(0, 15).each((_, el) => {
+    $('.event-item-wrapper').slice(0, 20).each((_, el) => {
       const title = $(el).find('h2, h3, .event-title').first().text().trim()
-      const dateText = $(el).find('.event-date, time, .date').first().text().trim()
+        || $(el).find('.event-text').first().contents().filter((_, node) => node.type === 'text').text().trim()
+      const dateText = $(el).text().trim()
       if (!title) return
 
-      const parsed = dateText ? new Date(dateText) : new Date()
-      if (isNaN(parsed.getTime())) return
+      const parsed = parseLeekDuckDate(dateText)
+      if (!parsed) return
 
       events.push({
         title,

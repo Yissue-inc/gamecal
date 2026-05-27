@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { MOCK_EVENTS, MOCK_GAMES, isSupabaseConfigured } from '@/lib/mock-data'
+import { isSupabaseConfigured } from '@/lib/mock-data'
 import { generateICS } from '@/lib/ical'
 
 export async function GET(
@@ -16,13 +16,8 @@ export async function GET(
   }
 
   if (!isSupabaseConfigured()) {
-    let events = MOCK_EVENTS
-    if (gameSlug !== 'all') {
-      events = events.filter((e) => e.game?.slug === gameSlug)
-    }
-    const game = MOCK_GAMES.find((g) => g.slug === gameSlug)
-    const calName = gameSlug === 'all' ? 'GamerClock — All Games' : `${game?.name ?? gameSlug} Events`
-    const ics = generateICS(events, calName)
+    const calName = gameSlug === 'all' ? 'GamerClock — All Games' : `${gameSlug} Events`
+    const ics = generateICS([], calName)
     return new NextResponse(ics, {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',

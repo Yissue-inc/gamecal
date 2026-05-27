@@ -8,6 +8,11 @@ if (!url || !key) {
   process.exit(1)
 }
 
+if (process.env.ALLOW_DEMO_SEED !== 'true') {
+  console.error('Demo seed is disabled for production safety. Set ALLOW_DEMO_SEED=true only for local demo data.')
+  process.exit(1)
+}
+
 const supabase = createClient(url, key, {
   auth: { persistSession: false },
   realtime: { transport: require('ws') },

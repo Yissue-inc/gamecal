@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { DigestSubscribe } from '@/components/calendar/DigestSubscribe'
-import { GameIcon } from '@/components/calendar/GameIcon'
 import { getEventSummary } from '@/lib/event-summary'
 import type { Game, GameEvent } from '@/types'
 
@@ -96,11 +95,6 @@ export function GameSidebar({
                   checked={isSelected}
                   onCheckedChange={() => onToggle(game.slug)}
                 />
-                <GameIcon
-                  slug={game.slug}
-                  color={isSelected ? game.brand_color : '#52525b'}
-                  size={15}
-                />
                 <Label
                   htmlFor={game.slug}
                   className="cursor-pointer text-sm font-medium leading-none"
@@ -113,7 +107,7 @@ export function GameSidebar({
               {summary.length > 0 && (
                 <div
                   data-testid={`game-event-summary-${game.slug}`}
-                  className="ml-[26px] mt-1 flex flex-wrap gap-x-2 gap-y-0.5"
+                  className="ml-[34px] mt-1 flex flex-wrap gap-x-2 gap-y-0.5"
                 >
                   {summary.map((s) => (
                     <span

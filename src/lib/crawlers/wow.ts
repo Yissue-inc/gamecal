@@ -33,6 +33,7 @@ export async function crawlWow() {
         { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
       )
       for (const item of (data?.news ?? []).slice(0, 5)) {
+        if (!item.creation_date) continue
         events.push({
           title: item.title,
           description: item.description ?? '',
@@ -54,12 +55,13 @@ export async function crawlWow() {
       const title = $(el).find('title').text()
       const link = $(el).find('link').text()
       const pubDate = $(el).find('pubDate').text()
-      if (title) {
+      const parsed = pubDate ? new Date(pubDate) : null
+      if (title && parsed && !Number.isNaN(parsed.getTime())) {
         events.push({
           title,
           event_type: 'new_content',
           importance: 'normal',
-          start_at: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+          start_at: parsed.toISOString(),
           source_url: link || 'https://worldofwarcraft.com',
         })
       }
@@ -71,7 +73,7 @@ export async function crawlWow() {
   const now = new Date()
   for (let i = 0; i < 8; i++) {
     const tuesday = new Date(now)
-    tuesday.setDate(tuesday.getDate() + ((2 - tuesday.getDay() + 7) % 7) + i * 7)
+    tuesday.setDate(tuesday.getDate() + ((2 - tuesday.getDay() + 7) % 7 || 7) + i * 7)
     tuesday.setUTCHours(15, 0, 0, 0)
     const end = new Date(tuesday)
     end.setDate(end.getDate() + 7)
