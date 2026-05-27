@@ -82,6 +82,10 @@ interface IgdbGame {
 
 let igdbTokenCache: { token: string; expiresAt: number } | null = null
 
+function isRawgEnrichmentEnabled(): boolean {
+  return process.env.ENABLE_RAWG_ENRICHMENT === 'true'
+}
+
 function normalizeTitle(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
@@ -704,7 +708,7 @@ export async function crawlMediaReleaseCandidates(): Promise<ReleaseCandidateInp
 
 async function fetchRawgGame(candidate: ReleaseCandidateInput): Promise<RawgGame | null> {
   const key = process.env.RAWG_API_KEY
-  if (!key) return null
+  if (!key || !isRawgEnrichmentEnabled()) return null
 
   try {
     const search = await axios.get('https://api.rawg.io/api/games', {
@@ -926,7 +930,7 @@ async function enrichCandidateMetadata(
 async function enrichReleaseCandidates(
   candidates: ReleaseCandidateInput[]
 ): Promise<ReleaseCandidateInput[]> {
-  if (!process.env.RAWG_API_KEY && !process.env.TWITCH_CLIENT_ID) {
+  if ((!process.env.RAWG_API_KEY || !isRawgEnrichmentEnabled()) && !process.env.TWITCH_CLIENT_ID) {
     return candidates.map((candidate) => ({
       ...candidate,
       signals: {
