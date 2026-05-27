@@ -22,11 +22,10 @@ import {
 } from '@/components/ui/dialog'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useAuth } from '@/hooks/useAuth'
+import { formatTimezoneLabel, getCommonTimezones } from '@/lib/timezone'
 import { DEFAULT_SELECTED_GAMES } from '@/types'
 
 const SECTIONS = ['General', 'Time Zone', 'Calendar View', 'My Games', 'Account'] as const
-
-const TIMEZONES = Intl.supportedValuesOf('timeZone')
 
 interface SettingsFormProps {
   email: string
@@ -41,6 +40,8 @@ export function SettingsForm({ email, onSaved }: SettingsFormProps) {
   const [secondaryEnabled, setSecondaryEnabled] = useState(!!preferences.secondary_timezone)
   const [subscribeOpen, setSubscribeOpen] = useState(false)
   const [signOutOpen, setSignOutOpen] = useState(false)
+  const timezoneOptions = getCommonTimezones(form.timezone)
+  const secondaryTimezoneOptions = getCommonTimezones(form.secondary_timezone)
 
   const handleSave = async () => {
     await updatePreferences(form)
@@ -120,8 +121,8 @@ export function SettingsForm({ email, onSaved }: SettingsFormProps) {
               <Select value={form.timezone} name="timezone" onValueChange={(v) => update('timezone', v)}>
                 <SelectTrigger data-testid="timezone-select"><SelectValue /></SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                  {timezoneOptions.map((tz) => (
+                    <SelectItem key={tz} value={tz}>{tz} ({formatTimezoneLabel(tz)})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -138,8 +139,8 @@ export function SettingsForm({ email, onSaved }: SettingsFormProps) {
                 >
                   <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {TIMEZONES.map((tz) => (
-                      <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                    {secondaryTimezoneOptions.map((tz) => (
+                      <SelectItem key={tz} value={tz}>{tz} ({formatTimezoneLabel(tz)})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

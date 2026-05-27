@@ -17,8 +17,8 @@ export function useLayoutEvents(selectedGames: string[]) {
       const params = new URLSearchParams({
         start: start.toISOString(),
         end: end.toISOString(),
-        game: selectedGames.join(','),
       })
+      if (selectedGames.length) params.set('game', selectedGames.join(','))
       const res = await fetch(`/api/events?${params}`)
       const data = await res.json()
       setEvents(data.events ?? [])

@@ -1,5 +1,30 @@
 import { parseISO } from 'date-fns'
 
+export const COMMON_TIMEZONES = [
+  'America/Los_Angeles',
+  'America/Denver',
+  'America/Chicago',
+  'America/New_York',
+  'America/Sao_Paulo',
+  'UTC',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Bangkok',
+  'Asia/Singapore',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  'Australia/Sydney',
+] as const
+
+export function getCommonTimezones(current?: string): string[] {
+  const detected = detectBrowserTimezone()
+  return Array.from(new Set([detected, current, ...COMMON_TIMEZONES].filter(Boolean) as string[]))
+}
+
 export function detectBrowserTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'

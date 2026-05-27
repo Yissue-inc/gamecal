@@ -32,6 +32,18 @@ export function CommandSearch({
     }
   }, [])
 
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.documentElement.style.overflow = previousOverflow
+      document.body.style.overflow = previousBodyOverflow
+    }
+  }, [open])
+
   const results = useMemo(() => {
     if (!query.trim()) return events.slice(0, 8)
     const q = query.toLowerCase()
@@ -49,14 +61,14 @@ export function CommandSearch({
   return (
     <div
       data-testid="command-search-overlay"
-      className="fixed inset-0 z-[90] flex items-start justify-center bg-black/60 pt-[20vh] p-4"
+      className="fixed inset-0 z-[90] flex items-start justify-center overflow-hidden bg-black/60 p-3 pt-20 md:p-4 md:pt-[20vh]"
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl"
+        className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-900 shadow-2xl md:max-w-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-zinc-800 px-3 py-2.5 md:px-4 md:py-3">
           <Search className="h-4 w-4 text-zinc-500" />
           <input
             data-testid="command-search-input"
@@ -64,17 +76,17 @@ export function CommandSearch({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search events or games..."
-            className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-zinc-600"
+            className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-zinc-600 md:text-sm"
           />
           <kbd className="rounded border border-zinc-700 px-1.5 text-[10px] text-zinc-500">ESC</kbd>
         </div>
-        <ul className="max-h-64 overflow-y-auto py-2">
+        <ul className="max-h-[45vh] overflow-y-auto py-1.5 md:max-h-64 md:py-2">
           {results.map((event) => (
             <li key={event.id}>
               <button
                 type="button"
                 data-testid={`search-result-${event.id}`}
-                className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-zinc-800"
+                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-800 md:px-4"
                 onClick={() => {
                   onSelect(event)
                   setOpen(false)

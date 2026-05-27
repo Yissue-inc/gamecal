@@ -141,7 +141,7 @@ export function EventDetailPanel({ event, game, isOpen, onClose, overlay }: Even
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent side="bottom" className="h-[85vh]" data-testid="event-panel">
+        <SheetContent side="bottom" hideClose className="h-[85vh]" data-testid="event-panel">
           <EventDetailContent event={event} game={game} onClose={onClose} />
         </SheetContent>
       </Sheet>

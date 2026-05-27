@@ -114,7 +114,16 @@ export function useWishlistEventIds(): string[] {
     } else {
       setIds(getWishlistIds())
     }
-    const refresh = () => setIds(getWishlistIds())
+    const refresh = () => {
+      if (useApi && user) {
+        fetch('/api/wishlist')
+          .then((r) => (r.ok ? r.json() : { eventIds: [] }))
+          .then((d) => setIds(d.eventIds ?? []))
+          .catch(() => setIds(getWishlistIds()))
+      } else {
+        setIds(getWishlistIds())
+      }
+    }
     window.addEventListener('storage', refresh)
     window.addEventListener('cal:wishlist-added', refresh)
     return () => {

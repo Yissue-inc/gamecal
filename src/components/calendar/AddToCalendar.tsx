@@ -1,7 +1,5 @@
 'use client'
-
-import { toast } from 'sonner'
-import { Calendar, ChevronDown } from 'lucide-react'
+import { Calendar, ChevronDown, Download, Mail, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -30,6 +28,29 @@ export function AddToCalendar({ event, game }: AddToCalendarProps) {
   const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`
   const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${encodeURIComponent(event.start_at)}&enddt=${encodeURIComponent(event.end_at ?? event.start_at)}&body=${details}`
   const icsUrl = `/api/events/${event.id}/ics`
+  const items = [
+    {
+      href: googleUrl,
+      testId: 'google-calendar-link',
+      label: 'Google Calendar',
+      icon: Plus,
+      external: true,
+    },
+    {
+      href: outlookUrl,
+      testId: 'outlook-calendar-link',
+      label: 'Outlook Calendar',
+      icon: Mail,
+      external: true,
+    },
+    {
+      href: icsUrl,
+      testId: 'ical-download-link',
+      label: 'Apple Calendar / ICS',
+      icon: Download,
+      download: `${event.title}.ics`,
+    },
+  ]
 
   return (
     <div data-testid="add-to-calendar-section">
@@ -43,22 +64,24 @@ export function AddToCalendar({ event, game }: AddToCalendarProps) {
             <ChevronDown className="h-4 w-4 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-          <DropdownMenuItem asChild>
-            <a href={googleUrl} data-testid="google-calendar-link" target="_blank" rel="noopener noreferrer">
-              G Google Calendar
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={outlookUrl} data-testid="outlook-calendar-link" target="_blank" rel="noopener noreferrer">
-              📧 Outlook
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={icsUrl} data-testid="ical-download-link" download={`${event.title}.ics`}>
-              🍎 iCal
-            </a>
-          </DropdownMenuItem>
+        <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] rounded-md border-zinc-700 bg-zinc-900 p-1">
+          {items.map(({ href, testId, label, icon: Icon, external, download }) => (
+            <DropdownMenuItem key={testId} asChild>
+              <a
+                href={href}
+                data-testid={testId}
+                target={external ? '_blank' : undefined}
+                rel={external ? 'noopener noreferrer' : undefined}
+                download={download}
+                className="flex min-h-10 items-center gap-3 rounded-sm px-3 text-sm"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-zinc-200">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span>{label}</span>
+              </a>
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

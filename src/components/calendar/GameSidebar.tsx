@@ -10,6 +10,17 @@ import { GameIcon } from '@/components/calendar/GameIcon'
 import { getEventSummary } from '@/lib/event-summary'
 import type { Game, GameEvent } from '@/types'
 
+const EVENT_LEGEND = [
+  { icon: '🔴', label: 'Live' },
+  { icon: '🏆', label: 'Tournament' },
+  { icon: '🏁', label: 'Season' },
+  { icon: '⭐', label: 'Limited' },
+  { icon: '📦', label: 'Patch' },
+  { icon: '✨', label: 'New' },
+  { icon: '🔄', label: 'Reset' },
+  { icon: '⚡', label: '2XP' },
+]
+
 interface GameSidebarProps {
   games: Game[]
   selectedGames: string[]
@@ -48,6 +59,14 @@ export function GameSidebar({
           >
             {mobile ? 'Next Up' : 'Games'}
           </h2>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] leading-none text-zinc-500">
+          {EVENT_LEGEND.map((item) => (
+            <span key={item.label} className="flex items-center gap-1" title={item.label}>
+              <span aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
+            </span>
+          ))}
         </div>
       </div>
 

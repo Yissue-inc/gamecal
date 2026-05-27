@@ -67,7 +67,18 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         const res = await fetch('/api/preferences')
         if (res.ok) {
           const data = await res.json()
-          setPreferences(data.preferences)
+          const next = applyAutoTimezone({ ...DEFAULT_GUEST_PREFERENCES, ...data.preferences })
+          setPreferences(next)
+          if (next.timezone !== data.preferences.timezone || next.auto_timezone !== data.preferences.auto_timezone) {
+            await fetch('/api/preferences', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                timezone: next.timezone,
+                auto_timezone: next.auto_timezone,
+              }),
+            }).catch(() => {})
+          }
         }
       } catch {
         setPreferences(loadLocalPreferences())

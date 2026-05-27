@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -19,7 +19,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { usePreferences } from '@/hooks/usePreferences'
-import { detectBrowserTimezone, formatTimezoneLabel } from '@/lib/timezone'
+import { detectBrowserTimezone, formatTimezoneLabel, getCommonTimezones } from '@/lib/timezone'
 import { trackOnboardingCompleted } from '@/lib/posthog'
 import type { Game } from '@/types'
 
@@ -73,7 +73,7 @@ export function SignupOnboarding({ open, games, onComplete }: SignupOnboardingPr
   const { preferences, updatePreferences } = usePreferences()
   const detectedTz = detectBrowserTimezone()
 
-  const [timezone, setTimezone] = useState(preferences.timezone || detectedTz)
+  const [timezone, setTimezone] = useState(detectedTz)
   const [selectedGames, setSelectedGames] = useState<string[]>(
     preferences.selected_games.length ? preferences.selected_games : games.map((g) => g.slug)
   )
@@ -81,6 +81,15 @@ export function SignupOnboarding({ open, games, onComplete }: SignupOnboardingPr
   const [source, setSource] = useState('')
   const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>(preferences.time_format)
   const [saving, setSaving] = useState(false)
+  const timezoneOptions = getCommonTimezones(timezone)
+
+  useEffect(() => {
+    if (preferences.auto_timezone !== false) {
+      setTimezone(detectedTz)
+    } else if (preferences.timezone) {
+      setTimezone(preferences.timezone)
+    }
+  }, [detectedTz, preferences.auto_timezone, preferences.timezone])
 
   const toggleGame = (slug: string) => {
     setSelectedGames((prev) =>
@@ -90,12 +99,16 @@ export function SignupOnboarding({ open, games, onComplete }: SignupOnboardingPr
 
   const handleSave = async () => {
     setSaving(true)
-    localStorage.setItem('gamecal_tz_manual', '1')
+    if (timezone === detectedTz) {
+      localStorage.removeItem('gamecal_tz_manual')
+    } else {
+      localStorage.setItem('gamecal_tz_manual', '1')
+    }
     await updatePreferences({
       timezone,
       selected_games: selectedGames,
       time_format: timeFormat,
-      auto_timezone: true,
+      auto_timezone: timezone === detectedTz,
     })
     saveProfileMeta({
       platform,
@@ -129,7 +142,7 @@ export function SignupOnboarding({ open, games, onComplete }: SignupOnboardingPr
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-60">
-                {Intl.supportedValuesOf('timeZone').map((tz) => (
+                {timezoneOptions.map((tz) => (
                   <SelectItem key={tz} value={tz}>
                     {tz} ({formatTimezoneLabel(tz)})
                   </SelectItem>
