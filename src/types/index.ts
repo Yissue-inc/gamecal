@@ -58,6 +58,30 @@ export interface NewRelease {
   is_published?: boolean
 }
 
+export type ReleaseCandidateStatus = 'pending' | 'approved' | 'rejected'
+
+export interface ReleaseCandidate {
+  id: string
+  title: string
+  developer?: string
+  platforms: string[]
+  release_date?: string
+  release_date_precision: 'exact' | 'month' | 'quarter' | 'year' | 'unknown'
+  description?: string
+  image_url?: string
+  source: string
+  source_url: string
+  external_id?: string
+  confidence_score: number
+  signals: Record<string, unknown>
+  status: ReleaseCandidateStatus
+  reviewed_at?: string
+  approved_release_id?: string
+  last_seen_at: string
+  created_at: string
+  updated_at: string
+}
+
 export interface UserPreferences {
   id: string
   timezone: string

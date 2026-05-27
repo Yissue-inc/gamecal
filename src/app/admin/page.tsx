@@ -72,6 +72,20 @@ export default function AdminPage() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card className="bg-zinc-900">
+          <CardHeader>
+            <CardTitle>Release Candidate Queue</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Crawl upcoming games, review candidates, and approve only real releases.
+            </p>
+            <Button data-testid="open-release-candidates-admin" asChild>
+              <Link href="/admin/release-candidates">Review Queue →</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="bg-zinc-900">

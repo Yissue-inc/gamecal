@@ -53,6 +53,35 @@ CREATE TABLE new_releases (
 );
 
 -- ============================================================
+-- RELEASE CANDIDATES (crawler queue before admin approval)
+-- ============================================================
+CREATE TABLE release_candidates (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title                TEXT NOT NULL,
+  developer            TEXT,
+  platforms            TEXT[] NOT NULL DEFAULT '{}',
+  release_date          DATE,
+  release_date_precision TEXT NOT NULL DEFAULT 'unknown'
+    CHECK (release_date_precision IN ('exact','month','quarter','year','unknown')),
+  description          TEXT,
+  image_url            TEXT,
+  source               TEXT NOT NULL,
+  source_url           TEXT NOT NULL,
+  external_id          TEXT,
+  confidence_score     INTEGER NOT NULL DEFAULT 0 CHECK (confidence_score >= 0 AND confidence_score <= 100),
+  signals              JSONB NOT NULL DEFAULT '{}',
+  raw_payload          JSONB NOT NULL DEFAULT '{}',
+  status               TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','approved','rejected')),
+  reviewed_at          TIMESTAMPTZ,
+  approved_release_id  UUID REFERENCES new_releases(id) ON DELETE SET NULL,
+  last_seen_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (source, external_id)
+);
+
+-- ============================================================
 -- USERS (Supabase Auth 연동)
 -- ============================================================
 CREATE TABLE user_preferences (
@@ -86,6 +115,8 @@ CREATE TABLE subscriptions (
 CREATE INDEX idx_events_game_id  ON events(game_id);
 CREATE INDEX idx_events_start_at ON events(start_at);
 CREATE INDEX idx_events_published ON events(is_published);
+CREATE INDEX idx_release_candidates_status_score ON release_candidates(status, confidence_score DESC, last_seen_at DESC);
+CREATE INDEX idx_release_candidates_release_date ON release_candidates(release_date);
 
 -- ============================================================
 -- RLS
@@ -93,12 +124,14 @@ CREATE INDEX idx_events_published ON events(is_published);
 ALTER TABLE games             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE new_releases      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE release_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_preferences  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions     ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "public_read_games"    ON games         FOR SELECT USING (is_active = true);
 CREATE POLICY "public_read_events"   ON events        FOR SELECT USING (is_published = true);
 CREATE POLICY "public_read_releases" ON new_releases  FOR SELECT USING (is_published = true);
+CREATE POLICY "release_candidates_service_only" ON release_candidates FOR ALL USING (false) WITH CHECK (false);
 CREATE POLICY "users_own_prefs"      ON user_preferences FOR ALL USING (auth.uid() = id);
 CREATE POLICY "public_insert_subs"   ON subscriptions FOR INSERT WITH CHECK (true);
 
