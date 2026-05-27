@@ -42,13 +42,29 @@ function getSignalText(candidate: ReleaseCandidate) {
   const ranking = Array.isArray(signals.ranking_sources)
     ? signals.ranking_sources.join(', ')
     : undefined
+  const rawgGenres = Array.isArray(signals.rawg_genres) ? signals.rawg_genres.join(', ') : undefined
+  const igdbGenres = Array.isArray(signals.igdb_genres) ? signals.igdb_genres.join(', ') : undefined
   return [
     signals.source_label ? `Source: ${signals.source_label}` : null,
     signals.release_text ? `Release text: ${signals.release_text}` : null,
     ranking ? `Signals: ${ranking}` : null,
+    rawgGenres ? `RAWG genres: ${rawgGenres}` : null,
+    igdbGenres ? `IGDB genres: ${igdbGenres}` : null,
   ]
     .filter(Boolean)
     .join(' · ')
+}
+
+function getMetadataBadges(candidate: ReleaseCandidate) {
+  const signals = candidate.signals ?? {}
+  return [
+    signals.rawg_enriched ? 'RAWG' : null,
+    signals.igdb_enriched ? 'IGDB' : null,
+    typeof signals.rawg_metacritic === 'number' ? `MC ${signals.rawg_metacritic}` : null,
+    typeof signals.metadata_completeness === 'number'
+      ? `Meta ${signals.metadata_completeness}/100`
+      : null,
+  ].filter(Boolean) as string[]
 }
 
 export default function ReleaseCandidatesPage() {
@@ -238,6 +254,7 @@ export default function ReleaseCandidatesPage() {
           {filteredCandidates.map((candidate) => {
             const draft = { ...candidate, ...editing[candidate.id] }
             const signalText = getSignalText(candidate)
+            const metadataBadges = getMetadataBadges(candidate)
             const dirty = Boolean(editing[candidate.id])
 
             return (
@@ -273,6 +290,11 @@ export default function ReleaseCandidatesPage() {
                         {candidate.release_date_precision} date
                       </span>
                     )}
+                    {metadataBadges.map((badge) => (
+                      <Badge key={badge} variant="outline" className="border-zinc-700 text-zinc-300">
+                        {badge}
+                      </Badge>
+                    ))}
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">

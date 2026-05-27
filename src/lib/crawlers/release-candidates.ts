@@ -32,6 +32,7 @@ const POCKET_GAMER_UPCOMING_URL = 'https://www.pocketgamer.com/upcoming/'
 const GAMESPOT_2026_RELEASES_URL =
   'https://www.gamespot.com/articles/2026-upcoming-games-schedule/1100-6534941/'
 const RELEASE_WINDOW_DAYS = 35
+const CANDIDATE_ENRICHMENT_LIMIT = 60
 
 interface SteamAppDetails {
   name?: string
@@ -47,8 +48,98 @@ interface SteamAppDetails {
   background_raw?: string
 }
 
+interface RawgGame {
+  id: number
+  name?: string
+  released?: string | null
+  background_image?: string | null
+  metacritic?: number | null
+  rating?: number | null
+  ratings_count?: number | null
+  platforms?: Array<{ platform?: { name?: string } }>
+  genres?: Array<{ name?: string }>
+  description_raw?: string
+}
+
+interface IgdbGame {
+  id: number
+  name?: string
+  summary?: string
+  first_release_date?: number
+  cover?: { url?: string }
+  artworks?: Array<{ url?: string }>
+  genres?: Array<{ name?: string }>
+  platforms?: Array<{ name?: string }>
+  involved_companies?: Array<{
+    developer?: boolean
+    publisher?: boolean
+    company?: { name?: string }
+  }>
+  total_rating?: number
+  total_rating_count?: number
+  url?: string
+}
+
+let igdbTokenCache: { token: string; expiresAt: number } | null = null
+
 function normalizeTitle(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
+}
+
+function normalizeLookupTitle(value: string): string {
+  return normalizeTitle(value)
+    .toLowerCase()
+    .replace(/™|®|©/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function isLikelySameGame(a: string, b?: string): boolean {
+  if (!b) return false
+  const left = normalizeLookupTitle(a)
+  const right = normalizeLookupTitle(b)
+  if (!left || !right) return false
+  return left === right || left.includes(right) || right.includes(left)
+}
+
+function mapExternalPlatform(value?: string): string | null {
+  if (!value) return null
+  if (/steam|pc|windows|mac|linux/i.test(value)) return 'PC'
+  if (/playstation|ps5|ps4/i.test(value)) return 'PS5'
+  if (/xbox/i.test(value)) return 'Xbox'
+  if (/switch|nintendo/i.test(value)) return 'Switch'
+  if (/ios|iphone|ipad|android|mobile/i.test(value)) return 'Mobile'
+  return null
+}
+
+function mergePlatforms(current: string[], next: Array<string | null | undefined>): string[] {
+  return Array.from(new Set([...current, ...next.filter(Boolean)] as string[]))
+}
+
+function metadataCompleteness(candidate: ReleaseCandidateInput): number {
+  const weights = [
+    candidate.title ? 10 : 0,
+    candidate.release_date ? 20 : 0,
+    candidate.release_date_precision === 'exact' ? 10 : 0,
+    candidate.description ? 20 : 0,
+    candidate.image_url ? 20 : 0,
+    candidate.platforms.length ? 10 : 0,
+    candidate.developer ? 5 : 0,
+    candidate.source_url ? 5 : 0,
+  ]
+  return weights.reduce((sum, item) => sum + item, 0)
+}
+
+function normalizeIgdbImage(value?: string): string | undefined {
+  if (!value) return undefined
+  const url = value.startsWith('//') ? `https:${value}` : value
+  return url.replace('t_thumb', 't_cover_big').replace('t_micro', 't_cover_big')
+}
+
+function compactDescription(value?: string, maxLength = 420): string | undefined {
+  const text = normalizeTitle(stripHtml(value) ?? value ?? '')
+  if (!text) return undefined
+  return text.length > maxLength ? `${text.slice(0, maxLength - 3).trim()}...` : text
 }
 
 function normalizeSteamImage(value?: string): string | undefined {
@@ -611,6 +702,248 @@ export async function crawlMediaReleaseCandidates(): Promise<ReleaseCandidateInp
   return dedupeCandidates(candidates, 20)
 }
 
+async function fetchRawgGame(candidate: ReleaseCandidateInput): Promise<RawgGame | null> {
+  const key = process.env.RAWG_API_KEY
+  if (!key) return null
+
+  try {
+    const search = await axios.get('https://api.rawg.io/api/games', {
+      timeout: 12000,
+      params: {
+        key,
+        search: candidate.title,
+        search_precise: true,
+        page_size: 5,
+      },
+      headers: {
+        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; metadata enrichment)',
+      },
+    })
+    const results = (search.data?.results ?? []) as RawgGame[]
+    const match = results.find((game) => isLikelySameGame(candidate.title, game.name)) ?? results[0]
+    if (!match?.id) return null
+
+    const detail = await axios.get(`https://api.rawg.io/api/games/${match.id}`, {
+      timeout: 12000,
+      params: { key },
+      headers: {
+        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; metadata enrichment)',
+      },
+    })
+    return { ...match, ...detail.data }
+  } catch {
+    return null
+  }
+}
+
+async function fetchIgdbToken(): Promise<string | null> {
+  const clientId = process.env.TWITCH_CLIENT_ID
+  const clientSecret = process.env.TWITCH_CLIENT_SECRET
+  if (!clientId || !clientSecret) return null
+
+  if (igdbTokenCache && igdbTokenCache.expiresAt > Date.now() + 60_000) {
+    return igdbTokenCache.token
+  }
+
+  try {
+    const response = await axios.post('https://id.twitch.tv/oauth2/token', null, {
+      timeout: 12000,
+      params: {
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials',
+      },
+    })
+    const token = response.data?.access_token
+    const expiresIn = Number(response.data?.expires_in ?? 0)
+    if (!token) return null
+    igdbTokenCache = {
+      token,
+      expiresAt: Date.now() + Math.max(300, expiresIn - 60) * 1000,
+    }
+    return token
+  } catch {
+    return null
+  }
+}
+
+async function fetchIgdbGame(candidate: ReleaseCandidateInput): Promise<IgdbGame | null> {
+  const clientId = process.env.TWITCH_CLIENT_ID
+  const token = await fetchIgdbToken()
+  if (!clientId || !token) return null
+
+  const escapedTitle = candidate.title.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const body = [
+    `search "${escapedTitle}";`,
+    'fields name,summary,first_release_date,cover.url,artworks.url,genres.name,platforms.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,total_rating,total_rating_count,url;',
+    'limit 5;',
+  ].join(' ')
+
+  try {
+    const response = await axios.post('https://api.igdb.com/v4/games', body, {
+      timeout: 12000,
+      headers: {
+        'Client-ID': clientId,
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'Content-Type': 'text/plain',
+      },
+    })
+    const results = (response.data ?? []) as IgdbGame[]
+    return results.find((game) => isLikelySameGame(candidate.title, game.name)) ?? results[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+function applyRawgMetadata(candidate: ReleaseCandidateInput, rawg: RawgGame | null) {
+  if (!rawg) return candidate
+
+  const platforms = mergePlatforms(
+    candidate.platforms,
+    rawg.platforms?.map((item) => mapExternalPlatform(item.platform?.name)) ?? []
+  )
+  const rawgDescription = compactDescription(rawg.description_raw)
+  const rankingSources = Array.isArray(candidate.signals.ranking_sources)
+    ? candidate.signals.ranking_sources
+    : []
+
+  return {
+    ...candidate,
+    title: normalizeTitle(rawg.name ?? candidate.title),
+    platforms,
+    release_date: candidate.release_date ?? rawg.released ?? null,
+    release_date_precision:
+      candidate.release_date_precision !== 'unknown'
+        ? candidate.release_date_precision
+        : rawg.released
+          ? 'exact'
+          : candidate.release_date_precision,
+    description: candidate.description ?? rawgDescription,
+    image_url: candidate.image_url ?? rawg.background_image ?? undefined,
+    confidence_score: Math.min(
+      99,
+      candidate.confidence_score +
+        5 +
+        (rawg.background_image && !candidate.image_url ? 4 : 0) +
+        (rawgDescription && !candidate.description ? 4 : 0) +
+        (rawg.metacritic ? 3 : 0)
+    ),
+    signals: {
+      ...candidate.signals,
+      rawg_enriched: true,
+      rawg_id: rawg.id,
+      rawg_rating: rawg.rating ?? null,
+      rawg_ratings_count: rawg.ratings_count ?? null,
+      rawg_metacritic: rawg.metacritic ?? null,
+      rawg_genres: rawg.genres?.map((genre) => genre.name).filter(Boolean) ?? [],
+      ranking_sources: Array.from(new Set([...rankingSources, 'RAWG metadata'])),
+    },
+    raw_payload: {
+      ...candidate.raw_payload,
+      rawg,
+    },
+  } satisfies ReleaseCandidateInput
+}
+
+function applyIgdbMetadata(candidate: ReleaseCandidateInput, igdb: IgdbGame | null) {
+  if (!igdb) return candidate
+
+  const platforms = mergePlatforms(
+    candidate.platforms,
+    igdb.platforms?.map((item) => mapExternalPlatform(item.name)) ?? []
+  )
+  const developer =
+    candidate.developer ??
+    igdb.involved_companies?.find((item) => item.developer)?.company?.name ??
+    igdb.involved_companies?.find((item) => item.publisher)?.company?.name
+  const coverUrl = normalizeIgdbImage(igdb.cover?.url) ?? normalizeIgdbImage(igdb.artworks?.[0]?.url)
+  const igdbDate = igdb.first_release_date
+    ? new Date(igdb.first_release_date * 1000).toISOString().slice(0, 10)
+    : null
+  const rankingSources = Array.isArray(candidate.signals.ranking_sources)
+    ? candidate.signals.ranking_sources
+    : []
+
+  return {
+    ...candidate,
+    title: normalizeTitle(igdb.name ?? candidate.title),
+    developer,
+    platforms,
+    release_date: candidate.release_date ?? igdbDate,
+    release_date_precision:
+      candidate.release_date_precision !== 'unknown'
+        ? candidate.release_date_precision
+        : igdbDate
+          ? 'exact'
+          : candidate.release_date_precision,
+    description: candidate.description ?? compactDescription(igdb.summary),
+    image_url: candidate.image_url ?? coverUrl,
+    confidence_score: Math.min(
+      99,
+      candidate.confidence_score +
+        5 +
+        (coverUrl && !candidate.image_url ? 4 : 0) +
+        (igdb.summary && !candidate.description ? 4 : 0) +
+        (igdb.total_rating ? 3 : 0)
+    ),
+    signals: {
+      ...candidate.signals,
+      igdb_enriched: true,
+      igdb_id: igdb.id,
+      igdb_rating: igdb.total_rating ?? null,
+      igdb_rating_count: igdb.total_rating_count ?? null,
+      igdb_genres: igdb.genres?.map((genre) => genre.name).filter(Boolean) ?? [],
+      ranking_sources: Array.from(new Set([...rankingSources, 'IGDB metadata'])),
+    },
+    raw_payload: {
+      ...candidate.raw_payload,
+      igdb,
+    },
+  } satisfies ReleaseCandidateInput
+}
+
+async function enrichCandidateMetadata(
+  candidate: ReleaseCandidateInput
+): Promise<ReleaseCandidateInput> {
+  const [rawg, igdb] = await Promise.all([fetchRawgGame(candidate), fetchIgdbGame(candidate)])
+  const withRawg = applyRawgMetadata(candidate, rawg)
+  const withIgdb = applyIgdbMetadata(withRawg, igdb)
+
+  return {
+    ...withIgdb,
+    signals: {
+      ...withIgdb.signals,
+      metadata_completeness: metadataCompleteness(withIgdb),
+      metadata_enrichment_sources: [
+        rawg ? 'RAWG' : null,
+        igdb ? 'IGDB' : null,
+      ].filter(Boolean),
+    },
+  }
+}
+
+async function enrichReleaseCandidates(
+  candidates: ReleaseCandidateInput[]
+): Promise<ReleaseCandidateInput[]> {
+  if (!process.env.RAWG_API_KEY && !process.env.TWITCH_CLIENT_ID) {
+    return candidates.map((candidate) => ({
+      ...candidate,
+      signals: {
+        ...candidate.signals,
+        metadata_completeness: metadataCompleteness(candidate),
+        metadata_enrichment_sources: [],
+      },
+    }))
+  }
+
+  const enriched: ReleaseCandidateInput[] = []
+  for (const candidate of candidates.slice(0, CANDIDATE_ENRICHMENT_LIMIT)) {
+    enriched.push(await enrichCandidateMetadata(candidate))
+  }
+  return enriched
+}
+
 export async function upsertReleaseCandidates(
   candidates: ReleaseCandidateInput[]
 ): Promise<{ inserted: number; updated: number; skipped: number }> {
@@ -695,15 +1028,25 @@ export async function crawlReleaseCandidates(source = 'all') {
   for (const item of sources) {
     try {
       const candidates = await item.crawl()
-      const result = await upsertReleaseCandidates(candidates)
+      const enrichedCandidates = await enrichReleaseCandidates(candidates)
+      const result = await upsertReleaseCandidates(enrichedCandidates)
       totalInserted += result.inserted
       totalUpdated += result.updated
       totalSkipped += result.skipped
-      results.push({ source: item.source, fetched: candidates.length, ...result })
+      results.push({
+        source: item.source,
+        fetched: candidates.length,
+        enriched: enrichedCandidates.filter((candidate) => {
+          const sources = candidate.signals.metadata_enrichment_sources
+          return Array.isArray(sources) && sources.length > 0
+        }).length,
+        ...result,
+      })
     } catch (error) {
       results.push({
         source: item.source,
         fetched: 0,
+        enriched: 0,
         inserted: 0,
         updated: 0,
         skipped: 0,
