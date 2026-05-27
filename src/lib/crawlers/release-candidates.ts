@@ -29,6 +29,7 @@ const NINTENDO_COMING_SOON_URL = 'https://www.nintendo.com/us/store/games/coming
 const PLAYSTATION_PS5_GAMES_URL = 'https://www.playstation.com/en-us/ps5/games/'
 const XBOX_UPCOMING_URL = 'https://www.xbox.com/en-US/games/all-games?cat=upcoming'
 const POCKET_GAMER_UPCOMING_URL = 'https://www.pocketgamer.com/upcoming/'
+const GAMINGONPHONE_BASE_URL = 'https://gamingonphone.com'
 const GAMESPOT_2026_RELEASES_URL =
   'https://www.gamespot.com/articles/2026-upcoming-games-schedule/1100-6534941/'
 const RELEASE_WINDOW_DAYS = 35
@@ -78,6 +79,15 @@ interface IgdbGame {
   total_rating?: number
   total_rating_count?: number
   url?: string
+}
+
+interface MobileStoreMetadata {
+  title?: string
+  developer?: string
+  description?: string
+  image_url?: string
+  source_url?: string
+  source: 'app_store' | 'google_play'
 }
 
 let igdbTokenCache: { token: string; expiresAt: number } | null = null
@@ -197,6 +207,22 @@ function canonicalUrl(href: string | undefined, baseUrl: string): string {
   } catch {
     return baseUrl
   }
+}
+
+function getMonthArticleCandidates() {
+  const now = new Date()
+  const months = [0, 1].map((offset) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1))
+    const month = date.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' }).toLowerCase()
+    const year = date.getUTCFullYear()
+    return {
+      month,
+      year,
+      url: `${GAMINGONPHONE_BASE_URL}/news/all-mobile-games-android-and-ios-releasing-in-${month}-${year}/`,
+    }
+  })
+
+  return months
 }
 
 function normalizeImageUrl(value: string | undefined, baseUrl: string): string | undefined {
@@ -680,6 +706,172 @@ async function crawlPocketGamerArticle(url: string, headline: string): Promise<R
   }
 }
 
+function extractAppleAppId(url: string): string | null {
+  return url.match(/\/id(\d+)/)?.[1] ?? null
+}
+
+function extractAppleCountry(url: string): string {
+  return url.match(/apps\.apple\.com\/([a-z]{2})\//i)?.[1]?.toLowerCase() ?? 'us'
+}
+
+async function fetchAppStoreMetadata(url: string): Promise<MobileStoreMetadata | null> {
+  const appId = extractAppleAppId(url)
+  if (!appId) return null
+
+  const countries = Array.from(new Set([extractAppleCountry(url), 'us']))
+  for (const country of countries) {
+    try {
+      const response = await axios.get('https://itunes.apple.com/lookup', {
+        timeout: 10000,
+        params: { id: appId, country },
+        headers: {
+          'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; mobile release discovery)',
+        },
+      })
+      const result = response.data?.results?.[0]
+      if (!result) continue
+
+      return {
+        title: normalizeTitle(result.trackName ?? ''),
+        developer: normalizeTitle(result.sellerName ?? result.artistName ?? ''),
+        description: compactDescription(result.description, 360),
+        image_url: result.artworkUrl512 ?? result.artworkUrl100,
+        source_url: result.trackViewUrl ?? url,
+        source: 'app_store',
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return null
+}
+
+async function fetchGooglePlayMetadata(url: string): Promise<MobileStoreMetadata | null> {
+  try {
+    const { data: html } = await axios.get(url, {
+      timeout: 12000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; GamerClockBot/0.1; +https://gamecal-beryl.vercel.app)',
+      },
+    })
+    const $ = cheerio.load(html)
+    const title = normalizeTitle(
+      ($('meta[property="og:title"]').attr('content') ?? $('h1').first().text()).replace(/\s+-\s+Apps on Google Play$/i, '')
+    )
+    const developer = normalizeTitle($('a[href^="/store/apps/dev"]').first().text())
+    const description = compactDescription(
+      $('meta[name="description"]').attr('content') ??
+        $('meta[property="og:description"]').attr('content'),
+      360
+    )
+    const imageUrl = normalizeImageUrl($('meta[property="og:image"]').attr('content'), url)
+
+    return {
+      title,
+      developer,
+      description,
+      image_url: imageUrl,
+      source_url: url,
+      source: 'google_play',
+    }
+  } catch {
+    return null
+  }
+}
+
+async function fetchMobileStoreMetadata(links: string[]): Promise<MobileStoreMetadata | null> {
+  const appStoreUrl = links.find((link) => /apps\.apple\.com/i.test(link))
+  const googlePlayUrl = links.find((link) => /play\.google\.com\/store\/apps/i.test(link))
+  const [appStore, googlePlay] = await Promise.all([
+    appStoreUrl ? fetchAppStoreMetadata(appStoreUrl) : Promise.resolve(null),
+    googlePlayUrl ? fetchGooglePlayMetadata(googlePlayUrl) : Promise.resolve(null),
+  ])
+
+  return appStore ?? googlePlay
+}
+
+async function crawlGamingOnPhoneMonthlyArticle(
+  url: string,
+  sourceMonth: string,
+  sourceYear: number
+): Promise<ReleaseCandidateInput[]> {
+  try {
+    const { data: html } = await axios.get(url, {
+      timeout: 15000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; GamerClockBot/0.1; +https://gamecal-beryl.vercel.app)',
+      },
+    })
+    const $ = cheerio.load(html)
+    const articleTitle = normalizeTitle($('h1').first().text())
+    if (!/mobile games/i.test(articleTitle) || !new RegExp(String(sourceYear)).test(articleTitle)) {
+      return []
+    }
+
+    const candidates: ReleaseCandidateInput[] = []
+    const rows = $('table tr').slice(1).toArray()
+
+    for (const row of rows) {
+      const cells = $(row).find('td')
+      if (cells.length < 2) continue
+
+      const title = normalizeTitle($(cells[0]).text())
+      const releaseText = normalizeTitle($(cells[1]).text())
+      const parsed = parseFlexibleDate(releaseText)
+      if (!title || !isWithinReleaseWindow(parsed.date)) continue
+
+      const articleUrl = canonicalUrl($(cells[0]).find('a[href]').first().attr('href'), url)
+      const storeLinks = $(cells[2])
+        .find('a[href]')
+        .map((_, link) => canonicalUrl($(link).attr('href'), url))
+        .get()
+        .filter((link) => /apps\.apple\.com|play\.google\.com\/store\/apps/i.test(link))
+      const storeMetadata = await fetchMobileStoreMetadata(storeLinks)
+      const sourceUrl = storeMetadata?.source_url ?? (articleUrl !== url ? articleUrl : storeLinks[0] ?? url)
+
+      candidates.push({
+        title: normalizeTitle(storeMetadata?.title ?? title),
+        developer: storeMetadata?.developer,
+        platforms: ['Mobile'],
+        release_date: parsed.date,
+        release_date_precision: parsed.precision,
+        description:
+          storeMetadata?.description ??
+          `${title} is listed in GamingOnPhone's ${sourceMonth} ${sourceYear} Android and iOS release calendar.`,
+        image_url: storeMetadata?.image_url,
+        source: 'mobile',
+        source_url: sourceUrl,
+        external_id: `gamingonphone-${slugify(title)}-${parsed.date}`,
+        confidence_score: scoreCandidate({
+          officialSource: storeLinks.length > 0,
+          hasExactDate: parsed.precision === 'exact',
+          hasImage: Boolean(storeMetadata?.image_url),
+          hasPriceOrReviews: false,
+          platforms: ['Mobile'],
+        }) + (storeMetadata ? 8 : 0),
+        signals: {
+          official_store: storeLinks.length > 0,
+          source_label: `GamingOnPhone ${sourceMonth} ${sourceYear} mobile releases`,
+          release_text: releaseText,
+          mobile_store_source: storeMetadata?.source ?? null,
+          store_links: storeLinks,
+          ranking_sources: ['GamingOnPhone monthly mobile release calendar'],
+        },
+        raw_payload: {
+          article_title: articleTitle,
+          article_url: articleUrl,
+          store_metadata: storeMetadata,
+        },
+      })
+    }
+
+    return dedupeCandidates(candidates, 30)
+  } catch {
+    return []
+  }
+}
+
 export async function crawlMobileReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
   const { data: html } = await axios.get(POCKET_GAMER_UPCOMING_URL, {
     timeout: 15000,
@@ -696,8 +888,20 @@ export async function crawlMobileReleaseCandidates(): Promise<ReleaseCandidateIn
     .filter(Boolean)
     .slice(0, 20) as Array<{ headline: string; href: string }>
 
-  const candidates = await Promise.all(links.map((item) => crawlPocketGamerArticle(item.href, item.headline)))
-  return dedupeCandidates(candidates.filter(Boolean) as ReleaseCandidateInput[], 15)
+  const [pocketGamerCandidates, ...monthlyCandidates] = await Promise.all([
+    Promise.all(links.map((item) => crawlPocketGamerArticle(item.href, item.headline))),
+    ...getMonthArticleCandidates().map((item) =>
+      crawlGamingOnPhoneMonthlyArticle(item.url, item.month, item.year)
+    ),
+  ])
+
+  return dedupeCandidates(
+    [
+      ...(pocketGamerCandidates.filter(Boolean) as ReleaseCandidateInput[]),
+      ...monthlyCandidates.flat(),
+    ],
+    30
+  )
 }
 
 export async function crawlMediaReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
@@ -831,7 +1035,9 @@ async function fetchIgdbGame(candidate: ReleaseCandidateInput): Promise<IgdbGame
       },
     })
     const results = (response.data ?? []) as IgdbGame[]
-    return results.find((game) => isLikelySameGame(candidate.title, game.name)) ?? results[0] ?? null
+    const match = results.find((game) => isLikelySameGame(candidate.title, game.name))
+    if (match) return match
+    return candidate.source === 'mobile' ? null : results[0] ?? null
   } catch {
     return null
   }
