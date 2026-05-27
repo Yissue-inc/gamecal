@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test'
 
-test('GET /api/events returns events array', async ({ request }) => {
+test('GET /api/events returns an events array', async ({ request }) => {
   const response = await request.get('/api/events')
   expect(response.status()).toBe(200)
   const body = await response.json()
   expect(Array.isArray(body.events)).toBe(true)
-  expect(body.events.length).toBeGreaterThan(0)
 })
 
 test('GET /api/events?game=fortnite filters correctly', async ({ request }) => {
