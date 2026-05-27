@@ -8,14 +8,7 @@ import {
   getGameTextColor,
 } from '@/lib/utils'
 import { formatShortDate, getDday, isThisWeek } from '@/lib/calendar-dates'
-
-const FALLBACK_ART: Record<string, string> = {
-  Fortnite: 'linear-gradient(135deg,#082f49 0%,#0f172a 55%,#00d4ff 140%)',
-  'World of Warcraft': 'linear-gradient(135deg,#451a03 0%,#0f172a 60%,#f59e0b 130%)',
-  'Pokémon GO': 'linear-gradient(135deg,#422006 0%,#0f172a 60%,#eab308 130%)',
-  'Genshin Impact': 'linear-gradient(135deg,#052e16 0%,#0f172a 60%,#4ade80 130%)',
-  'League of Legends': 'linear-gradient(135deg,#1f2937 0%,#111827 55%,#c89b3c 130%)',
-}
+import { getEventArtUrl, getGameArtStyle } from '@/lib/game-art'
 
 function HighlightCard({
   event,
@@ -26,13 +19,14 @@ function HighlightCard({
   game: Game
   onClick: () => void
 }) {
-  const bgStyle = event.image_url
+  const artUrl = getEventArtUrl(event, game)
+  const bgStyle = artUrl
     ? {
-        backgroundImage: `url(${event.image_url})`,
+        backgroundImage: `url(${artUrl})`,
         backgroundSize: 'cover' as const,
         backgroundPosition: 'center' as const,
       }
-    : { background: FALLBACK_ART[game.name] ?? `linear-gradient(135deg, ${game.brand_color}40 0%, #0f0f0f 100%)` }
+    : getGameArtStyle(game)
 
   const barColor = event.importance === 'critical' ? '#ef4444' : game.brand_color
 

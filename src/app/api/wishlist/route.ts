@@ -17,7 +17,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data, error } = await supabase
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('wishlists')
     .select('event_id, event:events(*, game:games(*))')
     .eq('user_id', user.id)

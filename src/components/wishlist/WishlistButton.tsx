@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   getWishlistIds,
   isWishlistedLocal,
+  setWishlistLocal,
   toggleWishlistLocal,
 } from '@/lib/engagement-store'
 import { isSupabaseConfigured } from '@/lib/mock-data'
@@ -53,6 +54,7 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
         })
         if (res.ok) {
           setIsWishlisted(!wasWishlisted)
+          setWishlistLocal(eventId, !wasWishlisted)
           window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
           if (!wasWishlisted) {
             trackWishlistAdded(eventId, gameSlug)

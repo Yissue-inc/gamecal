@@ -23,6 +23,39 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (!isAdmin && !featured && (!data || data.length === 0)) {
+    const { data: candidates, error: fallbackError } = await admin
+      .from('release_candidates')
+      .select('id,title,developer,platforms,release_date,description,image_url,source,source_url,confidence_score')
+      .eq('status', 'pending')
+      .not('release_date', 'is', null)
+      .gte('confidence_score', 80)
+      .order('confidence_score', { ascending: false })
+      .order('release_date', { ascending: true })
+      .limit(24)
+
+    if (fallbackError) return NextResponse.json({ error: fallbackError.message }, { status: 500 })
+
+    const releases = (candidates ?? []).map((candidate) => ({
+      id: `candidate-${candidate.id}`,
+      title: candidate.title,
+      developer: candidate.developer,
+      platform: candidate.platforms ?? [],
+      release_date: candidate.release_date,
+      description: candidate.description,
+      image_url: candidate.image_url,
+      hero_color: null,
+      steam_url: candidate.source === 'steam' ? candidate.source_url : null,
+      nintendo_url: candidate.source === 'nintendo' ? candidate.source_url : null,
+      is_featured: false,
+      is_published: true,
+      source: 'candidate_preview',
+    }))
+
+    return NextResponse.json({ releases, source: 'candidate_preview' })
+  }
+
   return NextResponse.json({ releases: data })
 }
 

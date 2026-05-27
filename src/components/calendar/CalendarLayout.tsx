@@ -54,6 +54,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [currentTitle, setCurrentTitle] = useState('')
 
   const { events } = useLayoutEvents(selectedGames)
+  const { events: highlightEvents } = useLayoutEvents([])
   const { releases } = useReleases()
   const releasePlatformCounts = useMemo(() => countReleasePlatforms(releases), [releases])
   const shouldPromptAuth = !authLoading && isGuest
@@ -231,7 +232,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <WeeklyHighlights
-            events={events}
+            events={highlightEvents}
             onEventClick={handleEventClick}
             onReleaseClick={handleReleaseClick}
           />

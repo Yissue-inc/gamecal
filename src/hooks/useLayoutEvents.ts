@@ -6,6 +6,7 @@ import type { GameEvent } from '@/types'
 export function useLayoutEvents(selectedGames: string[]) {
   const [events, setEvents] = useState<GameEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const selectedGameKey = selectedGames.join(',')
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
@@ -18,7 +19,7 @@ export function useLayoutEvents(selectedGames: string[]) {
         start: start.toISOString(),
         end: end.toISOString(),
       })
-      if (selectedGames.length) params.set('game', selectedGames.join(','))
+      if (selectedGameKey) params.set('game', selectedGameKey)
       const res = await fetch(`/api/events?${params}`)
       const data = await res.json()
       setEvents(data.events ?? [])
@@ -27,7 +28,7 @@ export function useLayoutEvents(selectedGames: string[]) {
     } finally {
       setLoading(false)
     }
-  }, [selectedGames.join(',')])
+  }, [selectedGameKey])
 
   useEffect(() => {
     fetchEvents()

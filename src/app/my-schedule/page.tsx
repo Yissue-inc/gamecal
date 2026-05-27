@@ -5,21 +5,19 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
 import { getWishlistIds } from '@/lib/engagement-store'
+import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import type { GameEvent } from '@/types'
 
 export default function MySchedulePage() {
-  const { user, isGuest } = useAuth()
+  const { user, isGuest, loading } = useAuth()
   const [wishlisted, setWishlisted] = useState<GameEvent[]>([])
 
   useEffect(() => {
     async function loadWishlist() {
-      if (!isSupabaseConfigured() || !user) {
-        const ids = getWishlistIds()
-        if (!ids.length) {
-          setWishlisted([])
-          return
-        }
+      const localIds = getWishlistIds()
+
+      async function loadLocalEvents(ids: string[]) {
         const start = new Date()
         start.setFullYear(start.getFullYear() - 1)
         const end = new Date()
@@ -30,19 +28,39 @@ export default function MySchedulePage() {
         })
         const res = await fetch(`/api/events?${params}`)
         const data = await res.json()
-        setWishlisted((data.events ?? []).filter((event: GameEvent) => ids.includes(event.id)))
+        return (data.events ?? []).filter((event: GameEvent) => ids.includes(event.id))
+      }
+
+      if (!isSupabaseConfigured() || !user) {
+        if (!localIds.length) {
+          setWishlisted([])
+          return
+        }
+        setWishlisted(await loadLocalEvents(localIds))
         return
       }
 
       const res = await fetch('/api/wishlist')
       const data = await res.json()
-      setWishlisted(data.events ?? [])
+      const apiEvents = data.events ?? []
+      const localEvents = localIds.length ? await loadLocalEvents(localIds) : []
+      const merged = new Map<string, GameEvent>()
+      for (const event of [...apiEvents, ...localEvents]) merged.set(event.id, event)
+      setWishlisted(Array.from(merged.values()))
     }
 
     loadWishlist()
     window.addEventListener('cal:wishlist-changed', loadWishlist)
     return () => window.removeEventListener('cal:wishlist-changed', loadWishlist)
   }, [user])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]" data-testid="my-schedule-page">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
 
   if (isGuest || !user) {
     return (
@@ -79,13 +97,29 @@ export default function MySchedulePage() {
             <div
               key={event.id}
               data-testid={`wishlist-item-${event.id}`}
-              className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
+              className="grid grid-cols-[80px_1fr] gap-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
             >
-              <div className="text-xs font-medium" style={{ color: event.game?.brand_color }}>
-                {event.game?.name}
+              <div
+                className="h-20 overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 bg-cover bg-center"
+                style={{
+                  backgroundImage: getEventArtUrl(event, event.game)
+                    ? `linear-gradient(to top, rgba(0,0,0,0.45), rgba(0,0,0,0.05)), url(${getEventArtUrl(event, event.game)})`
+                    : `linear-gradient(135deg, ${event.game?.brand_color ?? '#6366f1'}66, #18181b)`,
+                }}
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <div className="text-xs font-medium" style={{ color: event.game?.brand_color }}>
+                  {event.game?.name}
+                </div>
+                <div className="font-semibold text-white">{event.title}</div>
+                {event.game && (
+                  <div className="mt-1 line-clamp-2 text-xs text-zinc-500">
+                    {getEventFallbackDescription(event, event.game)}
+                  </div>
+                )}
+                <div className="mt-2 text-xs text-zinc-500">{event.start_at.slice(0, 10)}</div>
               </div>
-              <div className="font-semibold text-white">{event.title}</div>
-              <div className="text-xs text-zinc-500">{event.start_at.slice(0, 10)}</div>
             </div>
           ))}
         </div>

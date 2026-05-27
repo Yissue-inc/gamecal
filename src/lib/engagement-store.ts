@@ -42,6 +42,18 @@ export function toggleWishlistLocal(eventId: string): boolean {
   return next.includes(eventId)
 }
 
+export function setWishlistLocal(eventId: string, wishlisted: boolean): boolean {
+  const ids = getWishlistIds()
+  const next = wishlisted
+    ? Array.from(new Set([...ids, eventId]))
+    : ids.filter((id) => id !== eventId)
+  writeJson(WISHLIST_KEY, next)
+  if (wishlisted) {
+    unlockBadgeLocal('special_cal_whisperer')
+  }
+  return wishlisted
+}
+
 export function isWishlistedLocal(eventId: string): boolean {
   return getWishlistIds().includes(eventId)
 }

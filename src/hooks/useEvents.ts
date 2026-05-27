@@ -13,6 +13,7 @@ export function useEvents({ start, end, games }: UseEventsOptions = {}) {
   const [events, setEvents] = useState<GameEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const gameKey = games?.join(',') ?? ''
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
@@ -21,7 +22,7 @@ export function useEvents({ start, end, games }: UseEventsOptions = {}) {
       const params = new URLSearchParams()
       if (start) params.set('start', start)
       if (end) params.set('end', end)
-      if (games?.length) params.set('game', games.join(','))
+      if (gameKey) params.set('game', gameKey)
 
       const res = await fetch(`/api/events?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch events')
@@ -32,7 +33,7 @@ export function useEvents({ start, end, games }: UseEventsOptions = {}) {
     } finally {
       setLoading(false)
     }
-  }, [start, end, games?.join(',')])
+  }, [start, end, gameKey])
 
   useEffect(() => {
     fetchEvents()

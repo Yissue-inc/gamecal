@@ -16,6 +16,7 @@ import {
   getEventTypeLabel,
   getImportanceEmoji,
 } from '@/lib/utils'
+import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { getTrackingCount } from '@/lib/push'
 import { usePreferences } from '@/hooks/usePreferences'
 import type { Game, GameEvent } from '@/types'
@@ -30,6 +31,8 @@ interface EventDetailPanelProps {
 
 function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: Game; onClose: () => void }) {
   const { preferences } = usePreferences()
+  const artUrl = getEventArtUrl(event, game)
+  const description = getEventFallbackDescription(event, game)
 
   return (
     <div className="flex h-full flex-col">
@@ -39,6 +42,8 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
         style={{
           backgroundImage: event.image_url
             ? `url(${event.image_url})`
+            : artUrl
+              ? `url(${artUrl})`
             : `linear-gradient(135deg, ${game.brand_color}55 0%, #1a1a2e 100%)`,
         }}
       >
@@ -98,9 +103,10 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </div>
         </div>
 
-        {event.description && (
-          <p data-testid="event-description" className="text-sm leading-relaxed text-zinc-400">{event.description}</p>
-        )}
+        <section className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Event Details</div>
+          <p data-testid="event-description" className="text-sm leading-relaxed text-zinc-300">{description}</p>
+        </section>
 
         <AddToCalendar event={event} game={game} />
         <ShareEvent event={event} game={game} />

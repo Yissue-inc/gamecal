@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { useEvents } from '@/hooks/useEvents'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useReleases } from '@/hooks/useReleases'
+import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { releaseMatchesPlatforms } from '@/lib/release-platforms'
 import {
   gameEventToCalendarEvent,
@@ -193,7 +194,7 @@ export function GameCalendar({
         window.requestAnimationFrame(() => centerTodayInCalendar())
       }
     },
-    [onDatesChange, ref]
+    [onDatesChange]
   )
 
   const handleEventClick = useCallback(
@@ -205,7 +206,7 @@ export function GameCalendar({
       }
       onEventClick(gameEvent, game)
     },
-    [isGuest, onEventClick, onGuestEventClick, preferences.timezone]
+    [isGuest, onEventClick, onGuestEventClick]
   )
 
   const handleDateClick = useCallback(
@@ -382,8 +383,8 @@ export function GameCalendar({
                     <span
                       className="h-14 w-14 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 bg-cover bg-center sm:h-16 sm:w-16"
                       style={{
-                        backgroundImage: event.image_url
-                          ? `linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0)), url(${event.image_url})`
+                        backgroundImage: getEventArtUrl(event, event.game)
+                          ? `linear-gradient(to top, rgba(0,0,0,0.45), rgba(0,0,0,0.05)), url(${getEventArtUrl(event, event.game)})`
                           : `linear-gradient(135deg, ${event.game?.brand_color ?? '#6366f1'}66, #18181b)`,
                       }}
                       aria-hidden="true"
@@ -406,11 +407,9 @@ export function GameCalendar({
                       <span className="line-clamp-2 text-sm font-bold leading-tight text-zinc-100">
                         {event.title}
                       </span>
-                      {event.description && (
-                        <span className="mt-1 line-clamp-1 block text-xs text-zinc-500">
-                          {event.description}
-                        </span>
-                      )}
+                      <span className="mt-1 line-clamp-1 block text-xs text-zinc-500">
+                        {event.game ? getEventFallbackDescription(event, event.game) : event.description}
+                      </span>
                     </span>
                     <span className="whitespace-nowrap pt-8 text-sm font-semibold text-zinc-300">
                       {formatTime(event.start_at, preferences.time_format, preferences.timezone)}
