@@ -144,7 +144,7 @@ function compactDescription(value?: string, maxLength = 420): string | undefined
 
 function normalizeSteamImage(value?: string): string | undefined {
   if (!value) return undefined
-  return value.replace('capsule_sm_120', 'header').replace('capsule_231x87', 'header')
+  return value
 }
 
 function stripHtml(value?: string): string | undefined {
@@ -385,7 +385,7 @@ async function enrichSteamCandidates(
         candidate.description ??
         stripHtml(details.short_description) ??
         stripHtml(details.detailed_description),
-      image_url: candidate.image_url ?? details.header_image ?? details.background_raw,
+      image_url: details.header_image ?? details.background_raw ?? candidate.image_url,
       confidence_score: Math.min(
         98,
         candidate.confidence_score +

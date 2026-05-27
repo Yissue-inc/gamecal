@@ -26,6 +26,12 @@ const PLATFORM_OPTIONS = [
   { value: 'Mobile', label: 'Mobile' },
 ]
 
+const IMAGE_FALLBACK_DATA_URL =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><rect width="640" height="360" fill="#18181b"/><rect x="1" y="1" width="638" height="358" fill="none" stroke="#3f3f46" stroke-width="2"/><text x="50%" y="48%" dominant-baseline="middle" text-anchor="middle" fill="#a1a1aa" font-family="Arial, sans-serif" font-size="28" font-weight="700">Image unavailable</text><text x="50%" y="59%" dominant-baseline="middle" text-anchor="middle" fill="#71717a" font-family="Arial, sans-serif" font-size="18">Check RAWG / IGDB enrichment</text></svg>`
+  )
+
 function platformsToText(platforms: string[]) {
   return platforms.join(', ')
 }
@@ -269,6 +275,11 @@ export default function ReleaseCandidatesPage() {
                     <img
                       src={candidate.image_url}
                       alt=""
+                      onError={(event) => {
+                        if (event.currentTarget.src !== IMAGE_FALLBACK_DATA_URL) {
+                          event.currentTarget.src = IMAGE_FALLBACK_DATA_URL
+                        }
+                      }}
                       className="h-28 w-full object-cover lg:h-full"
                     />
                   ) : (
