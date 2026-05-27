@@ -174,12 +174,12 @@ export async function crawlSteamReleaseCandidates(): Promise<ReleaseCandidateInp
         ...candidate,
         signals: {
           ...candidate.signals,
-          ranking_sources: [
-            ...new Set([
+          ranking_sources: Array.from(
+            new Set([
               ...((existing?.signals.ranking_sources as string[] | undefined) ?? []),
               ...((candidate.signals.ranking_sources as string[] | undefined) ?? []),
-            ]),
-          ],
+            ])
+          ),
         },
       })
     }
