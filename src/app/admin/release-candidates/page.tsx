@@ -267,9 +267,9 @@ export default function ReleaseCandidatesPage() {
               <section
                 key={candidate.id}
                 data-testid={`release-candidate-${candidate.id}`}
-                className="grid gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4 lg:grid-cols-[180px_1fr_180px]"
+                className="grid gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4 lg:grid-cols-[240px_1fr_180px]"
               >
-                <div className="overflow-hidden rounded-md border border-zinc-800 bg-zinc-900">
+                <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 lg:sticky lg:top-4">
                   {candidate.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -280,10 +280,10 @@ export default function ReleaseCandidatesPage() {
                           event.currentTarget.src = IMAGE_FALLBACK_DATA_URL
                         }
                       }}
-                      className="h-28 w-full object-cover lg:h-full"
+                      className="h-full w-full object-contain"
                     />
                   ) : (
-                    <div className="flex h-28 items-center justify-center text-xs text-zinc-600 lg:h-full">
+                    <div className="flex h-full w-full items-center justify-center text-xs text-zinc-600">
                       No image
                     </div>
                   )}
