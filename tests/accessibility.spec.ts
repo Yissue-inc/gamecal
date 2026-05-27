@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test('homepage has correct page title', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveTitle(/GAMECAL/)
+  await expect(page).toHaveTitle(/GamerClock/)
 })
 
 test('auth modal email field is focusable via keyboard', async ({ page }) => {

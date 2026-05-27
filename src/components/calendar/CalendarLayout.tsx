@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import FullCalendar from '@fullcalendar/react'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { GameSidebar } from '@/components/calendar/GameSidebar'
-import { MobileGameChips } from '@/components/calendar/MobileGameChips'
 import { GameCalendar } from '@/components/calendar/GameCalendar'
 import { EventDetailPanel } from '@/components/calendar/EventDetailPanel'
 import { ReleaseDetailPanel } from '@/components/calendar/ReleaseDetailPanel'
@@ -57,6 +56,14 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
       setShowCinematic(true)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      calendarRef.current?.getApi().today()
+      window.dispatchEvent(new Event('gamecal:center-today'))
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [])
 
   useEffect(() => {
     if (!isGuest && user && shouldShowOnboarding()) {
@@ -128,7 +135,12 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
     setCurrentTitle(title)
   }, [])
 
-  const goToday = () => calendarRef.current?.getApi().today()
+  const goToday = () => {
+    calendarRef.current?.getApi().today()
+    window.setTimeout(() => {
+      window.dispatchEvent(new Event('gamecal:center-today'))
+    }, 0)
+  }
   const goPrev = () => calendarRef.current?.getApi().prev()
   const goNext = () => calendarRef.current?.getApi().next()
 
@@ -146,12 +158,16 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         onPrev={goPrev}
         onNext={goNext}
         onSignIn={() => setAuthModalOpen(true)}
+        games={games}
+        selectedGames={selectedGames}
+        onToggleGame={handleToggle}
+        onToggleAllGames={handleToggleAll}
+        events={events}
       />
       {isGuest && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
       <PwaInstallBanner />
       <LiveBanner events={events} onEventClick={handleFeedEventClick} />
       <DailyCheckIn />
-      <MobileGameChips games={games} selectedGames={selectedGames} onToggle={handleToggle} />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <GameSidebar
           games={games}

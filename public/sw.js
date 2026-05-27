@@ -2,7 +2,7 @@ self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {}
   const { title, body, url } = data
   event.waitUntil(
-    self.registration.showNotification(title ?? 'GAMECAL', {
+    self.registration.showNotification(title ?? 'GamerClock', {
       body: body ?? "CAL: Don't miss this.",
       icon: '/og-image.svg',
       badge: '/og-image.svg',

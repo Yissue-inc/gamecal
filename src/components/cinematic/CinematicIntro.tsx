@@ -309,7 +309,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
               dismiss()
             }}
           >
-            + Add to GAMECAL
+            + Add to GamerClock
           </button>
           <button
             type="button"
@@ -327,7 +327,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
           phase.letterbox ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        GAME<span className="text-indigo-400/70">CAL</span>
+        Gamer<span className="text-indigo-400/70">Clock</span>
       </div>
 
       {phase.skip && (

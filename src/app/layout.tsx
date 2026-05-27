@@ -16,11 +16,11 @@ const rajdhani = Rajdhani({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
-  title: 'GAMECAL — Gaming Event Calendar | Never Miss a Reset',
+  title: 'GamerClock — Gaming Event Calendar | Never Miss a Reset',
   description:
     'Track Fortnite, WoW, Pokémon GO, Genshin, LoL events. Auto-sync to Google Calendar.',
   openGraph: {
-    title: 'GAMECAL — Gaming Event Calendar',
+    title: 'GamerClock — Gaming Event Calendar',
     description: 'Track Fortnite, WoW, Pokémon GO, Genshin, LoL events. Auto-sync to Google Calendar.',
     images: ['/og-image.svg'],
     type: 'website',

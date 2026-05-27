@@ -34,7 +34,7 @@ function evt(
     start_at,
     end_at,
     is_recurring: false,
-    source_url: `https://gamecal.io/${game.slug}`,
+    source_url: `https://gamecal-beryl.vercel.app/${game.slug}`,
     is_published: true,
     created_at: new Date().toISOString(),
   }

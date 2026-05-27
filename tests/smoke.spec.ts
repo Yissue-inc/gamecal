@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Smoke Test', () => {
-  test('홈페이지가 GAMECAL 타이틀로 로드된다', async ({ page }) => {
+  test('홈페이지가 GamerClock 타이틀로 로드된다', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle(/GAMECAL/)
+    await expect(page).toHaveTitle(/GamerClock/)
     await expect(page.locator('[data-testid="calendar-grid"]')).toBeVisible()
   })
 

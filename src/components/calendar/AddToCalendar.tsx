@@ -26,7 +26,8 @@ export function AddToCalendar({ event, game }: AddToCalendarProps) {
   const title = encodeURIComponent(`[${game.name}] ${event.title}`)
   const details = encodeURIComponent(event.description ?? '')
 
-  const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=gamecal.io`
+  const location = encodeURIComponent(typeof window !== 'undefined' ? window.location.host : 'gamecal-beryl.vercel.app')
+  const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`
   const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${encodeURIComponent(event.start_at)}&enddt=${encodeURIComponent(event.end_at ?? event.start_at)}&body=${details}`
   const icsUrl = `/api/events/${event.id}/ics`
 

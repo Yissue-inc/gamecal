@@ -115,7 +115,7 @@ export function SignupOnboarding({ open, games, onComplete }: SignupOnboardingPr
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent data-testid="signup-onboarding" className="max-w-lg border-zinc-700 bg-[#1a1a1a]">
         <DialogHeader>
-          <DialogTitle>Welcome to GAMECAL</DialogTitle>
+          <DialogTitle>Welcome to GamerClock</DialogTitle>
           <DialogDescription>
             A few quick picks so events show in your timezone and your games appear first.
           </DialogDescription>

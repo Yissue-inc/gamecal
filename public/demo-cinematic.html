@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GAMECAL — Diamond Ad Demo: WoW Cinematic Takeover</title>
+<title>GamerClock — Diamond Ad Demo: WoW Cinematic Takeover</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -15,7 +15,7 @@
     width: 100vw;
   }
 
-  /* ── Simulated GAMECAL calendar behind the takeover ── */
+  /* ── Simulated GamerClock calendar behind the takeover ── */
   #gamecal-bg {
     position: fixed; inset: 0;
     display: grid;
@@ -192,7 +192,7 @@
   #skip-btn:hover { background: rgba(255,255,255,0.15); color: white; }
   #skip-btn.visible { display: block; }
 
-  /* GAMECAL watermark during cinematic */
+  /* GamerClock watermark during cinematic */
   #cin-logo {
     position: fixed; top: 96px; left: 28px; z-index: 200;
     font-size: 13px; font-weight: 900; color: rgba(255,255,255,0.4);
@@ -248,10 +248,10 @@
 </head>
 <body>
 
-<!-- Simulated GAMECAL Calendar (background) -->
+<!-- Simulated GamerClock Calendar (background) -->
 <div id="gamecal-bg">
   <div class="bg-header">
-    <div class="bg-logo">GAME<span>CAL</span></div>
+    <div class="bg-logo">Gamer<span>Clock</span></div>
     <div style="color:#52525b; font-size:13px;">Today ‹ › &nbsp; June 2026</div>
   </div>
   <div class="bg-sidebar">
@@ -316,13 +316,13 @@
   <div class="cin-title" id="txt-title">Patch 11.2<br><span>Seeds of Renewal</span></div>
   <div class="cin-sub" id="txt-sub">New Raid · New Zone · New Season — Live Now</div>
   <div class="cin-cta" id="txt-cta">
-    <button class="btn-primary" onclick="handleCTA()">+ Add to GAMECAL</button>
+    <button class="btn-primary" onclick="handleCTA()">+ Add to GamerClock</button>
     <button class="btn-secondary" onclick="dismiss()">View Calendar</button>
   </div>
 </div>
 
 <!-- UI chrome -->
-<div id="cin-logo">GAME<span>CAL</span></div>
+<div id="cin-logo">Gamer<span>Clock</span></div>
 <button id="skip-btn" onclick="skipToEnd()">Skip →</button>
 <div id="progress-bar"><div id="progress-fill"></div></div>
 <div id="sponsored-tag">Sponsored</div>
@@ -746,7 +746,7 @@ function dismiss() {
 function handleCTA() {
   // Simulate "Added to Calendar" feedback
   const btn = document.querySelector('.btn-primary');
-  btn.textContent = '✓ Added to GAMECAL!';
+  btn.textContent = '✓ Added to GamerClock!';
   btn.style.background = '#16a34a';
   setTimeout(() => dismiss(), 800);
 }

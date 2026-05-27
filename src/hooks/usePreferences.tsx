@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 
 const STORAGE_KEY = 'gamecal_preferences'
 const TZ_MANUAL_KEY = 'gamecal_tz_manual'
+const DEFAULT_GUEST_PREFERENCES: UserPreferences = { id: 'guest', ...DEFAULT_PREFERENCES }
 
 function applyAutoTimezone(prefs: UserPreferences): UserPreferences {
   if (typeof window === 'undefined') return prefs
@@ -29,16 +30,16 @@ const PreferencesContext = createContext<PreferencesContextValue | null>(null)
 
 function loadLocalPreferences(): UserPreferences {
   if (typeof window === 'undefined') {
-    return { id: 'guest', ...DEFAULT_PREFERENCES }
+    return DEFAULT_GUEST_PREFERENCES
   }
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     const base = stored
-      ? { id: 'guest', ...DEFAULT_PREFERENCES, ...JSON.parse(stored) }
-      : { id: 'guest', ...DEFAULT_PREFERENCES }
+      ? { ...DEFAULT_GUEST_PREFERENCES, ...JSON.parse(stored) }
+      : DEFAULT_GUEST_PREFERENCES
     return applyAutoTimezone(base)
   } catch {
-    return applyAutoTimezone({ id: 'guest', ...DEFAULT_PREFERENCES })
+    return applyAutoTimezone(DEFAULT_GUEST_PREFERENCES)
   }
 }
 
@@ -51,7 +52,7 @@ function saveLocalPreferences(prefs: Partial<UserPreferences>) {
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
-  const [preferences, setPreferences] = useState<UserPreferences>(loadLocalPreferences)
+  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_GUEST_PREFERENCES)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

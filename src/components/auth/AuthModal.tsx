@@ -14,7 +14,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       <DialogContent data-testid="auth-modal" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold tracking-tight">
-            GAME<span className="text-primary">CAL</span>
+            Gamer<span className="text-primary">Clock</span>
           </DialogTitle>
         </DialogHeader>
         <AuthForm compact />

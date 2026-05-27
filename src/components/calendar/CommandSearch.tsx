@@ -23,8 +23,13 @@ export function CommandSearch({
       }
       if (e.key === 'Escape') setOpen(false)
     }
+    const openHandler = () => setOpen(true)
     document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
+    window.addEventListener('gamecal:open-search', openHandler)
+    return () => {
+      document.removeEventListener('keydown', handler)
+      window.removeEventListener('gamecal:open-search', openHandler)
+    }
   }, [])
 
   const results = useMemo(() => {

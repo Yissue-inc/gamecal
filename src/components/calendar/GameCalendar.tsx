@@ -27,6 +27,30 @@ interface GameCalendarProps {
   calendarRef?: React.RefObject<FullCalendar>
 }
 
+export function centerTodayInCalendar(calendarEl?: HTMLElement | null) {
+  const root = calendarEl ?? document.querySelector<HTMLElement>('.gamecal-calendar')
+  if (!root) return false
+
+  const scroller = root.querySelector<HTMLElement>('.fc-scroller-liquid-absolute')
+  const todayCell = root.querySelector<HTMLElement>('.fc-day-today')
+  if (!scroller || !todayCell || scroller.scrollHeight <= scroller.clientHeight) return false
+
+  const scrollerRect = scroller.getBoundingClientRect()
+  const todayRect = todayCell.getBoundingClientRect()
+  const nextTop =
+    scroller.scrollTop +
+    todayRect.top -
+    scrollerRect.top -
+    scroller.clientHeight / 2 +
+    todayCell.clientHeight / 2
+
+  scroller.scrollTo({
+    top: Math.max(0, nextTop),
+    behavior: 'auto',
+  })
+  return true
+}
+
 export function GameCalendar({
   selectedGames,
   isGuest,
@@ -41,6 +65,7 @@ export function GameCalendar({
   const { preferences } = usePreferences()
   const { releases } = useReleases()
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' })
+  const shouldCenterTodayRef = useRef(true)
 
   const { events, loading } = useEvents({
     start: dateRange.start,
@@ -114,8 +139,11 @@ export function GameCalendar({
     (arg: DatesSetArg) => {
       setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() })
       onDatesChange(arg.start, arg.end, arg.view.title)
+      if (shouldCenterTodayRef.current) {
+        window.requestAnimationFrame(() => centerTodayInCalendar())
+      }
     },
-    [onDatesChange]
+    [onDatesChange, ref]
   )
 
   const handleEventClick = useCallback(
@@ -140,6 +168,31 @@ export function GameCalendar({
       if (release) mountReleaseArt(cell, release)
     })
   }, [releases, releasesByDate, mountReleaseArt])
+
+  useEffect(() => {
+    if (!shouldCenterTodayRef.current) return
+
+    const delays = [0, 100, 300, 700]
+    const timers = delays.map((delay) =>
+      window.setTimeout(() => {
+        if (centerTodayInCalendar()) {
+          shouldCenterTodayRef.current = false
+        }
+      }, delay)
+    )
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer))
+  }, [events, releases, dateRange.start, dateRange.end])
+
+  useEffect(() => {
+    const centerHandler = () => {
+      shouldCenterTodayRef.current = true
+      window.requestAnimationFrame(() => centerTodayInCalendar())
+    }
+
+    window.addEventListener('gamecal:center-today', centerHandler)
+    return () => window.removeEventListener('gamecal:center-today', centerHandler)
+  }, [ref])
 
   return (
     <div className="gamecal-calendar relative min-h-0 flex-1 overflow-hidden p-4" data-testid="calendar-grid">

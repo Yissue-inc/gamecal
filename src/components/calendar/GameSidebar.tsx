@@ -16,6 +16,7 @@ interface GameSidebarProps {
   onToggle: (slug: string) => void
   onToggleAll: (all: boolean) => void
   events?: GameEvent[]
+  mobile?: boolean
 }
 
 export function GameSidebar({
@@ -24,19 +25,28 @@ export function GameSidebar({
   onToggle,
   onToggleAll,
   events = [],
+  mobile = false,
 }: GameSidebarProps) {
   const allSelected = games.every((g) => selectedGames.includes(g.slug))
+  const Root = mobile ? 'div' : 'aside'
 
   return (
-    <aside data-testid="game-sidebar" className="hidden w-[220px] shrink-0 flex-col border-r border-zinc-800 bg-[#1a1a1a] md:flex">
+    <Root
+      data-testid={mobile ? 'mobile-game-sidebar' : 'game-sidebar'}
+      className={
+        mobile
+          ? 'flex h-full min-h-0 flex-col bg-[#1a1a1a]'
+          : 'hidden w-[220px] shrink-0 flex-col border-r border-zinc-800 bg-[#1a1a1a] md:flex'
+      }
+    >
       <div className="p-4">
         <div className="flex items-center gap-2">
           <span className="text-base" aria-hidden="true">🎮</span>
           <h2
-            data-testid="games-section-header"
+            data-testid={mobile ? 'mobile-games-section-header' : 'games-section-header'}
             className="font-rajdhani text-xs font-bold uppercase tracking-widest text-zinc-400"
           >
-            Games
+            {mobile ? 'Next Up' : 'Games'}
           </h2>
         </div>
       </div>
@@ -118,6 +128,6 @@ export function GameSidebar({
         </Button>
       </div>
       <DigestSubscribe />
-    </aside>
+    </Root>
   )
 }

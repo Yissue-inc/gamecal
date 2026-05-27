@@ -29,7 +29,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[#0f0f0f]">
       <header className="border-b border-zinc-800 px-6 py-4">
         <Link href="/" className="text-xl font-bold">
-          GAME<span className="text-primary">CAL</span>
+          Gamer<span className="text-primary">Clock</span>
         </Link>
         <h1 className="mt-4 text-2xl font-semibold">Settings</h1>
       </header>

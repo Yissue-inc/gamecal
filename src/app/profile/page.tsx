@@ -31,7 +31,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-[#0f0f0f]" data-testid="profile-page">
         <header className="border-b border-zinc-800 px-6 py-4">
           <Link href="/" className="font-rajdhani text-xl font-bold">
-            GAME<span className="text-primary">CAL</span>
+            Gamer<span className="text-primary">Clock</span>
           </Link>
           <h1 className="font-rajdhani mt-4 text-2xl font-semibold">Profile</h1>
           <p className="mt-2 text-sm text-zinc-400">
@@ -52,7 +52,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#0f0f0f]" data-testid="profile-page">
       <header className="border-b border-zinc-800 px-6 py-4">
         <Link href="/" className="font-rajdhani text-xl font-bold">
-          GAME<span className="text-primary">CAL</span>
+          Gamer<span className="text-primary">Clock</span>
         </Link>
         <h1 className="font-rajdhani mt-4 text-2xl font-semibold">Profile</h1>
       </header>

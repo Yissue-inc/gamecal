@@ -78,7 +78,7 @@ test.describe('Design UI — New Releases', () => {
 })
 
 test.describe('Design UI — Typography', () => {
-  test('GAMECAL 로고에 Rajdhani 폰트가 적용된다', async ({ page }) => {
+  test('GamerClock 로고에 Rajdhani 폰트가 적용된다', async ({ page }) => {
     await page.goto('/')
     const logo = page.locator('[data-testid="logo-link"]')
     const fontFamily = await logo.evaluate((el) => getComputedStyle(el).fontFamily)

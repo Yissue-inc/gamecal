@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f0f0f] px-4">
       <Link href="/" className="mb-8 text-3xl font-bold tracking-tight">
-        GAME<span className="text-primary">CAL</span>
+        Gamer<span className="text-primary">Clock</span>
       </Link>
       <div data-testid="auth-modal" className="w-full max-w-md rounded-lg border border-zinc-800 bg-[#1a1a1a] p-8">
         <AuthForm />

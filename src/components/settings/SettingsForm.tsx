@@ -256,7 +256,7 @@ export function SettingsForm({ email, onSaved }: SettingsFormProps) {
               <div key={slug} className="rounded border border-zinc-800 p-2">
                 <span className="capitalize">{slug.replace('-', ' ')}</span>
                 <code className="mt-1 block text-xs text-primary">
-                  webcal://{typeof window !== 'undefined' ? window.location.host : 'gamecal.io'}/api/feed/{slug}
+                  webcal://{typeof window !== 'undefined' ? window.location.host : 'gamecal-beryl.vercel.app'}/api/feed/{slug}
                 </code>
               </div>
             ))}

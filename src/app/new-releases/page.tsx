@@ -27,7 +27,7 @@ export default function NewReleasesPage() {
     <div className="min-h-screen bg-[#0f0f0f]" data-testid="new-releases-page">
       <header className="border-b border-zinc-800 px-6 py-4">
         <Link href="/" className="font-rajdhani text-xl font-bold">
-          GAME<span className="text-primary">CAL</span>
+          Gamer<span className="text-primary">Clock</span>
         </Link>
         <h1 className="font-rajdhani mt-4 text-2xl font-semibold">New Releases</h1>
         <p data-testid="new-releases-subtitle" className="mt-1 text-sm text-zinc-400">

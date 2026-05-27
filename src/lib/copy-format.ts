@@ -7,7 +7,7 @@ import {
 } from '@/lib/utils'
 import type { Game, GameEvent } from '@/types'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal.io'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
 
 export function formatForDiscord(event: GameEvent, game: Game): string {
   const countdown = getGamerCountdown(event.start_at, event.end_at)
@@ -30,7 +30,7 @@ export function formatForReddit(event: GameEvent, game: Game): string {
 | 🕐 Time | ${formatTime(event.start_at)} UTC |
 | 📍 Type | ${getEventTypeLabel(event.event_type)} |
 
-*via [GAMECAL](${APP_URL}) — the gaming event calendar*`
+*via [GamerClock](${APP_URL}) — the gaming event calendar*`
 }
 
 export function formatForPlainText(event: GameEvent, game: Game): string {

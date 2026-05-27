@@ -1,4 +1,4 @@
-# GAMECAL — Gaming Event Calendar
+# GamerClock — Gaming Event Calendar
 
 Track Fortnite, WoW, Pokémon GO, Genshin Impact, and League of Legends events. Auto-sync to Google Calendar via ICS feeds.
 
@@ -26,6 +26,8 @@ Open [http://localhost:3000](http://localhost:3000). Without Supabase configured
 - Authorized redirect: `https://[project].supabase.co/auth/v1/callback`
 - Copy Client ID + Secret → Supabase Auth settings
 
+Apple OAuth is intentionally deferred until the mobile app release phase.
+
 ### 4. Game APIs
 
 - **WoW**: [develop.battle.net](https://develop.battle.net) → Create Client
@@ -44,7 +46,7 @@ BATTLENET_CLIENT_SECRET=
 RIOT_API_KEY=
 ADMIN_SECRET=
 CRON_SECRET=
-NEXT_PUBLIC_APP_URL=https://gamecal.io
+NEXT_PUBLIC_APP_URL=https://gamecal-beryl.vercel.app
 ```
 
 ### 6. Vercel Deploy

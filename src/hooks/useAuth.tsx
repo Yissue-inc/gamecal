@@ -4,14 +4,18 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import type { User, Session } from '@supabase/supabase-js'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 
+type AuthActionResult = { error: string | null }
+type OAuthProvider = 'google' | 'apple'
+
 interface AuthContextValue {
   user: User | null
   session: Session | null
   loading: boolean
   isGuest: boolean
-  signInWithGoogle: () => Promise<void>
-  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithGoogle: () => Promise<AuthActionResult>
+  signInWithApple: () => Promise<AuthActionResult>
+  signInWithEmail: (email: string, password: string) => Promise<AuthActionResult>
+  signUpWithEmail: (email: string, password: string) => Promise<AuthActionResult>
   signOut: () => Promise<void>
 }
 
@@ -30,7 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let mounted = true
+    let unsubscribe: (() => void) | null = null
+
     import('@/lib/supabase/client').then(({ createClient }) => {
+      if (!mounted) return
       const supabase = createClient()
 
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -56,23 +63,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           identifyUser(session.user.id, { email: session.user.email })
         }
       })
-
-      return () => {
-        mounted = false
-        subscription.unsubscribe()
-      }
+      unsubscribe = () => subscription.unsubscribe()
     })
+
+    return () => {
+      mounted = false
+      unsubscribe?.()
+    }
   }, [supabaseConfigured])
 
-  const signInWithGoogle = useCallback(async () => {
-    if (!supabaseConfigured) return
+  const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
+    if (!supabaseConfigured) {
+      return { error: 'Supabase not configured. Set environment variables to enable auth.' }
+    }
     const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
+    return { error: error?.message ?? null }
   }, [supabaseConfigured])
+
+  const signInWithGoogle = useCallback(() => signInWithOAuth('google'), [signInWithOAuth])
+
+  const signInWithApple = useCallback(() => signInWithOAuth('apple'), [signInWithOAuth])
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     if (!supabaseConfigured) {
@@ -90,7 +105,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
     return { error: error?.message ?? null }
   }, [supabaseConfigured])
 
@@ -111,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isGuest: !user,
         signInWithGoogle,
+        signInWithApple,
         signInWithEmail,
         signUpWithEmail,
         signOut,

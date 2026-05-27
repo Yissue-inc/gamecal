@@ -38,7 +38,7 @@ export default function AdminPage() {
   return (
     <main data-testid="admin-landing" className="mx-auto max-w-4xl space-y-8 px-6 py-10">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">GAMECAL Admin</h1>
+        <h1 className="text-3xl font-bold">GamerClock Admin</h1>
         <p className="text-muted-foreground">
           Manage events, releases, and trigger crawlers.
         </p>

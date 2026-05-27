@@ -25,7 +25,7 @@ export function PwaInstallBanner() {
       className="flex items-center justify-between gap-3 border-b border-indigo-900/50 bg-indigo-950/40 px-4 py-2 md:hidden"
     >
       <p className="text-xs text-zinc-300">
-        📱 Add GAMECAL to your home screen — never miss a reset.
+        Add GamerClock to your home screen — never miss a reset.
       </p>
       <button
         type="button"

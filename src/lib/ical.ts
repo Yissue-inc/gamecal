@@ -3,7 +3,7 @@ import type { Game, GameEvent } from '@/types'
 import { getEventTypeLabel } from '@/lib/utils'
 
 export function generateICS(events: GameEvent[], calName: string): string {
-  const calendar = ical({ name: calName, prodId: { company: 'GAMECAL', product: 'Feed' } })
+  const calendar = ical({ name: calName, prodId: { company: 'GamerClock', product: 'Feed' } })
 
   for (const event of events) {
     addEventToCalendar(calendar, event, event.game)
@@ -15,7 +15,7 @@ export function generateICS(events: GameEvent[], calName: string): string {
 export function generateSingleEventICS(event: GameEvent, game: Game): string {
   const calendar = ical({
     name: `${game.name} — ${event.title}`,
-    prodId: { company: 'GAMECAL', product: 'Event' },
+    prodId: { company: 'GamerClock', product: 'Event' },
   })
 
   addEventToCalendar(calendar, event, game)
@@ -31,7 +31,7 @@ function addEventToCalendar(
     id: event.id,
     start: new Date(event.start_at),
     end: event.end_at ? new Date(event.end_at) : new Date(event.start_at),
-    summary: `[${game?.name ?? 'GAMECAL'}] ${event.title}`,
+    summary: `[${game?.name ?? 'GamerClock'}] ${event.title}`,
     description: [
       event.description,
       getEventTypeLabel(event.event_type),

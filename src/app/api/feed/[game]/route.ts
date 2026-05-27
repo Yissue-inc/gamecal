@@ -21,7 +21,7 @@ export async function GET(
       events = events.filter((e) => e.game?.slug === gameSlug)
     }
     const game = MOCK_GAMES.find((g) => g.slug === gameSlug)
-    const calName = gameSlug === 'all' ? 'GAMECAL — All Games' : `${game?.name ?? gameSlug} Events`
+    const calName = gameSlug === 'all' ? 'GamerClock — All Games' : `${game?.name ?? gameSlug} Events`
     const ics = generateICS(events, calName)
     return new NextResponse(ics, {
       headers: {
@@ -49,7 +49,7 @@ export async function GET(
     game: Array.isArray(row.game) ? row.game[0] : row.game,
   }))
 
-  const calName = gameSlug === 'all' ? 'GAMECAL — All Games' : `${gameSlug} Events`
+  const calName = gameSlug === 'all' ? 'GamerClock — All Games' : `${gameSlug} Events`
   const ics = generateICS(events, calName)
 
   return new NextResponse(ics, {

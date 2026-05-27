@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GAMECAL Admin</title>
+  <title>GamerClock Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
@@ -50,7 +50,7 @@
     <div class="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
       <div class="text-center mb-6">
         <div class="text-3xl mb-2">🎮</div>
-        <h1 class="text-xl font-bold text-white">GAMECAL Admin Setup</h1>
+        <h1 class="text-xl font-bold text-white">GamerClock Admin Setup</h1>
         <p class="text-gray-400 text-sm mt-1">로컬에만 저장됩니다 (localStorage)</p>
       </div>
       <div class="space-y-4">
@@ -73,7 +73,7 @@
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">사이트 URL (크롤러 API 호출용)</label>
-          <input x-model="cfg.siteUrl" type="text" data-testid="site-url-input" placeholder="https://gamecal.vercel.app"
+          <input x-model="cfg.siteUrl" type="text" data-testid="site-url-input" placeholder="https://gamecal-beryl.vercel.app"
             class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
         </div>
         <button @click="saveConfig()" data-testid="connect-admin-button" :disabled="!cfg.supabaseUrl || !cfg.serviceKey"
@@ -94,7 +94,7 @@
     <header class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between sticky top-0 z-40">
       <div class="flex items-center gap-3">
         <span class="text-lg">🎮</span>
-        <span class="font-bold text-white">GAMECAL</span>
+        <span class="font-bold text-white">GamerClock</span>
         <span class="text-gray-600 text-sm">Admin</span>
       </div>
       <nav class="flex gap-1">
