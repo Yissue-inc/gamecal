@@ -20,7 +20,7 @@ const STATUS_OPTIONS: Array<{ value: ReleaseCandidateStatus | 'all'; label: stri
 const PLATFORM_OPTIONS = [
   { value: 'all', label: 'All platforms' },
   { value: 'PC', label: 'PC' },
-  { value: 'PS5', label: 'PlayStation' },
+  { value: 'PlayStation', label: 'PlayStation' },
   { value: 'Xbox', label: 'Xbox' },
   { value: 'Switch', label: 'Nintendo Switch' },
   { value: 'Mobile', label: 'Mobile' },
@@ -33,14 +33,40 @@ const IMAGE_FALLBACK_DATA_URL =
   )
 
 function platformsToText(platforms: string[]) {
-  return platforms.join(', ')
+  return canonicalizePlatforms(platforms).join(', ')
 }
 
 function textToPlatforms(value: string) {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
+  return canonicalizePlatforms(value.split(','))
+}
+
+function normalizePlatform(value: string) {
+  const item = value.trim().toLowerCase()
+  if (!item) return null
+  if (['pc', 'windows', 'mac', 'linux', 'steam'].includes(item)) return 'PC'
+  if (item.includes('playstation') || item === 'ps5' || item === 'ps4') return 'PS5'
+  if (item.includes('xbox')) return 'Xbox'
+  if (item.includes('switch') || item.includes('nintendo')) return 'Switch'
+  if (item.includes('mobile') || item.includes('ios') || item.includes('android')) return 'Mobile'
+  return value.trim()
+}
+
+function canonicalizePlatforms(platforms: string[]) {
+  return Array.from(
+    new Set(platforms.map((item) => normalizePlatform(item)).filter(Boolean) as string[])
+  ).sort((a, b) => {
+    const order = ['PC', 'PS5', 'Xbox', 'Switch', 'Mobile']
+    const left = order.includes(a) ? order.indexOf(a) : order.length
+    const right = order.includes(b) ? order.indexOf(b) : order.length
+    return left - right || a.localeCompare(b)
+  })
+}
+
+function platformMatches(platforms: string[], filter: string) {
+  if (filter === 'all') return true
+  const normalized = canonicalizePlatforms(platforms)
+  if (filter === 'PlayStation') return normalized.some((item) => item === 'PS5' || item === 'PS4')
+  return normalized.includes(filter)
 }
 
 function getSignalText(candidate: ReleaseCandidate) {
@@ -93,7 +119,7 @@ export default function ReleaseCandidatesPage() {
 
   const filteredCandidates = useMemo(() => {
     if (platformFilter === 'all') return candidates
-    return candidates.filter((candidate) => candidate.platforms.includes(platformFilter))
+    return candidates.filter((candidate) => platformMatches(candidate.platforms, platformFilter))
   }, [candidates, platformFilter])
 
   const load = useCallback(async () => {
@@ -259,6 +285,7 @@ export default function ReleaseCandidatesPage() {
         <div className="space-y-4">
           {filteredCandidates.map((candidate) => {
             const draft = { ...candidate, ...editing[candidate.id] }
+            const draftPlatforms = canonicalizePlatforms(draft.platforms ?? [])
             const signalText = getSignalText(candidate)
             const metadataBadges = getMetadataBadges(candidate)
             const dirty = Boolean(editing[candidate.id])
@@ -332,7 +359,7 @@ export default function ReleaseCandidatesPage() {
                     <label className="space-y-1 text-xs text-zinc-500">
                       Platforms
                       <Input
-                        value={platformsToText(draft.platforms ?? [])}
+                        value={platformsToText(draftPlatforms)}
                         onChange={(event) =>
                           patchCandidate(candidate.id, {
                             platforms: textToPlatforms(event.target.value),
@@ -340,6 +367,13 @@ export default function ReleaseCandidatesPage() {
                         }
                         className="border-zinc-800 bg-zinc-900 text-white"
                       />
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {draftPlatforms.map((platform) => (
+                          <Badge key={platform} variant="outline" className="border-zinc-700 text-zinc-300">
+                            {platform === 'PS5' ? 'PlayStation' : platform === 'Switch' ? 'Nintendo Switch' : platform}
+                          </Badge>
+                        ))}
+                      </div>
                     </label>
                     <label className="space-y-1 text-xs text-zinc-500">
                       Release date

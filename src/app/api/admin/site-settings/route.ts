@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
-
-const DEFAULT_SETTINGS = {
-  show_cinematic_intro: true,
-  show_signup_onboarding: true,
-}
+import {
+  DEFAULT_PUBLIC_UI_SETTINGS,
+  mergePublicUiSettings,
+  sanitizePublicUiSettings,
+} from '@/lib/public-ui-settings'
 
 export async function GET(request: NextRequest) {
   if (!verifyAdminSecret(request)) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ settings: DEFAULT_SETTINGS })
+    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS })
   }
 
   try {
@@ -26,11 +26,11 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     if (error) throw error
-    return NextResponse.json({ settings: { ...DEFAULT_SETTINGS, ...(data?.value ?? {}) } })
+    return NextResponse.json({ settings: mergePublicUiSettings(data?.value ?? {}) })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load settings'
     return NextResponse.json({
-      settings: DEFAULT_SETTINGS,
+      settings: DEFAULT_PUBLIC_UI_SETTINGS,
       needsMigration: true,
       warning: message,
     })
@@ -43,10 +43,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const settings = {
-    show_cinematic_intro: Boolean(body.show_cinematic_intro),
-    show_signup_onboarding: Boolean(body.show_signup_onboarding),
-  }
+  const settings = sanitizePublicUiSettings(body)
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ settings })

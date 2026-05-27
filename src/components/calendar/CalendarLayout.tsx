@@ -21,6 +21,7 @@ import { SignupOnboarding, shouldShowOnboarding } from '@/components/onboarding/
 import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
 import { getEventTypeLabel } from '@/lib/utils'
+import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useLayoutEvents } from '@/hooks/useLayoutEvents'
 import type { Game, GameEvent, NewRelease } from '@/types'
@@ -52,10 +53,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [showCinematic, setShowCinematic] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [introSettings, setIntroSettings] = useState({
-    show_cinematic_intro: true,
-    show_signup_onboarding: true,
-  })
+  const [introSettings, setIntroSettings] = useState(DEFAULT_PUBLIC_UI_SETTINGS)
   const [currentTitle, setCurrentTitle] = useState('')
 
   const { events } = useLayoutEvents(selectedGames)
@@ -67,7 +65,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data?.settings) {
-          setIntroSettings((prev) => ({ ...prev, ...data.settings }))
+          setIntroSettings((prev) => mergePublicUiSettings({ ...prev, ...data.settings }))
         }
       })
       .catch(() => undefined)
@@ -266,6 +264,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
       {showCinematic && (
         <CinematicIntro
           featured={featuredEvent}
+          settings={introSettings.cinematic_intro}
           onDismiss={() => setShowCinematic(false)}
           onAddToCalendar={() => {
             if (isGuest) setAuthModalOpen(true)

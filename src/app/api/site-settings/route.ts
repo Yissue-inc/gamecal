@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
-
-const DEFAULT_SETTINGS = {
-  show_cinematic_intro: true,
-  show_signup_onboarding: true,
-}
+import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 
 export async function GET() {
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ settings: DEFAULT_SETTINGS })
+    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS })
   }
 
   try {
@@ -21,8 +17,8 @@ export async function GET() {
       .maybeSingle()
 
     if (error) throw error
-    return NextResponse.json({ settings: { ...DEFAULT_SETTINGS, ...(data?.value ?? {}) } })
+    return NextResponse.json({ settings: mergePublicUiSettings(data?.value ?? {}) })
   } catch {
-    return NextResponse.json({ settings: DEFAULT_SETTINGS })
+    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS })
   }
 }

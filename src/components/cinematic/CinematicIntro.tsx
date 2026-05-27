@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { bezier, bezierTangent, drawDragon, DRAGON_PATH } from './dragon-renderer'
 import { trackCinematicSeen } from '@/lib/posthog'
+import type { CinematicIntroSettings } from '@/lib/public-ui-settings'
 
 export interface CinematicFeaturedEvent {
   eyebrow: string
@@ -16,6 +17,7 @@ export interface CinematicFeaturedEvent {
 
 interface CinematicIntroProps {
   featured: CinematicFeaturedEvent
+  settings?: CinematicIntroSettings
   onDismiss: () => void
   onAddToCalendar?: () => void
 }
@@ -43,7 +45,7 @@ export function markCinematicSeen(): void {
   localStorage.setItem(STORAGE_KEY, '1')
 }
 
-export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: CinematicIntroProps) {
+export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar }: CinematicIntroProps) {
   const atmosRef = useRef<HTMLCanvasElement>(null)
   const dragonRef = useRef<HTMLCanvasElement>(null)
   const animStart = useRef<number | null>(null)
@@ -55,7 +57,14 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
   const dismissedRef = useRef(false)
   const emberTimerRef = useRef(0)
 
-  const accent = featured.accentColor ?? '#f59e0b'
+  const accent = settings?.accentColor ?? featured.accentColor ?? '#f59e0b'
+  const animationStyle = settings?.animationStyle ?? 'dragon'
+  const shouldDrawDragon = animationStyle === 'dragon'
+  const shouldDrawEmbers = animationStyle === 'dragon' || animationStyle === 'embers'
+  const autoDismissMs = settings?.autoDismissMs ?? 5500
+  const letterboxHeight = settings?.letterboxHeight ?? 80
+  const backdropOpacity = settings?.backdropOpacity ?? 40
+  const backdropBlur = settings?.backdropBlur ?? 1
 
   const [phase, setPhase] = useState({
     letterbox: false,
@@ -82,17 +91,17 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
       setTimeout(() => setPhase((p) => ({ ...p, letterbox: true })), 0),
       setTimeout(() => {
         setPhase((p) => ({ ...p, atmos: true }))
-        dragonActiveRef.current = true
+        dragonActiveRef.current = shouldDrawDragon
       }, 200),
       setTimeout(() => setPhase((p) => ({ ...p, skip: true })), 400),
       setTimeout(() => setPhase((p) => ({ ...p, eyebrow: true })), 2600),
       setTimeout(() => setPhase((p) => ({ ...p, title: true })), 2900),
       setTimeout(() => setPhase((p) => ({ ...p, sub: true })), 3300),
       setTimeout(() => setPhase((p) => ({ ...p, cta: true, progress: true })), 3700),
-      setTimeout(() => dismiss(), 5500),
+      setTimeout(() => dismiss(), autoDismissMs),
     ]
     return () => timers.forEach(clearTimeout)
-  }, [dismiss])
+  }, [autoDismissMs, dismiss, shouldDrawDragon])
 
   useEffect(() => {
     const atmosCanvas = atmosRef.current
@@ -157,7 +166,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
         actx.fill()
       }
 
-      if (dragonActiveRef.current) {
+      if (shouldDrawDragon && dragonActiveRef.current) {
         dragonTRef.current = Math.min(((ts - (animStart.current + 400)) / (TOTAL_DURATION * 0.5)) * 1.1, 1.05)
         dragonPhaseRef.current += 0.09
         const t = dragonTRef.current
@@ -180,6 +189,10 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
             spawnEmber(fireX, fireY, t > 0.2)
           }
         }
+      }
+
+      if (shouldDrawEmbers && !shouldDrawDragon && emberTimerRef.current++ % 5 === 0) {
+        spawnEmber(Math.random() * W, H * (0.55 + Math.random() * 0.35), Math.random() > 0.8)
       }
 
       const embers = embersRef.current
@@ -213,7 +226,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
       cancelAnimationFrame(rafRef.current)
       window.removeEventListener('resize', resize)
     }
-  }, [accent])
+  }, [accent, shouldDrawDragon, shouldDrawEmbers])
 
   const skipToEnd = () => {
     trackCinematicSeen(true)
@@ -230,9 +243,15 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
     setTimeout(dismiss, 500)
   }
 
-  const titleParts = featured.title.split('/')
-  const titleMain = titleParts[0]?.trim() ?? featured.title
-  const titleSub = featured.titleAccent ?? titleParts[1]?.trim()
+  const displayFeatured = {
+    eyebrow: settings?.eyebrow || featured.eyebrow,
+    title: settings?.title || featured.title,
+    titleAccent: settings?.titleAccent || featured.titleAccent,
+    subtitle: settings?.subtitle || featured.subtitle,
+  }
+  const titleParts = displayFeatured.title.split('/')
+  const titleMain = titleParts[0]?.trim() ?? displayFeatured.title
+  const titleSub = displayFeatured.titleAccent ?? titleParts[1]?.trim()
 
   return (
     <div
@@ -241,18 +260,26 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
       aria-live="polite"
     >
       {/* Calendar peek-through */}
-      <div className="pointer-events-none fixed inset-0 bg-[#0f0f0f]/40 backdrop-blur-[1px]" />
+      <div
+        className="pointer-events-none fixed inset-0 bg-[#0f0f0f]"
+        style={{
+          opacity: backdropOpacity / 100,
+          backdropFilter: `blur(${backdropBlur}px)`,
+        }}
+      />
 
       {/* Letterbox */}
       <div
         className={`fixed left-0 right-0 top-0 z-[210] bg-black transition-all duration-500 ease-out ${
-          phase.letterbox ? 'h-20' : 'h-0'
+          phase.letterbox ? '' : 'h-0'
         }`}
+        style={phase.letterbox ? { height: letterboxHeight } : undefined}
       />
       <div
         className={`fixed bottom-0 left-0 right-0 z-[210] bg-black transition-all duration-500 ease-out ${
-          phase.letterbox ? 'h-20' : 'h-0'
+          phase.letterbox ? '' : 'h-0'
         }`}
+        style={phase.letterbox ? { height: letterboxHeight } : undefined}
       />
 
       <canvas
@@ -271,7 +298,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
           }`}
           style={{ color: accent }}
         >
-          {featured.eyebrow}
+          {displayFeatured.eyebrow}
         </p>
         <h2
           className={`max-w-3xl text-center text-4xl font-black leading-tight tracking-tight text-white transition-all duration-700 md:text-6xl ${
@@ -292,7 +319,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
             phase.sub ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          {featured.subtitle}
+          {displayFeatured.subtitle}
         </p>
         <div
           className={`pointer-events-auto mt-2 flex flex-wrap justify-center gap-3 transition-all duration-500 ${
@@ -309,7 +336,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
               dismiss()
             }}
           >
-            + Add to GamerClock
+            {settings?.primaryCta || '+ Add to GamerClock'}
           </button>
           <button
             type="button"
@@ -317,7 +344,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
             className="rounded-md border border-zinc-600 px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:border-zinc-400 hover:text-white"
             onClick={dismiss}
           >
-            View Calendar
+            {settings?.secondaryCta || 'View Calendar'}
           </button>
         </div>
       </div>
@@ -327,7 +354,10 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
           phase.letterbox ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        Gamer<span className="text-indigo-400/70">Clock</span>
+        {(settings?.brandLabel || 'GamerClock').replace(/Clock$/, '')}
+        <span className="text-indigo-400/70">
+          {(settings?.brandLabel || 'GamerClock').endsWith('Clock') ? 'Clock' : ''}
+        </span>
       </div>
 
       {phase.skip && (
@@ -346,7 +376,7 @@ export function CinematicIntro({ featured, onDismiss, onAddToCalendar }: Cinemat
           phase.letterbox ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        Sponsored
+        {settings?.sponsorLabel || 'Sponsored'}
       </div>
 
       {phase.progress && (
