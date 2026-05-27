@@ -30,6 +30,7 @@ interface CalendarHeaderProps {
   onToggleAllGames: (all: boolean) => void
   selectedReleasePlatforms: string[]
   onToggleReleasePlatform: (platform: string) => void
+  releasePlatformCounts?: Record<string, number>
   events: GameEvent[]
 }
 
@@ -45,13 +46,15 @@ export function CalendarHeader({
   onToggleAllGames,
   selectedReleasePlatforms,
   onToggleReleasePlatform,
+  releasePlatformCounts,
   events,
 }: CalendarHeaderProps) {
-  const { user, isGuest, signOut } = useAuth()
+  const { user, isGuest, loading: authLoading, signOut } = useAuth()
   const { preferences } = usePreferences()
   const timezone = preferences.timezone
   const mobileTitle = currentTitle.split(' ')[0] || 'Today'
   const openSearch = () => window.dispatchEvent(new Event('gamecal:open-search'))
+  const shouldShowSignIn = !authLoading && isGuest
 
   return (
     <header data-testid="calendar-header" className="border-b border-zinc-800 bg-[#0f0f0f]">
@@ -88,10 +91,12 @@ export function CalendarHeader({
           <Button variant="ghost" size="sm" asChild>
             <Link href="/new-releases" data-testid="new-releases-link">New Releases</Link>
           </Button>
-          {isGuest ? (
+          {shouldShowSignIn ? (
             <Button data-testid="signin-button" size="sm" onClick={onSignIn}>
               Sign In
             </Button>
+          ) : authLoading ? (
+            <div className="h-8 w-8 rounded-full bg-zinc-800" aria-label="Loading account" />
           ) : (
             <UserMenu userEmail={user?.email} onSignOut={signOut} />
           )}
@@ -116,6 +121,7 @@ export function CalendarHeader({
               onToggleAll={onToggleAllGames}
               selectedReleasePlatforms={selectedReleasePlatforms}
               onToggleReleasePlatform={onToggleReleasePlatform}
+              releasePlatformCounts={releasePlatformCounts}
               events={events}
             />
           </SheetContent>
@@ -146,12 +152,14 @@ export function CalendarHeader({
           <Button data-testid="mobile-today-button" variant="ghost" size="sm" className="h-9 px-1.5 text-[10px] font-black uppercase tracking-wide" onClick={onToday}>
             Today
           </Button>
-          {isGuest ? (
+          {shouldShowSignIn ? (
             <Button data-testid="mobile-signin-button" variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={onSignIn}>
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-zinc-700 text-xs">C</AvatarFallback>
               </Avatar>
             </Button>
+          ) : authLoading ? (
+            <div className="h-8 w-8 rounded-full bg-zinc-800" aria-label="Loading account" />
           ) : (
             <UserMenu userEmail={user?.email} onSignOut={signOut} mobile />
           )}

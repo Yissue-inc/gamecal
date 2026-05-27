@@ -20,6 +20,8 @@ import { CinematicIntro, hasSeenCinematic } from '@/components/cinematic/Cinemat
 import { SignupOnboarding, shouldShowOnboarding } from '@/components/onboarding/SignupOnboarding'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
+import { useReleases } from '@/hooks/useReleases'
+import { RELEASE_PLATFORM_ALL, countReleasePlatforms } from '@/lib/release-platforms'
 import { getEventTypeLabel } from '@/lib/utils'
 import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 import { usePreferences } from '@/hooks/usePreferences'
@@ -31,7 +33,7 @@ interface CalendarLayoutProps {
 }
 
 export function CalendarLayout({ games }: CalendarLayoutProps) {
-  const { isGuest, user } = useAuth()
+  const { isGuest, user, loading: authLoading } = useAuth()
   const searchParams = useSearchParams()
   const { preferences, setSelectedGames } = usePreferences()
   const calendarRef = useRef<FullCalendar>(null!)
@@ -39,12 +41,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [selectedGames, setLocalSelectedGames] = useState<string[]>(
     preferences.selected_games.length ? preferences.selected_games : games.map((g) => g.slug)
   )
-  const [selectedReleasePlatforms, setSelectedReleasePlatforms] = useState<string[]>([
-    'PC',
-    'PS5',
-    'Switch',
-    'Mobile',
-  ])
+  const [selectedReleasePlatforms, setSelectedReleasePlatforms] = useState<string[]>([RELEASE_PLATFORM_ALL])
   const [selectedEvent, setSelectedEvent] = useState<GameEvent | null>(null)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [selectedRelease, setSelectedRelease] = useState<NewRelease | null>(null)
@@ -57,6 +54,9 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [currentTitle, setCurrentTitle] = useState('')
 
   const { events } = useLayoutEvents(selectedGames)
+  const { releases } = useReleases()
+  const releasePlatformCounts = useMemo(() => countReleasePlatforms(releases), [releases])
+  const shouldPromptAuth = !authLoading && isGuest
 
   useEffect(() => {
     let cancelled = false
@@ -92,10 +92,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }, [])
 
   useEffect(() => {
-    if (introSettings.show_signup_onboarding && !isGuest && user && shouldShowOnboarding()) {
+    if (introSettings.show_signup_onboarding && !authLoading && !isGuest && user && shouldShowOnboarding()) {
       setShowOnboarding(true)
     }
-  }, [introSettings.show_signup_onboarding, isGuest, user])
+  }, [authLoading, introSettings.show_signup_onboarding, isGuest, user])
 
   const featuredEvent = useMemo(() => {
     const hero =
@@ -138,13 +138,20 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }
 
   const handleToggleReleasePlatform = (platform: string) => {
-    setSelectedReleasePlatforms((prev) =>
-      prev.includes(platform) ? prev.filter((item) => item !== platform) : [...prev, platform]
-    )
+    setSelectedReleasePlatforms((prev) => {
+      if (platform === RELEASE_PLATFORM_ALL) return [RELEASE_PLATFORM_ALL]
+
+      const withoutAll = prev.filter((item) => item !== RELEASE_PLATFORM_ALL)
+      const next = withoutAll.includes(platform)
+        ? withoutAll.filter((item) => item !== platform)
+        : [...withoutAll, platform]
+
+      return next.length ? next : [RELEASE_PLATFORM_ALL]
+    })
   }
 
   const handleEventClick = (event: GameEvent, game: Game) => {
-    if (isGuest) {
+    if (shouldPromptAuth) {
       setAuthModalOpen(true)
       return
     }
@@ -160,7 +167,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }
 
   const handleReleaseClick = (release: NewRelease) => {
-    if (isGuest) {
+    if (shouldPromptAuth) {
       setAuthModalOpen(true)
       return
     }
@@ -204,9 +211,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         onToggleAllGames={handleToggleAll}
         selectedReleasePlatforms={selectedReleasePlatforms}
         onToggleReleasePlatform={handleToggleReleasePlatform}
+        releasePlatformCounts={releasePlatformCounts}
         events={events}
       />
-      {isGuest && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
+      {shouldPromptAuth && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
       <PwaInstallBanner />
       <LiveBanner events={events} onEventClick={handleFeedEventClick} />
       <DailyCheckIn />
@@ -218,6 +226,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           onToggleAll={handleToggleAll}
           selectedReleasePlatforms={selectedReleasePlatforms}
           onToggleReleasePlatform={handleToggleReleasePlatform}
+          releasePlatformCounts={releasePlatformCounts}
           events={events}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -230,9 +239,11 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
             <GameCalendar
               calendarRef={calendarRef}
               selectedGames={selectedGames}
-              isGuest={isGuest}
+              isGuest={shouldPromptAuth}
               onEventClick={handleEventClick}
-              onGuestEventClick={() => setAuthModalOpen(true)}
+              onGuestEventClick={() => {
+                if (shouldPromptAuth) setAuthModalOpen(true)
+              }}
               onReleaseClick={handleReleaseClick}
               onDatesChange={handleDatesChange}
               selectedReleasePlatforms={selectedReleasePlatforms}
@@ -259,7 +270,11 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         }}
       />
       <CommandSearch events={events} onSelect={handleFeedEventClick} />
-      <CalEventBridge onPromptLogin={() => setAuthModalOpen(true)} />
+      <CalEventBridge
+        onPromptLogin={() => {
+          if (shouldPromptAuth) setAuthModalOpen(true)
+        }}
+      />
       <BadgeUnlockModal />
       {showCinematic && (
         <CinematicIntro
@@ -267,7 +282,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           settings={introSettings.cinematic_intro}
           onDismiss={() => setShowCinematic(false)}
           onAddToCalendar={() => {
-            if (isGuest) setAuthModalOpen(true)
+            if (shouldPromptAuth) setAuthModalOpen(true)
             else if (featuredEvent.eventId) {
               const match = events.find((e) => e.id === featuredEvent.eventId)
               if (match?.game) handleEventClick(match, match.game)

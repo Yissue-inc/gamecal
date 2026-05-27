@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { useEvents } from '@/hooks/useEvents'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useReleases } from '@/hooks/useReleases'
+import { releaseMatchesPlatforms } from '@/lib/release-platforms'
 import {
   gameEventToCalendarEvent,
   formatTime,
@@ -106,14 +107,7 @@ export function GameCalendar({
   })
 
   const visibleReleases = useMemo(() => {
-    if (!selectedReleasePlatforms.length) return []
-    return releases.filter((release) =>
-      release.platform.some((platform) => {
-        if (selectedReleasePlatforms.includes(platform)) return true
-        if (platform === 'Xbox' && selectedReleasePlatforms.includes('PS5')) return true
-        return false
-      })
-    )
+    return releases.filter((release) => releaseMatchesPlatforms(release, selectedReleasePlatforms))
   }, [releases, selectedReleasePlatforms])
 
   const releasesByDate = useMemo(() => {

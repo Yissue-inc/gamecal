@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { DigestSubscribe } from '@/components/calendar/DigestSubscribe'
 import { getEventSummary } from '@/lib/event-summary'
+import { RELEASE_PLATFORM_OPTIONS } from '@/lib/release-platforms'
 import type { Game, GameEvent } from '@/types'
 
 const EVENT_LEGEND = [
@@ -28,15 +29,9 @@ interface GameSidebarProps {
   events?: GameEvent[]
   selectedReleasePlatforms?: string[]
   onToggleReleasePlatform?: (platform: string) => void
+  releasePlatformCounts?: Record<string, number>
   mobile?: boolean
 }
-
-const RELEASE_PLATFORMS = [
-  { id: 'PC', label: 'PC' },
-  { id: 'PS5', label: 'PlayStation / Xbox' },
-  { id: 'Switch', label: 'Nintendo Switch' },
-  { id: 'Mobile', label: 'Mobile' },
-]
 
 export function GameSidebar({
   games,
@@ -46,6 +41,7 @@ export function GameSidebar({
   events = [],
   selectedReleasePlatforms = [],
   onToggleReleasePlatform,
+  releasePlatformCounts = {},
   mobile = false,
 }: GameSidebarProps) {
   const allSelected = games.every((g) => selectedGames.includes(g.slug))
@@ -136,27 +132,38 @@ export function GameSidebar({
           )
         })}
 
-        <div className="pt-3">
-          <div className="mb-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+        <div className="mt-4 rounded-md border border-cyan-500/20 bg-cyan-500/[0.04] p-2">
+          <div className="mb-1 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-cyan-300/80">
             New Release
+            <span className="rounded-full bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-200">
+              {releasePlatformCounts.all ?? 0}
+            </span>
           </div>
-          {RELEASE_PLATFORMS.map((platform) => (
-            <div key={platform.id} className="flex items-center gap-2 py-1.5">
-              <Checkbox
-                id={`release-${platform.id}`}
-                data-testid={`release-platform-${platform.id}`}
-                checked={selectedReleasePlatforms.includes(platform.id)}
-                onCheckedChange={() => onToggleReleasePlatform?.(platform.id)}
-              />
-              <Label
-                htmlFor={`release-${platform.id}`}
-                className="cursor-pointer text-sm font-medium leading-none"
-                style={{ color: selectedReleasePlatforms.includes(platform.id) ? '#e4e4e7' : '#71717a' }}
-              >
-                {platform.label}
-              </Label>
-            </div>
-          ))}
+          {RELEASE_PLATFORM_OPTIONS.map((platform) => {
+            const isSelected = selectedReleasePlatforms.includes(platform.id)
+            const count = releasePlatformCounts[platform.id] ?? 0
+
+            return (
+              <div key={platform.id} className="flex items-center gap-2 rounded px-1 py-1.5 hover:bg-cyan-500/[0.06]">
+                <Checkbox
+                  id={`release-${platform.id}`}
+                  data-testid={`release-platform-${platform.id}`}
+                  checked={isSelected}
+                  onCheckedChange={() => onToggleReleasePlatform?.(platform.id)}
+                />
+                <Label
+                  htmlFor={`release-${platform.id}`}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 text-sm font-medium leading-none"
+                  style={{ color: isSelected ? '#e4e4e7' : '#71717a' }}
+                >
+                  <span className="truncate">{platform.label}</span>
+                  <span className={isSelected ? 'font-mono text-[10px] text-cyan-200' : 'font-mono text-[10px] text-zinc-600'}>
+                    {count}
+                  </span>
+                </Label>
+              </div>
+            )
+          })}
         </div>
       </div>
 

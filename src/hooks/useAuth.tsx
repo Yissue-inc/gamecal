@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         loading,
-        isGuest: !user,
+        isGuest: !loading && !user,
         signInWithGoogle,
         signInWithApple,
         signInWithEmail,
