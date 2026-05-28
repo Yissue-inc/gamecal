@@ -1,6 +1,28 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
+import { inferRewardSignals } from '@/lib/reward-signals'
 import type { GameEvent } from '@/types'
+
+const REWARD_COLUMNS = [
+  'reward_type',
+  'reward_summary',
+  'reward_rarity',
+  'reward_score',
+  'is_time_limited_reward',
+  'source_confidence',
+] as const
+
+function stripRewardColumns<T extends Record<string, unknown>>(payload: T): T {
+  const next = { ...payload }
+  for (const column of REWARD_COLUMNS) {
+    delete next[column]
+  }
+  return next
+}
+
+function isMissingRewardColumnError(message?: string) {
+  return Boolean(message && REWARD_COLUMNS.some((column) => message.includes(column)))
+}
 
 export async function upsertEvents(
   events: Partial<GameEvent>[],
@@ -41,6 +63,7 @@ export async function upsertEvents(
     seen.add(dedupeKey)
 
     const payload = {
+      ...inferRewardSignals(event),
       ...event,
       title: event.title.trim(),
       game_id: game.id,
@@ -57,10 +80,20 @@ export async function upsertEvents(
       .maybeSingle()
 
     if (existing) {
-      await admin.from('events').update(payload).eq('id', existing.id)
+      const { error } = await admin.from('events').update(payload).eq('id', existing.id)
+      if (error && isMissingRewardColumnError(error.message)) {
+        await admin.from('events').update(stripRewardColumns(payload)).eq('id', existing.id)
+      } else if (error) {
+        throw error
+      }
       updated++
     } else {
-      await admin.from('events').insert(payload)
+      const { error } = await admin.from('events').insert(payload)
+      if (error && isMissingRewardColumnError(error.message)) {
+        await admin.from('events').insert(stripRewardColumns(payload))
+      } else if (error) {
+        throw error
+      }
       inserted++
     }
   }

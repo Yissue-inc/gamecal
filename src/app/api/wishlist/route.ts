@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
+import { getRewardSignals } from '@/lib/reward-signals'
 
 export async function GET() {
   if (!isSupabaseConfigured()) {
@@ -33,6 +34,7 @@ export async function GET() {
         game: Array.isArray(event.game) ? event.game[0] : event.game,
       }
     })
+    .map((event) => event && ({ ...event, ...getRewardSignals(event, event.game) }))
     .filter(Boolean)
   return NextResponse.json({ eventIds: (data ?? []).map((r) => r.event_id), events })
 }

@@ -19,6 +19,7 @@ import {
 } from '@/lib/utils'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { getTrackingCount } from '@/lib/push'
+import { getRewardSignals } from '@/lib/reward-signals'
 import { usePreferences } from '@/hooks/usePreferences'
 import type { Game, GameEvent } from '@/types'
 
@@ -34,6 +35,7 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
   const { preferences } = usePreferences()
   const artUrl = getEventArtUrl(event, game)
   const description = getEventFallbackDescription(event, game)
+  const reward = getRewardSignals(event, game)
 
   return (
     <div className="flex h-full flex-col">
@@ -78,6 +80,11 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           <Badge data-testid="event-type-badge" variant="secondary" className="uppercase">
             {getImportanceEmoji(event.importance)} {getEventTypeLabel(event.event_type)}
           </Badge>
+          {reward.reward_score >= 45 && reward.reward_type !== 'none' && (
+            <Badge data-testid="event-reward-badge" variant="outline" className="border-amber-500/50 text-amber-300">
+              🎁 {reward.reward_summary}
+            </Badge>
+          )}
           <Badge data-testid="event-countdown" variant="outline">
             ⏳ {getGamerCountdown(event.start_at, event.end_at)}
           </Badge>
@@ -108,6 +115,25 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Event Details</div>
           <p data-testid="event-description" className="text-sm leading-relaxed text-zinc-300">{description}</p>
         </section>
+
+        {reward.reward_score >= 45 && reward.reward_type !== 'none' && (
+          <section data-testid="event-reward-section" className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-amber-300">Reward Signal</div>
+              <div className="rounded-full bg-black/30 px-2 py-0.5 text-xs font-bold text-amber-200">
+                {reward.reward_score}/100
+              </div>
+            </div>
+            <p className="text-sm font-semibold text-zinc-100">{reward.reward_summary}</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] uppercase tracking-wide text-zinc-400">
+              <span>{reward.reward_type.replace(/_/g, ' ')}</span>
+              <span>·</span>
+              <span>{reward.reward_rarity.replace(/_/g, ' ')}</span>
+              <span>·</span>
+              <span>{reward.source_confidence}</span>
+            </div>
+          </section>
+        )}
 
         <AddToCalendar event={event} game={game} />
         <ShareEvent event={event} game={game} />

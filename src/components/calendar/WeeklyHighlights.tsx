@@ -9,6 +9,7 @@ import {
 } from '@/lib/utils'
 import { formatShortDate, getDday, isThisWeek } from '@/lib/calendar-dates'
 import { getEventArtUrl, getGameArtStyle } from '@/lib/game-art'
+import { getRewardBadgeLabel, getRewardSignals, getRewardSortScore } from '@/lib/reward-signals'
 
 function HighlightCard({
   event,
@@ -29,6 +30,8 @@ function HighlightCard({
     : getGameArtStyle(game)
 
   const barColor = event.importance === 'critical' ? '#ef4444' : game.brand_color
+  const reward = getRewardSignals(event, game)
+  const rewardLabel = getRewardBadgeLabel(event)
 
   return (
     <button
@@ -56,6 +59,12 @@ function HighlightCard({
         {getDday(event.start_at)}
       </div>
 
+      {rewardLabel && (
+        <div className="absolute left-2 top-9 max-w-[13rem] truncate rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200">
+          🎁 {rewardLabel}
+        </div>
+      )}
+
       <div
         className="absolute bottom-0 left-0 right-0 px-3 py-2.5"
         style={{
@@ -68,6 +77,14 @@ function HighlightCard({
         </div>
         <div className="line-clamp-2 text-sm font-bold leading-tight text-white">{event.title}</div>
         <div className="mt-0.5 text-[10px] text-zinc-400">{formatShortDate(event.start_at)}</div>
+        {reward.reward_score >= 70 && (
+          <div className="mt-1 h-1 overflow-hidden rounded-full bg-zinc-800">
+            <div
+              className="h-full rounded-full bg-amber-400"
+              style={{ width: `${reward.reward_score}%` }}
+            />
+          </div>
+        )}
       </div>
     </button>
   )
@@ -121,10 +138,17 @@ export function WeeklyHighlights({
   onReleaseClick?: (release: NewRelease) => void
 }) {
   const { releases } = useReleases()
+  const eventLimit = releases.length > 0 ? 4 : 8
   const highlights = events
     .filter((e) => e.game && (isThisWeek(e.start_at) || new Date(e.start_at) > new Date()))
-    .sort((a, b) => (a.importance === 'critical' ? 0 : 1) - (b.importance === 'critical' ? 0 : 1))
-    .slice(0, Math.max(0, 8 - releases.length))
+    .sort((a, b) => {
+      const rewardOrder = getRewardSortScore(b) - getRewardSortScore(a)
+      if (rewardOrder !== 0) return rewardOrder
+      const criticalOrder = (a.importance === 'critical' ? 0 : 1) - (b.importance === 'critical' ? 0 : 1)
+      if (criticalOrder !== 0) return criticalOrder
+      return new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+    })
+    .slice(0, eventLimit)
   const releaseHighlights = releases.slice(0, Math.max(0, 8 - highlights.length))
 
   if (!highlights.length && !releaseHighlights.length) return null

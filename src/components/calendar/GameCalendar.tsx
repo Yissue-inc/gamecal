@@ -12,6 +12,7 @@ import { usePreferences } from '@/hooks/usePreferences'
 import { useReleases } from '@/hooks/useReleases'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { releaseMatchesPlatforms } from '@/lib/release-platforms'
+import { getRewardBadgeLabel, getRewardSignals, getRewardSortScore } from '@/lib/reward-signals'
 import {
   gameEventToCalendarEvent,
   formatTime,
@@ -147,6 +148,8 @@ export function GameCalendar({
       .filter((event) => isEventOnDate(event, selectedDateKey, preferences.timezone))
       .sort((a, b) => {
         const importanceOrder = { critical: 0, high: 1, normal: 2, low: 3 }
+        const rewardOrder = getRewardSortScore(b) - getRewardSortScore(a)
+        if (rewardOrder !== 0) return rewardOrder
         const order = importanceOrder[a.importance] - importanceOrder[b.importance]
         if (order !== 0) return order
         return new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
@@ -363,6 +366,10 @@ export function GameCalendar({
             {selectedDateEvents.length > 0 ? (
               <div className="divide-y divide-zinc-800">
                 {selectedDateEvents.map((event) => (
+                  (() => {
+                    const reward = getRewardSignals(event, event.game)
+                    const rewardLabel = getRewardBadgeLabel(event)
+                    return (
                   <button
                     key={event.id}
                     type="button"
@@ -403,18 +410,25 @@ export function GameCalendar({
                         <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-zinc-400">
                           {getEventTypeLabel(event.event_type)}
                         </span>
+                        {rewardLabel && (
+                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                            🎁 {reward.reward_score}
+                          </span>
+                        )}
                       </span>
                       <span className="line-clamp-2 text-sm font-bold leading-tight text-zinc-100">
                         {event.title}
                       </span>
                       <span className="mt-1 line-clamp-1 block text-xs text-zinc-500">
-                        {event.game ? getEventFallbackDescription(event, event.game) : event.description}
+                        {rewardLabel ?? (event.game ? getEventFallbackDescription(event, event.game) : event.description)}
                       </span>
                     </span>
                     <span className="whitespace-nowrap pt-8 text-sm font-semibold text-zinc-300">
                       {formatTime(event.start_at, preferences.time_format, preferences.timezone)}
                     </span>
                   </button>
+                    )
+                  })()
                 ))}
               </div>
             ) : (
@@ -517,6 +531,14 @@ export function GameCalendar({
           border-left-color: #ef4444 !important;
           box-shadow: 0 0 8px rgba(239, 68, 68, 0.35), inset 3px 0 0 #ef4444;
           font-weight: 600;
+        }
+        .gamecal-calendar .reward-event {
+          box-shadow: inset 3px 0 0 #f59e0b, 0 0 10px rgba(245, 158, 11, 0.2);
+        }
+        .gamecal-calendar .reward-event::before {
+          content: '🎁';
+          margin-right: 3px;
+          font-size: 10px;
         }
         .gamecal-calendar .critical-event::after {
           content: '●';

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MOCK_EVENTS, isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
+import { getRewardSignals } from '@/lib/reward-signals'
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -21,7 +22,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 404 })
-  return NextResponse.json({ event: { ...data, game: Array.isArray(data.game) ? data.game[0] : data.game } })
+  const event = { ...data, game: Array.isArray(data.game) ? data.game[0] : data.game }
+  return NextResponse.json({ event: { ...event, ...getRewardSignals(event, event.game) } })
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

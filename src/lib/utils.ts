@@ -19,6 +19,7 @@ import type {
   GameEvent,
   Importance,
 } from '@/types'
+import { getRewardSignals } from '@/lib/reward-signals'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -231,6 +232,8 @@ export function gameEventToCalendarEvent(event: GameEvent, game: Game): Calendar
   const color = game.brand_color
   const classNames = [`importance-${event.importance}`]
   if (event.importance === 'critical') classNames.push('critical-event')
+  const reward = getRewardSignals(event, game)
+  if (reward.reward_score >= 70) classNames.push('reward-event')
   const acronym = game.name
     .split(/\s+/)
     .map((part) => part[0])
@@ -250,7 +253,7 @@ export function gameEventToCalendarEvent(event: GameEvent, game: Game): Calendar
     extendedProps: {
       gameEvent: event,
       game,
-      importanceOrder: IMPORTANCE_ORDER[event.importance],
+      importanceOrder: IMPORTANCE_ORDER[event.importance] - reward.reward_score / 100,
     },
   }
 }

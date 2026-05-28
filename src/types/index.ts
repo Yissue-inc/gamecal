@@ -14,6 +14,21 @@ export type EventType =
   | 'other'
 
 export type Importance = 'critical' | 'high' | 'normal' | 'low'
+export type RewardType =
+  | 'skin'
+  | 'currency'
+  | 'xp_boost'
+  | 'item'
+  | 'character'
+  | 'banner'
+  | 'raid_drop'
+  | 'login_bonus'
+  | 'tournament_prize'
+  | 'progression'
+  | 'content'
+  | 'none'
+export type RewardRarity = 'common' | 'limited' | 'premium' | 'time_limited'
+export type SourceConfidence = 'official' | 'media' | 'inferred'
 
 export interface Game {
   id: string
@@ -39,6 +54,12 @@ export interface GameEvent {
   rrule?: string
   source_url?: string
   image_url?: string
+  reward_type?: RewardType
+  reward_summary?: string
+  reward_rarity?: RewardRarity
+  reward_score?: number
+  is_time_limited_reward?: boolean
+  source_confidence?: SourceConfidence
   is_published: boolean
   created_at: string
 }

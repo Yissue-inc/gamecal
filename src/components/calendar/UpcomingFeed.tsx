@@ -12,6 +12,7 @@ import {
 } from '@/lib/calendar-dates'
 import { getEventTypeIcon } from '@/lib/utils'
 import { formatDateKeyInTimezone } from '@/lib/timezone'
+import { getRewardBadgeLabel, getRewardSortScore } from '@/lib/reward-signals'
 
 function UpcomingItem({
   event,
@@ -26,6 +27,7 @@ function UpcomingItem({
 }) {
   const isLive = isCurrentlyActive(event)
   const game = event.game!
+  const rewardLabel = getRewardBadgeLabel(event)
 
   return (
     <button
@@ -56,6 +58,11 @@ function UpcomingItem({
           <div className="mt-0.5 text-[10px] font-medium" style={{ color: game.brand_color }}>
             {game.name}
           </div>
+          {rewardLabel && (
+            <div className="mt-1 line-clamp-1 text-[10px] font-semibold text-amber-300">
+              🎁 {rewardLabel}
+            </div>
+          )}
         </div>
         {event.importance === 'critical' && (
           <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
@@ -75,7 +82,13 @@ export function UpcomingFeed({
   const { preferences } = usePreferences()
   const upcoming = events
     .filter((e) => e.game && (isUpcoming(e.start_at) || isCurrentlyActive(e)) && isWithinDays(e.start_at, 14))
-    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
+    .sort((a, b) => {
+      const dayOrder = new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+      if (Math.abs(dayOrder) > 1000 * 60 * 60 * 24) return dayOrder
+      const rewardOrder = getRewardSortScore(b) - getRewardSortScore(a)
+      if (rewardOrder !== 0) return rewardOrder
+      return dayOrder
+    })
 
   const groups = groupEventsByDay(upcoming, preferences.timezone)
 

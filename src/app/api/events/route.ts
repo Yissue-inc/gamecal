@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
+import { getRewardSignals } from '@/lib/reward-signals'
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
@@ -43,6 +44,9 @@ export async function GET(request: NextRequest) {
   const events = (data ?? []).map((row) => ({
     ...row,
     game: Array.isArray(row.game) ? row.game[0] : row.game,
+  })).map((event) => ({
+    ...event,
+    ...getRewardSignals(event, event.game),
   }))
 
   return NextResponse.json({ events })

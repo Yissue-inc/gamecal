@@ -1,6 +1,7 @@
 import ical, { ICalAlarmType } from 'ical-generator'
 import type { Game, GameEvent } from '@/types'
 import { getEventTypeLabel, withGamerClockUtm } from '@/lib/utils'
+import { getRewardSignals } from '@/lib/reward-signals'
 
 export function generateICS(events: GameEvent[], calName: string): string {
   const calendar = ical({ name: calName, prodId: { company: 'GamerClock', product: 'Feed' } })
@@ -27,6 +28,7 @@ function addEventToCalendar(
   event: GameEvent,
   game?: Game
 ) {
+  const reward = getRewardSignals(event, game)
   const calEvent = calendar.createEvent({
     id: event.id,
     start: new Date(event.start_at),
@@ -35,6 +37,7 @@ function addEventToCalendar(
     description: [
       event.description,
       getEventTypeLabel(event.event_type),
+      reward.reward_summary && reward.reward_score >= 45 ? `Reward: ${reward.reward_summary}` : '',
       event.source_url ? `Source: ${withGamerClockUtm(event.source_url, 'calendar_feed')}` : '',
     ]
       .filter(Boolean)

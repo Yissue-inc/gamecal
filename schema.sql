@@ -29,6 +29,20 @@ CREATE TABLE events (
   rrule        TEXT,
   source_url   TEXT,
   image_url    TEXT,
+  reward_type  TEXT CHECK (reward_type IS NULL OR reward_type IN (
+                 'skin','currency','xp_boost','item','character','banner',
+                 'raid_drop','login_bonus','tournament_prize','progression',
+                 'content','none'
+               )),
+  reward_summary TEXT,
+  reward_rarity TEXT CHECK (reward_rarity IS NULL OR reward_rarity IN (
+                 'common','limited','premium','time_limited'
+               )),
+  reward_score INTEGER DEFAULT 0 CHECK (reward_score >= 0 AND reward_score <= 100),
+  is_time_limited_reward BOOLEAN DEFAULT false,
+  source_confidence TEXT CHECK (source_confidence IS NULL OR source_confidence IN (
+                 'official','media','inferred'
+               )),
   is_published BOOLEAN DEFAULT true,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
@@ -115,6 +129,7 @@ CREATE TABLE subscriptions (
 CREATE INDEX idx_events_game_id  ON events(game_id);
 CREATE INDEX idx_events_start_at ON events(start_at);
 CREATE INDEX idx_events_published ON events(is_published);
+CREATE INDEX idx_events_reward_score ON events(reward_score DESC, start_at);
 CREATE INDEX idx_release_candidates_status_score ON release_candidates(status, confidence_score DESC, last_seen_at DESC);
 CREATE INDEX idx_release_candidates_release_date ON release_candidates(release_date);
 
