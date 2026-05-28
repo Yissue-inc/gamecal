@@ -218,7 +218,8 @@ export default function AdminSettingsPage() {
                     }
                     className="h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm text-white"
                   >
-                    <option value="dragon">Dragon flyover</option>
+                    <option value="dragon">Detailed dragon asset</option>
+                    <option value="pixel_dragon">Pixel dragon (legacy)</option>
                     <option value="embers">Embers only</option>
                     <option value="minimal">Minimal fade</option>
                   </select>

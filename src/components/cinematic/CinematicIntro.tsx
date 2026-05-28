@@ -59,8 +59,9 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
 
   const accent = settings?.accentColor ?? featured.accentColor ?? '#f59e0b'
   const animationStyle = settings?.animationStyle ?? 'dragon'
-  const shouldDrawDragon = animationStyle === 'dragon'
-  const shouldDrawEmbers = animationStyle === 'dragon' || animationStyle === 'embers'
+  const shouldShowDragonAsset = animationStyle === 'dragon'
+  const shouldDrawDragon = animationStyle === 'pixel_dragon'
+  const shouldDrawEmbers = shouldShowDragonAsset || shouldDrawDragon || animationStyle === 'embers'
   const autoDismissMs = settings?.autoDismissMs ?? 5500
   const letterboxHeight = settings?.letterboxHeight ?? 80
   const backdropOpacity = settings?.backdropOpacity ?? 40
@@ -290,6 +291,17 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
       />
       <canvas ref={dragonRef} className="pointer-events-none fixed inset-0 z-[220]" />
 
+      {shouldShowDragonAsset && (
+        <div
+          className={`pointer-events-none fixed inset-0 z-[220] overflow-hidden transition-opacity duration-700 ${
+            phase.atmos ? 'opacity-100' : 'opacity-0'
+          }`}
+          aria-hidden="true"
+        >
+          <div className="cinematic-dragon-asset absolute max-w-none" />
+        </div>
+      )}
+
       {/* Text overlay */}
       <div className="pointer-events-none fixed inset-0 z-[225] flex flex-col items-center justify-center gap-3 px-6">
         <p
@@ -387,6 +399,82 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
           />
         </div>
       )}
+
+      <style jsx global>{`
+        .cinematic-dragon-asset {
+          width: min(82vw, 1120px);
+          aspect-ratio: 3 / 2;
+          background-image: url('/assets/cinematic/dragon-ai.png');
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: contain;
+          transform-origin: 58% 50%;
+          animation: cinematic-dragon-asset-flight 4.2s cubic-bezier(0.2, 0.82, 0.2, 1) 180ms both;
+          filter: contrast(1.08) saturate(1.06) drop-shadow(0 0 26px rgba(245, 158, 11, 0.28))
+            drop-shadow(0 20px 48px rgba(0, 0, 0, 0.72));
+          -webkit-mask-image: radial-gradient(
+            ellipse at 50% 50%,
+            #000 0%,
+            #000 48%,
+            rgba(0, 0, 0, 0.82) 61%,
+            transparent 78%
+          );
+          mask-image: radial-gradient(
+            ellipse at 50% 50%,
+            #000 0%,
+            #000 48%,
+            rgba(0, 0, 0, 0.82) 61%,
+            transparent 78%
+          );
+        }
+
+        @keyframes cinematic-dragon-asset-flight {
+          0% {
+            transform: translate3d(-62vw, 43vh, 0) scale(0.58) rotate(-8deg);
+            opacity: 0;
+          }
+          12% {
+            opacity: 0.98;
+          }
+          46% {
+            transform: translate3d(14vw, 18vh, 0) scale(0.9) rotate(-2deg);
+            opacity: 0.98;
+          }
+          74% {
+            transform: translate3d(48vw, 10vh, 0) scale(0.84) rotate(2deg);
+            opacity: 0.9;
+          }
+          100% {
+            transform: translate3d(104vw, -8vh, 0) scale(0.68) rotate(8deg);
+            opacity: 0;
+          }
+        }
+
+        @media (max-width: 767px) {
+          .cinematic-dragon-asset {
+            width: min(150vw, 780px);
+            animation-duration: 4s;
+          }
+
+          @keyframes cinematic-dragon-asset-flight {
+            0% {
+              transform: translate3d(-102vw, 46vh, 0) scale(0.58) rotate(-8deg);
+              opacity: 0;
+            }
+            14% {
+              opacity: 0.96;
+            }
+            52% {
+              transform: translate3d(-4vw, 20vh, 0) scale(0.72) rotate(-2deg);
+              opacity: 0.96;
+            }
+            100% {
+              transform: translate3d(86vw, 2vh, 0) scale(0.6) rotate(8deg);
+              opacity: 0;
+            }
+          }
+        }
+      `}</style>
     </div>
   )
 }

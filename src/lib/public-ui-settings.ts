@@ -1,4 +1,4 @@
-export type CinematicAnimationStyle = 'dragon' | 'embers' | 'minimal'
+export type CinematicAnimationStyle = 'dragon' | 'pixel_dragon' | 'embers' | 'minimal'
 
 export interface CinematicIntroSettings {
   eyebrow: string
@@ -79,7 +79,7 @@ export function sanitizePublicUiSettings(value: Partial<PublicUiSettings>): Publ
       accentColor: /^#[0-9a-f]{6}$/i.test(merged.cinematic_intro.accentColor)
         ? merged.cinematic_intro.accentColor
         : DEFAULT_CINEMATIC_INTRO_SETTINGS.accentColor,
-      animationStyle: ['dragon', 'embers', 'minimal'].includes(merged.cinematic_intro.animationStyle)
+      animationStyle: ['dragon', 'pixel_dragon', 'embers', 'minimal'].includes(merged.cinematic_intro.animationStyle)
         ? merged.cinematic_intro.animationStyle
         : DEFAULT_CINEMATIC_INTRO_SETTINGS.animationStyle,
       autoDismissMs: Number.isFinite(autoDismissMs)
