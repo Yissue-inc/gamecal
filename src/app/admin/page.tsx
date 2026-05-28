@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { adminFetch } from '@/lib/admin-fetch'
@@ -15,8 +15,41 @@ const CRAWLERS = [
   { slug: 'pokemon-go', label: 'Pokémon GO' },
 ]
 
+interface DragonPresenceDaily {
+  day: string
+  visit_sessions: number
+  signed_in_sessions: number
+  checkins: number
+  last_seen_at?: string | null
+}
+
+function getDragonLevel(score: number) {
+  if (score >= 180) return 4
+  if (score >= 72) return 3
+  if (score >= 24) return 2
+  return 1
+}
+
 export default function AdminPage() {
   const [crawling, setCrawling] = useState<string | null>(null)
+  const [presence, setPresence] = useState<DragonPresenceDaily | null>(null)
+
+  useEffect(() => {
+    fetch('/api/dragon-presence')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPresence(data?.presence ?? null))
+      .catch(() => undefined)
+  }, [])
+
+  const dragonScore = useMemo(() => {
+    if (!presence) return 0
+    return (
+      (presence.visit_sessions ?? 0) +
+      (presence.signed_in_sessions ?? 0) * 2 +
+      (presence.checkins ?? 0) * 5
+    )
+  }, [presence])
+  const dragonLevel = getDragonLevel(dragonScore)
 
   const triggerCrawl = async (slug: string) => {
     setCrawling(slug)
@@ -45,6 +78,52 @@ export default function AdminPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
+        <Card data-testid="dragon-presence-admin-card" className="overflow-hidden border-amber-500/25 bg-zinc-900 sm:col-span-2">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle>Dragon Presence</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Today&apos;s collective visit and check-in energy.
+                </p>
+              </div>
+              <div className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-sm font-bold text-amber-300">
+                Level {dragonLevel}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="rounded-lg border border-zinc-800 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-zinc-500">Score</div>
+                <div data-testid="dragon-presence-score" className="mt-1 text-2xl font-black text-white">
+                  {dragonScore}
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-zinc-500">Visits</div>
+                <div className="mt-1 text-2xl font-black text-white">{presence?.visit_sessions ?? 0}</div>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-zinc-500">Signed In</div>
+                <div className="mt-1 text-2xl font-black text-white">{presence?.signed_in_sessions ?? 0}</div>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-zinc-500">Check-ins</div>
+                <div className="mt-1 text-2xl font-black text-white">{presence?.checkins ?? 0}</div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-zinc-500">
+              <span>{presence?.day ? `Day ${presence.day}` : 'Waiting for presence data'}</span>
+              <span>
+                {presence?.last_seen_at
+                  ? `Updated ${new Date(presence.last_seen_at).toLocaleTimeString()}`
+                  : 'No activity yet'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="bg-zinc-900">
           <CardHeader>
             <CardTitle>Events</CardTitle>
