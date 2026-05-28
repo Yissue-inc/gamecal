@@ -14,6 +14,7 @@ import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
 import { CommandSearch } from '@/components/calendar/CommandSearch'
 import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
 import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
+import { DragonPresence } from '@/components/engagement/DragonPresence'
 import { CalEventBridge } from '@/components/engagement/CalEventBridge'
 import { BadgeUnlockModal } from '@/components/engagement/BadgeUnlockModal'
 import { CinematicIntro, hasSeenCinematic } from '@/components/cinematic/CinematicIntro'
@@ -199,67 +200,70 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#0f0f0f]">
-      <CalendarHeader
-        currentTitle={currentTitle}
-        onToday={goToday}
-        onPrev={goPrev}
-        onNext={goNext}
-        onSignIn={() => setAuthModalOpen(true)}
-        games={games}
-        selectedGames={selectedGames}
-        onToggleGame={handleToggle}
-        onToggleAllGames={handleToggleAll}
-        selectedReleasePlatforms={selectedReleasePlatforms}
-        onToggleReleasePlatform={handleToggleReleasePlatform}
-        releasePlatformCounts={releasePlatformCounts}
-        events={events}
-      />
-      {shouldPromptAuth && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
-      <PwaInstallBanner />
-      <LiveBanner events={events} onEventClick={handleFeedEventClick} />
-      <DailyCheckIn />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <GameSidebar
+    <div className="relative flex h-screen flex-col overflow-hidden bg-[#0f0f0f]">
+      <DragonPresence />
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+        <CalendarHeader
+          currentTitle={currentTitle}
+          onToday={goToday}
+          onPrev={goPrev}
+          onNext={goNext}
+          onSignIn={() => setAuthModalOpen(true)}
           games={games}
           selectedGames={selectedGames}
-          onToggle={handleToggle}
-          onToggleAll={handleToggleAll}
+          onToggleGame={handleToggle}
+          onToggleAllGames={handleToggleAll}
           selectedReleasePlatforms={selectedReleasePlatforms}
           onToggleReleasePlatform={handleToggleReleasePlatform}
           releasePlatformCounts={releasePlatformCounts}
           events={events}
         />
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <WeeklyHighlights
-            events={highlightEvents}
-            onEventClick={handleEventClick}
-            onReleaseClick={handleReleaseClick}
+        {shouldPromptAuth && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
+        <PwaInstallBanner />
+        <LiveBanner events={events} onEventClick={handleFeedEventClick} />
+        <DailyCheckIn />
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <GameSidebar
+            games={games}
+            selectedGames={selectedGames}
+            onToggle={handleToggle}
+            onToggleAll={handleToggleAll}
+            selectedReleasePlatforms={selectedReleasePlatforms}
+            onToggleReleasePlatform={handleToggleReleasePlatform}
+            releasePlatformCounts={releasePlatformCounts}
+            events={events}
           />
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-            <GameCalendar
-              calendarRef={calendarRef}
-              selectedGames={selectedGames}
-              isGuest={shouldPromptAuth}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <WeeklyHighlights
+              events={highlightEvents}
               onEventClick={handleEventClick}
-              onGuestEventClick={() => {
-                if (shouldPromptAuth) setAuthModalOpen(true)
-              }}
               onReleaseClick={handleReleaseClick}
-              onDatesChange={handleDatesChange}
-              selectedReleasePlatforms={selectedReleasePlatforms}
             />
-            <EventDetailPanel
-              event={selectedEvent}
-              game={selectedGame}
-              isOpen={isDetailOpen}
-              onClose={closeDetail}
-              overlay
-            />
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+              <GameCalendar
+                calendarRef={calendarRef}
+                selectedGames={selectedGames}
+                isGuest={shouldPromptAuth}
+                onEventClick={handleEventClick}
+                onGuestEventClick={() => {
+                  if (shouldPromptAuth) setAuthModalOpen(true)
+                }}
+                onReleaseClick={handleReleaseClick}
+                onDatesChange={handleDatesChange}
+                selectedReleasePlatforms={selectedReleasePlatforms}
+              />
+              <EventDetailPanel
+                event={selectedEvent}
+                game={selectedGame}
+                isOpen={isDetailOpen}
+                onClose={closeDetail}
+                overlay
+              />
+            </div>
           </div>
-        </div>
-        <div className="hidden md:flex">
-          <UpcomingFeed events={events} onEventClick={handleFeedEventClick} />
+          <div className="hidden md:flex">
+            <UpcomingFeed events={events} onEventClick={handleFeedEventClick} />
+          </div>
         </div>
       </div>
       <ReleaseDetailPanel
