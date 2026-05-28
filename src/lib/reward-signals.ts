@@ -237,6 +237,15 @@ export function inferRewardSignals(
 
 export function getRewardSignals(event: GameEvent, game?: Game | null): RewardSignals {
   const inferred = inferRewardSignals(event, game ?? event.game)
+  const hasManualReward =
+    Boolean(event.reward_type) ||
+    Boolean(event.reward_summary) ||
+    Boolean(event.reward_rarity) ||
+    Boolean(event.source_confidence) ||
+    event.is_time_limited_reward === true
+
+  if (!hasManualReward) return inferred
+
   return {
     ...inferred,
     reward_type: event.reward_type ?? inferred.reward_type,
