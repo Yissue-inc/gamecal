@@ -13,6 +13,12 @@ interface DailyVisitState {
   count: number
 }
 
+interface DragonPresenceDaily {
+  visit_sessions: number
+  signed_in_sessions: number
+  checkins: number
+}
+
 function todayKey() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -30,34 +36,76 @@ function readDailyVisits(): DailyVisitState {
   }
 }
 
-function recordSessionVisit(): number {
+function recordSessionVisit(): { count: number; recorded: boolean } {
   const today = todayKey()
   const sessionKey = `${SESSION_COUNTED_PREFIX}-${today}`
   const current = readDailyVisits()
 
-  if (sessionStorage.getItem(sessionKey) === '1') return current.count
+  if (sessionStorage.getItem(sessionKey) === '1') return { count: current.count, recorded: false }
 
   const next = { date: today, count: current.count + 1 }
   localStorage.setItem(DAILY_VISITS_KEY, JSON.stringify(next))
   sessionStorage.setItem(sessionKey, '1')
-  return next.count
+  return { count: next.count, recorded: true }
 }
 
-function getDragonLevel(visits: number, streak: number) {
-  if (streak >= 30 || visits >= 9) return 4
-  if (streak >= 7 || visits >= 5) return 3
-  if (streak >= 3 || visits >= 3) return 2
+function shouldRecordPresenceKind(kind: 'visit' | 'signed_in_visit') {
+  const today = todayKey()
+  const key = `${SESSION_COUNTED_PREFIX}-${kind}-${today}`
+  if (sessionStorage.getItem(key) === '1') return false
+  sessionStorage.setItem(key, '1')
+  return true
+}
+
+async function updateRemotePresence(kind?: 'visit' | 'signed_in_visit') {
+  const options = kind
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind }),
+      }
+    : undefined
+  const res = await fetch('/api/dragon-presence', options)
+  if (!res.ok) return null
+  const data = await res.json()
+  return data?.presence as DragonPresenceDaily | null
+}
+
+function getDragonLevel(visits: number, streak: number, presence?: DragonPresenceDaily | null) {
+  const globalScore = presence
+    ? (presence.visit_sessions ?? 0) +
+      (presence.signed_in_sessions ?? 0) * 2 +
+      (presence.checkins ?? 0) * 5
+    : 0
+
+  if (streak >= 30 || visits >= 9 || globalScore >= 180) return 4
+  if (streak >= 7 || visits >= 5 || globalScore >= 72) return 3
+  if (streak >= 3 || visits >= 3 || globalScore >= 24) return 2
   return 1
 }
 
 export function DragonPresence() {
-  const { user, isGuest } = useAuth()
+  const { user, isGuest, loading } = useAuth()
   const [visitCount, setVisitCount] = useState(1)
   const [streak, setStreak] = useState(0)
+  const [presence, setPresence] = useState<DragonPresenceDaily | null>(null)
 
   useEffect(() => {
-    setVisitCount(recordSessionVisit())
+    const local = recordSessionVisit()
+    setVisitCount(local.count)
   }, [])
+
+  useEffect(() => {
+    if (loading) return
+    const kind = user ? 'signed_in_visit' : 'visit'
+    const shouldPost = shouldRecordPresenceKind(kind)
+
+    updateRemotePresence(shouldPost ? kind : undefined)
+      .then((next) => {
+        if (next) setPresence(next)
+      })
+      .catch(() => undefined)
+  }, [loading, user])
 
   useEffect(() => {
     let cancelled = false
@@ -82,14 +130,20 @@ export function DragonPresence() {
     }
   }, [user])
 
-  const level = useMemo(() => getDragonLevel(visitCount, streak), [visitCount, streak])
+  const level = useMemo(() => getDragonLevel(visitCount, streak, presence), [visitCount, presence, streak])
   const opacity = isGuest ? 0.1 + level * 0.025 : 0.13 + level * 0.035
   const scale = 0.88 + level * 0.05
+  const globalScore = presence
+    ? (presence.visit_sessions ?? 0) +
+      (presence.signed_in_sessions ?? 0) * 2 +
+      (presence.checkins ?? 0) * 5
+    : 0
 
   return (
     <div
       data-testid="dragon-presence"
       data-dragon-level={level}
+      data-dragon-presence-score={globalScore}
       className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
       aria-hidden="true"
     >

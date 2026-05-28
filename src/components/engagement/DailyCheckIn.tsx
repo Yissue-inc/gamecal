@@ -12,6 +12,14 @@ import { trackCheckinDone } from '@/lib/posthog'
 import { getCalStreakMessage } from '@/lib/cal-messages'
 import { CalCharacter } from './CalCharacter'
 
+function recordDragonCheckInPresence() {
+  fetch('/api/dragon-presence', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind: 'checkin' }),
+  }).catch(() => undefined)
+}
+
 export function DailyCheckIn() {
   const { user, isGuest } = useAuth()
   const [streak, setStreak] = useState(0)
@@ -51,7 +59,10 @@ export function DailyCheckIn() {
         setStreak(d.currentStreak ?? 0)
         setTodayChecked(true)
         setJustChecked(true)
-        if (!d.alreadyChecked) trackCheckinDone(d.currentStreak ?? 0)
+        if (!d.alreadyChecked) {
+          trackCheckinDone(d.currentStreak ?? 0)
+          recordDragonCheckInPresence()
+        }
         setTimeout(() => setJustChecked(false), 4000)
         return
       }
@@ -62,6 +73,7 @@ export function DailyCheckIn() {
     setTodayChecked(true)
     setJustChecked(true)
     trackCheckinDone(next.currentStreak)
+    recordDragonCheckInPresence()
     setTimeout(() => setJustChecked(false), 4000)
   }
 
