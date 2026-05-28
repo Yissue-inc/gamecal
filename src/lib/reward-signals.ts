@@ -273,3 +273,15 @@ export function getRewardBadgeLabel(event: GameEvent): string | null {
   if (reward.reward_score < 45 || reward.reward_type === 'none') return null
   return reward.reward_summary ?? 'Reward event'
 }
+
+export function getSourceConfidenceLabel(confidence: SourceConfidence): string {
+  if (confidence === 'official') return 'Official source'
+  if (confidence === 'media') return 'Media verified'
+  return 'Inferred signal'
+}
+
+export function getSourceConfidenceTone(confidence: SourceConfidence): string {
+  if (confidence === 'official') return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-300'
+  if (confidence === 'media') return 'border-sky-500/35 bg-sky-500/10 text-sky-300'
+  return 'border-zinc-700 bg-zinc-900 text-zinc-400'
+}

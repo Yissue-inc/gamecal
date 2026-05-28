@@ -12,7 +12,13 @@ import { usePreferences } from '@/hooks/usePreferences'
 import { useReleases } from '@/hooks/useReleases'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { releaseMatchesPlatforms } from '@/lib/release-platforms'
-import { getRewardBadgeLabel, getRewardSignals, getRewardSortScore } from '@/lib/reward-signals'
+import {
+  getRewardBadgeLabel,
+  getRewardSignals,
+  getRewardSortScore,
+  getSourceConfidenceLabel,
+  getSourceConfidenceTone,
+} from '@/lib/reward-signals'
 import {
   gameEventToCalendarEvent,
   formatTime,
@@ -275,13 +281,13 @@ export function GameCalendar({
   }, [ref])
 
   return (
-    <div className="gamecal-calendar relative flex min-h-0 flex-1 flex-col overflow-hidden p-4" data-testid="calendar-grid">
+    <div className="gamecal-calendar relative flex min-h-0 flex-1 flex-col overflow-hidden p-2 md:p-4" data-testid="calendar-grid">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0f0f0f]/50">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
-      <div className={`${selectedDateKey ? 'min-h-[180px] md:min-h-[260px]' : 'min-h-[420px]'} flex-1 overflow-hidden`}>
+      <div className={`${selectedDateKey ? 'min-h-[170px] md:min-h-[260px]' : 'min-h-[360px] md:min-h-[420px]'} flex-1 overflow-hidden`}>
         <FullCalendar
           ref={ref}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -342,7 +348,7 @@ export function GameCalendar({
         <section
           ref={selectedEventsRef}
           data-testid="selected-date-events"
-          className="mt-3 shrink-0 border-t border-zinc-800 bg-[#0f0f0f] pb-28 pt-4 md:max-h-[34vh] md:pb-0"
+          className="mt-2 shrink-0 border-t border-zinc-800 bg-[#0f0f0f] pb-28 pt-3 md:mt-3 md:max-h-[34vh] md:pb-0 md:pt-4"
         >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
@@ -380,7 +386,7 @@ export function GameCalendar({
                       }
                       if (event.game) onEventClick(event, event.game)
                     }}
-                    className="grid w-full grid-cols-[4px_56px_1fr_auto] gap-3 py-4 text-left transition-colors hover:bg-zinc-900/60 sm:grid-cols-[4px_64px_1fr_auto] sm:gap-5"
+                    className="grid w-full grid-cols-[4px_56px_1fr_auto] gap-3 py-3 text-left transition-colors hover:bg-zinc-900/60 sm:grid-cols-[4px_64px_1fr_auto] sm:gap-5 md:py-4"
                   >
                     <span
                       className="mt-1 h-full rounded-full"
@@ -411,16 +417,19 @@ export function GameCalendar({
                           {getEventTypeLabel(event.event_type)}
                         </span>
                         {rewardLabel && (
-                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                            🎁 {reward.reward_score}
+                          <span className="max-w-[14rem] truncate rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                            🎁 {reward.reward_score} · {rewardLabel}
                           </span>
                         )}
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${getSourceConfidenceTone(reward.source_confidence)}`}>
+                          {getSourceConfidenceLabel(reward.source_confidence)}
+                        </span>
                       </span>
                       <span className="line-clamp-2 text-sm font-bold leading-tight text-zinc-100">
                         {event.title}
                       </span>
                       <span className="mt-1 line-clamp-1 block text-xs text-zinc-500">
-                        {rewardLabel ?? (event.game ? getEventFallbackDescription(event, event.game) : event.description)}
+                        {event.game ? getEventFallbackDescription(event, event.game) : event.description}
                       </span>
                     </span>
                     <span className="whitespace-nowrap pt-8 text-sm font-semibold text-zinc-300">

@@ -9,16 +9,24 @@ import {
 } from '@/lib/utils'
 import { formatShortDate, getDday, isThisWeek } from '@/lib/calendar-dates'
 import { getEventArtUrl, getGameArtStyle } from '@/lib/game-art'
-import { getRewardBadgeLabel, getRewardSignals, getRewardSortScore } from '@/lib/reward-signals'
+import {
+  getRewardBadgeLabel,
+  getRewardSignals,
+  getRewardSortScore,
+  getSourceConfidenceLabel,
+  getSourceConfidenceTone,
+} from '@/lib/reward-signals'
 
 function HighlightCard({
   event,
   game,
   onClick,
+  className = '',
 }: {
   event: GameEvent
   game: Game
   onClick: () => void
+  className?: string
 }) {
   const artUrl = getEventArtUrl(event, game)
   const bgStyle = artUrl
@@ -38,7 +46,7 @@ function HighlightCard({
       type="button"
       data-testid={`highlight-card-${event.id}`}
       onClick={onClick}
-      className="group relative h-40 w-60 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-800 transition-all duration-200 hover:scale-[1.02] hover:border-zinc-600"
+      className={`group relative h-32 w-52 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-800 transition-all duration-200 hover:scale-[1.02] hover:border-zinc-600 md:h-40 md:w-60 ${className}`}
     >
       <div className="absolute inset-0" style={bgStyle} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
@@ -59,9 +67,18 @@ function HighlightCard({
         {getDday(event.start_at)}
       </div>
 
+      <div className={`absolute right-2 top-9 hidden rounded-full border px-2 py-0.5 text-[9px] font-bold md:block ${getSourceConfidenceTone(reward.source_confidence)}`}>
+        {reward.source_confidence === 'official' ? 'Official' : reward.source_confidence === 'media' ? 'Media' : 'Inferred'}
+      </div>
+
       {rewardLabel && (
-        <div className="absolute left-2 top-9 max-w-[13rem] truncate rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200">
-          🎁 {rewardLabel}
+        <div className="absolute left-2 top-9 hidden max-w-[13rem] truncate rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200 md:block">
+          🎁 {reward.reward_score} · {rewardLabel}
+        </div>
+      )}
+      {rewardLabel && (
+        <div className="absolute left-2 top-9 rounded-full border border-amber-400/40 bg-black/55 px-2 py-0.5 text-[10px] font-bold text-amber-200 md:hidden">
+          🎁 {reward.reward_score}
         </div>
       )}
 
@@ -76,7 +93,10 @@ function HighlightCard({
           {getEventTypeIcon(event.event_type)} {getEventTypeLabel(event.event_type)}
         </div>
         <div className="line-clamp-2 text-sm font-bold leading-tight text-white">{event.title}</div>
-        <div className="mt-0.5 text-[10px] text-zinc-400">{formatShortDate(event.start_at)}</div>
+        <div className="mt-0.5 flex items-center justify-between gap-2 text-[10px] text-zinc-400">
+          <span>{formatShortDate(event.start_at)}</span>
+          <span className="hidden truncate md:inline">{getSourceConfidenceLabel(reward.source_confidence)}</span>
+        </div>
         {reward.reward_score >= 70 && (
           <div className="mt-1 h-1 overflow-hidden rounded-full bg-zinc-800">
             <div
@@ -93,9 +113,11 @@ function HighlightCard({
 function ReleaseHighlightCard({
   release,
   onClick,
+  className = '',
 }: {
   release: NewRelease
   onClick: () => void
+  className?: string
 }) {
   const bgStyle = release.image_url
     ? {
@@ -110,7 +132,7 @@ function ReleaseHighlightCard({
       type="button"
       data-testid={`highlight-release-${release.id}`}
       onClick={onClick}
-      className="group relative h-40 w-60 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-800 transition-all duration-200 hover:scale-[1.02] hover:border-zinc-600"
+      className={`group relative h-32 w-52 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-800 transition-all duration-200 hover:scale-[1.02] hover:border-zinc-600 md:h-40 md:w-60 ${className}`}
     >
       <div className="absolute inset-0" style={bgStyle} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
@@ -154,25 +176,27 @@ export function WeeklyHighlights({
   if (!highlights.length && !releaseHighlights.length) return null
 
   return (
-    <div data-testid="weekly-highlights" className="shrink-0 border-b border-zinc-800 px-4 py-3">
-      <div className="mb-3 flex items-center gap-2">
+    <div data-testid="weekly-highlights" className="shrink-0 border-b border-zinc-800 px-3 py-2 md:px-4 md:py-3">
+      <div className="mb-2 flex items-center gap-2 md:mb-3">
         <span className="text-sm font-bold text-white">🔥 THIS WEEK</span>
         <span className="text-xs text-zinc-500">— {highlights.length + releaseHighlights.length} major events</span>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
-        {highlights.map((e) => (
+        {highlights.map((e, index) => (
           <HighlightCard
             key={e.id}
             event={e}
             game={e.game!}
             onClick={() => onEventClick(e, e.game!)}
+            className={index >= 4 ? 'max-md:hidden' : ''}
           />
         ))}
-        {releaseHighlights.map((release) => (
+        {releaseHighlights.map((release, index) => (
           <ReleaseHighlightCard
             key={release.id}
             release={release}
             onClick={() => onReleaseClick?.(release)}
+            className={highlights.length + index >= 4 ? 'max-md:hidden' : ''}
           />
         ))}
       </div>

@@ -12,7 +12,12 @@ import {
 } from '@/lib/calendar-dates'
 import { getEventTypeIcon } from '@/lib/utils'
 import { formatDateKeyInTimezone } from '@/lib/timezone'
-import { getRewardBadgeLabel, getRewardSortScore } from '@/lib/reward-signals'
+import {
+  getRewardBadgeLabel,
+  getRewardSignals,
+  getRewardSortScore,
+  getSourceConfidenceLabel,
+} from '@/lib/reward-signals'
 
 function UpcomingItem({
   event,
@@ -28,6 +33,7 @@ function UpcomingItem({
   const isLive = isCurrentlyActive(event)
   const game = event.game!
   const rewardLabel = getRewardBadgeLabel(event)
+  const reward = getRewardSignals(event, game)
 
   return (
     <button
@@ -60,9 +66,12 @@ function UpcomingItem({
           </div>
           {rewardLabel && (
             <div className="mt-1 line-clamp-1 text-[10px] font-semibold text-amber-300">
-              🎁 {rewardLabel}
+              🎁 {reward.reward_score} · {rewardLabel}
             </div>
           )}
+          <div className="mt-1 text-[10px] text-zinc-600">
+            {getSourceConfidenceLabel(reward.source_confidence)}
+          </div>
         </div>
         {event.importance === 'critical' && (
           <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />

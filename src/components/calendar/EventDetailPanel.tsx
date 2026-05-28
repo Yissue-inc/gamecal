@@ -19,7 +19,11 @@ import {
 } from '@/lib/utils'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { getTrackingCount } from '@/lib/push'
-import { getRewardSignals } from '@/lib/reward-signals'
+import {
+  getRewardSignals,
+  getSourceConfidenceLabel,
+  getSourceConfidenceTone,
+} from '@/lib/reward-signals'
 import { usePreferences } from '@/hooks/usePreferences'
 import type { Game, GameEvent } from '@/types'
 
@@ -82,9 +86,16 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </Badge>
           {reward.reward_score >= 45 && reward.reward_type !== 'none' && (
             <Badge data-testid="event-reward-badge" variant="outline" className="border-amber-500/50 text-amber-300">
-              🎁 {reward.reward_summary}
+              🎁 {reward.reward_score} · {reward.reward_summary}
             </Badge>
           )}
+          <Badge
+            data-testid="event-source-confidence"
+            variant="outline"
+            className={getSourceConfidenceTone(reward.source_confidence)}
+          >
+            {getSourceConfidenceLabel(reward.source_confidence)}
+          </Badge>
           <Badge data-testid="event-countdown" variant="outline">
             ⏳ {getGamerCountdown(event.start_at, event.end_at)}
           </Badge>
@@ -130,10 +141,26 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
               <span>·</span>
               <span>{reward.reward_rarity.replace(/_/g, ' ')}</span>
               <span>·</span>
-              <span>{reward.source_confidence}</span>
+              <span>{getSourceConfidenceLabel(reward.source_confidence)}</span>
             </div>
           </section>
         )}
+
+        <section data-testid="event-source-section" className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Source Confidence</div>
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${getSourceConfidenceTone(reward.source_confidence)}`}>
+              {getSourceConfidenceLabel(reward.source_confidence)}
+            </span>
+          </div>
+          <p className="text-xs leading-relaxed text-zinc-400">
+            {reward.source_confidence === 'official'
+              ? 'This event is linked to an official game or publisher source.'
+              : reward.source_confidence === 'media'
+                ? 'This event is backed by a media or store source and should be reviewed as source coverage evolves.'
+                : 'This event is inferred from event type and keyword signals until a stronger source is attached.'}
+          </p>
+        </section>
 
         <AddToCalendar event={event} game={game} />
         <ShareEvent event={event} game={game} />
@@ -147,7 +174,7 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
               rel="noopener noreferrer"
             >
               <ExternalLink className="mr-2 h-4 w-4" />
-              Official Source
+              {reward.source_confidence === 'official' ? 'Official Source' : 'View Source'}
             </a>
           </Button>
         )}
