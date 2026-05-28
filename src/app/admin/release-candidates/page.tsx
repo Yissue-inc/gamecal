@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { adminFetch } from '@/lib/admin-fetch'
+import { withGamerClockUtm } from '@/lib/utils'
 import type { ReleaseCandidate, ReleaseCandidateStatus } from '@/types'
 import { toast } from 'sonner'
 
@@ -218,7 +219,14 @@ export default function ReleaseCandidatesPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
-            <Link href="http://127.0.0.1:8010/queue?week=2026-5%2F18W" target="_blank">
+            <Link
+              href={withGamerClockUtm(
+                'http://127.0.0.1:8010/queue?week=2026-5%2F18W',
+                'admin_editorial_queue'
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Editorial Queue
             </Link>
           </Button>
@@ -418,7 +426,7 @@ export default function ReleaseCandidatesPage() {
 
                   {signalText && <p className="text-xs text-zinc-500">{signalText}</p>}
                   <a
-                    href={candidate.source_url}
+                    href={withGamerClockUtm(candidate.source_url, 'admin_candidate_source')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block truncate text-xs text-indigo-300 hover:text-indigo-200"

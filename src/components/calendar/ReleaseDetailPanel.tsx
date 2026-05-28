@@ -6,7 +6,7 @@ import { X, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { getDaysUntil, getReleaseHeroColor } from '@/lib/utils'
+import { getDaysUntil, getReleaseHeroColor, withGamerClockUtm } from '@/lib/utils'
 import type { NewRelease } from '@/types'
 
 interface ReleaseDetailPanelProps {
@@ -66,7 +66,12 @@ function ReleaseContent({ release, onClose }: { release: NewRelease; onClose: ()
         <div className="flex flex-wrap gap-2">
           {release.steam_url && (
             <Button size="sm" variant="outline" asChild>
-              <a href={release.steam_url} data-testid="release-steam-link" target="_blank" rel="noopener noreferrer">
+              <a
+                href={withGamerClockUtm(release.steam_url, 'new_release_source')}
+                data-testid="release-steam-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <ExternalLink className="mr-2 h-3 w-3" />
                 Steam
               </a>
@@ -74,7 +79,12 @@ function ReleaseContent({ release, onClose }: { release: NewRelease; onClose: ()
           )}
           {release.nintendo_url && (
             <Button size="sm" variant="outline" asChild>
-              <a href={release.nintendo_url} data-testid="release-nintendo-link" target="_blank" rel="noopener noreferrer">
+              <a
+                href={withGamerClockUtm(release.nintendo_url, 'new_release_source')}
+                data-testid="release-nintendo-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <ExternalLink className="mr-2 h-3 w-3" />
                 Nintendo
               </a>

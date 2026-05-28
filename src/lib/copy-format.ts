@@ -4,6 +4,7 @@ import {
   formatTime,
   getEventTypeLabel,
   getGamerCountdown,
+  withGamerClockUtm,
 } from '@/lib/utils'
 import type { Game, GameEvent } from '@/types'
 
@@ -15,7 +16,7 @@ export function formatForDiscord(event: GameEvent, game: Game): string {
 > 🎮 ${game.name} · ${getEventTypeLabel(event.event_type)}
 > 📅 ${formatDateRange(event.start_at, event.end_at)} · ${formatTime(event.start_at)} UTC
 > ⏳ ${countdown}
-> 🔗 ${event.source_url ?? `${APP_URL}/${game.slug}`}
+> 🔗 ${event.source_url ? withGamerClockUtm(event.source_url, 'share_source') : `${APP_URL}/${game.slug}`}
 
 Track all ${game.name} events → ${APP_URL}/${game.slug}`
 }

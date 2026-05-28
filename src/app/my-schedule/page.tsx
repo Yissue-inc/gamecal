@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
+import { EventDetailPanel } from '@/components/calendar/EventDetailPanel'
+import { Button } from '@/components/ui/button'
 import { getWishlistIds } from '@/lib/engagement-store'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { isSupabaseConfigured } from '@/lib/mock-data'
@@ -12,6 +14,7 @@ import type { GameEvent } from '@/types'
 export default function MySchedulePage() {
   const { user, isGuest, loading } = useAuth()
   const [wishlisted, setWishlisted] = useState<GameEvent[]>([])
+  const [selectedEvent, setSelectedEvent] = useState<GameEvent | null>(null)
 
   useEffect(() => {
     async function loadWishlist() {
@@ -97,7 +100,16 @@ export default function MySchedulePage() {
             <div
               key={event.id}
               data-testid={`wishlist-item-${event.id}`}
-              className="grid grid-cols-[80px_1fr] gap-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedEvent(event)}
+              onKeyDown={(keyboardEvent) => {
+                if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                  keyboardEvent.preventDefault()
+                  setSelectedEvent(event)
+                }
+              }}
+              className="grid w-full grid-cols-[80px_1fr] gap-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 text-left transition-colors hover:border-indigo-500/70 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <div
                 className="h-20 overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 bg-cover bg-center"
@@ -118,12 +130,32 @@ export default function MySchedulePage() {
                     {getEventFallbackDescription(event, event.game)}
                   </div>
                 )}
-                <div className="mt-2 text-xs text-zinc-500">{event.start_at.slice(0, 10)}</div>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <div className="text-xs text-zinc-500">{event.start_at.slice(0, 10)}</div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 border-zinc-700 px-3 text-xs"
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation()
+                      setSelectedEvent(event)
+                    }}
+                  >
+                    View event card
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </main>
+      <EventDetailPanel
+        event={selectedEvent}
+        game={selectedEvent?.game ?? null}
+        isOpen={Boolean(selectedEvent)}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   )
 }

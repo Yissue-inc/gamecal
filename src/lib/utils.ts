@@ -24,6 +24,34 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
+
+export function withGamerClockUtm(
+  href: string | undefined | null,
+  campaign = 'outbound'
+): string {
+  if (!href) return ''
+  if (/^(#|mailto:|tel:|data:|blob:|javascript:)/i.test(href)) return href
+
+  try {
+    const base =
+      typeof window !== 'undefined' && window.location?.href
+        ? window.location.href
+        : APP_URL
+    const url = new URL(href, base)
+    const appOrigin = new URL(base).origin
+
+    if (url.origin === appOrigin) return href
+
+    url.searchParams.set('utm_source', 'gamerclock')
+    url.searchParams.set('utm_medium', 'referral')
+    url.searchParams.set('utm_campaign', campaign)
+    return url.toString()
+  } catch {
+    return href
+  }
+}
+
 export function getEventTypeLabel(type: EventType): string {
   const labels: Record<EventType, string> = {
     weekly_reset: 'Weekly Reset',

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getDaysUntil, getReleaseHeroColor } from '@/lib/utils'
+import { getDaysUntil, getReleaseHeroColor, withGamerClockUtm } from '@/lib/utils'
 import type { NewRelease } from '@/types'
 
 export default function NewReleasesPage() {
@@ -104,7 +104,13 @@ function HeroReleaseCard({ release }: { release: NewRelease }) {
         <div className="mt-6 flex gap-3">
           {release.steam_url && (
             <Button data-testid="hero-steam-btn" asChild>
-              <a href={release.steam_url} target="_blank" rel="noopener noreferrer">Wishlist on Steam</a>
+              <a
+                href={withGamerClockUtm(release.steam_url, 'new_release_source')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Wishlist on Steam
+              </a>
             </Button>
           )}
           <Button variant="outline" asChild>
@@ -161,12 +167,24 @@ function ReleaseCard({ release, featured = false }: { release: NewRelease; featu
         <div className="flex flex-wrap gap-2">
           {release.steam_url && (
             <Button size="sm" variant="outline" asChild>
-              <a href={release.steam_url} target="_blank" rel="noopener noreferrer">Steam</a>
+              <a
+                href={withGamerClockUtm(release.steam_url, 'new_release_source')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Steam
+              </a>
             </Button>
           )}
           {release.nintendo_url && (
             <Button size="sm" variant="outline" asChild>
-              <a href={release.nintendo_url} target="_blank" rel="noopener noreferrer">Nintendo</a>
+              <a
+                href={withGamerClockUtm(release.nintendo_url, 'new_release_source')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Nintendo
+              </a>
             </Button>
           )}
         </div>

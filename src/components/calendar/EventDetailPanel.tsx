@@ -15,6 +15,7 @@ import {
   getGamerCountdown,
   getEventTypeLabel,
   getImportanceEmoji,
+  withGamerClockUtm,
 } from '@/lib/utils'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { getTrackingCount } from '@/lib/push'
@@ -113,7 +114,12 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
 
         {event.source_url && (
           <Button variant="outline" className="w-full border-zinc-700" asChild>
-            <a href={event.source_url} data-testid="official-source-link" target="_blank" rel="noopener noreferrer">
+            <a
+              href={withGamerClockUtm(event.source_url, 'official_source')}
+              data-testid="official-source-link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <ExternalLink className="mr-2 h-4 w-4" />
               Official Source
             </a>
