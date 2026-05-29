@@ -103,6 +103,12 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
     }
   }, [authLoading, introSettings.show_signup_onboarding, isGuest, user])
 
+  useEffect(() => {
+    if (!authLoading && user) {
+      setAuthModalOpen(false)
+    }
+  }, [authLoading, user])
+
   const featuredEvent = useMemo(() => {
     const hero =
       events.find((e) => e.importance === 'critical' && e.game) ??

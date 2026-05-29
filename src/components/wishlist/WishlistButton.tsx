@@ -64,6 +64,10 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
           const next = toggleWishlistLocal(eventId)
           setIsWishlisted(next)
           window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
+          if (next && !wasWishlisted) {
+            trackWishlistAdded(eventId, gameSlug)
+            toast.success('Saved locally. Cloud wishlist sync needs attention.', { icon: '🤓' })
+          }
         }
       } else {
         const next = toggleWishlistLocal(eventId)

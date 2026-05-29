@@ -68,7 +68,6 @@ export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
         return
       }
 
-      const push = await ensurePushSubscription()
       const res = await fetch('/api/reminders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,14 +75,27 @@ export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
       })
       if (!res.ok) throw new Error('Reminder save failed')
 
+      let push: Awaited<ReturnType<typeof ensurePushSubscription>>
+      try {
+        push = await ensurePushSubscription()
+      } catch {
+        push = { ok: false, reason: 'push-subscribe-failed' }
+      }
+
       const next = toggleReminderLocal(eventId, offsetMin, eventStartAt)
       setActiveOffsets(Array.from(new Set([...optimistic, ...next])))
       trackReminderSet(eventId, offsetMin)
-      toast.success(
-        push.ok
-          ? 'Reminder set. CAL will notify this browser.'
-          : 'Reminder saved. Browser push needs notification permission or VAPID keys.'
-      )
+      if (push.ok) {
+        toast.success('Reminder set. CAL will notify this browser.')
+      } else {
+        const reason =
+          push.reason === 'permission-denied'
+            ? 'notification permission was not granted'
+            : push.reason === 'missing-vapid-public-key'
+              ? 'production push keys are not configured'
+              : 'browser push is not available yet'
+        toast.success(`Reminder saved. Push is pending because ${reason}.`)
+      }
     } catch {
       setActiveOffsets(activeOffsets)
       toast.error('Could not update reminder. Please try again.')
