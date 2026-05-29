@@ -394,7 +394,7 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
       {phase.progress && (
         <div className="fixed bottom-[5.25rem] left-1/2 z-[230] h-0.5 w-[120px] -translate-x-1/2 overflow-hidden rounded bg-white/15">
           <div
-            className="h-full bg-amber-500 transition-all duration-[1800ms] ease-linear"
+            className="h-full bg-amber-500 transition-all [transition-duration:1800ms] ease-linear"
             style={{ width: phase.progress ? '100%' : '0%' }}
           />
         </div>

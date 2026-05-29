@@ -1,6 +1,5 @@
 'use client'
 
-import { useReleases } from '@/hooks/useReleases'
 import type { Game, GameEvent, NewRelease } from '@/types'
 import {
   getEventTypeIcon,
@@ -152,14 +151,15 @@ function ReleaseHighlightCard({
 
 export function WeeklyHighlights({
   events,
+  releases,
   onEventClick,
   onReleaseClick,
 }: {
   events: GameEvent[]
+  releases: NewRelease[]
   onEventClick: (event: GameEvent, game: Game) => void
   onReleaseClick?: (release: NewRelease) => void
 }) {
-  const { releases } = useReleases()
   const eventLimit = releases.length > 0 ? 4 : 8
   const highlights = events
     .filter((e) => e.game && (isThisWeek(e.start_at) || new Date(e.start_at) > new Date()))

@@ -9,7 +9,6 @@ import type { DateClickArg } from '@fullcalendar/interaction'
 import { format } from 'date-fns'
 import { useEvents } from '@/hooks/useEvents'
 import { usePreferences } from '@/hooks/usePreferences'
-import { useReleases } from '@/hooks/useReleases'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { releaseMatchesPlatforms } from '@/lib/release-platforms'
 import {
@@ -37,6 +36,7 @@ interface GameCalendarProps {
   onReleaseClick: (release: NewRelease) => void
   onDatesChange: (start: Date, end: Date, title: string) => void
   selectedReleasePlatforms?: string[]
+  releases: NewRelease[]
   calendarRef?: React.RefObject<FullCalendar>
 }
 
@@ -97,12 +97,12 @@ export function GameCalendar({
   onReleaseClick,
   onDatesChange,
   selectedReleasePlatforms = [],
+  releases,
   calendarRef,
 }: GameCalendarProps) {
   const internalRef = useRef<FullCalendar>(null)
   const ref = calendarRef ?? internalRef
   const { preferences } = usePreferences()
-  const { releases } = useReleases()
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' })
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
   const shouldCenterTodayRef = useRef(true)

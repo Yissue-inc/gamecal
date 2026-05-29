@@ -246,6 +246,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <WeeklyHighlights
               events={highlightEvents}
+              releases={releases}
               onEventClick={handleEventClick}
               onReleaseClick={handleReleaseClick}
             />
@@ -261,6 +262,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
                 onReleaseClick={handleReleaseClick}
                 onDatesChange={handleDatesChange}
                 selectedReleasePlatforms={selectedReleasePlatforms}
+                releases={releases}
               />
               <EventDetailPanel
                 event={selectedEvent}
