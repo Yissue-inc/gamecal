@@ -119,9 +119,9 @@ export function GameCalendar({
   }, [releases, selectedReleasePlatforms])
 
   const releasesByDate = useMemo(() => {
-    const map: Record<string, NewRelease> = {}
+    const map: Record<string, NewRelease[]> = {}
     for (const release of visibleReleases) {
-      map[release.release_date] = release
+      map[release.release_date] = [...(map[release.release_date] ?? []), release]
     }
     return map
   }, [visibleReleases])
@@ -162,9 +162,17 @@ export function GameCalendar({
       })
   }, [events, selectedDateKey, selectedGames, preferences.timezone])
 
+  const selectedDateReleases = useMemo(() => {
+    if (!selectedDateKey) return []
+    return releasesByDate[selectedDateKey] ?? []
+  }, [releasesByDate, selectedDateKey])
+  const selectedDateReleasePreview = selectedDateReleases.slice(0, 10)
+
   const mountReleaseArt = useCallback(
-    (cell: HTMLElement, release: NewRelease) => {
+    (cell: HTMLElement, releasesForDay: NewRelease[]) => {
       if (cell.querySelector('.release-cell-art')) return
+      const release = releasesForDay[0]
+      if (!release) return
 
       const days = getDaysUntil(release.release_date)
       const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
@@ -183,6 +191,7 @@ export function GameCalendar({
         <span class="release-cell-dday">${dday}</span>
         <span class="release-cell-title">NEW / ${release.title}</span>
         ${release.developer ? `<span class="release-cell-dev">${release.developer}</span>` : ''}
+        ${releasesForDay.length > 1 ? `<span class="release-cell-more">+${releasesForDay.length - 1} more</span>` : ''}
       `
       art.addEventListener('click', (e) => {
         e.stopPropagation()
@@ -245,13 +254,13 @@ export function GameCalendar({
   }, [selectedDateKey])
 
   useEffect(() => {
-    if (!visibleReleases.length) return
     document.querySelectorAll('.gamecal-calendar .fc-daygrid-day').forEach((node) => {
       const cell = node as HTMLElement
+      cell.querySelectorAll('.release-cell-art').forEach((element) => element.remove())
       const dateKey = cell.getAttribute('data-date')
       if (!dateKey) return
-      const release = releasesByDate[dateKey]
-      if (release) mountReleaseArt(cell, release)
+      const releasesForDay = releasesByDate[dateKey]
+      if (releasesForDay?.length) mountReleaseArt(cell, releasesForDay)
     })
   }, [visibleReleases, releasesByDate, mountReleaseArt])
 
@@ -337,9 +346,9 @@ export function GameCalendar({
               }
               setSelectedDateKey(dateKey)
             })
-            const release = releasesByDate[dateKey]
-            if (release) {
-              mountReleaseArt(info.el, release)
+            const releasesForDay = releasesByDate[dateKey]
+            if (releasesForDay?.length) {
+              mountReleaseArt(info.el, releasesForDay)
             }
           }}
         />
@@ -356,7 +365,7 @@ export function GameCalendar({
                 {formatSelectedDate(selectedDateKey)}
               </h3>
               <p className="mt-1 text-xs text-zinc-500">
-                {selectedDateEvents.length} event{selectedDateEvents.length === 1 ? '' : 's'}
+                {selectedDateEvents.length + selectedDateReleases.length} item{selectedDateEvents.length + selectedDateReleases.length === 1 ? '' : 's'}
               </p>
             </div>
             <button
@@ -369,8 +378,57 @@ export function GameCalendar({
             </button>
           </div>
           <div className="max-h-60 overflow-y-auto pr-1 md:max-h-[calc(34vh-76px)]">
-            {selectedDateEvents.length > 0 ? (
+            {selectedDateEvents.length + selectedDateReleases.length > 0 ? (
               <div className="divide-y divide-zinc-800">
+                {selectedDateReleasePreview.map((release) => {
+                  const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
+                  return (
+                    <button
+                      key={release.id}
+                      type="button"
+                      data-testid={`selected-release-${release.id}`}
+                      onClick={() => onReleaseClick(release)}
+                      className="grid w-full grid-cols-[4px_56px_1fr_auto] gap-3 py-3 text-left transition-colors hover:bg-indigo-500/10 sm:grid-cols-[4px_64px_1fr_auto] sm:gap-5 md:py-4"
+                    >
+                      <span className="mt-1 h-full rounded-full bg-indigo-400" aria-hidden="true" />
+                      <span
+                        className="h-14 w-14 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 bg-cover bg-center sm:h-16 sm:w-16"
+                        style={{
+                          backgroundImage: release.image_url
+                            ? `linear-gradient(to top, rgba(0,0,0,0.45), rgba(0,0,0,0.05)), url(${release.image_url})`
+                            : `linear-gradient(135deg, ${heroColor}66, #18181b)`,
+                        }}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0">
+                        <span className="mb-1 flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
+                            NEW
+                          </span>
+                          {release.platform.slice(0, 3).map((platform) => (
+                            <span key={platform} className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-zinc-400">
+                              {platform}
+                            </span>
+                          ))}
+                        </span>
+                        <span className="line-clamp-2 text-sm font-bold leading-tight text-zinc-100">
+                          {release.title}
+                        </span>
+                        <span className="mt-1 line-clamp-1 block text-xs text-zinc-500">
+                          {release.description || (release.developer ? `${release.developer} upcoming release.` : 'Upcoming game release tracked by GamerClock.')}
+                        </span>
+                      </span>
+                      <span className="whitespace-nowrap pt-8 text-sm font-semibold text-zinc-300">
+                        NEW
+                      </span>
+                    </button>
+                  )
+                })}
+                {selectedDateReleases.length > selectedDateReleasePreview.length && (
+                  <div className="px-3 py-3 text-xs text-zinc-500 md:px-4">
+                    Showing top {selectedDateReleasePreview.length} new releases. View all in New Releases.
+                  </div>
+                )}
                 {selectedDateEvents.map((event) => (
                   (() => {
                     const reward = getRewardSignals(event, event.game)
@@ -600,6 +658,16 @@ export function GameCalendar({
         .gamecal-calendar .release-cell-dev {
           font-size: 8px;
           color: rgba(255, 255, 255, 0.6);
+        }
+        .gamecal-calendar .release-cell-more {
+          margin-top: 2px;
+          width: max-content;
+          border-radius: 999px;
+          background: rgba(99, 102, 241, 0.22);
+          padding: 1px 5px;
+          font-size: 8px;
+          font-weight: 700;
+          color: rgba(199, 210, 254, 0.9);
         }
         .gamecal-calendar .fc-daygrid-day:not(.fc-day-today) .guest-blurred-event {
           pointer-events: auto;

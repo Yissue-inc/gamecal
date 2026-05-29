@@ -1,7 +1,7 @@
 'use client'
 
 import { usePreferences } from '@/hooks/usePreferences'
-import type { GameEvent } from '@/types'
+import type { GameEvent, NewRelease } from '@/types'
 import {
   formatShortTime,
   getTimeUntilEnd,
@@ -11,6 +11,7 @@ import {
   isWithinDays,
 } from '@/lib/calendar-dates'
 import { getEventTypeIcon } from '@/lib/utils'
+import { getReleaseHeroColor } from '@/lib/utils'
 import { formatDateKeyInTimezone } from '@/lib/timezone'
 import {
   getRewardBadgeLabel,
@@ -81,12 +82,65 @@ function UpcomingItem({
   )
 }
 
+function UpcomingReleaseItem({
+  release,
+  onClick,
+}: {
+  release: NewRelease
+  onClick: () => void
+}) {
+  const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
+
+  return (
+    <button
+      type="button"
+      data-testid={`upcoming-release-${release.id}`}
+      onClick={onClick}
+      className="group w-full border-b border-indigo-500/10 px-4 py-2.5 text-left transition-colors hover:bg-indigo-500/10"
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-400"
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-300">
+            NEW / {release.platform.slice(0, 2).join(' · ') || 'Game'}
+          </div>
+          <div className="line-clamp-2 text-xs font-semibold leading-tight text-zinc-200 group-hover:text-white">
+            {release.title}
+          </div>
+          {release.developer && (
+            <div className="mt-0.5 truncate text-[10px] text-zinc-500">{release.developer}</div>
+          )}
+          {release.description && (
+            <div className="mt-1 line-clamp-1 text-[10px] text-zinc-600">{release.description}</div>
+          )}
+        </div>
+        <span
+          className="mt-1 h-8 w-8 shrink-0 rounded border border-zinc-800 bg-cover bg-center"
+          style={{
+            backgroundImage: release.image_url
+              ? `linear-gradient(to top, rgba(0,0,0,0.4), transparent), url(${release.image_url})`
+              : `linear-gradient(135deg, ${heroColor}88, #18181b)`,
+          }}
+          aria-hidden="true"
+        />
+      </div>
+    </button>
+  )
+}
+
 export function UpcomingFeed({
   events,
   onEventClick,
+  releases = [],
+  onReleaseClick,
 }: {
   events: GameEvent[]
   onEventClick: (event: GameEvent) => void
+  releases?: NewRelease[]
+  onReleaseClick?: (release: NewRelease) => void
 }) {
   const { preferences } = usePreferences()
   const upcoming = events
@@ -100,6 +154,29 @@ export function UpcomingFeed({
     })
 
   const groups = groupEventsByDay(upcoming, preferences.timezone)
+  const now = new Date()
+  const todayKey = formatDateKeyInTimezone(now.toISOString(), preferences.timezone)
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowKey = formatDateKeyInTimezone(tomorrow.toISOString(), preferences.timezone)
+  const releaseUpcoming = releases
+    .filter((release) => isWithinDays(`${release.release_date}T00:00:00Z`, 14))
+  const releaseGroups = releaseUpcoming.reduce<Record<string, NewRelease[]>>((acc, release) => {
+      const dateIso = `${release.release_date}T00:00:00Z`
+      const releaseKey = formatDateKeyInTimezone(dateIso, preferences.timezone)
+      const day = releaseKey === todayKey
+        ? 'TODAY'
+        : releaseKey === tomorrowKey
+          ? 'TOMORROW'
+          : new Date(dateIso).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: preferences.timezone,
+      }).toUpperCase()
+      acc[day] = [...(acc[day] ?? []), release]
+      return acc
+    }, {})
+  const groupLabels = Array.from(new Set([...Object.keys(groups), ...Object.keys(releaseGroups)]))
 
   return (
     <aside
@@ -111,12 +188,12 @@ export function UpcomingFeed({
         <span className="text-sm text-yellow-400">⚡</span>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {Object.entries(groups).map(([day, dayEvents]) => (
+        {groupLabels.map((day) => (
           <div key={day}>
             <div className="sticky top-0 border-b border-zinc-800/50 bg-[#111111] px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">
               {day}
             </div>
-            {dayEvents.map((event) => (
+            {(groups[day] ?? []).map((event) => (
               <UpcomingItem
                 key={event.id}
                 event={event}
@@ -125,9 +202,16 @@ export function UpcomingFeed({
                 timeFormat={preferences.time_format}
               />
             ))}
+            {(releaseGroups[day] ?? []).map((release) => (
+              <UpcomingReleaseItem
+                key={release.id}
+                release={release}
+                onClick={() => onReleaseClick?.(release)}
+              />
+            ))}
           </div>
         ))}
-        {upcoming.length === 0 && (
+        {upcoming.length === 0 && releaseUpcoming.length === 0 && (
           <p className="p-4 text-xs text-zinc-500">No upcoming events in the next 14 days.</p>
         )}
       </div>

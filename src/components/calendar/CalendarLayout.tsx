@@ -22,7 +22,7 @@ import { SignupOnboarding, shouldShowOnboarding } from '@/components/onboarding/
 import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
 import { useReleases } from '@/hooks/useReleases'
-import { RELEASE_PLATFORM_ALL, countReleasePlatforms } from '@/lib/release-platforms'
+import { RELEASE_PLATFORM_ALL, countReleasePlatforms, releaseMatchesPlatforms } from '@/lib/release-platforms'
 import { getEventTypeLabel } from '@/lib/utils'
 import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 import { usePreferences } from '@/hooks/usePreferences'
@@ -58,6 +58,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const { events: highlightEvents } = useLayoutEvents([])
   const { releases } = useReleases()
   const releasePlatformCounts = useMemo(() => countReleasePlatforms(releases), [releases])
+  const selectedReleases = useMemo(
+    () => releases.filter((release) => releaseMatchesPlatforms(release, selectedReleasePlatforms)),
+    [releases, selectedReleasePlatforms]
+  )
   const shouldPromptAuth = !authLoading && isGuest
 
   useEffect(() => {
@@ -262,7 +266,12 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
             </div>
           </div>
           <div className="hidden md:flex">
-            <UpcomingFeed events={events} onEventClick={handleFeedEventClick} />
+            <UpcomingFeed
+              events={events}
+              releases={selectedReleases}
+              onEventClick={handleFeedEventClick}
+              onReleaseClick={handleReleaseClick}
+            />
           </div>
         </div>
       </div>
