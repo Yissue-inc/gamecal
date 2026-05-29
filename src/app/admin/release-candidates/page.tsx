@@ -201,7 +201,13 @@ export default function ReleaseCandidatesPage() {
     const data = await res.json()
 
     if (res.ok) {
-      toast.success(action === 'approve' ? 'Release published' : 'Candidate rejected')
+      toast.success(action === 'approve' ? 'Release published' : 'Candidate rejected', {
+        description: action === 'approve'
+          ? data.merged
+            ? 'Merged into an existing New Release.'
+            : 'Added to New Releases and visible on calendar surfaces.'
+          : undefined,
+      })
       setCandidates((prev) => prev.filter((item) => item.id !== candidate.id))
     } else {
       toast.error(data.error ?? `${action} failed`)
@@ -216,6 +222,17 @@ export default function ReleaseCandidatesPage() {
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Official sources create candidates here first. Approving a row publishes it to New Releases.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <Link href="/admin/releases" className="rounded-full border border-zinc-800 px-3 py-1 text-zinc-300 hover:border-indigo-500 hover:text-white">
+              Check approved releases
+            </Link>
+            <Link href="/" className="rounded-full border border-zinc-800 px-3 py-1 text-zinc-300 hover:border-indigo-500 hover:text-white">
+              Verify calendar surface
+            </Link>
+            <Link href="/new-releases" className="rounded-full border border-zinc-800 px-3 py-1 text-zinc-300 hover:border-indigo-500 hover:text-white">
+              Open public New Releases
+            </Link>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>

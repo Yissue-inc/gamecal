@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { adminFetch } from '@/lib/admin-fetch'
+import { withGamerClockUtm } from '@/lib/utils'
 import type { NewRelease } from '@/types'
 import { toast } from 'sonner'
 
@@ -43,13 +44,30 @@ export default function AdminReleasesPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
-      <h1 className="mb-2 text-2xl font-bold">New Releases</h1>
-      <p className="mb-6 text-sm text-muted-foreground">
-        Featured: {featuredCount}/3 max · {releases.length} total
-      </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">New Releases</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Featured: {featuredCount}/3 max · {releases.length} total · Published {releases.filter((r) => r.is_published !== false).length}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={load}>Refresh</Button>
+          <Button variant="outline" asChild>
+            <a href="/" target="_blank" rel="noopener noreferrer">Verify Calendar</a>
+          </Button>
+          <Button variant="outline" asChild>
+            <a href="/new-releases" target="_blank" rel="noopener noreferrer">Public Page</a>
+          </Button>
+        </div>
+      </div>
 
       {loading ? (
         <p className="text-muted-foreground">Loading…</p>
+      ) : releases.length === 0 ? (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">
+          No approved New Releases yet. Approve candidates from the Release Candidate Queue.
+        </div>
       ) : (
         <div className="space-y-4">
           {releases.map((release) => (
@@ -61,7 +79,17 @@ export default function AdminReleasesPage() {
               }}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
+                <div className="flex min-w-0 gap-4">
+                  <div
+                    className="hidden h-24 w-40 shrink-0 overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 bg-cover bg-center sm:block"
+                    style={{
+                      backgroundImage: release.image_url
+                        ? `linear-gradient(to top, rgba(0,0,0,0.45), rgba(0,0,0,0.05)), url(${release.image_url})`
+                        : `linear-gradient(135deg, ${release.hero_color ?? '#1b2838'}66, #18181b)`,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{release.title}</span>
                     {release.is_featured && <Badge>Featured</Badge>}
@@ -72,6 +100,27 @@ export default function AdminReleasesPage() {
                   <p className="text-sm text-muted-foreground">
                     {release.developer} · {release.release_date}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {release.platform.map((platform) => (
+                      <Badge key={platform} variant="outline" className="border-zinc-700 text-zinc-300">
+                        {platform === 'PS5' ? 'PlayStation' : platform === 'Switch' ? 'Nintendo Switch' : platform}
+                      </Badge>
+                    ))}
+                  </div>
+                  {release.description && (
+                    <p className="mt-2 line-clamp-2 max-w-2xl text-xs text-zinc-500">{release.description}</p>
+                  )}
+                  {(release.steam_url || release.nintendo_url) && (
+                    <a
+                      href={withGamerClockUtm(release.steam_url || release.nintendo_url, 'admin_release_source')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 block truncate text-xs text-indigo-300 hover:text-indigo-200"
+                    >
+                      Source
+                    </a>
+                  )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 text-xs">

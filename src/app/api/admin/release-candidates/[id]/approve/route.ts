@@ -11,9 +11,12 @@ function inferHeroColor(platforms: string[]): string {
 }
 
 function normalizePlatforms(platforms: string[]): string[] {
-  const set = new Set(platforms)
-  if (set.has('PS5')) set.add('Xbox')
-  return Array.from(set)
+  const order = ['PC', 'PS5', 'Xbox', 'Switch', 'Mobile']
+  return Array.from(new Set(platforms)).sort((a, b) => {
+    const left = order.includes(a) ? order.indexOf(a) : order.length
+    const right = order.includes(b) ? order.indexOf(b) : order.length
+    return left - right || a.localeCompare(b)
+  })
 }
 
 export async function POST(
@@ -60,11 +63,41 @@ export async function POST(
     is_published: true,
   }
 
-  const { data: release, error: releaseError } = await admin
+  const { data: existingRelease, error: existingError } = await admin
     .from('new_releases')
-    .insert(releasePayload)
-    .select()
-    .single()
+    .select('*')
+    .eq('title', candidate.title)
+    .eq('release_date', candidate.release_date)
+    .maybeSingle()
+
+  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 })
+
+  const releaseRequest = existingRelease
+    ? admin
+        .from('new_releases')
+        .update({
+          developer: existingRelease.developer || releasePayload.developer,
+          platform: normalizePlatforms([
+            ...((existingRelease.platform as string[] | null) ?? []),
+            ...releasePayload.platform,
+          ]),
+          description: existingRelease.description || releasePayload.description,
+          image_url: existingRelease.image_url || releasePayload.image_url,
+          hero_color: existingRelease.hero_color || releasePayload.hero_color,
+          steam_url: existingRelease.steam_url || releasePayload.steam_url,
+          nintendo_url: existingRelease.nintendo_url || releasePayload.nintendo_url,
+          is_published: true,
+        })
+        .eq('id', existingRelease.id)
+        .select()
+        .single()
+    : admin
+        .from('new_releases')
+        .insert(releasePayload)
+        .select()
+        .single()
+
+  const { data: release, error: releaseError } = await releaseRequest
 
   if (releaseError) return NextResponse.json({ error: releaseError.message }, { status: 500 })
 
@@ -81,5 +114,5 @@ export async function POST(
     .single()
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
-  return NextResponse.json({ candidate: updated, release })
+  return NextResponse.json({ candidate: updated, release, merged: Boolean(existingRelease) })
 }
