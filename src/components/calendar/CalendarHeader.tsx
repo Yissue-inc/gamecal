@@ -58,14 +58,14 @@ export function CalendarHeader({
 
   return (
     <header data-testid="calendar-header" className="border-b border-zinc-800 bg-[#0f0f0f]">
-      <div className="hidden h-14 items-center justify-between px-4 md:flex">
-        <div className="flex items-center gap-4">
+      <div className="hidden h-14 grid-cols-[minmax(140px,1fr)_auto_minmax(180px,1fr)] items-center gap-3 px-4 md:grid">
+        <div className="flex min-w-0 items-center gap-4">
           <Link href="/" data-testid="logo-link" className="font-rajdhani text-xl font-bold tracking-tight">
             Gamer<span className="text-primary">Clock</span>
           </Link>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center justify-center gap-2">
           <Button data-testid="nav-today" variant="outline" size="sm" onClick={onToday} className="border-zinc-700">
             Today
           </Button>
@@ -75,14 +75,14 @@ export function CalendarHeader({
           <Button data-testid="nav-next" variant="ghost" size="icon" onClick={onNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <span data-testid="calendar-month-title" className="font-rajdhani min-w-[140px] text-lg font-semibold">{currentTitle}</span>
+          <span data-testid="calendar-month-title" className="font-rajdhani min-w-[120px] text-lg font-semibold">{currentTitle}</span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center justify-end gap-2 overflow-visible pr-1">
           <Link
             href="/settings"
             data-testid="timezone-label"
-            className="hidden text-[10px] text-zinc-500 transition hover:text-zinc-300 sm:inline"
+            className="hidden shrink truncate text-[10px] text-zinc-500 transition hover:text-zinc-300 xl:inline"
             title={`Events shown in ${timezone}`}
           >
             🌍 {formatTimezoneLabel(timezone)}
@@ -92,11 +92,11 @@ export function CalendarHeader({
             <Link href="/new-releases" data-testid="new-releases-link">New Releases</Link>
           </Button>
           {shouldShowSignIn ? (
-            <Button data-testid="signin-button" size="sm" onClick={onSignIn}>
+            <Button data-testid="signin-button" size="sm" className="shrink-0" onClick={onSignIn}>
               Sign In
             </Button>
           ) : authLoading ? (
-            <div className="h-8 w-8 rounded-full bg-zinc-800" aria-label="Loading account" />
+            <div className="h-8 w-8 shrink-0 rounded-full bg-zinc-800" aria-label="Loading account" />
           ) : (
             <UserMenu userEmail={user?.email} onSignOut={signOut} />
           )}
@@ -181,7 +181,7 @@ function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button data-testid="user-menu" variant="ghost" size="icon" className={mobile ? 'h-9 w-9 rounded-full' : 'rounded-full'}>
+        <Button data-testid="user-menu" variant="ghost" size="icon" className={mobile ? 'h-9 w-9 shrink-0 rounded-full' : 'shrink-0 rounded-full'}>
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-xs">
               {userEmail?.[0]?.toUpperCase() ?? 'U'}

@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { toast } from 'sonner'
-import { getCalLoginPrompt } from '@/lib/cal-messages'
 
 interface CalEventBridgeProps {
   onPromptLogin: () => void
@@ -10,9 +8,7 @@ interface CalEventBridgeProps {
 
 export function CalEventBridge({ onPromptLogin }: CalEventBridgeProps) {
   useEffect(() => {
-    const loginHandler = (e: Event) => {
-      const reason = ((e as CustomEvent).detail?.reason ?? 'wishlist') as 'wishlist' | 'reminder' | 'checkin'
-      toast.info(getCalLoginPrompt(reason), { icon: '📋', duration: 5000 })
+    const loginHandler = () => {
       onPromptLogin()
     }
     window.addEventListener('cal:prompt-login', loginHandler)
