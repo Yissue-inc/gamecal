@@ -1,7 +1,9 @@
 'use client'
 
 const WISHLIST_KEY = 'gamecal-wishlist'
+const RELEASE_WISHLIST_KEY = 'gamecal-release-wishlist'
 const REMINDERS_KEY = 'gamecal-reminders'
+const RELEASE_REMINDERS_KEY = 'gamecal-release-reminders'
 const ATTENDANCE_KEY = 'gamecal-attendance'
 const BADGES_KEY = 'gamecal-badges'
 const GP_KEY = 'gamecal-gp'
@@ -58,6 +60,36 @@ export function isWishlistedLocal(eventId: string): boolean {
   return getWishlistIds().includes(eventId)
 }
 
+export function getReleaseWishlistIds(): string[] {
+  return readJson<string[]>(RELEASE_WISHLIST_KEY, [])
+}
+
+export function toggleReleaseWishlistLocal(releaseId: string): boolean {
+  const ids = getReleaseWishlistIds()
+  const next = ids.includes(releaseId) ? ids.filter((id) => id !== releaseId) : [...ids, releaseId]
+  writeJson(RELEASE_WISHLIST_KEY, next)
+  if (next.includes(releaseId)) {
+    unlockBadgeLocal('special_cal_whisperer')
+  }
+  return next.includes(releaseId)
+}
+
+export function setReleaseWishlistLocal(releaseId: string, wishlisted: boolean): boolean {
+  const ids = getReleaseWishlistIds()
+  const next = wishlisted
+    ? Array.from(new Set([...ids, releaseId]))
+    : ids.filter((id) => id !== releaseId)
+  writeJson(RELEASE_WISHLIST_KEY, next)
+  if (wishlisted) {
+    unlockBadgeLocal('special_cal_whisperer')
+  }
+  return wishlisted
+}
+
+export function isReleaseWishlistedLocal(releaseId: string): boolean {
+  return getReleaseWishlistIds().includes(releaseId)
+}
+
 export function getRemindersLocal(eventId: string): number[] {
   const all = readJson<Record<string, number[]>>(REMINDERS_KEY, {})
   return all[eventId] ?? []
@@ -74,6 +106,26 @@ export function toggleReminderLocal(eventId: string, offsetMin: number, eventSta
 
   if (typeof window !== 'undefined' && next.includes(offsetMin)) {
     scheduleLocalReminder(eventId, offsetMin, eventStartAt)
+  }
+  return next
+}
+
+export function getReleaseRemindersLocal(releaseId: string): number[] {
+  const all = readJson<Record<string, number[]>>(RELEASE_REMINDERS_KEY, {})
+  return all[releaseId] ?? []
+}
+
+export function toggleReleaseReminderLocal(releaseId: string, offsetMin: number, releaseAt: string): number[] {
+  const all = readJson<Record<string, number[]>>(RELEASE_REMINDERS_KEY, {})
+  const current = all[releaseId] ?? []
+  const next = current.includes(offsetMin)
+    ? current.filter((o) => o !== offsetMin)
+    : [...current, offsetMin]
+  all[releaseId] = next
+  writeJson(RELEASE_REMINDERS_KEY, all)
+
+  if (typeof window !== 'undefined' && next.includes(offsetMin)) {
+    scheduleLocalReminder(releaseId, offsetMin, releaseAt)
   }
   return next
 }
@@ -151,7 +203,8 @@ function checkBadgeUnlocks(attendance: AttendanceState) {
   if (streak >= 7) unlockBadgeLocal('streak_7')
   if (streak >= 30) unlockBadgeLocal('streak_30')
   const wishlistCount = getWishlistIds().length
-  if (wishlistCount >= 1) unlockBadgeLocal('special_cal_whisperer')
+  const releaseWishlistCount = getReleaseWishlistIds().length
+  if (wishlistCount + releaseWishlistCount >= 1) unlockBadgeLocal('special_cal_whisperer')
 }
 
 export function addGpLocal(amount: number) {

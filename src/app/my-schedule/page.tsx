@@ -5,20 +5,25 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
 import { EventDetailPanel } from '@/components/calendar/EventDetailPanel'
+import { ReleaseDetailPanel } from '@/components/calendar/ReleaseDetailPanel'
 import { Button } from '@/components/ui/button'
-import { getWishlistIds } from '@/lib/engagement-store'
+import { getReleaseHeroColor } from '@/lib/utils'
+import { getReleaseWishlistIds, getWishlistIds } from '@/lib/engagement-store'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { isSupabaseConfigured } from '@/lib/mock-data'
-import type { GameEvent } from '@/types'
+import type { GameEvent, NewRelease } from '@/types'
 
 export default function MySchedulePage() {
   const { user, isGuest, loading } = useAuth()
   const [wishlisted, setWishlisted] = useState<GameEvent[]>([])
+  const [wishlistedReleases, setWishlistedReleases] = useState<NewRelease[]>([])
   const [selectedEvent, setSelectedEvent] = useState<GameEvent | null>(null)
+  const [selectedRelease, setSelectedRelease] = useState<NewRelease | null>(null)
 
   useEffect(() => {
     async function loadWishlist() {
       const localIds = getWishlistIds()
+      const localReleaseIds = getReleaseWishlistIds()
 
       async function loadLocalEvents(ids: string[]) {
         const start = new Date()
@@ -34,22 +39,39 @@ export default function MySchedulePage() {
         return (data.events ?? []).filter((event: GameEvent) => ids.includes(event.id))
       }
 
+      async function loadLocalReleases(ids: string[]) {
+        const res = await fetch('/api/new-releases')
+        const data = await res.json()
+        return (data.releases ?? []).filter((release: NewRelease) => ids.includes(release.id))
+      }
+
       if (!isSupabaseConfigured() || !user) {
-        if (!localIds.length) {
+        if (!localIds.length && !localReleaseIds.length) {
           setWishlisted([])
+          setWishlistedReleases([])
           return
         }
         setWishlisted(await loadLocalEvents(localIds))
+        setWishlistedReleases(await loadLocalReleases(localReleaseIds))
         return
       }
 
-      const res = await fetch('/api/wishlist')
-      const data = await res.json()
-      const apiEvents = data.events ?? []
+      const [eventRes, releaseRes] = await Promise.all([
+        fetch('/api/wishlist'),
+        fetch('/api/release-wishlist'),
+      ])
+      const eventData = await eventRes.json()
+      const releaseData = releaseRes.ok ? await releaseRes.json() : { releases: [] }
+      const apiEvents = eventData.events ?? []
+      const apiReleases = releaseData.releases ?? []
       const localEvents = localIds.length ? await loadLocalEvents(localIds) : []
+      const localReleases = localReleaseIds.length ? await loadLocalReleases(localReleaseIds) : []
       const merged = new Map<string, GameEvent>()
       for (const event of [...apiEvents, ...localEvents]) merged.set(event.id, event)
       setWishlisted(Array.from(merged.values()))
+      const mergedReleases = new Map<string, NewRelease>()
+      for (const release of [...apiReleases, ...localReleases]) mergedReleases.set(release.id, release)
+      setWishlistedReleases(Array.from(mergedReleases.values()))
     }
 
     loadWishlist()
@@ -90,8 +112,8 @@ export default function MySchedulePage() {
         <div className="flex items-center gap-3 rounded-xl border border-indigo-900/50 bg-indigo-950/20 p-4">
           <CalCharacter mood="idle" />
           <p className="text-sm text-zinc-300">
-            {wishlisted.length
-              ? `${wishlisted.length} events on your wishlist.`
+            {wishlisted.length + wishlistedReleases.length
+              ? `${wishlisted.length + wishlistedReleases.length} items on your wishlist.`
               : 'No wishlisted events yet. Heart an event to add it here.'}
           </p>
         </div>
@@ -148,6 +170,54 @@ export default function MySchedulePage() {
               </div>
             </div>
           ))}
+          {wishlistedReleases.map((release) => (
+            <div
+              key={release.id}
+              data-testid={`wishlist-release-item-${release.id}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedRelease(release)}
+              onKeyDown={(keyboardEvent) => {
+                if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                  keyboardEvent.preventDefault()
+                  setSelectedRelease(release)
+                }
+              }}
+              className="grid w-full grid-cols-[80px_1fr] gap-4 rounded-lg border border-cyan-900/50 bg-cyan-950/10 p-4 text-left transition-colors hover:border-cyan-500/70 hover:bg-cyan-950/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            >
+              <div
+                className="h-20 overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 bg-cover bg-center"
+                style={{
+                  backgroundImage: release.image_url
+                    ? `linear-gradient(to top, rgba(0,0,0,0.45), rgba(0,0,0,0.05)), url(${release.image_url})`
+                    : `linear-gradient(135deg, ${release.hero_color ?? getReleaseHeroColor(release.platform)}66, #18181b)`,
+                }}
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <div className="text-xs font-medium text-cyan-300">New Release</div>
+                <div className="font-semibold text-white">{release.title}</div>
+                {release.description && (
+                  <div className="mt-1 line-clamp-2 text-xs text-zinc-500">{release.description}</div>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <div className="text-xs text-zinc-500">{release.release_date}</div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 border-zinc-700 px-3 text-xs"
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation()
+                      setSelectedRelease(release)
+                    }}
+                  >
+                    View release card
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </main>
       <EventDetailPanel
@@ -155,6 +225,11 @@ export default function MySchedulePage() {
         game={selectedEvent?.game ?? null}
         isOpen={Boolean(selectedEvent)}
         onClose={() => setSelectedEvent(null)}
+      />
+      <ReleaseDetailPanel
+        release={selectedRelease}
+        isOpen={Boolean(selectedRelease)}
+        onClose={() => setSelectedRelease(null)}
       />
     </div>
   )

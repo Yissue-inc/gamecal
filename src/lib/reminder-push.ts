@@ -16,6 +16,19 @@ interface DueReminder {
   } | null
 }
 
+interface DueReleaseReminder {
+  id: string
+  user_id: string
+  offset_min: number
+  release_id: string
+  release: {
+    id: string
+    title: string
+    release_date: string
+    platform?: string[]
+  } | null
+}
+
 export function getReminderPushConfig() {
   return {
     supabaseConfigured: isSupabaseConfigured(),
@@ -36,6 +49,10 @@ function configureWebPush() {
   return true
 }
 
+function isMissingReleaseEngagementTable(error?: { message?: string } | null) {
+  return Boolean(error?.message?.includes('release_reminders'))
+}
+
 export async function getReminderPushHealth() {
   const config = getReminderPushConfig()
 
@@ -54,26 +71,35 @@ export async function getReminderPushHealth() {
   const [
     pendingResult,
     dueResult,
+    releasePendingResult,
+    releaseDueResult,
     subscriptionResult,
     failedResult,
+    releaseFailedResult,
   ] = await Promise.all([
     admin.from('reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false),
     admin.from('reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false).lte('remind_at', now),
+    admin.from('release_reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false),
+    admin.from('release_reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false).lte('remind_at', now),
     admin.from('push_subscriptions').select('*', { count: 'exact', head: true }),
     admin.from('reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false).not('last_error', 'is', null),
+    admin.from('release_reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false).not('last_error', 'is', null),
   ])
 
   return {
     config,
-    pendingReminders: pendingResult.count ?? 0,
-    dueReminders: dueResult.count ?? 0,
+    pendingReminders: (pendingResult.count ?? 0) + (releasePendingResult.count ?? 0),
+    dueReminders: (dueResult.count ?? 0) + (releaseDueResult.count ?? 0),
     pushSubscriptions: subscriptionResult.count ?? 0,
-    failedUnsentReminders: failedResult.count ?? 0,
+    failedUnsentReminders: (failedResult.count ?? 0) + (releaseFailedResult.count ?? 0),
     error:
       pendingResult.error?.message ??
       dueResult.error?.message ??
+      (isMissingReleaseEngagementTable(releasePendingResult.error) ? null : releasePendingResult.error?.message) ??
+      (isMissingReleaseEngagementTable(releaseDueResult.error) ? null : releaseDueResult.error?.message) ??
       subscriptionResult.error?.message ??
       failedResult.error?.message ??
+      (isMissingReleaseEngagementTable(releaseFailedResult.error) ? null : releaseFailedResult.error?.message) ??
       null,
   }
 }
@@ -95,12 +121,26 @@ export async function processDueReminders() {
 
   if (error) throw new Error(error.message)
 
+  const { data: releaseReminders, error: releaseError } = await admin
+    .from('release_reminders')
+    .select('id,user_id,offset_min,release_id,release:new_releases(id,title,release_date,platform)')
+    .eq('is_sent', false)
+    .lte('remind_at', now)
+    .limit(50)
+
+  if (releaseError && !isMissingReleaseEngagementTable(releaseError)) {
+    throw new Error(releaseError.message)
+  }
+
   const due = ((reminders ?? []) as unknown as DueReminder[]).filter((item) => item.event)
+  const dueReleases = releaseError
+    ? []
+    : ((releaseReminders ?? []) as unknown as DueReleaseReminder[]).filter((item) => item.release)
   if (!pushReady) {
     return {
-      processed: due.length,
+      processed: due.length + dueReleases.length,
       sent: 0,
-      failed: due.length,
+      failed: due.length + dueReleases.length,
       message: 'VAPID keys are missing. Set NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY.',
     }
   }
@@ -154,5 +194,51 @@ export async function processDueReminders() {
     }
   }
 
-  return { processed: due.length, sent, failed }
+  for (const reminder of dueReleases) {
+    const { data: subscriptions } = await admin
+      .from('push_subscriptions')
+      .select('id,endpoint,subscription')
+      .eq('user_id', reminder.user_id)
+
+    if (!subscriptions?.length) {
+      failed++
+      await admin.from('release_reminders').update({ last_error: 'No push subscription' }).eq('id', reminder.id)
+      continue
+    }
+
+    const release = reminder.release!
+    const payload = JSON.stringify({
+      title: 'New release reminder',
+      body: `${release.title} releases on ${release.release_date}.`,
+      url: `/new-releases?release=${release.id}`,
+    })
+
+    let delivered = false
+    for (const subscription of subscriptions) {
+      try {
+        await webpush.sendNotification(subscription.subscription, payload)
+        delivered = true
+      } catch (err) {
+        const statusCode = typeof err === 'object' && err && 'statusCode' in err
+          ? Number((err as { statusCode?: number }).statusCode)
+          : 0
+        if (statusCode === 404 || statusCode === 410) {
+          await admin.from('push_subscriptions').delete().eq('id', subscription.id)
+        }
+      }
+    }
+
+    if (delivered) {
+      sent++
+      await admin
+        .from('release_reminders')
+        .update({ is_sent: true, sent_at: new Date().toISOString(), last_error: null })
+        .eq('id', reminder.id)
+    } else {
+      failed++
+      await admin.from('release_reminders').update({ last_error: 'Push delivery failed' }).eq('id', reminder.id)
+    }
+  }
+
+  return { processed: due.length + dueReleases.length, sent, failed }
 }

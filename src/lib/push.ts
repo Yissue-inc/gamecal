@@ -51,7 +51,11 @@ export async function ensurePushSubscription(): Promise<{
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return { ok: false, reason: 'permission-denied' }
 
-  const registration = await navigator.serviceWorker.ready
+  let registration = await navigator.serviceWorker.getRegistration('/')
+  if (!registration) {
+    registration = await navigator.serviceWorker.register('/sw.js')
+  }
+  await navigator.serviceWorker.ready
   const existing = await registration.pushManager.getSubscription()
   const subscription =
     existing ??

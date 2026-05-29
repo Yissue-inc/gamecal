@@ -6,6 +6,8 @@ import { X, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { ReleaseWishlistButton } from '@/components/wishlist/ReleaseWishlistButton'
+import { ReleaseReminderPicker } from '@/components/wishlist/ReleaseReminderPicker'
 import { getDaysUntil, getReleaseHeroColor, withGamerClockUtm } from '@/lib/utils'
 import type { NewRelease } from '@/types'
 
@@ -63,6 +65,10 @@ function ReleaseContent({ release, onClose }: { release: NewRelease; onClose: ()
         {release.description && (
           <p className="text-sm leading-relaxed text-zinc-400">{release.description}</p>
         )}
+        <div className="flex flex-wrap gap-2">
+          <ReleaseWishlistButton releaseId={release.id} platform={release.platform[0]} />
+        </div>
+        <ReleaseReminderPicker releaseId={release.id} releaseDate={release.release_date} />
         <div className="flex flex-wrap gap-2">
           {release.steam_url && (
             <Button size="sm" variant="outline" asChild>
