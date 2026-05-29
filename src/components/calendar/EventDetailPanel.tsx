@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { AddToCalendar } from '@/components/calendar/AddToCalendar'
 import { ShareEvent } from '@/components/calendar/ShareEvent'
+import { PartyButton } from '@/components/calendar/PartyButton'
 import { WishlistButton } from '@/components/wishlist/WishlistButton'
 import { ReminderPicker } from '@/components/wishlist/ReminderPicker'
 import {
@@ -162,6 +163,7 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </p>
         </section>
 
+        <PartyButton event={event} game={game} />
         <AddToCalendar event={event} game={game} />
         <ShareEvent event={event} game={game} />
 
