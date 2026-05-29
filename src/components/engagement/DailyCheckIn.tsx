@@ -11,6 +11,7 @@ import { isSupabaseConfigured } from '@/lib/mock-data'
 import { trackCheckinDone } from '@/lib/posthog'
 import { getCalStreakMessage } from '@/lib/cal-messages'
 import { CalCharacter } from './CalCharacter'
+import { toast } from 'sonner'
 
 function recordDragonCheckInPresence() {
   fetch('/api/dragon-presence', {
@@ -18,6 +19,13 @@ function recordDragonCheckInPresence() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ kind: 'checkin' }),
   }).catch(() => undefined)
+}
+
+function showDragonCheckInToast(streak: number) {
+  toast.success('Dragon presence increased', {
+    description: `Day ${streak} secured. Your streak is feeding today's level.`,
+    icon: '🐉',
+  })
 }
 
 export function DailyCheckIn() {
@@ -62,6 +70,7 @@ export function DailyCheckIn() {
         if (!d.alreadyChecked) {
           trackCheckinDone(d.currentStreak ?? 0)
           recordDragonCheckInPresence()
+          showDragonCheckInToast(d.currentStreak ?? 0)
         }
         setTimeout(() => setJustChecked(false), 4000)
         return
@@ -74,6 +83,7 @@ export function DailyCheckIn() {
     setJustChecked(true)
     trackCheckinDone(next.currentStreak)
     recordDragonCheckInPresence()
+    showDragonCheckInToast(next.currentStreak)
     setTimeout(() => setJustChecked(false), 4000)
   }
 

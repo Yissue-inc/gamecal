@@ -84,6 +84,13 @@ function getDragonLevel(visits: number, streak: number, presence?: DragonPresenc
   return 1
 }
 
+function getDragonMood(level: number) {
+  if (level >= 4) return 'Ancient'
+  if (level >= 3) return 'Awake'
+  if (level >= 2) return 'Stirring'
+  return 'Dormant'
+}
+
 export function DragonPresence() {
   const { user, isGuest, loading } = useAuth()
   const [visitCount, setVisitCount] = useState(1)
@@ -131,20 +138,21 @@ export function DragonPresence() {
   }, [user])
 
   const level = useMemo(() => getDragonLevel(visitCount, streak, presence), [visitCount, presence, streak])
-  const opacity = isGuest ? 0.1 + level * 0.025 : 0.13 + level * 0.035
+  const opacity = isGuest ? 0.06 + level * 0.018 : 0.08 + level * 0.024
   const scale = 0.88 + level * 0.05
   const globalScore = presence
     ? (presence.visit_sessions ?? 0) +
       (presence.signed_in_sessions ?? 0) * 2 +
       (presence.checkins ?? 0) * 5
     : 0
+  const mood = getDragonMood(level)
 
   return (
     <div
       data-testid="dragon-presence"
       data-dragon-level={level}
       data-dragon-presence-score={globalScore}
-      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-[12] overflow-hidden"
       aria-hidden="true"
     >
       <div
@@ -157,6 +165,14 @@ export function DragonPresence() {
         }
       />
       <div className="dragon-presence-glow absolute" />
+      <div
+        data-testid="dragon-presence-hud"
+        className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-full border border-amber-400/15 bg-black/45 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-100/75 shadow-[0_0_24px_rgba(245,158,11,0.08)] backdrop-blur-md md:bottom-4 md:right-4"
+      >
+        <span className="text-amber-300/90">Dragon Lv.{level}</span>
+        <span className="text-zinc-500">{mood}</span>
+        {globalScore > 0 && <span className="text-zinc-600">{globalScore}</span>}
+      </div>
       <style jsx>{`
         .dragon-presence-silhouette {
           right: -18vw;
