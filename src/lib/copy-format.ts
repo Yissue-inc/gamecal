@@ -2,11 +2,10 @@ import {
   formatDateRange,
   formatTime,
   formatTimeRange,
-  getEventTypeIcon,
   getEventTypeLabel,
-  getGamerCountdown,
   withGamerClockUtm,
 } from '@/lib/utils'
+import { buildDiscordEventMessage } from '@/lib/discord-format'
 import { getRewardSignals, getSourceConfidenceLabel } from '@/lib/reward-signals'
 import type { Game, GameEvent } from '@/types'
 
@@ -34,24 +33,7 @@ function formatRewardLine(event: GameEvent, game: Game) {
 }
 
 export function formatForDiscord(event: GameEvent, game: Game): string {
-  const countdown = getGamerCountdown(event.start_at, event.end_at)
-  const rewardLine = formatRewardLine(event, game)
-  const reward = getRewardSignals(event, game)
-  const sourceUrl = getSourceUrl(event)
-  const sourceLabel = getSourceConfidenceLabel(reward.source_confidence)
-  const trackUrl = getShareUrl(game, event, 'discord')
-  const lines = [
-    `**${getEventTypeIcon(event.event_type)} ${event.title}**`,
-    `> 🎮 ${game.name} · ${getEventTypeLabel(event.event_type)}`,
-    `> 📅 ${formatDateRange(event.start_at, event.end_at)} · ${formatTimeRange(event.start_at, event.end_at)}`,
-    `> ⏳ ${countdown}`,
-    rewardLine ? `> ${rewardLine}` : null,
-    `> 🛡 ${sourceLabel} source${sourceUrl ? ` · ${sourceUrl}` : ''}`,
-    '',
-    `Track it on GamerClock → ${trackUrl}`,
-  ].filter(Boolean)
-
-  return lines.join('\n')
+  return buildDiscordEventMessage(event, game)
 }
 
 export function formatForReddit(event: GameEvent, game: Game): string {

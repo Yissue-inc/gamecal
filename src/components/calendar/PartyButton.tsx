@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { Check, Copy, ExternalLink, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { buildDiscordPartyMessage } from '@/lib/discord-format'
 import { addPartyHistoryLocal } from '@/lib/engagement-store'
 import { buildOptionsFromEvent, getSquadsFormingCount } from '@/lib/groupcal'
 import type { Game, GameEvent } from '@/types'
@@ -26,13 +27,29 @@ async function copyText(value: string, input?: HTMLInputElement | null) {
     await navigator.clipboard.writeText(value)
     return true
   } catch {
-    if (!input) return false
-    input.focus()
-    input.select()
+    const textarea = document.createElement('textarea')
+    textarea.value = value
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.top = '0'
+    textarea.style.left = '0'
+    textarea.style.opacity = '0'
+    textarea.style.pointerEvents = 'none'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
     try {
-      return document.execCommand('copy')
+      const copied = document.execCommand('copy')
+      if (!copied && input) {
+        input.focus()
+        input.select()
+        return document.execCommand('copy')
+      }
+      return copied
     } catch {
       return false
+    } finally {
+      document.body.removeChild(textarea)
     }
   }
 }
@@ -96,6 +113,21 @@ export function PartyButton({ event, game }: PartyButtonProps) {
     }
   }
 
+  async function handleDiscordCopy() {
+    if (!partyUrl) return
+    const ok = await copyText(buildDiscordPartyMessage(game, event, partyUrl), inputRef.current)
+    if (ok) {
+      setCopied(true)
+      toast.success('Discord message copied', {
+        description: 'Paste it in your server so friends can vote on a squad time.',
+        icon: '💬',
+      })
+      window.setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error('Copy blocked. Select the link and copy it manually.')
+    }
+  }
+
   function handleTwitter() {
     if (!partyUrl) return
     const text = encodeURIComponent(`Who's down for [${game.name}]? Vote on a time here:`)
@@ -140,7 +172,7 @@ export function PartyButton({ event, game }: PartyButtonProps) {
             size="sm"
             variant="outline"
             className="flex-1 border-[#5865F2]/40 text-xs text-[#5865F2] hover:bg-[#5865F2]/10"
-            onClick={handleCopy}
+            onClick={handleDiscordCopy}
           >
             {DISCORD_ICON}
             <span>Copy for Discord</span>
