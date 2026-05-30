@@ -71,7 +71,7 @@ function UpcomingItem({
               🎁 {reward.reward_score} · {rewardLabel}
             </div>
           )}
-          <div className="mt-1 text-[10px] text-zinc-600" title={getSourceConfidenceTooltip(reward.source_confidence)}>
+          <div className="mt-1 text-[10px] text-zinc-500" title={getSourceConfidenceTooltip(reward.source_confidence)}>
             {getSourceConfidenceLabel(reward.source_confidence)}
           </div>
         </div>
@@ -115,7 +115,7 @@ function UpcomingReleaseItem({
             <div className="mt-0.5 truncate text-[10px] text-zinc-500">{release.developer}</div>
           )}
           {release.description && (
-            <div className="mt-1 line-clamp-1 text-[10px] text-zinc-600">{release.description}</div>
+            <div className="mt-1 line-clamp-1 text-[10px] text-zinc-500">{release.description}</div>
           )}
         </div>
         <span

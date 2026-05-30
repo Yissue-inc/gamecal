@@ -82,7 +82,7 @@ export function GamerNotes({ eventId }: GamerNotesProps) {
         className="w-full resize-none rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-xs text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-indigo-500/70"
       />
       <div className="mt-2 flex items-center justify-between gap-2">
-        <span className="text-[10px] text-zinc-600">{note.length}/280</span>
+        <span className="text-[10px] text-zinc-500">{note.length}/280</span>
         <div className="flex items-center gap-2">
           <button type="button" onClick={handleCancel} className="text-[11px] font-medium text-zinc-500 hover:text-zinc-300">
             Cancel

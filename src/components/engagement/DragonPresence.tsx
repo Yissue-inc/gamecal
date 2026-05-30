@@ -171,7 +171,7 @@ export function DragonPresence() {
       >
         <span className="text-amber-300/90">Dragon Lv.{level}</span>
         <span className="text-zinc-500">{mood}</span>
-        {globalScore > 0 && <span className="text-zinc-600">{globalScore}</span>}
+        {globalScore > 0 && <span className="text-zinc-500">{globalScore}</span>}
       </div>
       <style jsx>{`
         .dragon-presence-silhouette {

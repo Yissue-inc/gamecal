@@ -161,7 +161,7 @@ export function GameSidebar({
                   style={{ color: isSelected ? '#e4e4e7' : '#71717a' }}
                 >
                   <span className="truncate">{platform.label}</span>
-                  <span className={isSelected ? 'font-mono text-[10px] text-cyan-200' : 'font-mono text-[10px] text-zinc-600'}>
+                  <span className={isSelected ? 'font-mono text-[10px] text-cyan-200' : 'font-mono text-[10px] text-zinc-500'}>
                     {count}
                   </span>
                 </Label>
