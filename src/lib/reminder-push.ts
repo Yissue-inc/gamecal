@@ -8,10 +8,13 @@ interface DueReminder {
   user_id: string
   offset_min: number
   event_id: string
+  remind_at: string
+  recurring?: boolean
   event: {
     id: string
     title: string
     start_at: string
+    is_recurring?: boolean
     game?: { name?: string; slug?: string }
   } | null
 }
@@ -178,7 +181,7 @@ export async function processDueReminders() {
   const now = new Date().toISOString()
   const { data: reminders, error } = await admin
     .from('reminders')
-    .select('id,user_id,offset_min,event_id,event:events(id,title,start_at,game:games(name,slug))')
+    .select('id,user_id,offset_min,event_id,remind_at,recurring,event:events(id,title,start_at,is_recurring,game:games(name,slug))')
     .eq('is_sent', false)
     .lte('remind_at', now)
     .limit(50)
@@ -248,10 +251,24 @@ export async function processDueReminders() {
 
     if (delivered) {
       sent++
-      await admin
-        .from('reminders')
-        .update({ is_sent: true, sent_at: new Date().toISOString(), last_error: null })
-        .eq('id', reminder.id)
+      if (reminder.recurring && event.is_recurring) {
+        const nextRemindAt = new Date(reminder.remind_at)
+        nextRemindAt.setDate(nextRemindAt.getDate() + 7)
+        await admin
+          .from('reminders')
+          .update({
+            remind_at: nextRemindAt.toISOString(),
+            is_sent: false,
+            sent_at: new Date().toISOString(),
+            last_error: null,
+          })
+          .eq('id', reminder.id)
+      } else {
+        await admin
+          .from('reminders')
+          .update({ is_sent: true, sent_at: new Date().toISOString(), last_error: null })
+          .eq('id', reminder.id)
+      }
     } else {
       failed++
       await admin.from('reminders').update({ last_error: 'Push delivery failed' }).eq('id', reminder.id)

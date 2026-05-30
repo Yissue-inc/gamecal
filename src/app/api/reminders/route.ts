@@ -17,7 +17,7 @@ export async function GET() {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('reminders')
-    .select('id,event_id,offset_min,remind_at,is_sent,created_at')
+    .select('id,event_id,offset_min,remind_at,is_sent,recurring,event_type,created_at')
     .eq('user_id', user.id)
     .eq('is_sent', false)
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { eventId, offsetMin } = await request.json()
+  const { eventId, offsetMin, recurring = false, eventType } = await request.json()
   if (!eventId || !Number.isFinite(Number(offsetMin))) {
     return NextResponse.json({ error: 'Invalid reminder payload' }, { status: 400 })
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient()
   const { data: event, error: eventError } = await admin
     .from('events')
-    .select('id,start_at')
+    .select('id,start_at,event_type')
     .eq('id', eventId)
     .single()
 
@@ -62,13 +62,15 @@ export async function POST(request: NextRequest) {
         event_id: eventId,
         offset_min: Number(offsetMin),
         remind_at: remindAt.toISOString(),
+        recurring: Boolean(recurring),
+        event_type: eventType ?? event.event_type ?? null,
         is_sent: false,
         sent_at: null,
         last_error: null,
       },
       { onConflict: 'user_id,event_id,offset_min' }
     )
-    .select('id,event_id,offset_min,remind_at,is_sent,created_at')
+    .select('id,event_id,offset_min,remind_at,is_sent,recurring,event_type,created_at')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -83,6 +85,7 @@ export async function DELETE(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const eventId = params.get('event_id')
   const offsetMin = Number(params.get('offset_min'))
+  const recurring = params.get('recurring') === 'true'
   if (!eventId || !Number.isFinite(offsetMin)) {
     return NextResponse.json({ error: 'Invalid reminder payload' }, { status: 400 })
   }
@@ -94,6 +97,7 @@ export async function DELETE(request: NextRequest) {
     .eq('user_id', user.id)
     .eq('event_id', eventId)
     .eq('offset_min', offsetMin)
+    .eq('recurring', recurring)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })

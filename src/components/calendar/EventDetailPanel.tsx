@@ -119,7 +119,12 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
 
         <GamerNotes eventId={event.id} />
 
-        <ReminderPicker eventId={event.id} eventStartAt={event.start_at} />
+        <ReminderPicker
+          eventId={event.id}
+          eventStartAt={event.start_at}
+          eventType={event.event_type}
+          isRecurring={event.is_recurring}
+        />
 
         <div className="space-y-2 text-sm">
           <div data-testid="event-date-range" className="flex items-center gap-2 text-zinc-300">

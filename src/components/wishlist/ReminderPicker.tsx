@@ -3,10 +3,16 @@
 import { useState, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { getRemindersLocal, toggleReminderLocal } from '@/lib/engagement-store'
+import {
+  getRecurringReminderLocal,
+  getRemindersLocal,
+  setRecurringReminderLocal,
+  toggleReminderLocal,
+} from '@/lib/engagement-store'
 import { ensurePushSubscription } from '@/lib/push'
 import { trackReminderSet } from '@/lib/posthog'
 import { toast } from 'sonner'
+import type { EventType } from '@/types'
 
 const OFFSETS = [
   { label: '10 min before', value: 10 },
@@ -17,11 +23,14 @@ const OFFSETS = [
 interface ReminderPickerProps {
   eventId: string
   eventStartAt: string
+  eventType?: EventType
+  isRecurring?: boolean
 }
 
-export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
+export function ReminderPicker({ eventId, eventStartAt, eventType, isRecurring = false }: ReminderPickerProps) {
   const { user, isGuest } = useAuth()
   const [activeOffsets, setActiveOffsets] = useState<number[]>([])
+  const [recurringOffset, setRecurringOffset] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -40,11 +49,12 @@ export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
     } else {
       setActiveOffsets(getRemindersLocal(eventId))
     }
+    setRecurringOffset(eventType ? getRecurringReminderLocal(eventType) : null)
 
     return () => {
       cancelled = true
     }
-  }, [eventId, user])
+  }, [eventId, eventType, user])
 
   const toggleOffset = async (offsetMin: number) => {
     if (isGuest || !user) {
@@ -70,7 +80,7 @@ export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
       const res = await fetch('/api/reminders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, offsetMin }),
+        body: JSON.stringify({ eventId, offsetMin, recurring: false }),
       })
       if (!res.ok) throw new Error('Reminder save failed')
 
@@ -101,6 +111,51 @@ export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
     }
   }
 
+  const toggleRecurring = async () => {
+    if (!eventType) return
+    if (isGuest || !user) {
+      window.dispatchEvent(new CustomEvent('cal:prompt-login', { detail: { reason: 'recurring-reminder' } }))
+      return
+    }
+
+    const selectedOffset = recurringOffset ?? activeOffsets[0] ?? 60
+    const nextOffset = recurringOffset === null ? selectedOffset : null
+    setRecurringOffset(nextOffset)
+    setRecurringReminderLocal(eventType, nextOffset)
+
+    try {
+      if (nextOffset === null) {
+        const params = new URLSearchParams({
+          event_id: eventId,
+          offset_min: String(selectedOffset),
+          recurring: 'true',
+        })
+        const res = await fetch(`/api/reminders?${params.toString()}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Recurring reminder remove failed')
+        toast.success('Recurring reminder removed')
+        return
+      }
+
+      const res = await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, offsetMin: nextOffset, recurring: true, eventType }),
+      })
+      if (!res.ok) throw new Error('Recurring reminder save failed')
+
+      try {
+        await ensurePushSubscription()
+      } catch {
+        // The reminder still saves; the existing toast tells the user push may need permission.
+      }
+      toast.success('Recurring reminder set. CAL will remind you every reset.')
+    } catch {
+      setRecurringOffset(recurringOffset)
+      setRecurringReminderLocal(eventType, recurringOffset)
+      toast.error('Could not update recurring reminder. Please try again.')
+    }
+  }
+
   return (
     <div data-testid="reminder-picker" className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
@@ -128,6 +183,25 @@ export function ReminderPicker({ eventId, eventStartAt }: ReminderPickerProps) {
           )
         })}
       </div>
+      {isRecurring && eventType && (
+        <label
+          data-testid="recurring-reminder-toggle"
+          className="mt-1 flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-xs text-zinc-400"
+        >
+          <input
+            type="checkbox"
+            checked={recurringOffset !== null}
+            onChange={toggleRecurring}
+            className="mt-0.5 accent-indigo-500"
+          />
+          <span>
+            <span className="block font-semibold text-zinc-300">Remind me every time this resets</span>
+            <span className="mt-0.5 block text-[11px] text-zinc-500">
+              Uses {OFFSETS.find((offset) => offset.value === (recurringOffset ?? activeOffsets[0] ?? 60))?.label ?? '1 hour before'}.
+            </span>
+          </span>
+        </label>
+      )}
       <p className="text-[10px] text-zinc-600">CAL will push a notification to your browser</p>
     </div>
   )

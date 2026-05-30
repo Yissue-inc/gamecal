@@ -4,6 +4,7 @@ const WISHLIST_KEY = 'gamecal-wishlist'
 const RELEASE_WISHLIST_KEY = 'gamecal-release-wishlist'
 const REMINDERS_KEY = 'gamecal-reminders'
 const RELEASE_REMINDERS_KEY = 'gamecal-release-reminders'
+const RECURRING_REMINDERS_KEY = 'gamecal-recurring-reminders'
 const ATTENDANCE_KEY = 'gamecal-attendance'
 const BADGES_KEY = 'gamecal-badges'
 const GP_KEY = 'gamecal-gp'
@@ -135,6 +136,21 @@ export function toggleReminderLocal(eventId: string, offsetMin: number, eventSta
 export function getReleaseRemindersLocal(releaseId: string): number[] {
   const all = readJson<Record<string, number[]>>(RELEASE_REMINDERS_KEY, {})
   return all[releaseId] ?? []
+}
+
+export function getRecurringReminderLocal(eventType: string): number | null {
+  const all = readJson<Record<string, number>>(RECURRING_REMINDERS_KEY, {})
+  return Number.isFinite(all[eventType]) ? all[eventType] : null
+}
+
+export function setRecurringReminderLocal(eventType: string, offsetMin: number | null): void {
+  const all = readJson<Record<string, number>>(RECURRING_REMINDERS_KEY, {})
+  if (offsetMin === null) {
+    delete all[eventType]
+  } else {
+    all[eventType] = offsetMin
+  }
+  writeJson(RECURRING_REMINDERS_KEY, all)
 }
 
 export function getPartyHistoryLocal(): PartyHistoryItem[] {
