@@ -173,12 +173,15 @@ export function GameCalendar({
       const days = getDaysUntil(release.release_date)
       const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
       const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
+      const compact = window.matchMedia('(max-width: 767px)').matches
 
       const art = document.createElement('button')
       art.type = 'button'
-      art.className = 'release-cell-art'
+      art.className = compact ? 'release-cell-art release-cell-art-compact' : 'release-cell-art'
       art.setAttribute('data-testid', `release-cell-${release.id}`)
-      art.style.backgroundImage = release.image_url
+      art.style.backgroundImage = compact
+        ? `linear-gradient(90deg, ${heroColor}66 0%, rgba(24,24,27,0.92) 100%)`
+        : release.image_url
         ? `linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%), url(${release.image_url})`
         : `linear-gradient(135deg, ${heroColor} 0%, #1a1a2e 100%)`
       art.style.backgroundSize = 'cover'
@@ -186,7 +189,7 @@ export function GameCalendar({
       art.innerHTML = `
         <span class="release-cell-dday">${dday}</span>
         <span class="release-cell-title">NEW / ${release.title}</span>
-        ${release.developer ? `<span class="release-cell-dev">${release.developer}</span>` : ''}
+        ${!compact && release.developer ? `<span class="release-cell-dev">${release.developer}</span>` : ''}
         ${releasesForDay.length > 1 ? `<span class="release-cell-more">+${releasesForDay.length - 1} more</span>` : ''}
       `
       art.addEventListener('click', (e) => {
@@ -652,6 +655,12 @@ export function GameCalendar({
         .gamecal-calendar .release-cell-art:hover {
           transform: scale(1.02);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .gamecal-calendar .release-cell-art-compact {
+          min-height: 34px;
+          margin: 0 4px 3px;
+          padding: 3px 5px;
+          border: 1px solid rgba(129, 140, 248, 0.35);
         }
         .gamecal-calendar .release-cell-dday {
           font-size: 9px;

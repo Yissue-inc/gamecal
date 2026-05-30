@@ -103,6 +103,7 @@ CREATE TABLE user_preferences (
   timezone          TEXT DEFAULT 'America/New_York',
   secondary_timezone TEXT,
   timezone_label    TEXT DEFAULT 'Home',
+  auto_timezone     BOOLEAN DEFAULT true,
   language          TEXT DEFAULT 'en',
   date_format       TEXT DEFAULT 'MM/DD/YYYY',
   time_format       TEXT DEFAULT '12h',
