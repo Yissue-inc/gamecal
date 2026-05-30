@@ -8,13 +8,15 @@ import {
   sanitizePublicUiSettings,
 } from '@/lib/public-ui-settings'
 
+const ADMIN_SETTINGS_HEADERS = { 'Cache-Control': 'no-store' }
+
 export async function GET(request: NextRequest) {
   if (!verifyAdminSecret(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: ADMIN_SETTINGS_HEADERS })
   }
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS })
+    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS }, { headers: ADMIN_SETTINGS_HEADERS })
   }
 
   try {
@@ -26,27 +28,30 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     if (error) throw error
-    return NextResponse.json({ settings: mergePublicUiSettings(data?.value ?? {}) })
+    return NextResponse.json(
+      { settings: mergePublicUiSettings(data?.value ?? {}) },
+      { headers: ADMIN_SETTINGS_HEADERS }
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load settings'
     return NextResponse.json({
       settings: DEFAULT_PUBLIC_UI_SETTINGS,
       needsMigration: true,
       warning: message,
-    })
+    }, { headers: ADMIN_SETTINGS_HEADERS })
   }
 }
 
 export async function PUT(request: NextRequest) {
   if (!verifyAdminSecret(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: ADMIN_SETTINGS_HEADERS })
   }
 
   const body = await request.json()
   const settings = sanitizePublicUiSettings(body)
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ settings })
+    return NextResponse.json({ settings }, { headers: ADMIN_SETTINGS_HEADERS })
   }
 
   const admin = createAdminClient()
@@ -64,5 +69,5 @@ export async function PUT(request: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ settings: data.value })
+  return NextResponse.json({ settings: data.value }, { headers: ADMIN_SETTINGS_HEADERS })
 }

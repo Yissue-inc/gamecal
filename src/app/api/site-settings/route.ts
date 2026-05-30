@@ -3,9 +3,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 
+const PUBLIC_SETTINGS_CACHE = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800',
+}
+
 export async function GET() {
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS })
+    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS }, { headers: PUBLIC_SETTINGS_CACHE })
   }
 
   try {
@@ -17,8 +21,11 @@ export async function GET() {
       .maybeSingle()
 
     if (error) throw error
-    return NextResponse.json({ settings: mergePublicUiSettings(data?.value ?? {}) })
+    return NextResponse.json(
+      { settings: mergePublicUiSettings(data?.value ?? {}) },
+      { headers: PUBLIC_SETTINGS_CACHE }
+    )
   } catch {
-    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS })
+    return NextResponse.json({ settings: DEFAULT_PUBLIC_UI_SETTINGS }, { headers: PUBLIC_SETTINGS_CACHE })
   }
 }
