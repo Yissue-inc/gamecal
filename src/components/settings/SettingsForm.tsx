@@ -26,6 +26,14 @@ import { formatTimezoneLabel, getCommonTimezones } from '@/lib/timezone'
 import { DEFAULT_SELECTED_GAMES } from '@/types'
 
 const SECTIONS = ['General', 'Time Zone', 'Calendar View', 'My Games', 'Account'] as const
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
+const APP_HOST = (() => {
+  try {
+    return new URL(APP_URL).host
+  } catch {
+    return 'gamecal-beryl.vercel.app'
+  }
+})()
 
 interface SettingsFormProps {
   email: string
@@ -257,7 +265,7 @@ export function SettingsForm({ email, onSaved }: SettingsFormProps) {
               <div key={slug} className="rounded border border-zinc-800 p-2">
                 <span className="capitalize">{slug.replace('-', ' ')}</span>
                 <code className="mt-1 block text-xs text-primary">
-                  webcal://{typeof window !== 'undefined' ? window.location.host : 'gamecal-beryl.vercel.app'}/api/feed/{slug}
+                  webcal://{typeof window !== 'undefined' ? window.location.host : APP_HOST}/api/feed/{slug}
                 </code>
               </div>
             ))}

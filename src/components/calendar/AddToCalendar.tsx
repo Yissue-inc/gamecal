@@ -10,6 +10,15 @@ import {
 import { withGamerClockUtm } from '@/lib/utils'
 import type { Game, GameEvent, NewRelease } from '@/types'
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
+const APP_HOST = (() => {
+  try {
+    return new URL(APP_URL).host
+  } catch {
+    return 'gamecal-beryl.vercel.app'
+  }
+})()
+
 interface AddToCalendarProps {
   event: GameEvent
   game: Game
@@ -36,18 +45,19 @@ function escapeIcs(value: string): string {
 function buildReleaseIcs(release: NewRelease): string {
   const start = toGoogleAllDay(release.release_date)
   const end = toGoogleAllDay(addOneDay(release.release_date))
+  const sourceUrl = release.steam_url ?? release.nintendo_url ?? `${APP_URL}/new-releases`
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//GamerClock//New Release//EN',
     'BEGIN:VEVENT',
-    `UID:gamerclock-release-${release.id}@gamerclock.com`,
+    `UID:gamerclock-release-${release.id}@${APP_HOST}`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`,
     `DTSTART;VALUE=DATE:${start}`,
     `DTEND;VALUE=DATE:${end}`,
     `SUMMARY:${escapeIcs(`NEW / ${release.title}`)}`,
     `DESCRIPTION:${escapeIcs(release.description ?? 'Tracked by GamerClock.')}`,
-    `URL:${escapeIcs(release.steam_url ?? release.nintendo_url ?? 'https://gamecal-beryl.vercel.app/new-releases')}`,
+    `URL:${escapeIcs(sourceUrl)}`,
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n')
@@ -59,7 +69,7 @@ export function AddToCalendar({ event, game }: AddToCalendarProps) {
   const title = encodeURIComponent(`[${game.name}] ${event.title}`)
   const details = encodeURIComponent(event.description ?? '')
 
-  const location = encodeURIComponent(typeof window !== 'undefined' ? window.location.host : 'gamecal-beryl.vercel.app')
+  const location = encodeURIComponent(typeof window !== 'undefined' ? window.location.host : APP_HOST)
   const googleUrl = withGamerClockUtm(
     `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`,
     'add_to_calendar'
@@ -134,7 +144,7 @@ export function AddReleaseToCalendar({ release }: { release: NewRelease }) {
   const details = encodeURIComponent(release.description ?? 'Tracked by GamerClock.')
   const start = toGoogleAllDay(release.release_date)
   const end = toGoogleAllDay(addOneDay(release.release_date))
-  const sourceUrl = release.steam_url ?? release.nintendo_url ?? 'https://gamecal-beryl.vercel.app/new-releases'
+  const sourceUrl = release.steam_url ?? release.nintendo_url ?? `${APP_URL}/new-releases`
   const googleUrl = withGamerClockUtm(
     `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${encodeURIComponent(sourceUrl)}`,
     'add_release_to_calendar'

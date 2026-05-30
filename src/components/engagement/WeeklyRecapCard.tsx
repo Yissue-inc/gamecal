@@ -2,6 +2,8 @@
 
 import type { WeeklyRecap } from '@/lib/engagement-store'
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
+
 interface WeeklyRecapCardProps {
   recap: WeeklyRecap
   onShare?: () => void
@@ -31,7 +33,7 @@ export function WeeklyRecapCard({ recap, onShare }: WeeklyRecapCardProps) {
     `Streak: ${recap.currentStreak} days (best: ${recap.longestStreak})`,
     `${recap.gp} GP - ${recap.prestige.emoji} ${recap.prestige.label}`,
     recap.highPriorityThisWeek > 0 ? `High-priority events this week: ${recap.highPriorityThisWeek}` : '',
-    'Track your gaming calendar: https://gamecal-beryl.vercel.app/?utm_source=gamerclock&utm_medium=recap&utm_campaign=weekly_recap',
+    `Track your gaming calendar: ${APP_URL}/?utm_source=gamerclock&utm_medium=recap&utm_campaign=weekly_recap`,
   ].filter(Boolean).join('\n')
 
   async function handleDiscordCopy() {
