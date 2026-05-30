@@ -102,13 +102,14 @@ export function GameSidebar({
                   checked={isSelected}
                   onCheckedChange={() => onToggle(game.slug)}
                 />
-                <Label
-                  htmlFor={game.slug}
-                  className="cursor-pointer text-sm font-medium leading-none"
+                <Link
+                  href={`/games/${game.slug}`}
+                  data-testid={`game-hub-link-${game.slug}`}
+                  className="min-w-0 truncate text-sm font-medium leading-none transition hover:text-white"
                   style={{ color: isSelected ? '#e4e4e7' : '#71717a' }}
                 >
                   {game.name}
-                </Label>
+                </Link>
               </div>
 
               {summary.length > 0 && (
