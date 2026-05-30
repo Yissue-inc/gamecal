@@ -3,6 +3,31 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 
+export async function GET() {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ supported: true, stored: false, subscriptions: 0 })
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const admin = createAdminClient()
+  const { count, error } = await admin
+    .from('push_subscriptions')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({
+    stored: Boolean(count),
+    subscriptions: count ?? 0,
+  })
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json()
   if (!body?.endpoint) {
