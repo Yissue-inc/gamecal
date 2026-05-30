@@ -4,7 +4,7 @@ import { useCallback, useRef, useMemo, useState, useEffect } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import type { EventClickArg, DatesSetArg } from '@fullcalendar/core'
+import type { EventClickArg, DatesSetArg, EventContentArg } from '@fullcalendar/core'
 import type { DateClickArg } from '@fullcalendar/interaction'
 import { format } from 'date-fns'
 import { usePreferences } from '@/hooks/usePreferences'
@@ -22,6 +22,7 @@ import {
   formatTime,
   getDaysUntil,
   getEventTypeLabel,
+  getEventTypeIcon,
   getReleaseHeroColor,
   isToday,
 } from '@/lib/utils'
@@ -90,6 +91,30 @@ function formatSelectedDate(dateKey: string): string {
   return format(new Date(year, month - 1, day), 'MMM d, yyyy')
 }
 
+function getGameAcronym(game?: Game): string {
+  if (!game) return ''
+  return game.name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function useIsMobileViewport() {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  return isMobile
+}
+
 export function GameCalendar({
   selectedGames,
   isGuest,
@@ -109,6 +134,7 @@ export function GameCalendar({
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
   const shouldCenterTodayRef = useRef(true)
   const selectedEventsRef = useRef<HTMLElement>(null)
+  const isMobile = useIsMobileViewport()
 
   const visibleReleases = useMemo(() => {
     return releases.filter((release) => releaseMatchesPlatforms(release, selectedReleasePlatforms))
@@ -173,7 +199,7 @@ export function GameCalendar({
       const days = getDaysUntil(release.release_date)
       const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
       const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
-      const compact = window.matchMedia('(max-width: 767px)').matches
+      const compact = isMobile
 
       const art = document.createElement('button')
       art.type = 'button'
@@ -202,7 +228,7 @@ export function GameCalendar({
       if (dateTop) dateTop.after(art)
       else frame?.append(art)
     },
-    [onReleaseClick]
+    [isMobile, onReleaseClick]
   )
 
   const handleDatesSet = useCallback(
@@ -236,6 +262,27 @@ export function GameCalendar({
       setSelectedDateKey(info.dateStr)
     },
     [isGuest, onGuestEventClick]
+  )
+
+  const renderEventContent = useCallback(
+    (arg: EventContentArg) => {
+      if (!isMobile) return <span className="fc-event-title">{arg.event.title}</span>
+      const gameEvent = arg.event.extendedProps?.gameEvent as GameEvent | undefined
+      const game = arg.event.extendedProps?.game as Game | undefined
+      if (!gameEvent) return <span className="mobile-calendar-event-title">{arg.event.title}</span>
+
+      return (
+        <div className="mobile-calendar-event-inner">
+          <span className="mobile-calendar-event-time">
+            {formatTime(gameEvent.start_at, preferences.time_format, preferences.timezone)}
+          </span>
+          <span className="mobile-calendar-event-game">{getGameAcronym(game)}</span>
+          <span className="mobile-calendar-event-icon">{getEventTypeIcon(gameEvent.event_type)}</span>
+          <span className="mobile-calendar-event-title">{gameEvent.title}</span>
+        </div>
+      )
+    },
+    [isMobile, preferences.time_format, preferences.timezone]
   )
 
   useEffect(() => {
@@ -310,8 +357,9 @@ export function GameCalendar({
           weekends={preferences.show_weekends}
           height="100%"
           timeZone={preferences.timezone}
-          dayMaxEvents={4}
+          dayMaxEvents={isMobile ? 2 : 4}
           eventDisplay="block"
+          eventContent={renderEventContent}
           fixedWeekCount={false}
           eventDidMount={(info) => {
             const game = info.event.extendedProps?.game as { slug?: string } | undefined
@@ -478,11 +526,11 @@ export function GameCalendar({
                           {getEventTypeLabel(event.event_type)}
                         </span>
                         {rewardLabel && (
-                          <span className="max-w-[14rem] truncate rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                          <span className="max-w-[8rem] shrink truncate rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300 sm:max-w-[14rem]">
                             🎁 {reward.reward_score} · {rewardLabel}
                           </span>
                         )}
-                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${getSourceConfidenceTone(reward.source_confidence)}`}>
+                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${getSourceConfidenceTone(reward.source_confidence)}`}>
                           {getSourceConfidenceLabel(reward.source_confidence)}
                         </span>
                       </span>
@@ -598,6 +646,10 @@ export function GameCalendar({
           text-overflow: ellipsis;
           white-space: nowrap;
         }
+        .gamecal-calendar .fc-daygrid-more-link {
+          color: #e4e4e7;
+          font-weight: 700;
+        }
         .gamecal-calendar .guest-blurred-event {
           filter: blur(4px);
           opacity: 0.35;
@@ -694,6 +746,70 @@ export function GameCalendar({
         }
         .gamecal-calendar .fc-daygrid-day:not(.fc-day-today) .guest-blurred-event {
           pointer-events: auto;
+        }
+        @media (max-width: 767px) {
+          .gamecal-calendar .fc-col-header-cell {
+            padding: 6px 0;
+            font-size: 10px;
+          }
+          .gamecal-calendar .fc-daygrid-day-top {
+            min-height: 42px;
+          }
+          .gamecal-calendar .fc-daygrid-day-number {
+            padding: 7px;
+            font-size: 12px;
+          }
+          .gamecal-calendar .fc-day-today .fc-daygrid-day-number {
+            width: 30px;
+            height: 30px;
+          }
+          .gamecal-calendar .fc-event {
+            min-height: 19px;
+            margin: 1px 3px;
+            padding: 0 3px;
+            border-left-width: 2px !important;
+          }
+          .gamecal-calendar .reward-event {
+            box-shadow: inset 2px 0 0 #f59e0b;
+          }
+          .gamecal-calendar .reward-event::before,
+          .gamecal-calendar .critical-event::after {
+            display: none;
+          }
+          .gamecal-calendar .fc-daygrid-more-link {
+            display: block;
+            margin: 1px 4px 0;
+            border-radius: 999px;
+            background: rgba(39, 39, 42, 0.82);
+            padding: 1px 6px;
+            font-size: 10px;
+            line-height: 1.35;
+          }
+          .gamecal-calendar .mobile-calendar-event-inner {
+            display: flex;
+            min-width: 0;
+            align-items: center;
+            gap: 2px;
+            line-height: 1.25;
+          }
+          .gamecal-calendar .mobile-calendar-event-time,
+          .gamecal-calendar .mobile-calendar-event-game {
+            flex: 0 0 auto;
+            font-size: 9px;
+            font-weight: 800;
+          }
+          .gamecal-calendar .mobile-calendar-event-icon {
+            flex: 0 0 auto;
+            font-size: 10px;
+          }
+          .gamecal-calendar .mobile-calendar-event-title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 10px;
+            font-weight: 700;
+          }
         }
       `}</style>
     </div>
