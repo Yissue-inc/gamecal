@@ -1,29 +1,10 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { isToday } from '@/lib/utils'
-
 interface GuestBlurProps {
   onSignUp: () => void
+  lockedCount?: number
 }
 
-export function GuestBanner({ onSignUp }: GuestBlurProps) {
-  const [lockedCount, setLockedCount] = useState<number | null>(null)
-
-  useEffect(() => {
-    fetch('/api/events')
-      .then((r) => r.json())
-      .then((d) => {
-        const hidden = (d.events ?? []).filter(
-          (e: { start_at: string }) => !isToday(e.start_at)
-        ).length
-        setLockedCount(hidden)
-      })
-      .catch(() => setLockedCount(0))
-  }, [])
-
-  const countLabel = lockedCount === null ? '…' : lockedCount
-
+export function GuestBanner({ onSignUp, lockedCount }: GuestBlurProps) {
+  const countLabel = lockedCount === undefined ? '…' : lockedCount
   return (
     <div
       data-testid="blur-overlay"

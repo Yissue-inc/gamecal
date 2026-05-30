@@ -22,7 +22,7 @@ import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
 import { useReleases } from '@/hooks/useReleases'
 import { RELEASE_PLATFORM_ALL, countReleasePlatforms, releaseMatchesPlatforms } from '@/lib/release-platforms'
-import { getEventTypeLabel } from '@/lib/utils'
+import { getEventTypeLabel, isToday } from '@/lib/utils'
 import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useLayoutEvents } from '@/hooks/useLayoutEvents'
@@ -80,6 +80,10 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const selectedReleases = useMemo(
     () => (isDesktop ? releases.filter((release) => releaseMatchesPlatforms(release, selectedReleasePlatforms)) : []),
     [isDesktop, releases, selectedReleasePlatforms]
+  )
+  const guestLockedCount = useMemo(
+    () => allEvents.filter((event) => !isToday(event.start_at, preferences.timezone)).length,
+    [allEvents, preferences.timezone]
   )
   const shouldPromptAuth = !authLoading && isGuest
 
@@ -246,7 +250,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
           releasePlatformCounts={releasePlatformCounts}
           events={events}
         />
-        {shouldPromptAuth && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
+        {shouldPromptAuth && <GuestBanner lockedCount={guestLockedCount} onSignUp={() => setAuthModalOpen(true)} />}
         <PwaInstallBanner />
         <LiveBanner events={events} onEventClick={handleFeedEventClick} />
         <ClashAlert events={events} onEventClick={handleFeedEventClick} />
