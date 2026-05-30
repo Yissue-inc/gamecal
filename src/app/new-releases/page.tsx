@@ -70,6 +70,7 @@ function HeroReleaseCard({ release }: { release: NewRelease }) {
   const days = getDaysUntil(release.release_date)
   const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
   const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
+  const hypeScore = Math.max(0, Math.min(100, release.hype_score ?? 0))
 
   return (
     <div
@@ -97,11 +98,42 @@ function HeroReleaseCard({ release }: { release: NewRelease }) {
           {release.platform.map((p) => (
             <Badge key={p} variant="secondary">{p}</Badge>
           ))}
+          {release.is_free_to_play && <Badge className="bg-emerald-600 text-white">Free to Play</Badge>}
         </div>
+        {!!release.genre_tags?.length && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {release.genre_tags.slice(0, 5).map((tag) => (
+              <span key={tag} className="rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-semibold text-zinc-200">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         {release.description && (
           <p className="mt-4 max-w-xl text-sm text-zinc-400">{release.description}</p>
         )}
-        <div className="mt-6 flex gap-3">
+        {hypeScore > 0 && (
+          <div className="mt-4 max-w-sm">
+            <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-zinc-400">
+              <span>Hype Score</span>
+              <span className="text-amber-300">{hypeScore}/100</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-300"
+                style={{ width: `${hypeScore}%` }}
+              />
+            </div>
+          </div>
+        )}
+        <div className="mt-6 flex flex-wrap gap-3">
+          {release.preorder_url && (
+            <Button data-testid="hero-preorder-btn" asChild>
+              <a href={withGamerClockUtm(release.preorder_url, 'new_release_preorder')} target="_blank" rel="noopener noreferrer">
+                Pre-order
+              </a>
+            </Button>
+          )}
           {release.steam_url && (
             <Button data-testid="hero-steam-btn" asChild>
               <a
@@ -110,6 +142,13 @@ function HeroReleaseCard({ release }: { release: NewRelease }) {
                 rel="noopener noreferrer"
               >
                 Wishlist on Steam
+              </a>
+            </Button>
+          )}
+          {release.trailer_url && (
+            <Button variant="outline" asChild>
+              <a href={withGamerClockUtm(release.trailer_url, 'new_release_trailer')} target="_blank" rel="noopener noreferrer">
+                Watch Trailer
               </a>
             </Button>
           )}
@@ -126,6 +165,7 @@ function ReleaseCard({ release, featured = false }: { release: NewRelease; featu
   const days = getDaysUntil(release.release_date)
   const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
   const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
+  const hypeScore = Math.max(0, Math.min(100, release.hype_score ?? 0))
 
   return (
     <Card
@@ -150,7 +190,17 @@ function ReleaseCard({ release, featured = false }: { release: NewRelease; featu
           {release.platform.map((p) => (
             <Badge key={p} variant="secondary">{p}</Badge>
           ))}
+          {release.is_free_to_play && <Badge className="bg-emerald-600 text-white">Free</Badge>}
         </div>
+        {!!release.genre_tags?.length && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {release.genre_tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         <CardTitle className={featured ? 'text-xl' : 'text-lg'}>{release.title}</CardTitle>
         {release.developer && (
           <p className="text-sm text-muted-foreground">{release.developer}</p>
@@ -164,7 +214,35 @@ function ReleaseCard({ release, featured = false }: { release: NewRelease; featu
         {release.description && (
           <p className="text-sm text-zinc-400">{release.description}</p>
         )}
+        {hypeScore > 0 && (
+          <div>
+            <div className="mb-1 flex justify-between text-[10px] text-zinc-500">
+              <span>Hype Score</span>
+              <span className="font-bold text-amber-300">{hypeScore}/100</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-300"
+                style={{ width: `${hypeScore}%` }}
+              />
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
+          {release.preorder_url && (
+            <Button size="sm" asChild>
+              <a href={withGamerClockUtm(release.preorder_url, 'new_release_preorder')} target="_blank" rel="noopener noreferrer">
+                Pre-order
+              </a>
+            </Button>
+          )}
+          {release.trailer_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={withGamerClockUtm(release.trailer_url, 'new_release_trailer')} target="_blank" rel="noopener noreferrer">
+                Trailer
+              </a>
+            </Button>
+          )}
           {release.steam_url && (
             <Button size="sm" variant="outline" asChild>
               <a

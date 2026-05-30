@@ -22,6 +22,7 @@ function ReleaseContent({ release, onClose }: { release: NewRelease; onClose: ()
   const days = getDaysUntil(release.release_date)
   const dday = days === 0 ? 'D-Day' : days > 0 ? `D-${days}` : `D+${Math.abs(days)}`
   const heroColor = release.hero_color ?? getReleaseHeroColor(release.platform)
+  const hypeScore = Math.max(0, Math.min(100, release.hype_score ?? 0))
 
   return (
     <div className="flex h-full flex-col">
@@ -59,12 +60,36 @@ function ReleaseContent({ release, onClose }: { release: NewRelease; onClose: ()
           {release.platform.map((p) => (
             <Badge key={p} variant="secondary">{p}</Badge>
           ))}
+          {release.is_free_to_play && <Badge className="bg-emerald-600 text-white">Free to Play</Badge>}
         </div>
+        {!!release.genre_tags?.length && (
+          <div className="flex flex-wrap gap-1.5">
+            {release.genre_tags.slice(0, 6).map((tag) => (
+              <span key={tag} className="rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] font-semibold text-zinc-300">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         <p data-testid="release-panel-date" className="text-sm text-zinc-300">
           Releases {release.release_date}
         </p>
         {release.description && (
           <p className="text-sm leading-relaxed text-zinc-400">{release.description}</p>
+        )}
+        {hypeScore > 0 && (
+          <section className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-3">
+            <div className="mb-1 flex items-center justify-between text-xs">
+              <span className="font-bold uppercase tracking-wider text-amber-300">Hype Score</span>
+              <span className="font-mono font-bold text-amber-200">{hypeScore}/100</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-300"
+                style={{ width: `${hypeScore}%` }}
+              />
+            </div>
+          </section>
         )}
         <div className="flex flex-wrap gap-2">
           <ReleaseWishlistButton releaseId={release.id} platform={release.platform[0]} />
@@ -72,6 +97,32 @@ function ReleaseContent({ release, onClose }: { release: NewRelease; onClose: ()
         <ReleaseReminderPicker releaseId={release.id} releaseDate={release.release_date} />
         <AddReleaseToCalendar release={release} />
         <div className="flex flex-wrap gap-2">
+          {release.preorder_url && (
+            <Button size="sm" asChild>
+              <a
+                href={withGamerClockUtm(release.preorder_url, 'new_release_preorder')}
+                data-testid="release-preorder-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="mr-2 h-3 w-3" />
+                Pre-order
+              </a>
+            </Button>
+          )}
+          {release.trailer_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a
+                href={withGamerClockUtm(release.trailer_url, 'new_release_trailer')}
+                data-testid="release-trailer-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="mr-2 h-3 w-3" />
+                Trailer
+              </a>
+            </Button>
+          )}
           {release.steam_url && (
             <Button size="sm" variant="outline" asChild>
               <a

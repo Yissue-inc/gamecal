@@ -75,6 +75,11 @@ export interface NewRelease {
   hero_color?: string
   steam_url?: string
   nintendo_url?: string
+  trailer_url?: string
+  genre_tags?: string[]
+  preorder_url?: string
+  hype_score?: number
+  is_free_to_play?: boolean
   is_featured: boolean
   is_published?: boolean
 }
