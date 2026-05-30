@@ -10,6 +10,7 @@ import { ShareEvent } from '@/components/calendar/ShareEvent'
 import { PartyButton } from '@/components/calendar/PartyButton'
 import { WishlistButton } from '@/components/wishlist/WishlistButton'
 import { ReminderPicker } from '@/components/wishlist/ReminderPicker'
+import { getSquadsFormingCount } from '@/lib/groupcal'
 import {
   formatDateRange,
   formatTimeRange,
@@ -41,6 +42,7 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
   const artUrl = getEventArtUrl(event, game)
   const description = getEventFallbackDescription(event, game)
   const reward = getRewardSignals(event, game)
+  const squadsForming = getSquadsFormingCount(event.id)
 
   return (
     <div className="flex h-full flex-col">
@@ -99,6 +101,9 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </Badge>
           <Badge data-testid="event-countdown" variant="outline">
             ⏳ {getGamerCountdown(event.start_at, event.end_at)}
+          </Badge>
+          <Badge data-testid="event-squads-forming" variant="outline" className="border-indigo-500/50 text-indigo-300">
+            👥 {squadsForming} squads forming
           </Badge>
         </div>
 

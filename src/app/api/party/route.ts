@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildLocalPartyUrl } from '@/lib/groupcal'
 import type { CreatePartyPayload } from '@/lib/groupcal'
 
 const GROUPCAL_URL = process.env.NEXT_PUBLIC_GROUPCAL_URL ?? 'https://groupcal.vercel.app'
@@ -17,13 +18,20 @@ function isValidPayload(value: unknown): value is CreatePartyPayload {
 }
 
 export async function POST(request: NextRequest) {
-  if (!GROUPCAL_API_KEY) {
-    return NextResponse.json({ error: 'GroupCal not configured' }, { status: 503 })
-  }
-
   const body = await request.json().catch(() => null)
   if (!isValidPayload(body)) {
     return NextResponse.json({ error: 'Invalid party payload' }, { status: 400 })
+  }
+
+  if (!GROUPCAL_API_KEY) {
+    const slug = `gc-${crypto.randomUUID().slice(0, 8)}`
+    return NextResponse.json({
+      slug,
+      url: buildLocalPartyUrl(request.nextUrl.origin, slug, body),
+      creator_token: '',
+      admin_url: '',
+      fallback: true,
+    })
   }
 
   const res = await fetch(`${GROUPCAL_URL}/api/meetings/external`, {

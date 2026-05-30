@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ExternalLink } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { BadgeGallery } from '@/components/engagement/BadgeGallery'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
@@ -8,13 +9,16 @@ import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
 import {
   getAttendanceLocal,
   getGpLocal,
+  getPartyHistoryLocal,
   getPrestigeLevel,
+  type PartyHistoryItem,
 } from '@/lib/engagement-store'
 import { useEffect, useState } from 'react'
 
 export default function ProfilePage() {
   const { user, isGuest } = useAuth()
   const [stats, setStats] = useState({ streak: 0, totalDays: 0, gp: 0 })
+  const [partyHistory, setPartyHistory] = useState<PartyHistoryItem[]>([])
 
   useEffect(() => {
     const attendance = getAttendanceLocal()
@@ -23,6 +27,7 @@ export default function ProfilePage() {
       totalDays: attendance.totalDays,
       gp: getGpLocal(),
     })
+    setPartyHistory(getPartyHistoryLocal())
   }, [])
 
   const prestige = getPrestigeLevel(stats.gp)
@@ -87,6 +92,40 @@ export default function ProfilePage() {
           <div className="-mx-4">
             <DailyCheckIn />
           </div>
+        </section>
+        <section>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="font-rajdhani text-lg font-semibold">Party History</h2>
+            <span className="text-xs text-zinc-500">{partyHistory.length} created</span>
+          </div>
+          {partyHistory.length ? (
+            <div className="space-y-2">
+              {partyHistory.map((party) => (
+                <a
+                  key={party.url}
+                  href={party.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-colors hover:border-indigo-500/60 hover:bg-zinc-900"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-white">
+                      {party.eventTitle}
+                    </span>
+                    <span className="mt-1 block truncate text-xs text-zinc-500">
+                      {party.gameName} · {new Date(party.createdAt).toLocaleString()}
+                      {party.fallback ? ' · local party page' : ''}
+                    </span>
+                  </span>
+                  <ExternalLink className="h-4 w-4 shrink-0 text-zinc-500" />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-500">
+              Create a party from any event card and it will appear here.
+            </div>
+          )}
         </section>
         <section>
           <h2 className="font-rajdhani mb-4 text-lg font-semibold">Badges</h2>

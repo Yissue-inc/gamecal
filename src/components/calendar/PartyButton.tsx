@@ -4,7 +4,8 @@ import { useRef, useState } from 'react'
 import { Check, Copy, ExternalLink, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { buildOptionsFromEvent } from '@/lib/groupcal'
+import { addPartyHistoryLocal } from '@/lib/engagement-store'
+import { buildOptionsFromEvent, getSquadsFormingCount } from '@/lib/groupcal'
 import type { Game, GameEvent } from '@/types'
 
 interface PartyButtonProps {
@@ -39,8 +40,10 @@ async function copyText(value: string, input?: HTMLInputElement | null) {
 export function PartyButton({ event, game }: PartyButtonProps) {
   const [status, setStatus] = useState<Status>('idle')
   const [partyUrl, setPartyUrl] = useState<string | null>(null)
+  const [isFallback, setIsFallback] = useState(false)
   const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const squadsForming = getSquadsFormingCount(event.id)
 
   async function handleCreate() {
     setStatus('loading')
@@ -64,8 +67,17 @@ export function PartyButton({ event, game }: PartyButtonProps) {
       }
 
       setPartyUrl(data.url)
+      setIsFallback(Boolean(data.fallback))
+      addPartyHistoryLocal({
+        eventId: event.id,
+        eventTitle: event.title,
+        gameName: game.name,
+        url: data.url,
+        createdAt: new Date().toISOString(),
+        fallback: Boolean(data.fallback),
+      })
       setStatus('done')
-      toast.success('Party link ready')
+      toast.success(data.fallback ? 'Party link ready. GroupCal sync can be added later.' : 'Party link ready')
     } catch (error) {
       setStatus('error')
       toast.error(error instanceof Error ? error.message : 'Failed to create party')
@@ -98,7 +110,19 @@ export function PartyButton({ event, game }: PartyButtonProps) {
         className="space-y-3 rounded-lg border p-4"
         style={{ borderColor: `${game.brand_color}55`, background: `${game.brand_color}11` }}
       >
-        <div className="text-sm font-semibold text-zinc-100">Party link ready</div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-zinc-100">Party link ready</div>
+            {isFallback && (
+              <div className="mt-0.5 text-xs text-amber-300">
+                Local voting page active. GroupCal API key can upgrade this link later.
+              </div>
+            )}
+          </div>
+          <div className="rounded-full bg-black/30 px-2 py-1 text-[11px] font-semibold text-zinc-300">
+            {squadsForming} squads
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -166,7 +190,7 @@ export function PartyButton({ event, game }: PartyButtonProps) {
       disabled={status === 'loading'}
     >
       <Users className="h-4 w-4" />
-      {status === 'loading' ? 'Creating party...' : 'Create Party'}
+      {status === 'loading' ? 'Creating party...' : `Create Party · ${squadsForming} squads`}
     </Button>
   )
 }

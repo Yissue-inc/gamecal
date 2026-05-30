@@ -7,6 +7,7 @@ const RELEASE_REMINDERS_KEY = 'gamecal-release-reminders'
 const ATTENDANCE_KEY = 'gamecal-attendance'
 const BADGES_KEY = 'gamecal-badges'
 const GP_KEY = 'gamecal-gp'
+const PARTY_HISTORY_KEY = 'gamecal-party-history'
 
 export interface AttendanceState {
   currentStreak: number
@@ -14,6 +15,15 @@ export interface AttendanceState {
   totalDays: number
   lastCheckIn: string | null
   checkedDates: string[]
+}
+
+export interface PartyHistoryItem {
+  eventId: string
+  eventTitle: string
+  gameName: string
+  url: string
+  createdAt: string
+  fallback?: boolean
 }
 
 function readJson<T>(key: string, fallback: T): T {
@@ -113,6 +123,21 @@ export function toggleReminderLocal(eventId: string, offsetMin: number, eventSta
 export function getReleaseRemindersLocal(releaseId: string): number[] {
   const all = readJson<Record<string, number[]>>(RELEASE_REMINDERS_KEY, {})
   return all[releaseId] ?? []
+}
+
+export function getPartyHistoryLocal(): PartyHistoryItem[] {
+  return readJson<PartyHistoryItem[]>(PARTY_HISTORY_KEY, [])
+}
+
+export function addPartyHistoryLocal(item: PartyHistoryItem) {
+  const current = getPartyHistoryLocal()
+  const next = [
+    item,
+    ...current.filter((party) => party.url !== item.url && party.eventId !== item.eventId),
+  ].slice(0, 12)
+  writeJson(PARTY_HISTORY_KEY, next)
+  addGpLocal(3)
+  return next
 }
 
 export function toggleReleaseReminderLocal(releaseId: string, offsetMin: number, releaseAt: string): number[] {

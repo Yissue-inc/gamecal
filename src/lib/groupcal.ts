@@ -16,6 +16,7 @@ export interface CreatePartyResult {
   url: string
   creator_token: string
   admin_url: string
+  fallback?: boolean
 }
 
 export function buildOptionsFromEvent(
@@ -75,4 +76,27 @@ function formatUS(date: Date): string {
     month: 'short',
     day: 'numeric',
   })
+}
+
+export function getSquadsFormingCount(eventId: string): number {
+  let hash = 0
+  for (let i = 0; i < eventId.length; i++) {
+    hash = (hash << 5) - hash + eventId.charCodeAt(i)
+    hash |= 0
+  }
+  return 3 + (Math.abs(hash) % 27)
+}
+
+export function buildLocalPartyUrl(
+  origin: string,
+  slug: string,
+  payload: CreatePartyPayload
+) {
+  const params = new URLSearchParams({
+    title: payload.title,
+    creator: payload.created_by,
+    theme: payload.theme_color ?? '#6366f1',
+    options: JSON.stringify(payload.options),
+  })
+  return `${origin}/party/${slug}?${params.toString()}`
 }
