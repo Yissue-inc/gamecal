@@ -9,18 +9,15 @@ import { getDaysUntil, getReleaseHeroColor, withGamerClockUtm } from '@/lib/util
 import type { NewRelease } from '@/types'
 
 export default function NewReleasesPage() {
-  const [featured, setFeatured] = useState<NewRelease[]>([])
   const [all, setAll] = useState<NewRelease[]>([])
 
   useEffect(() => {
-    fetch('/api/new-releases?featured=true')
-      .then((r) => r.json())
-      .then((d) => setFeatured(d.releases ?? []))
     fetch('/api/new-releases')
       .then((r) => r.json())
       .then((d) => setAll(d.releases ?? []))
   }, [])
 
+  const featured = all.filter((release) => release.is_featured)
   const hero = featured[0]
 
   return (
