@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { buildLocalPartyUrl } from '@/lib/groupcal'
+import { buildLocalPartyUrl, withPartyUtm } from '@/lib/groupcal'
 import type { CreatePartyPayload } from '@/lib/groupcal'
 
 const GROUPCAL_URL = process.env.NEXT_PUBLIC_GROUPCAL_URL ?? 'https://groupcal.vercel.app'
@@ -52,5 +52,8 @@ export async function POST(request: NextRequest) {
   })
 
   const data = await res.json().catch(() => ({ error: 'Invalid GroupCal response' }))
+  if (data?.url && typeof data.url === 'string') {
+    data.url = withPartyUtm(data.url)
+  }
   return NextResponse.json(data, { status: res.status })
 }

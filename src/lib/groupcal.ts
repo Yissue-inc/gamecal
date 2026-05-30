@@ -100,3 +100,15 @@ export function buildLocalPartyUrl(
   })
   return `${origin}/party/${slug}?${params.toString()}`
 }
+
+export function withPartyUtm(url: string) {
+  try {
+    const parsed = new URL(url)
+    parsed.searchParams.set('utm_source', 'gamerclock')
+    parsed.searchParams.set('utm_medium', 'party')
+    parsed.searchParams.set('utm_campaign', 'squad_vote')
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
