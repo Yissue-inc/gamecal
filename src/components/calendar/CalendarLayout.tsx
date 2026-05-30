@@ -11,6 +11,7 @@ import { ReleaseDetailPanel } from '@/components/calendar/ReleaseDetailPanel'
 import { GuestBanner } from '@/components/calendar/GuestBlur'
 import { WeeklyHighlights } from '@/components/calendar/WeeklyHighlights'
 import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
+import { ClashAlert } from '@/components/calendar/ClashAlert'
 import { CommandSearch } from '@/components/calendar/CommandSearch'
 import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
 import { CalEventBridge } from '@/components/engagement/CalEventBridge'
@@ -248,6 +249,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         {shouldPromptAuth && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
         <PwaInstallBanner />
         <LiveBanner events={events} onEventClick={handleFeedEventClick} />
+        <ClashAlert events={events} onEventClick={handleFeedEventClick} />
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <GameSidebar
             games={games}
