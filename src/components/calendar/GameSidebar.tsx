@@ -81,6 +81,7 @@ export function GameSidebar({
           <Checkbox
             id="all-games"
             data-testid="game-checkbox-all"
+            aria-label={allSelected ? 'Deselect all games' : 'Select all games'}
             checked={allSelected}
             onCheckedChange={(checked) => onToggleAll(!!checked)}
           />
@@ -99,6 +100,7 @@ export function GameSidebar({
                 <Checkbox
                   id={game.slug}
                   data-testid={`game-checkbox-${game.slug}`}
+                  aria-label={`${isSelected ? 'Hide' : 'Show'} ${game.name} events`}
                   checked={isSelected}
                   onCheckedChange={() => onToggle(game.slug)}
                 />
@@ -149,6 +151,7 @@ export function GameSidebar({
                 <Checkbox
                   id={`release-${platform.id}`}
                   data-testid={`release-platform-${platform.id}`}
+                  aria-label={`${isSelected ? 'Hide' : 'Show'} ${platform.label} new releases`}
                   checked={isSelected}
                   onCheckedChange={() => onToggleReleasePlatform?.(platform.id)}
                 />
