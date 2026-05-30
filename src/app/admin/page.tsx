@@ -36,6 +36,18 @@ interface ReminderPushHealth {
   dueReminders: number
   pushSubscriptions: number
   failedUnsentReminders: number
+  failureBreakdown?: Record<string, number>
+  recentFailures?: Array<{
+    id: string
+    kind: 'event' | 'release'
+    userId: string
+    itemId: string | null
+    title: string
+    game: string | null
+    remindAt: string
+    lastError: string
+    createdAt: string
+  }>
   error?: string | null
 }
 
@@ -295,6 +307,57 @@ export default function AdminPage() {
                 {pushHealth.error}
               </p>
             )}
+            <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+              <div className="rounded-lg border border-zinc-800 bg-black/20 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Failure reasons
+                </div>
+                <div className="mt-3 space-y-2">
+                  {Object.entries(pushHealth?.failureBreakdown ?? {}).length ? (
+                    Object.entries(pushHealth?.failureBreakdown ?? {}).map(([reason, count]) => (
+                      <div key={reason} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="min-w-0 truncate text-zinc-300" title={reason}>
+                          {reason}
+                        </span>
+                        <span className="rounded-full bg-zinc-800 px-2 py-0.5 font-semibold text-white">
+                          {count}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-zinc-500">No open failure samples.</p>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-black/20 p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Recent failures
+                </div>
+                <div className="mt-3 divide-y divide-zinc-800">
+                  {pushHealth?.recentFailures?.length ? (
+                    pushHealth.recentFailures.map((failure) => (
+                      <div key={`${failure.kind}-${failure.id}`} className="grid gap-1 py-2 text-xs sm:grid-cols-[1fr_auto]">
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold text-zinc-200">
+                            {failure.kind === 'release' ? 'NEW / ' : ''}
+                            {failure.title}
+                          </div>
+                          <div className="mt-0.5 truncate text-zinc-500">
+                            {failure.game ? `${failure.game} · ` : ''}
+                            {failure.lastError}
+                          </div>
+                        </div>
+                        <div className="text-zinc-500">
+                          {new Date(failure.remindAt).toLocaleString()}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="py-2 text-xs text-zinc-500">No failed reminders to inspect.</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

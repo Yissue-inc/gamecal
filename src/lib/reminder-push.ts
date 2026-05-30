@@ -29,6 +29,18 @@ interface DueReleaseReminder {
   } | null
 }
 
+interface FailureRow {
+  id: string
+  user_id: string
+  event_id?: string | null
+  release_id?: string | null
+  remind_at: string
+  last_error: string | null
+  created_at: string
+  event?: { title?: string | null; game?: { name?: string | null } | null } | null
+  release?: { title?: string | null } | null
+}
+
 export function getReminderPushConfig() {
   return {
     supabaseConfigured: isSupabaseConfigured(),
@@ -76,6 +88,8 @@ export async function getReminderPushHealth() {
     subscriptionResult,
     failedResult,
     releaseFailedResult,
+    recentFailedResult,
+    recentReleaseFailedResult,
   ] = await Promise.all([
     admin.from('reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false),
     admin.from('reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false).lte('remind_at', now),
@@ -84,7 +98,53 @@ export async function getReminderPushHealth() {
     admin.from('push_subscriptions').select('*', { count: 'exact', head: true }),
     admin.from('reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false).not('last_error', 'is', null),
     admin.from('release_reminders').select('*', { count: 'exact', head: true }).eq('is_sent', false).not('last_error', 'is', null),
+    admin
+      .from('reminders')
+      .select('id,user_id,event_id,remind_at,last_error,created_at,event:events(title,game:games(name))')
+      .eq('is_sent', false)
+      .not('last_error', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(8),
+    admin
+      .from('release_reminders')
+      .select('id,user_id,release_id,remind_at,last_error,created_at,release:new_releases(title)')
+      .eq('is_sent', false)
+      .not('last_error', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(8),
   ])
+
+  const eventFailures = ((recentFailedResult.data ?? []) as unknown as FailureRow[]).map((row) => ({
+    id: row.id,
+    kind: 'event' as const,
+    userId: row.user_id,
+    itemId: row.event_id ?? null,
+    title: row.event?.title ?? 'Untitled event',
+    game: row.event?.game?.name ?? null,
+    remindAt: row.remind_at,
+    lastError: row.last_error ?? 'Unknown failure',
+    createdAt: row.created_at,
+  }))
+  const releaseFailures = isMissingReleaseEngagementTable(recentReleaseFailedResult.error)
+    ? []
+    : ((recentReleaseFailedResult.data ?? []) as unknown as FailureRow[]).map((row) => ({
+        id: row.id,
+        kind: 'release' as const,
+        userId: row.user_id,
+        itemId: row.release_id ?? null,
+        title: row.release?.title ?? 'Untitled release',
+        game: null,
+        remindAt: row.remind_at,
+        lastError: row.last_error ?? 'Unknown failure',
+        createdAt: row.created_at,
+      }))
+  const recentFailures = [...eventFailures, ...releaseFailures]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 8)
+  const failureBreakdown = recentFailures.reduce<Record<string, number>>((acc, item) => {
+    acc[item.lastError] = (acc[item.lastError] ?? 0) + 1
+    return acc
+  }, {})
 
   return {
     config,
@@ -92,6 +152,8 @@ export async function getReminderPushHealth() {
     dueReminders: (dueResult.count ?? 0) + (releaseDueResult.count ?? 0),
     pushSubscriptions: subscriptionResult.count ?? 0,
     failedUnsentReminders: (failedResult.count ?? 0) + (releaseFailedResult.count ?? 0),
+    failureBreakdown,
+    recentFailures,
     error:
       pendingResult.error?.message ??
       dueResult.error?.message ??
@@ -100,6 +162,8 @@ export async function getReminderPushHealth() {
       subscriptionResult.error?.message ??
       failedResult.error?.message ??
       (isMissingReleaseEngagementTable(releaseFailedResult.error) ? null : releaseFailedResult.error?.message) ??
+      recentFailedResult.error?.message ??
+      (isMissingReleaseEngagementTable(recentReleaseFailedResult.error) ? null : recentReleaseFailedResult.error?.message) ??
       null,
   }
 }
