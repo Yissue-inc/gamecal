@@ -189,6 +189,17 @@ export function GameCalendar({
     return releasesByDate[selectedDateKey] ?? []
   }, [releasesByDate, selectedDateKey])
   const selectedDateReleasePreview = selectedDateReleases.slice(0, 10)
+  const hasCalendarItems = calendarEvents.length > 0 || visibleReleases.length > 0
+  const emptyTitle = selectedGames.length === 0
+    ? 'No games selected'
+    : selectedReleasePlatforms.length === 0
+    ? 'No calendars selected'
+    : 'No events found for this view'
+  const emptyDescription = selectedGames.length === 0
+    ? 'Pick one or more games from the menu to fill your calendar.'
+    : selectedReleasePlatforms.length === 0
+    ? 'Turn on a game or New Release platform to see what is coming up.'
+    : 'No tracked events match your current game and release filters. Try All games or check back after the next crawl.'
 
   const mountReleaseArt = useCallback(
     (cell: HTMLElement, releasesForDay: NewRelease[]) => {
@@ -341,6 +352,16 @@ export function GameCalendar({
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0f0f0f]/50">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      )}
+      {!loading && !hasCalendarItems && (
+        <div
+          data-testid="calendar-empty-state"
+          className="pointer-events-none absolute left-1/2 top-24 z-10 w-[min(22rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-zinc-800 bg-zinc-950/90 p-4 text-center shadow-2xl shadow-black/40 backdrop-blur md:top-28"
+        >
+          <div className="text-2xl" aria-hidden="true">🎮</div>
+          <h3 className="font-rajdhani mt-2 text-xl font-bold text-white">{emptyTitle}</h3>
+          <p className="mt-1 text-xs leading-5 text-zinc-400">{emptyDescription}</p>
         </div>
       )}
       <div className={`${selectedDateKey ? 'h-[42vh] min-h-[220px] flex-none md:h-auto md:min-h-[260px] md:flex-1' : 'min-h-[360px] md:min-h-[420px]'} flex-1 overflow-hidden`}>
