@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { formatForDiscord, formatForReddit, formatForPlainText } from '@/lib/copy-format'
+import { buildTwitterShareText } from '@/lib/game-hashtags'
 import type { Game, GameEvent } from '@/types'
 
 interface ShareEventProps {
@@ -12,6 +13,7 @@ interface ShareEventProps {
 
 export function ShareEvent({ event, game }: ShareEventProps) {
   const [copied, setCopied] = useState<string | null>(null)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
 
   const formats = {
     discord: formatForDiscord(event, game),
@@ -62,6 +64,20 @@ export function ShareEvent({ event, game }: ShareEventProps) {
     }
   }
 
+  const shareOnX = () => {
+    const url = new URL(`/games/${game.slug}`, appUrl)
+    url.searchParams.set('event', event.id)
+    url.searchParams.set('utm_source', 'gamerclock')
+    url.searchParams.set('utm_medium', 'x')
+    url.searchParams.set('utm_campaign', 'event_share')
+    const text = encodeURIComponent(buildTwitterShareText(event.title, game.name, game.slug))
+    window.open(
+      `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url.toString())}`,
+      '_blank',
+      'noopener'
+    )
+  }
+
   const buttons = [
     { type: 'discord' as const, label: '💬 Discord', testId: 'share-discord-btn' },
     { type: 'reddit' as const, label: '🤖 Reddit', testId: 'share-reddit-btn' },
@@ -81,6 +97,14 @@ export function ShareEvent({ event, game }: ShareEventProps) {
           {copied === type ? '✓ Copied!' : label}
         </button>
       ))}
+      <button
+        type="button"
+        data-testid="share-x-btn"
+        onClick={shareOnX}
+        className="flex-1 rounded-md border border-zinc-700 py-1.5 text-xs text-zinc-400 transition-all hover:border-zinc-500 hover:text-white"
+      >
+        𝕏 Share
+      </button>
     </div>
   )
 }

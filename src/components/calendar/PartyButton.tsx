@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { buildDiscordPartyMessage } from '@/lib/discord-format'
 import { addPartyHistoryLocal } from '@/lib/engagement-store'
+import { buildTwitterShareText } from '@/lib/game-hashtags'
 import { buildOptionsFromEvent, getSquadsFormingCount } from '@/lib/groupcal'
 import type { Game, GameEvent } from '@/types'
 
@@ -130,9 +131,8 @@ export function PartyButton({ event, game }: PartyButtonProps) {
 
   function handleTwitter() {
     if (!partyUrl) return
-    const text = encodeURIComponent(`Who's down for [${game.name}]? Vote on a time here:`)
-    const url = encodeURIComponent(partyUrl)
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'noopener')
+    const text = encodeURIComponent(buildTwitterShareText(event.title, game.name, game.slug, partyUrl))
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener')
   }
 
   if (status === 'done' && partyUrl) {
