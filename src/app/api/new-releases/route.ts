@@ -3,6 +3,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
 
+const PUBLIC_RELEASES_CACHE = {
+  'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
+}
+
 function normalizeReleaseKey(title: string, date?: string | null) {
   return `${title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}::${date ?? 'unknown'}`
 }
@@ -11,7 +15,7 @@ export async function GET(request: NextRequest) {
   const featured = request.nextUrl.searchParams.get('featured') === 'true'
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ releases: [] })
+    return NextResponse.json({ releases: [] }, { headers: PUBLIC_RELEASES_CACHE })
   }
 
   const isAdmin = verifyAdminSecret(request)
@@ -89,10 +93,13 @@ export async function GET(request: NextRequest) {
       })
       .map(({ confidence_score, ...release }) => release)
 
-    return NextResponse.json({ releases, source: 'candidate_preview' })
+    return NextResponse.json({ releases, source: 'candidate_preview' }, { headers: PUBLIC_RELEASES_CACHE })
   }
 
-  return NextResponse.json({ releases: data })
+  return NextResponse.json(
+    { releases: data },
+    { headers: isAdmin ? { 'Cache-Control': 'no-store' } : PUBLIC_RELEASES_CACHE }
+  )
 }
 
 export async function POST(request: NextRequest) {

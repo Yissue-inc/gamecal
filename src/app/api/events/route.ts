@@ -5,11 +5,15 @@ import { isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
 import { getRewardSignals } from '@/lib/reward-signals'
 
+const PUBLIC_EVENTS_CACHE = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800',
+}
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ events: [] })
+    return NextResponse.json({ events: [] }, { headers: PUBLIC_EVENTS_CACHE })
   }
 
   const supabase = await createClient()
@@ -49,7 +53,10 @@ export async function GET(request: NextRequest) {
     ...getRewardSignals(event, event.game),
   }))
 
-  return NextResponse.json({ events })
+  return NextResponse.json(
+    { events },
+    { headers: isAdmin ? { 'Cache-Control': 'no-store' } : PUBLIC_EVENTS_CACHE }
+  )
 }
 
 export async function POST(request: NextRequest) {
