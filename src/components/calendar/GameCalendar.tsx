@@ -7,7 +7,6 @@ import interactionPlugin from '@fullcalendar/interaction'
 import type { EventClickArg, DatesSetArg } from '@fullcalendar/core'
 import type { DateClickArg } from '@fullcalendar/interaction'
 import { format } from 'date-fns'
-import { useEvents } from '@/hooks/useEvents'
 import { usePreferences } from '@/hooks/usePreferences'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { releaseMatchesPlatforms } from '@/lib/release-platforms'
@@ -37,6 +36,8 @@ interface GameCalendarProps {
   onDatesChange: (start: Date, end: Date, title: string) => void
   selectedReleasePlatforms?: string[]
   releases: NewRelease[]
+  events: GameEvent[]
+  loading?: boolean
   calendarRef?: React.RefObject<FullCalendar>
 }
 
@@ -98,21 +99,16 @@ export function GameCalendar({
   onDatesChange,
   selectedReleasePlatforms = [],
   releases,
+  events,
+  loading = false,
   calendarRef,
 }: GameCalendarProps) {
   const internalRef = useRef<FullCalendar>(null)
   const ref = calendarRef ?? internalRef
   const { preferences } = usePreferences()
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' })
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
   const shouldCenterTodayRef = useRef(true)
   const selectedEventsRef = useRef<HTMLElement>(null)
-
-  const { events, loading } = useEvents({
-    start: dateRange.start,
-    end: dateRange.end,
-    games: selectedGames,
-  })
 
   const visibleReleases = useMemo(() => {
     return releases.filter((release) => releaseMatchesPlatforms(release, selectedReleasePlatforms))
@@ -206,7 +202,6 @@ export function GameCalendar({
 
   const handleDatesSet = useCallback(
     (arg: DatesSetArg) => {
-      setDateRange({ start: arg.start.toISOString(), end: arg.end.toISOString() })
       onDatesChange(arg.start, arg.end, arg.view.title)
       if (shouldCenterTodayRef.current) {
         window.requestAnimationFrame(() => centerTodayInCalendar())
@@ -277,7 +272,7 @@ export function GameCalendar({
     )
 
     return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [events, visibleReleases, dateRange.start, dateRange.end])
+  }, [events, visibleReleases])
 
   useEffect(() => {
     const centerHandler = () => {

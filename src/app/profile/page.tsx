@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { BadgeGallery } from '@/components/engagement/BadgeGallery'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
+import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
 import {
   getAttendanceLocal,
   getGpLocal,
@@ -81,6 +82,12 @@ export default function ProfilePage() {
             <div className="text-xs text-zinc-500">Gamer Points</div>
           </div>
         </div>
+        <section>
+          <h2 className="font-rajdhani mb-4 text-lg font-semibold">Daily Check-in</h2>
+          <div className="-mx-4">
+            <DailyCheckIn />
+          </div>
+        </section>
         <section>
           <h2 className="font-rajdhani mb-4 text-lg font-semibold">Badges</h2>
           <BadgeGallery />

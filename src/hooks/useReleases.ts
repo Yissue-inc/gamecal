@@ -3,18 +3,36 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { NewRelease } from '@/types'
 
+let releasesCache: NewRelease[] | null = null
+let releasesRequest: Promise<NewRelease[]> | null = null
+
 export function useReleases() {
   const [releases, setReleases] = useState<NewRelease[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchReleases = useCallback(async () => {
+  const fetchReleases = useCallback(async (force = false) => {
     setLoading(true)
     try {
-      const res = await fetch('/api/new-releases')
-      if (!res.ok) throw new Error('Failed to fetch releases')
-      const data = await res.json()
-      setReleases(data.releases ?? [])
+      if (releasesCache && !force) {
+        setReleases(releasesCache)
+        return
+      }
+
+      if (!releasesRequest || force) {
+        releasesRequest = fetch('/api/new-releases')
+          .then((res) => {
+            if (!res.ok) throw new Error('Failed to fetch releases')
+            return res.json()
+          })
+          .then((data) => data.releases ?? [])
+      }
+
+      const nextReleases = await releasesRequest
+      releasesCache = nextReleases
+      releasesRequest = null
+      setReleases(nextReleases)
     } catch {
+      releasesRequest = null
       setReleases([])
     } finally {
       setLoading(false)
@@ -25,5 +43,5 @@ export function useReleases() {
     fetchReleases()
   }, [fetchReleases])
 
-  return { releases, loading, refetch: fetchReleases }
+  return { releases, loading, refetch: () => fetchReleases(true) }
 }

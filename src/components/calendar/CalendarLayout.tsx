@@ -13,8 +13,6 @@ import { WeeklyHighlights } from '@/components/calendar/WeeklyHighlights'
 import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
 import { CommandSearch } from '@/components/calendar/CommandSearch'
 import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
-import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
-import { DragonPresence } from '@/components/engagement/DragonPresence'
 import { CalEventBridge } from '@/components/engagement/CalEventBridge'
 import { BadgeUnlockModal } from '@/components/engagement/BadgeUnlockModal'
 import { CinematicIntro, hasSeenCinematic } from '@/components/cinematic/CinematicIntro'
@@ -31,6 +29,21 @@ import type { Game, GameEvent, NewRelease } from '@/types'
 
 interface CalendarLayoutProps {
   games: Game[]
+}
+
+function useIsDesktopViewport() {
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)')
+    const update = () => setIsDesktop(media.matches)
+
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  return isDesktop
 }
 
 export function CalendarLayout({ games }: CalendarLayoutProps) {
@@ -53,14 +66,19 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [introSettings, setIntroSettings] = useState(DEFAULT_PUBLIC_UI_SETTINGS)
   const [currentTitle, setCurrentTitle] = useState('')
+  const isDesktop = useIsDesktopViewport()
 
-  const { events } = useLayoutEvents(selectedGames)
-  const { events: highlightEvents } = useLayoutEvents([])
+  const { events: allEvents, loading: eventsLoading } = useLayoutEvents([])
   const { releases } = useReleases()
+  const events = useMemo(() => {
+    if (!selectedGames.length) return []
+    return allEvents.filter((event) => event.game && selectedGames.includes(event.game.slug))
+  }, [allEvents, selectedGames])
+  const highlightEvents = allEvents
   const releasePlatformCounts = useMemo(() => countReleasePlatforms(releases), [releases])
   const selectedReleases = useMemo(
-    () => releases.filter((release) => releaseMatchesPlatforms(release, selectedReleasePlatforms)),
-    [releases, selectedReleasePlatforms]
+    () => (isDesktop ? releases.filter((release) => releaseMatchesPlatforms(release, selectedReleasePlatforms)) : []),
+    [isDesktop, releases, selectedReleasePlatforms]
   )
   const shouldPromptAuth = !authLoading && isGuest
 
@@ -211,7 +229,6 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
 
   return (
     <div className="relative flex h-screen flex-col overflow-hidden bg-[#0f0f0f]">
-      <DragonPresence />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <CalendarHeader
           currentTitle={currentTitle}
@@ -231,7 +248,6 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         {shouldPromptAuth && <GuestBanner onSignUp={() => setAuthModalOpen(true)} />}
         <PwaInstallBanner />
         <LiveBanner events={events} onEventClick={handleFeedEventClick} />
-        <DailyCheckIn />
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <GameSidebar
             games={games}
@@ -263,6 +279,8 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
                 onDatesChange={handleDatesChange}
                 selectedReleasePlatforms={selectedReleasePlatforms}
                 releases={releases}
+                events={events}
+                loading={eventsLoading}
               />
               <EventDetailPanel
                 event={selectedEvent}
@@ -273,14 +291,16 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
               />
             </div>
           </div>
-          <div className="hidden md:flex">
-            <UpcomingFeed
-              events={events}
-              releases={selectedReleases}
-              onEventClick={handleFeedEventClick}
-              onReleaseClick={handleReleaseClick}
-            />
-          </div>
+          {isDesktop && (
+            <div className="hidden md:flex">
+              <UpcomingFeed
+                events={events}
+                releases={selectedReleases}
+                onEventClick={handleFeedEventClick}
+                onReleaseClick={handleReleaseClick}
+              />
+            </div>
+          )}
         </div>
       </div>
       <ReleaseDetailPanel
