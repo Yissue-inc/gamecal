@@ -7,6 +7,7 @@ import type { Game, GameEvent } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatShortDate, getDday, isCurrentlyActive, isWithinDays } from '@/lib/calendar-dates'
+import { buildTwitterShareText } from '@/lib/game-hashtags'
 import { getEventTypeIcon, getEventTypeLabel, withGamerClockUtm } from '@/lib/utils'
 import { getRewardBadgeLabel, getRewardSignals } from '@/lib/reward-signals'
 
@@ -21,7 +22,13 @@ const FILTERS = [
 type FilterId = (typeof FILTERS)[number]['id']
 
 function copyText(text: string) {
-  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text)
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => copyTextFallback(text))
+  }
+  return copyTextFallback(text)
+}
+
+function copyTextFallback(text: string) {
   const textarea = document.createElement('textarea')
   textarea.value = text
   textarea.style.position = 'fixed'
@@ -85,10 +92,28 @@ export function GameHubClient({ game, events }: { game: Game; events: GameEvent[
   const thisWeek = filtered.filter((event) => !isCurrentlyActive(event) && isWithinDays(event.start_at, 7))
   const upcoming = filtered.filter((event) => !isCurrentlyActive(event) && !isWithinDays(event.start_at, 7))
 
-  async function handleShare() {
+  function getHubUrl(medium: string) {
     const url = `${window.location.origin}/games/${game.slug}?utm_source=gamerclock&utm_medium=share&utm_campaign=game_hub`
-    await copyText(`${game.name} gaming calendar on GamerClock\n${url}`)
-    toast.success('Game hub link copied')
+    return url.replace('utm_medium=share', `utm_medium=${medium}`)
+  }
+
+  async function handleShareDiscord() {
+    const url = getHubUrl('discord')
+    await copyText([
+      `🎮 **${game.name} calendar on GamerClock**`,
+      '',
+      `Track resets, patches, live events, rewards, and squad windows for ${game.name}.`,
+      `Live now: ${live.length} · This week: ${thisWeek.length} · Upcoming: ${upcoming.length}`,
+      '',
+      url,
+    ].join('\n'))
+    toast.success('Discord game hub message copied')
+  }
+
+  function handleShareX() {
+    const text = encodeURIComponent(buildTwitterShareText('All upcoming events', game.name, game.slug))
+    const url = encodeURIComponent(getHubUrl('x'))
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'noopener')
   }
 
   return (
@@ -125,7 +150,8 @@ export function GameHubClient({ game, events }: { game: Game; events: GameEvent[
                   Subscribe
                 </a>
               </Button>
-              <Button variant="outline" onClick={handleShare}>Share</Button>
+              <Button variant="outline" onClick={handleShareDiscord}>Discord</Button>
+              <Button variant="outline" onClick={handleShareX}>X</Button>
             </div>
           </div>
         </section>
