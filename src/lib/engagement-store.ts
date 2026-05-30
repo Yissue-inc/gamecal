@@ -8,6 +8,7 @@ const ATTENDANCE_KEY = 'gamecal-attendance'
 const BADGES_KEY = 'gamecal-badges'
 const GP_KEY = 'gamecal-gp'
 const PARTY_HISTORY_KEY = 'gamecal-party-history'
+const EVENT_NOTES_KEY = 'gamecal-event-notes'
 
 export interface AttendanceState {
   currentStreak: number
@@ -138,6 +139,22 @@ export function addPartyHistoryLocal(item: PartyHistoryItem) {
   writeJson(PARTY_HISTORY_KEY, next)
   addGpLocal(3)
   return next
+}
+
+export function getEventNote(eventId: string): string {
+  const all = readJson<Record<string, string>>(EVENT_NOTES_KEY, {})
+  return all[eventId] ?? ''
+}
+
+export function setEventNote(eventId: string, note: string): void {
+  const all = readJson<Record<string, string>>(EVENT_NOTES_KEY, {})
+  const next = note.trim().slice(0, 280)
+  if (next) {
+    all[eventId] = next
+  } else {
+    delete all[eventId]
+  }
+  writeJson(EVENT_NOTES_KEY, all)
 }
 
 export function toggleReleaseReminderLocal(releaseId: string, offsetMin: number, releaseAt: string): number[] {

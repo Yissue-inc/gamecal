@@ -10,6 +10,7 @@ import { ShareEvent } from '@/components/calendar/ShareEvent'
 import { PartyButton } from '@/components/calendar/PartyButton'
 import { WishlistButton } from '@/components/wishlist/WishlistButton'
 import { ReminderPicker } from '@/components/wishlist/ReminderPicker'
+import { GamerNotes } from '@/components/engagement/GamerNotes'
 import { getSquadsFormingCount } from '@/lib/groupcal'
 import {
   formatDateRange,
@@ -115,6 +116,8 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
         <div className="flex flex-wrap gap-2">
           <WishlistButton eventId={event.id} />
         </div>
+
+        <GamerNotes eventId={event.id} />
 
         <ReminderPicker eventId={event.id} eventStartAt={event.start_at} />
 
