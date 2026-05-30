@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   checkInLocal,
   getAttendanceLocal,
+  getPrestigeLevel,
   isCheckedInToday,
 } from '@/lib/engagement-store'
 import { isSupabaseConfigured } from '@/lib/mock-data'
@@ -34,6 +35,21 @@ export function DailyCheckIn() {
   const [todayChecked, setTodayChecked] = useState(false)
   const [justChecked, setJustChecked] = useState(false)
   const useApi = isSupabaseConfigured()
+
+  useEffect(() => {
+    const handleMilestone = (event: Event) => {
+      const gp = (event as CustomEvent<{ gp?: number }>).detail?.gp ?? 0
+      const prestige = getPrestigeLevel(gp)
+      toast.success('Prestige unlocked!', {
+        description: `You reached ${gp} GP - ${prestige.label} tier.`,
+        icon: prestige.emoji,
+        duration: 5000,
+      })
+    }
+
+    window.addEventListener('gamecal:gp-milestone', handleMilestone)
+    return () => window.removeEventListener('gamecal:gp-milestone', handleMilestone)
+  }, [])
 
   useEffect(() => {
     if (useApi && user) {
@@ -72,6 +88,7 @@ export function DailyCheckIn() {
           recordDragonCheckInPresence()
           showDragonCheckInToast(d.currentStreak ?? 0)
         }
+        window.dispatchEvent(new Event('gamecal:checkin'))
         setTimeout(() => setJustChecked(false), 4000)
         return
       }
@@ -84,6 +101,7 @@ export function DailyCheckIn() {
     trackCheckinDone(next.currentStreak)
     recordDragonCheckInPresence()
     showDragonCheckInToast(next.currentStreak)
+    window.dispatchEvent(new Event('gamecal:checkin'))
     setTimeout(() => setJustChecked(false), 4000)
   }
 

@@ -233,8 +233,17 @@ function checkBadgeUnlocks(attendance: AttendanceState) {
 }
 
 export function addGpLocal(amount: number) {
-  const gp = readJson<number>(GP_KEY, 0) + amount
+  const previous = readJson<number>(GP_KEY, 0)
+  const gp = previous + amount
   writeJson(GP_KEY, gp)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('gamecal:gp-updated', { detail: { gp } }))
+    for (const tier of [200, 500, 1000, 2500]) {
+      if (previous < tier && gp >= tier) {
+        window.dispatchEvent(new CustomEvent('gamecal:gp-milestone', { detail: { gp: tier } }))
+      }
+    }
+  }
 }
 
 export function getGpLocal(): number {

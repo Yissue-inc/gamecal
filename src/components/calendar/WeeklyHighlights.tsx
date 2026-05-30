@@ -14,6 +14,7 @@ import {
   getRewardSortScore,
   getSourceConfidenceLabel,
   getSourceConfidenceTone,
+  getSourceConfidenceTooltip,
 } from '@/lib/reward-signals'
 
 function HighlightCard({
@@ -65,8 +66,11 @@ function HighlightCard({
         {getDday(event.start_at)}
       </div>
 
-      <div className={`absolute right-2 top-9 hidden rounded-full border px-2 py-0.5 text-[9px] font-bold md:block ${getSourceConfidenceTone(reward.source_confidence)}`}>
-        {reward.source_confidence === 'official' ? 'Official' : reward.source_confidence === 'media' ? 'Media' : 'Inferred'}
+      <div
+        title={getSourceConfidenceTooltip(reward.source_confidence)}
+        className={`absolute right-2 top-9 hidden rounded-full border px-2 py-0.5 text-[9px] font-bold md:block ${getSourceConfidenceTone(reward.source_confidence)}`}
+      >
+        {getSourceConfidenceLabel(reward.source_confidence)}
       </div>
 
       {rewardLabel && (
@@ -87,7 +91,9 @@ function HighlightCard({
         <div className="line-clamp-2 text-sm font-bold leading-tight text-white">{event.title}</div>
         <div className="mt-0.5 flex items-center justify-between gap-2 text-[10px] text-zinc-400">
           <span>{formatShortDate(event.start_at)}</span>
-          <span className="hidden truncate md:inline">{getSourceConfidenceLabel(reward.source_confidence)}</span>
+          <span className="hidden truncate md:inline" title={getSourceConfidenceTooltip(reward.source_confidence)}>
+            {getSourceConfidenceLabel(reward.source_confidence)}
+          </span>
         </div>
       </div>
     </button>

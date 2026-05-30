@@ -18,6 +18,7 @@ import {
   getRewardSignals,
   getRewardSortScore,
   getSourceConfidenceLabel,
+  getSourceConfidenceTooltip,
 } from '@/lib/reward-signals'
 
 function UpcomingItem({
@@ -70,7 +71,7 @@ function UpcomingItem({
               🎁 {reward.reward_score} · {rewardLabel}
             </div>
           )}
-          <div className="mt-1 text-[10px] text-zinc-600">
+          <div className="mt-1 text-[10px] text-zinc-600" title={getSourceConfidenceTooltip(reward.source_confidence)}>
             {getSourceConfidenceLabel(reward.source_confidence)}
           </div>
         </div>

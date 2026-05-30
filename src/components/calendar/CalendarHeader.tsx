@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { PrestigeBar } from '@/components/engagement/PrestigeBar'
+import { PrestigeChip } from '@/components/engagement/PrestigeChip'
 import { GameSidebar } from '@/components/calendar/GameSidebar'
 import { formatTimezoneLabel } from '@/lib/timezone'
 import { useAuth } from '@/hooks/useAuth'
@@ -87,7 +87,7 @@ export function CalendarHeader({
           >
             🌍 {formatTimezoneLabel(timezone)}
           </Link>
-          <PrestigeBar />
+          <PrestigeChip />
           <Button variant="ghost" size="sm" asChild>
             <Link href="/new-releases" data-testid="new-releases-link">New Releases</Link>
           </Button>

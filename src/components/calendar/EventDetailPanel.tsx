@@ -25,6 +25,7 @@ import {
   getRewardSignals,
   getSourceConfidenceLabel,
   getSourceConfidenceTone,
+  getSourceConfidenceTooltip,
 } from '@/lib/reward-signals'
 import { usePreferences } from '@/hooks/usePreferences'
 import type { Game, GameEvent } from '@/types'
@@ -154,17 +155,20 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
 
         <section data-testid="event-source-section" className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Source Confidence</div>
-            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${getSourceConfidenceTone(reward.source_confidence)}`}>
+            <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Source Check</div>
+            <span
+              title={getSourceConfidenceTooltip(reward.source_confidence)}
+              className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${getSourceConfidenceTone(reward.source_confidence)}`}
+            >
               {getSourceConfidenceLabel(reward.source_confidence)}
             </span>
           </div>
           <p className="text-xs leading-relaxed text-zinc-400">
             {reward.source_confidence === 'official'
-              ? 'This event is linked to an official game or publisher source.'
+              ? 'This event is confirmed directly by the game developer or publisher.'
               : reward.source_confidence === 'media'
-                ? 'This event is backed by a media or store source and should be reviewed as source coverage evolves.'
-                : 'This event is inferred from event type and keyword signals until a stronger source is attached.'}
+                ? 'Reported by gaming media. Likely accurate, but not yet directly confirmed by the publisher.'
+                : 'Based on patterns, leaks, or incomplete source signals. Treat as rumor until confirmed.'}
           </p>
         </section>
 

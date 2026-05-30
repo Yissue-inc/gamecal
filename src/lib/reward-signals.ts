@@ -274,14 +274,21 @@ export function getRewardBadgeLabel(event: GameEvent): string | null {
   return reward.reward_summary ?? 'Reward event'
 }
 
-export function getSourceConfidenceLabel(confidence: SourceConfidence): string {
-  if (confidence === 'official') return 'Official source'
-  if (confidence === 'media') return 'Media verified'
-  return 'Inferred signal'
+export function getSourceConfidenceLabel(confidence: SourceConfidence | string | undefined): string {
+  if (confidence === 'official') return 'Official'
+  if (confidence === 'media') return 'Reported'
+  return 'Rumored'
 }
 
-export function getSourceConfidenceTone(confidence: SourceConfidence): string {
-  if (confidence === 'official') return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-300'
-  if (confidence === 'media') return 'border-sky-500/35 bg-sky-500/10 text-sky-300'
-  return 'border-zinc-700 bg-zinc-900 text-zinc-400'
+export function getSourceConfidenceTone(confidence: SourceConfidence | string | undefined): string {
+  if (confidence === 'official') return 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300'
+  if (confidence === 'media') return 'border-sky-500/50 bg-sky-950/30 text-sky-300'
+  if (confidence === 'inferred') return 'border-amber-500/40 bg-amber-950/20 text-amber-400'
+  return 'border-zinc-600 bg-zinc-900 text-zinc-400'
+}
+
+export function getSourceConfidenceTooltip(confidence: SourceConfidence | string | undefined): string {
+  if (confidence === 'official') return 'Confirmed by developers or publishers'
+  if (confidence === 'media') return 'Reported by gaming media'
+  return 'Based on leaks, patterns, or incomplete source signals'
 }
