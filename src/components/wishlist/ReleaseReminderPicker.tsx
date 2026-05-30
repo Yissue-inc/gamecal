@@ -115,7 +115,7 @@ export function ReleaseReminderPicker({ releaseId, releaseDate }: ReleaseReminde
         <Bell className="h-3.5 w-3.5" />
         <span>Remind me</span>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {OFFSETS.map((offset) => {
           const active = activeOffsets.includes(offset.value)
           return (
@@ -124,7 +124,7 @@ export function ReleaseReminderPicker({ releaseId, releaseDate }: ReleaseReminde
               type="button"
               data-testid={`release-reminder-offset-${offset.value}`}
               onClick={() => toggleOffset(offset.value)}
-              className={`rounded-md border px-3 py-1 text-xs font-medium transition-all ${
+              className={`min-h-9 rounded-md border px-2 py-1 text-center text-xs font-medium transition-all ${
                 active
                   ? 'border-indigo-600 bg-indigo-950/60 text-indigo-300'
                   : 'border-zinc-700 bg-zinc-800/40 text-zinc-400 hover:border-zinc-500'

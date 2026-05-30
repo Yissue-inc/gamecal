@@ -36,7 +36,6 @@ function HighlightCard({
       }
     : getGameArtStyle(game)
 
-  const barColor = event.importance === 'critical' ? '#ef4444' : game.brand_color
   const reward = getRewardSignals(event, game)
   const rewardLabel = getRewardBadgeLabel(event)
 
@@ -71,12 +70,7 @@ function HighlightCard({
       </div>
 
       {rewardLabel && (
-        <div className="absolute left-2 top-9 hidden max-w-[13rem] truncate rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200 md:block">
-          🎁 {reward.reward_score} · {rewardLabel}
-        </div>
-      )}
-      {rewardLabel && (
-        <div className="absolute left-2 top-9 rounded-full border border-amber-400/40 bg-black/55 px-2 py-0.5 text-[10px] font-bold text-amber-200 md:hidden">
+        <div className="absolute left-2 top-9 rounded-full border border-amber-400/40 bg-black/55 px-2 py-0.5 text-[10px] font-bold text-amber-200">
           🎁 {reward.reward_score}
         </div>
       )}
@@ -84,11 +78,10 @@ function HighlightCard({
       <div
         className="absolute bottom-0 left-0 right-0 px-3 py-2.5"
         style={{
-          borderTop: `2px solid ${barColor}`,
           background: 'linear-gradient(0deg, #000 0%, transparent 100%)',
         }}
       >
-        <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: barColor }}>
+        <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-300">
           {getEventTypeIcon(event.event_type)} {getEventTypeLabel(event.event_type)}
         </div>
         <div className="line-clamp-2 text-sm font-bold leading-tight text-white">{event.title}</div>
@@ -96,14 +89,6 @@ function HighlightCard({
           <span>{formatShortDate(event.start_at)}</span>
           <span className="hidden truncate md:inline">{getSourceConfidenceLabel(reward.source_confidence)}</span>
         </div>
-        {reward.reward_score >= 70 && (
-          <div className="mt-1 h-1 overflow-hidden rounded-full bg-zinc-800">
-            <div
-              className="h-full rounded-full bg-amber-400"
-              style={{ width: `${reward.reward_score}%` }}
-            />
-          </div>
-        )}
       </div>
     </button>
   )
@@ -138,7 +123,7 @@ function ReleaseHighlightCard({
       <div className="absolute left-2 top-2 rounded-full border border-indigo-400/40 bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold text-indigo-200">
         NEW / {release.platform[0] ?? 'Game'}
       </div>
-      <div className="absolute bottom-0 left-0 right-0 border-t-2 border-indigo-400 bg-gradient-to-t from-black to-black/20 px-3 py-2.5">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-black/20 px-3 py-2.5">
         <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300">
           New Release
         </div>

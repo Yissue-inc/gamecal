@@ -6,6 +6,7 @@ import { X, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { AddReleaseToCalendar } from '@/components/calendar/AddToCalendar'
 import { ReleaseWishlistButton } from '@/components/wishlist/ReleaseWishlistButton'
 import { ReleaseReminderPicker } from '@/components/wishlist/ReleaseReminderPicker'
 import { getDaysUntil, getReleaseHeroColor, withGamerClockUtm } from '@/lib/utils'
@@ -69,6 +70,7 @@ function ReleaseContent({ release, onClose }: { release: NewRelease; onClose: ()
           <ReleaseWishlistButton releaseId={release.id} platform={release.platform[0]} />
         </div>
         <ReleaseReminderPicker releaseId={release.id} releaseDate={release.release_date} />
+        <AddReleaseToCalendar release={release} />
         <div className="flex flex-wrap gap-2">
           {release.steam_url && (
             <Button size="sm" variant="outline" asChild>
@@ -126,7 +128,7 @@ export function ReleaseDetailPanel({ release, isOpen, onClose }: ReleaseDetailPa
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent side="bottom" className="h-[85vh]" data-testid="release-panel">
+        <SheetContent side="bottom" hideClose className="h-[85vh]" data-testid="release-panel">
           <ReleaseContent release={release} onClose={onClose} />
         </SheetContent>
       </Sheet>

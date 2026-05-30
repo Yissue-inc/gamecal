@@ -195,7 +195,9 @@ export function GameCalendar({
       })
 
       const frame = cell.querySelector('.fc-daygrid-day-frame')
-      frame?.prepend(art)
+      const dateTop = cell.querySelector('.fc-daygrid-day-top')
+      if (dateTop) dateTop.after(art)
+      else frame?.append(art)
     },
     [onReleaseClick]
   )
@@ -291,7 +293,7 @@ export function GameCalendar({
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
-      <div className={`${selectedDateKey ? 'min-h-[170px] md:min-h-[260px]' : 'min-h-[360px] md:min-h-[420px]'} flex-1 overflow-hidden`}>
+      <div className={`${selectedDateKey ? 'h-[42vh] min-h-[220px] flex-none md:h-auto md:min-h-[260px] md:flex-1' : 'min-h-[360px] md:min-h-[420px]'} flex-1 overflow-hidden`}>
         <FullCalendar
           ref={ref}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -335,12 +337,14 @@ export function GameCalendar({
             const dateKey = info.el.getAttribute('data-date') ?? format(info.date, 'yyyy-MM-dd')
             info.el.addEventListener('click', (event) => {
               if ((event.target as HTMLElement).closest('.fc-event, .release-cell-art')) return
+              event.preventDefault()
+              event.stopPropagation()
               if (isGuest) {
                 onGuestEventClick()
                 return
               }
               setSelectedDateKey(dateKey)
-            })
+            }, { capture: true })
             const releasesForDay = releasesByDate[dateKey]
             if (releasesForDay?.length) {
               mountReleaseArt(info.el, releasesForDay)
@@ -352,9 +356,10 @@ export function GameCalendar({
         <section
           ref={selectedEventsRef}
           data-testid="selected-date-events"
-          className="mt-2 shrink-0 border-t border-zinc-800 bg-[#0f0f0f] pb-28 pt-3 md:mt-3 md:max-h-[34vh] md:pb-0 md:pt-4"
+          className="mt-2 flex min-h-0 flex-1 shrink border-t border-zinc-800 bg-[#0f0f0f] pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 md:mt-3 md:max-h-[34vh] md:flex-none md:pb-0 md:pt-4"
         >
-          <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex min-h-0 w-full flex-col">
+          <div className="sticky top-0 z-10 mb-3 flex items-start justify-between gap-3 bg-[#0f0f0f]/95 pb-2 backdrop-blur">
             <div>
               <h3 className="font-rajdhani text-2xl font-bold leading-none text-white">
                 {formatSelectedDate(selectedDateKey)}
@@ -366,13 +371,13 @@ export function GameCalendar({
             <button
               type="button"
               onClick={() => setSelectedDateKey(null)}
-              className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-900 hover:text-white"
+              className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:bg-zinc-900 hover:text-white"
               aria-label="Close selected date events"
             >
-              Close
+              Back to calendar
             </button>
           </div>
-          <div className="max-h-60 overflow-y-auto pr-1 md:max-h-[calc(34vh-76px)]">
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1 md:max-h-[calc(34vh-76px)]">
             {selectedDateEvents.length + selectedDateReleases.length > 0 ? (
               <div className="divide-y divide-zinc-800">
                 {selectedDateReleasePreview.map((release) => {
@@ -499,6 +504,7 @@ export function GameCalendar({
               </p>
             )}
           </div>
+          </div>
         </section>
       )}
       <style jsx global>{`
@@ -529,6 +535,19 @@ export function GameCalendar({
           color: #d4d4d8;
           padding: 8px;
           font-size: 13px;
+        }
+        .gamecal-calendar .fc-daygrid-day-frame {
+          display: flex;
+          flex-direction: column;
+        }
+        .gamecal-calendar .fc-daygrid-day-top {
+          min-height: 38px;
+          position: relative;
+          z-index: 2;
+          cursor: pointer;
+        }
+        .gamecal-calendar .fc-daygrid-day-events {
+          margin-top: 2px;
         }
         .gamecal-calendar .fc-day-today {
           background: rgba(99, 102, 241, 0.08) !important;
