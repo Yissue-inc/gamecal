@@ -51,6 +51,12 @@ interface ReminderPushHealth {
   error?: string | null
 }
 
+interface PartyHealth {
+  groupCalConfigured: boolean
+  groupCalUrl: string
+  fallbackEnabled: boolean
+}
+
 function getDragonLevel(score: number) {
   if (score >= 180) return 4
   if (score >= 72) return 3
@@ -62,6 +68,7 @@ export default function AdminPage() {
   const [crawling, setCrawling] = useState<string | null>(null)
   const [presence, setPresence] = useState<DragonPresenceDaily | null>(null)
   const [pushHealth, setPushHealth] = useState<ReminderPushHealth | null>(null)
+  const [partyHealth, setPartyHealth] = useState<PartyHealth | null>(null)
   const [processingPush, setProcessingPush] = useState(false)
 
   useEffect(() => {
@@ -87,6 +94,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadPushHealth()
+    fetch('/api/party')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPartyHealth(data))
+      .catch(() => undefined)
   }, [])
 
   const dragonScore = useMemo(() => {
@@ -358,6 +369,41 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="party-finder-admin-card" className="bg-zinc-900 sm:col-span-2">
+          <CardHeader>
+            <CardTitle>Party Finder QA</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              GroupCal integration status for Create Party links.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-zinc-800 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-zinc-500">GroupCal Sync</div>
+                <div className={`mt-1 text-lg font-black ${partyHealth?.groupCalConfigured ? 'text-emerald-300' : 'text-amber-300'}`}>
+                  {partyHealth?.groupCalConfigured ? 'Live' : 'Fallback'}
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-zinc-500">Fallback Page</div>
+                <div className={`mt-1 text-lg font-black ${partyHealth?.fallbackEnabled ? 'text-emerald-300' : 'text-red-300'}`}>
+                  {partyHealth?.fallbackEnabled ? 'Ready' : 'Off'}
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-black/30 p-3">
+                <div className="text-xs uppercase tracking-wide text-zinc-500">Target</div>
+                <div className="mt-1 truncate text-sm font-semibold text-white" title={partyHealth?.groupCalUrl}>
+                  {partyHealth?.groupCalUrl ?? 'Checking...'}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-500">
+              If GroupCal sync is Fallback, users still get a shareable GamerClock party page. Add
+              GROUPCAL_EXTERNAL_API_KEY to enable live GroupCal voting links.
+            </p>
           </CardContent>
         </Card>
       </div>

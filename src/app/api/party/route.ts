@@ -17,6 +17,14 @@ function isValidPayload(value: unknown): value is CreatePartyPayload {
   )
 }
 
+export async function GET() {
+  return NextResponse.json({
+    groupCalConfigured: Boolean(GROUPCAL_API_KEY),
+    groupCalUrl: GROUPCAL_URL,
+    fallbackEnabled: true,
+  })
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
   if (!isValidPayload(body)) {
