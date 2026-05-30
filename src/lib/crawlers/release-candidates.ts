@@ -42,6 +42,19 @@ interface SteamAppDetails {
   header_image?: string
   developers?: string[]
   publishers?: string[]
+  genres?: Array<{ description?: string }>
+  categories?: Array<{ description?: string }>
+  movies?: Array<{
+    name?: string
+    webm?: { max?: string; 480?: string }
+    mp4?: { max?: string; 480?: string }
+  }>
+  is_free?: boolean
+  price_overview?: {
+    final_formatted?: string
+    initial_formatted?: string
+    discount_percent?: number
+  }
   release_date?: {
     coming_soon?: boolean
     date?: string
@@ -87,6 +100,8 @@ interface MobileStoreMetadata {
   description?: string
   image_url?: string
   source_url?: string
+  genre_tags?: string[]
+  is_free_to_play?: boolean
   source: 'app_store' | 'google_play'
 }
 
@@ -142,6 +157,42 @@ function metadataCompleteness(candidate: ReleaseCandidateInput): number {
     candidate.source_url ? 5 : 0,
   ]
   return weights.reduce((sum, item) => sum + item, 0)
+}
+
+function clampScore(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function getStringArraySignal(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
+function mergeGenreTags(...groups: Array<unknown>): string[] {
+  return Array.from(
+    new Set(
+      groups
+        .flatMap(getStringArraySignal)
+        .map((item) => normalizeTitle(item))
+        .filter(Boolean)
+    )
+  ).slice(0, 8)
+}
+
+function getSteamTrailerUrl(details: SteamAppDetails): string | null {
+  const movie = details.movies?.find((item) => item.webm?.max || item.mp4?.max || item.webm?.[480] || item.mp4?.[480])
+  return movie?.webm?.max ?? movie?.mp4?.max ?? movie?.webm?.[480] ?? movie?.mp4?.[480] ?? null
+}
+
+function deriveCandidateHypeScore(candidate: ReleaseCandidateInput): number {
+  const rawgMetacritic = typeof candidate.signals.rawg_metacritic === 'number' ? candidate.signals.rawg_metacritic : 0
+  const rawgRating = typeof candidate.signals.rawg_rating === 'number' ? candidate.signals.rawg_rating * 20 : 0
+  const igdbRating = typeof candidate.signals.igdb_rating === 'number' ? candidate.signals.igdb_rating : 0
+  const metadata = typeof candidate.signals.metadata_completeness === 'number' ? candidate.signals.metadata_completeness : metadataCompleteness(candidate)
+  const sourceScore = candidate.confidence_score
+  const scores = [rawgMetacritic, rawgRating, igdbRating, sourceScore, metadata].filter((score) => score > 0)
+  if (!scores.length) return clampScore(sourceScore)
+  return clampScore(scores.reduce((sum, score) => sum + score, 0) / scores.length)
 }
 
 function normalizeIgdbImage(value?: string): string | undefined {
@@ -402,7 +453,7 @@ async function fetchSteamAppDetails(appId: string): Promise<SteamAppDetails | nu
       timeout: 12000,
       params: {
         appids: appId,
-        filters: 'basic',
+        filters: 'basic,genres,categories,movies,price_overview',
       },
       headers: {
         'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; release discovery)',
@@ -439,8 +490,12 @@ async function enrichSteamCandidates(
         : detailDate.precision
     const steamImageUrl = details.header_image ?? details.background_raw ?? candidate.image_url
     const hasReachableSteamImage = await isReachableImageUrl(steamImageUrl)
+    const steamGenres = details.genres?.map((genre) => genre.description).filter(Boolean) ?? []
+    const steamCategories = details.categories?.map((category) => category.description).filter(Boolean) ?? []
+    const genreTags = mergeGenreTags(candidate.signals.genre_tags, steamGenres)
+    const trailerUrl = getSteamTrailerUrl(details)
 
-    enriched.push({
+    const nextCandidate = {
       ...candidate,
       title: normalizeTitle(details.name ?? candidate.title),
       developer: candidate.developer ?? details.developers?.[0] ?? details.publishers?.[0],
@@ -460,6 +515,13 @@ async function enrichSteamCandidates(
       signals: {
         ...candidate.signals,
         appdetails_enriched: true,
+        genre_tags: genreTags,
+        steam_genres: steamGenres,
+        steam_categories: steamCategories,
+        trailer_url: trailerUrl,
+        preorder_url: candidate.source_url,
+        is_free_to_play: Boolean(details.is_free),
+        steam_price_text: details.price_overview?.final_formatted ?? null,
         steam_image_valid: hasReachableSteamImage,
         steam_image_rejected: !hasReachableSteamImage && Boolean(steamImageUrl),
         steam_developers: details.developers ?? null,
@@ -468,6 +530,14 @@ async function enrichSteamCandidates(
       raw_payload: {
         ...candidate.raw_payload,
         steam_appdetails: details,
+      },
+    } satisfies ReleaseCandidateInput
+
+    enriched.push({
+      ...nextCandidate,
+      signals: {
+        ...nextCandidate.signals,
+        hype_score: deriveCandidateHypeScore(nextCandidate),
       },
     })
   }
@@ -572,6 +642,9 @@ export async function crawlNintendoReleaseCandidates(): Promise<ReleaseCandidate
         official_store: true,
         source_label: 'Nintendo Coming Soon',
         release_text: releaseDate,
+        genre_tags: [],
+        preorder_url: `${NINTENDO_COMING_SOON_URL}${slugify(title)}`,
+        hype_score: 90,
         ranking_sources: ['Nintendo official coming soon'],
       },
       raw_payload: { platform_label: platformLabel },
@@ -619,6 +692,9 @@ export async function crawlPlayStationReleaseCandidates(): Promise<ReleaseCandid
         official_store: true,
         source_label: 'PlayStation PS5 Games',
         release_text: dateMatch[1],
+        genre_tags: [],
+        preorder_url: PLAYSTATION_PS5_GAMES_URL,
+        hype_score: 86,
         ranking_sources: ['PlayStation official games page'],
       },
     })
@@ -658,6 +734,9 @@ export async function crawlXboxReleaseCandidates(): Promise<ReleaseCandidateInpu
         official_store: true,
         source_label: 'Xbox Upcoming Games',
         release_text: releaseDate,
+        genre_tags: [],
+        preorder_url: XBOX_UPCOMING_URL,
+        hype_score: 88,
         ranking_sources: ['Xbox official upcoming games'],
       },
     })
@@ -698,6 +777,9 @@ async function crawlPocketGamerArticle(url: string, headline: string): Promise<R
         official_store: false,
         source_label: 'Pocket Gamer Upcoming',
         release_text: parsed.date,
+        genre_tags: [],
+        preorder_url: url,
+        hype_score: 72,
         ranking_sources: ['Pocket Gamer upcoming mobile games'],
       },
     }
@@ -737,6 +819,8 @@ async function fetchAppStoreMetadata(url: string): Promise<MobileStoreMetadata |
         description: compactDescription(result.description, 360),
         image_url: result.artworkUrl512 ?? result.artworkUrl100,
         source_url: result.trackViewUrl ?? url,
+        genre_tags: [result.primaryGenreName].filter(Boolean),
+        is_free_to_play: Number(result.price ?? 0) === 0,
         source: 'app_store',
       }
     } catch {
@@ -760,6 +844,11 @@ async function fetchGooglePlayMetadata(url: string): Promise<MobileStoreMetadata
       ($('meta[property="og:title"]').attr('content') ?? $('h1').first().text()).replace(/\s+-\s+Apps on Google Play$/i, '')
     )
     const developer = normalizeTitle($('a[href^="/store/apps/dev"]').first().text())
+    const genre = normalizeTitle(
+      $('a[href*="/store/apps/category/"]').first().text() ||
+        $('meta[itemprop="applicationCategory"]').attr('content') ||
+        ''
+    )
     const description = compactDescription(
       $('meta[name="description"]').attr('content') ??
         $('meta[property="og:description"]').attr('content'),
@@ -773,6 +862,8 @@ async function fetchGooglePlayMetadata(url: string): Promise<MobileStoreMetadata
       description,
       image_url: imageUrl,
       source_url: url,
+      genre_tags: genre ? [genre] : [],
+      is_free_to_play: true,
       source: 'google_play',
     }
   } catch {
@@ -855,6 +946,9 @@ async function crawlGamingOnPhoneMonthlyArticle(
           source_label: `GamingOnPhone ${sourceMonth} ${sourceYear} mobile releases`,
           release_text: releaseText,
           mobile_store_source: storeMetadata?.source ?? null,
+          genre_tags: storeMetadata?.genre_tags ?? [],
+          preorder_url: sourceUrl,
+          is_free_to_play: storeMetadata?.is_free_to_play ?? false,
           store_links: storeLinks,
           ranking_sources: ['GamingOnPhone monthly mobile release calendar'],
         },
@@ -939,6 +1033,9 @@ export async function crawlMediaReleaseCandidates(): Promise<ReleaseCandidateInp
         official_store: false,
         source_label: 'GameSpot 2026 Release Schedule',
         release_text: match[3],
+        genre_tags: [],
+        preorder_url: GAMESPOT_2026_RELEASES_URL,
+        hype_score: 68,
         ranking_sources: ['GameSpot release schedule'],
       },
     })
@@ -1084,6 +1181,10 @@ function applyRawgMetadata(candidate: ReleaseCandidateInput, rawg: RawgGame | nu
       rawg_ratings_count: rawg.ratings_count ?? null,
       rawg_metacritic: rawg.metacritic ?? null,
       rawg_genres: rawg.genres?.map((genre) => genre.name).filter(Boolean) ?? [],
+      genre_tags: mergeGenreTags(
+        candidate.signals.genre_tags,
+        rawg.genres?.map((genre) => genre.name).filter(Boolean) ?? []
+      ),
       ranking_sources: Array.from(new Set([...rankingSources, 'RAWG metadata'])),
     },
     raw_payload: {
@@ -1141,6 +1242,11 @@ function applyIgdbMetadata(candidate: ReleaseCandidateInput, igdb: IgdbGame | nu
       igdb_rating: igdb.total_rating ?? null,
       igdb_rating_count: igdb.total_rating_count ?? null,
       igdb_genres: igdb.genres?.map((genre) => genre.name).filter(Boolean) ?? [],
+      genre_tags: mergeGenreTags(
+        candidate.signals.genre_tags,
+        igdb.genres?.map((genre) => genre.name).filter(Boolean) ?? []
+      ),
+      preorder_url: candidate.signals.preorder_url ?? candidate.source_url,
       ranking_sources: Array.from(new Set([...rankingSources, 'IGDB metadata'])),
     },
     raw_payload: {
@@ -1168,6 +1274,7 @@ async function enrichCandidateMetadata(
     signals: {
       ...withIgdb.signals,
       metadata_completeness: metadataCompleteness(withIgdb),
+      hype_score: deriveCandidateHypeScore(withIgdb),
       metadata_enrichment_sources: [
         rawg ? 'RAWG' : null,
         igdb ? 'IGDB' : null,
