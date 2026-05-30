@@ -54,3 +54,12 @@ export function trackBadgeUnlocked(badgeId: string) {
 export function trackReminderSet(eventId: string, offsetMin: number) {
   trackEvent('reminder_set', { event_id: eventId, offset_min: offsetMin })
 }
+
+/** Party referral */
+export function trackPartyReferralVisit(meta: { source_slug: string; game?: string }) {
+  trackEvent('party_referral_visit', meta)
+}
+
+export function trackPartyReferralInstallClick(meta: { source_slug: string; game?: string }) {
+  trackEvent('party_referral_install_click', meta)
+}

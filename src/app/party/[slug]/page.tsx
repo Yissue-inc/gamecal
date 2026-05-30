@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { CalendarDays, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { GroupCalOption } from '@/lib/groupcal'
+import { PartyInstallBanner } from './PartyInstallBanner'
 
 function parseOptions(value?: string): GroupCalOption[] {
   if (!value) return []
@@ -19,6 +20,11 @@ function parseOptions(value?: string): GroupCalOption[] {
   }
 }
 
+function extractGameName(title: string) {
+  const match = title.match(/^\[([^\]]+)\]/)
+  return match?.[1] ?? 'gaming'
+}
+
 export default function PartyPage({
   params,
   searchParams,
@@ -30,6 +36,7 @@ export default function PartyPage({
   const creator = searchParams.creator ?? 'GamerClock'
   const theme = searchParams.theme ?? '#6366f1'
   const options = parseOptions(searchParams.options)
+  const gameName = extractGameName(title)
 
   return (
     <main className="min-h-screen bg-[#0f0f0f] px-5 py-8 text-white">
@@ -37,6 +44,8 @@ export default function PartyPage({
         <Link href="/" className="font-rajdhani text-xl font-bold">
           Gamer<span className="text-primary">Clock</span>
         </Link>
+
+        <PartyInstallBanner gameName={gameName} hostName={creator} sourceSlug={params.slug} />
 
         <section
           className="mt-8 overflow-hidden rounded-2xl border bg-zinc-950"
