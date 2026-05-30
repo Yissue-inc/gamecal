@@ -19,6 +19,48 @@ function normalizePlatforms(platforms: string[]): string[] {
   })
 }
 
+function getStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
+function getReleaseEnrichment(candidate: {
+  source: string
+  source_url: string
+  confidence_score: number
+  signals?: Record<string, unknown> | null
+}) {
+  const signals = candidate.signals ?? {}
+  const genreTags = Array.from(
+    new Set([
+      ...getStringArray(signals.genre_tags),
+      ...getStringArray(signals.igdb_genres),
+      ...getStringArray(signals.rawg_genres),
+    ].map((item) => item.trim()).filter(Boolean))
+  ).slice(0, 6)
+  const rawHypeScore =
+    typeof signals.hype_score === 'number'
+      ? signals.hype_score
+      : typeof signals.rawg_metacritic === 'number'
+        ? Math.round((signals.rawg_metacritic + candidate.confidence_score) / 2)
+        : candidate.confidence_score
+  const trailerUrl = typeof signals.trailer_url === 'string' ? signals.trailer_url : null
+  const preorderUrl =
+    typeof signals.preorder_url === 'string'
+      ? signals.preorder_url
+      : ['steam', 'nintendo', 'playstation', 'xbox'].includes(candidate.source)
+        ? candidate.source_url
+        : null
+
+  return {
+    trailer_url: trailerUrl,
+    genre_tags: genreTags,
+    preorder_url: preorderUrl,
+    hype_score: Math.max(0, Math.min(100, rawHypeScore)),
+    is_free_to_play: Boolean(signals.is_free_to_play),
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -59,6 +101,7 @@ export async function POST(
     hero_color: inferHeroColor(candidate.platforms ?? []),
     steam_url: candidate.source === 'steam' ? candidate.source_url : null,
     nintendo_url: candidate.source === 'nintendo' ? candidate.source_url : null,
+    ...getReleaseEnrichment(candidate),
     is_featured: false,
     is_published: true,
   }
@@ -86,6 +129,14 @@ export async function POST(
           hero_color: existingRelease.hero_color || releasePayload.hero_color,
           steam_url: existingRelease.steam_url || releasePayload.steam_url,
           nintendo_url: existingRelease.nintendo_url || releasePayload.nintendo_url,
+          trailer_url: existingRelease.trailer_url || releasePayload.trailer_url,
+          genre_tags:
+            (existingRelease.genre_tags as string[] | null)?.length
+              ? existingRelease.genre_tags
+              : releasePayload.genre_tags,
+          preorder_url: existingRelease.preorder_url || releasePayload.preorder_url,
+          hype_score: existingRelease.hype_score || releasePayload.hype_score,
+          is_free_to_play: existingRelease.is_free_to_play || releasePayload.is_free_to_play,
           is_published: true,
         })
         .eq('id', existingRelease.id)

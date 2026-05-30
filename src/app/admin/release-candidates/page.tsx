@@ -100,6 +100,25 @@ function getMetadataBadges(candidate: ReleaseCandidate) {
   ].filter(Boolean) as string[]
 }
 
+function getSignalString(signals: Record<string, unknown>, key: string) {
+  const value = signals[key]
+  return typeof value === 'string' ? value : ''
+}
+
+function getSignalNumber(signals: Record<string, unknown>, key: string) {
+  const value = signals[key]
+  return typeof value === 'number' ? value : 0
+}
+
+function getSignalArrayText(signals: Record<string, unknown>, key: string) {
+  const value = signals[key]
+  return Array.isArray(value) ? value.filter((item) => typeof item === 'string').join(', ') : ''
+}
+
+function textToStringArray(value: string) {
+  return Array.from(new Set(value.split(',').map((item) => item.trim()).filter(Boolean)))
+}
+
 export default function ReleaseCandidatesPage() {
   const [status, setStatus] = useState<ReleaseCandidateStatus | 'all'>('pending')
   const [candidates, setCandidates] = useState<ReleaseCandidate[]>([])
@@ -311,6 +330,7 @@ export default function ReleaseCandidatesPage() {
           {filteredCandidates.map((candidate) => {
             const draft = { ...candidate, ...editing[candidate.id] }
             const draftPlatforms = canonicalizePlatforms(draft.platforms ?? [])
+            const draftSignals = (draft.signals ?? {}) as Record<string, unknown>
             const signalText = getSignalText(candidate)
             const metadataBadges = getMetadataBadges(candidate)
             const dirty = Boolean(editing[candidate.id])
@@ -435,6 +455,70 @@ export default function ReleaseCandidatesPage() {
                         value={draft.description ?? ''}
                         onChange={(event) =>
                           patchCandidate(candidate.id, { description: event.target.value })
+                        }
+                        className="border-zinc-800 bg-zinc-900 text-white"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs text-zinc-500">
+                      Genre tags
+                      <Input
+                        value={getSignalArrayText(draftSignals, 'genre_tags') || getSignalArrayText(draftSignals, 'igdb_genres') || getSignalArrayText(draftSignals, 'rawg_genres')}
+                        placeholder="RPG, Action, Co-op"
+                        onChange={(event) =>
+                          patchCandidate(candidate.id, {
+                            signals: {
+                              ...draftSignals,
+                              genre_tags: textToStringArray(event.target.value),
+                            },
+                          })
+                        }
+                        className="border-zinc-800 bg-zinc-900 text-white"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs text-zinc-500">
+                      Hype score
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={getSignalNumber(draftSignals, 'hype_score') || getSignalNumber(draftSignals, 'rawg_metacritic') || draft.confidence_score || 0}
+                        onChange={(event) =>
+                          patchCandidate(candidate.id, {
+                            signals: {
+                              ...draftSignals,
+                              hype_score: Number(event.target.value),
+                            },
+                          })
+                        }
+                        className="border-zinc-800 bg-zinc-900 text-white"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs text-zinc-500">
+                      Trailer URL
+                      <Input
+                        value={getSignalString(draftSignals, 'trailer_url')}
+                        onChange={(event) =>
+                          patchCandidate(candidate.id, {
+                            signals: {
+                              ...draftSignals,
+                              trailer_url: event.target.value,
+                            },
+                          })
+                        }
+                        className="border-zinc-800 bg-zinc-900 text-white"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs text-zinc-500">
+                      Pre-order URL
+                      <Input
+                        value={getSignalString(draftSignals, 'preorder_url')}
+                        onChange={(event) =>
+                          patchCandidate(candidate.id, {
+                            signals: {
+                              ...draftSignals,
+                              preorder_url: event.target.value,
+                            },
+                          })
                         }
                         className="border-zinc-800 bg-zinc-900 text-white"
                       />
