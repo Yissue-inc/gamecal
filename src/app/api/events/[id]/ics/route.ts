@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { MOCK_EVENTS, MOCK_GAMES, isSupabaseConfigured } from '@/lib/mock-data'
+import { MOCK_EVENTS, isSupabaseConfigured } from '@/lib/mock-data'
 import { generateSingleEventICS } from '@/lib/ical'
+
+const PUBLIC_ICS_CACHE = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800',
+}
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -14,6 +18,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': `attachment; filename="${event.title}.ics"`,
+        ...PUBLIC_ICS_CACHE,
       },
     })
   }
@@ -23,6 +28,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .from('events')
     .select('*, game:games(*)')
     .eq('id', id)
+    .eq('is_published', true)
     .single()
 
   if (error || !data) return new NextResponse('Not found', { status: 404 })
@@ -34,6 +40,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': `attachment; filename="${data.title}.ics"`,
+      ...PUBLIC_ICS_CACHE,
     },
   })
 }

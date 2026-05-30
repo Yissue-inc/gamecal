@@ -5,25 +5,39 @@ import { MOCK_EVENTS, isSupabaseConfigured } from '@/lib/mock-data'
 import { verifyAdminSecret } from '@/lib/utils'
 import { getRewardSignals } from '@/lib/reward-signals'
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+const PUBLIC_EVENT_CACHE = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800',
+}
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const isAdmin = verifyAdminSecret(request)
 
   if (!isSupabaseConfigured()) {
     const event = MOCK_EVENTS.find((e) => e.id === id)
     if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ event })
+    return NextResponse.json({ event }, { headers: PUBLIC_EVENT_CACHE })
   }
 
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('events')
     .select('*, game:games(*)')
     .eq('id', id)
+
+  if (!isAdmin) {
+    query = query.eq('is_published', true)
+  }
+
+  const { data, error } = await query
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 404 })
   const event = { ...data, game: Array.isArray(data.game) ? data.game[0] : data.game }
-  return NextResponse.json({ event: { ...event, ...getRewardSignals(event, event.game) } })
+  return NextResponse.json(
+    { event: { ...event, ...getRewardSignals(event, event.game) } },
+    { headers: isAdmin ? { 'Cache-Control': 'no-store' } : PUBLIC_EVENT_CACHE }
+  )
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
