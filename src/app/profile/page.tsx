@@ -6,19 +6,24 @@ import { useAuth } from '@/hooks/useAuth'
 import { BadgeGallery } from '@/components/engagement/BadgeGallery'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
 import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
+import { WeeklyRecapCard } from '@/components/engagement/WeeklyRecapCard'
 import {
+  buildWeeklyRecap,
   getAttendanceLocal,
   getGpLocal,
   getPartyHistoryLocal,
   getPrestigeLevel,
   type PartyHistoryItem,
+  type WeeklyRecap,
 } from '@/lib/engagement-store'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 export default function ProfilePage() {
   const { user, isGuest } = useAuth()
   const [stats, setStats] = useState({ streak: 0, totalDays: 0, gp: 0 })
   const [partyHistory, setPartyHistory] = useState<PartyHistoryItem[]>([])
+  const [recap, setRecap] = useState<WeeklyRecap | null>(null)
 
   useEffect(() => {
     const attendance = getAttendanceLocal()
@@ -28,6 +33,7 @@ export default function ProfilePage() {
       gp: getGpLocal(),
     })
     setPartyHistory(getPartyHistoryLocal())
+    setRecap(buildWeeklyRecap())
   }, [])
 
   const prestige = getPrestigeLevel(stats.gp)
@@ -93,6 +99,12 @@ export default function ProfilePage() {
             <DailyCheckIn />
           </div>
         </section>
+        {recap && (
+          <section>
+            <h2 className="font-rajdhani mb-4 text-lg font-semibold">This Week</h2>
+            <WeeklyRecapCard recap={recap} onShare={() => toast.success('Weekly recap copied')} />
+          </section>
+        )}
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
             <h2 className="font-rajdhani text-lg font-semibold">Party History</h2>

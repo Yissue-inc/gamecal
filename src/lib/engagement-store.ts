@@ -27,6 +27,17 @@ export interface PartyHistoryItem {
   fallback?: boolean
 }
 
+export interface WeeklyRecap {
+  weekLabel: string
+  eventsTracked: number
+  currentStreak: number
+  longestStreak: number
+  gp: number
+  prestige: { id: string; label: string; emoji: string }
+  topGame?: string
+  highPriorityThisWeek: number
+}
+
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback
   try {
@@ -273,6 +284,31 @@ export function getPrestigeLevel(gp: number): { id: string; label: string; emoji
   if (gp >= 500) return { id: 'gold', label: 'Dedicated', emoji: '🥇' }
   if (gp >= 200) return { id: 'silver', label: 'Regular', emoji: '🥈' }
   return { id: 'bronze', label: 'Casual', emoji: '🥉' }
+}
+
+export function buildWeeklyRecap(options?: {
+  trackedGames?: string[]
+  highPriorityThisWeek?: number
+}): WeeklyRecap {
+  const attendance = getAttendanceLocal()
+  const gp = getGpLocal()
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 6)
+  const formatDay = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+  return {
+    weekLabel: `${formatDay(weekStart)} - ${formatDay(weekEnd)}`,
+    eventsTracked: getWishlistIds().length + getReleaseWishlistIds().length,
+    currentStreak: attendance.currentStreak,
+    longestStreak: attendance.longestStreak,
+    gp,
+    prestige: getPrestigeLevel(gp),
+    topGame: options?.trackedGames?.[0],
+    highPriorityThisWeek: options?.highPriorityThisWeek ?? 0,
+  }
 }
 
 export const BADGE_DEFINITIONS = [
