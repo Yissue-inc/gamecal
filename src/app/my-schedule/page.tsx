@@ -3,10 +3,13 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { AlertTriangle, Bell, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
 import { EventDetailPanel } from '@/components/calendar/EventDetailPanel'
 import { ReleaseDetailPanel } from '@/components/calendar/ReleaseDetailPanel'
 import { Button } from '@/components/ui/button'
+import { ensurePushSubscription } from '@/lib/push'
 import { getReleaseHeroColor } from '@/lib/utils'
 import { getReleaseWishlistIds, getWishlistIds } from '@/lib/engagement-store'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
@@ -21,6 +24,15 @@ function formatReminderOffset(offsetMin: number) {
   return `${offsetMin} min`
 }
 
+function getBrowserPushState() {
+  if (typeof window === 'undefined') {
+    return { supported: false, permission: 'unknown' }
+  }
+  const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  const permission = 'Notification' in window ? Notification.permission : 'unsupported'
+  return { supported, permission }
+}
+
 export default function MySchedulePage() {
   const { user, isGuest, loading } = useAuth()
   const [wishlisted, setWishlisted] = useState<GameEvent[]>([])
@@ -28,8 +40,17 @@ export default function MySchedulePage() {
   const [eventReminders, setEventReminders] = useState<Record<string, number[]>>({})
   const [releaseReminders, setReleaseReminders] = useState<Record<string, number[]>>({})
   const [pushSubscriptions, setPushSubscriptions] = useState<number | null>(null)
+  const [pushSupported, setPushSupported] = useState(false)
+  const [pushPermission, setPushPermission] = useState('unknown')
+  const [enablingPush, setEnablingPush] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<GameEvent | null>(null)
   const [selectedRelease, setSelectedRelease] = useState<NewRelease | null>(null)
+
+  useEffect(() => {
+    const state = getBrowserPushState()
+    setPushSupported(state.supported)
+    setPushPermission(state.permission)
+  }, [])
 
   useEffect(() => {
     async function loadWishlist() {
@@ -119,6 +140,40 @@ export default function MySchedulePage() {
     return () => window.removeEventListener('cal:wishlist-changed', loadWishlist)
   }, [user])
 
+  const refreshPushSubscriptions = async () => {
+    if (!user) return
+    const res = await fetch('/api/push/subscribe')
+    if (!res.ok) return
+    const data = await res.json()
+    setPushSubscriptions(Number(data.subscriptions ?? 0))
+  }
+
+  const enablePushForBrowser = async () => {
+    setEnablingPush(true)
+    try {
+      const result = await ensurePushSubscription()
+      const state = getBrowserPushState()
+      setPushSupported(state.supported)
+      setPushPermission(state.permission)
+      await refreshPushSubscriptions()
+
+      if (result.ok) {
+        toast.success('Browser reminders are ready.')
+        return
+      }
+
+      if (result.reason === 'permission-denied') {
+        toast.error('Notifications are blocked. Enable them in browser site settings.')
+      } else if (result.reason === 'unsupported') {
+        toast.error('This browser does not support push notifications.')
+      } else {
+        toast.error('Could not enable browser reminders yet.')
+      }
+    } finally {
+      setEnablingPush(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f]" data-testid="my-schedule-page">
@@ -164,6 +219,42 @@ export default function MySchedulePage() {
                   ? `Push ready on ${pushSubscriptions} browser${pushSubscriptions === 1 ? '' : 's'}.`
                   : 'No browser push subscription yet. Set a reminder and allow notifications.'}
             </p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                {pushSubscriptions && pushSubscriptions > 0 ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-amber-400" />
+                )}
+                Reminder delivery
+              </div>
+              <div className="mt-2 grid gap-1 text-xs text-zinc-500 sm:grid-cols-3">
+                <span className="truncate">Signed in: {user.email ?? 'Unknown account'}</span>
+                <span>Browser: {pushSupported ? 'Push supported' : 'Push unavailable'}</span>
+                <span>Permission: {pushPermission}</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant={pushSubscriptions && pushSubscriptions > 0 ? 'outline' : 'default'}
+              size="sm"
+              className="gap-2"
+              onClick={enablePushForBrowser}
+              disabled={enablingPush || !pushSupported}
+            >
+              <Bell className="h-4 w-4" />
+              {enablingPush
+                ? 'Checking...'
+                : pushPermission === 'denied'
+                  ? 'Notifications blocked'
+                : pushSubscriptions && pushSubscriptions > 0
+                  ? 'Refresh browser push'
+                  : 'Enable reminders on this browser'}
+            </Button>
           </div>
         </div>
         <div className="space-y-2">
