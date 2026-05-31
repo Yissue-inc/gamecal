@@ -18,7 +18,7 @@ export default function NewReleasesPage() {
   }, [])
 
   const featured = all.filter((release) => release.is_featured)
-  const hero = featured[0]
+  const hero = featured[0] ?? all[0]
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]" data-testid="new-releases-page">

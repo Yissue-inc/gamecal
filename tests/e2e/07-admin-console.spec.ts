@@ -16,7 +16,8 @@ test.describe('Admin Console (Standalone)', () => {
   })
 
   test('Next.js Admin 랜딩 페이지에서 Console 링크가 있다', async ({ page }) => {
-    await page.goto('/admin?secret=dev-admin-secret')
+    const secret = process.env.ADMIN_SECRET || 'local-admin'
+    await page.goto(`/admin?secret=${secret}`)
     await expect(page.locator('[data-testid="admin-landing"]')).toBeVisible()
     await expect(page.locator('[data-testid="open-admin-console"]')).toBeVisible()
   })
@@ -32,7 +33,7 @@ test.describe('Admin Console (Standalone)', () => {
   })
 
   test('Admin crawl API — 올바른 secret이면 200', async ({ request }) => {
-    const secret = process.env.ADMIN_SECRET || 'dev-admin-secret'
+    const secret = process.env.ADMIN_SECRET || 'local-admin'
     const res = await request.post('/api/admin/crawl/fortnite', {
       headers: { 'x-admin-secret': secret },
     })

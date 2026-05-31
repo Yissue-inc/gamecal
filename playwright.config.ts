@@ -12,6 +12,7 @@ export default defineConfig({
   snapshotPathTemplate: '{testDir}/snapshots/{testFilePath}/{arg}{ext}',
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
+    storageState: 'test-results/.auth/no-intro.json',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

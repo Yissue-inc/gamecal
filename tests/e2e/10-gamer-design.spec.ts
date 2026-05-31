@@ -47,20 +47,22 @@ test.describe('Gamer Design — Share & Countdown', () => {
 })
 
 test.describe('Gamer Design — Mobile & Calendar', () => {
-  test('모바일에서 가로 스크롤 게임 칩이 표시된다', async ({ page }) => {
+  test('모바일에서 메뉴 버튼과 캘린더가 표시된다', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
-    await expect(page.locator('[data-testid="mobile-game-chips"]')).toBeVisible()
-    await expect(page.locator('[data-testid="mobile-chip-fortnite"]')).toBeVisible()
+    await expect(page.locator('[data-testid="mobile-menu-button"]')).toBeVisible()
+    await expect(page.locator('[data-testid="calendar-grid"]')).toBeVisible()
+    await expect(page.locator('[data-testid="upcoming-feed"]')).not.toBeVisible()
   })
 
-  test('모바일 게임 칩 클릭 시 필터가 토글된다', async ({ page }) => {
+  test('모바일 메뉴에서 게임 필터를 열 수 있다', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/')
     await page.waitForSelector('[data-testid="calendar-grid"]')
-    const chip = page.locator('[data-testid="mobile-chip-fortnite"]')
-    await chip.click()
-    await expect(chip).toHaveClass(/border-zinc-700/)
+    await page.click('[data-testid="mobile-menu-button"]')
+    const mobileSidebar = page.locator('[data-testid="mobile-game-sidebar"]')
+    await expect(mobileSidebar).toBeVisible()
+    await expect(mobileSidebar.locator('[data-testid="game-checkbox-fortnite"]')).toBeVisible()
   })
 
   test('캘린더 출시일 셀에 release art가 표시된다', async ({ page }) => {

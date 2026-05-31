@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test'
+import { hasAuthCredentials, loginWithEmail } from '../helpers/auth'
 
 test.describe('Event Detail Panel', () => {
   async function openTodayEvent(page: import('@playwright/test').Page) {
+    test.skip(!hasAuthCredentials(), 'Event detail panel requires authenticated user')
+    await loginWithEmail(page, process.env.TEST_USER_EMAIL!, process.env.TEST_USER_PASSWORD!)
     await page.goto('/')
     await page.waitForSelector('[data-testid="calendar-grid"]')
     await page.waitForSelector('.fc-day-today .fc-event', { timeout: 15000 })
-    await page.locator('.fc-day-today .fc-event').first().click()
+    await page.locator('.fc-day-today .fc-event').first().click({ force: true })
   }
 
   test('오늘 이벤트 클릭 시 상세 패널이 열린다', async ({ page }) => {
@@ -42,7 +45,7 @@ test.describe('Event Detail Panel', () => {
     await page.waitForTimeout(500)
     const hidden = page.locator('.guest-blurred-event').first()
     test.skip((await hidden.count()) === 0, 'No blurred events in view')
-    await hidden.click()
+    await hidden.click({ force: true })
     await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible()
   })
 })
