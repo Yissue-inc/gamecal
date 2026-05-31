@@ -37,6 +37,7 @@ test.describe('UX Phase 2 — layout & feed', () => {
   })
 
   test('Cmd+K opens command search', async ({ page }) => {
+    await page.waitForTimeout(250)
     await page.keyboard.press('Meta+k')
     await expect(page.locator('[data-testid="command-search-overlay"]')).toBeVisible()
     await page.keyboard.press('Escape')
