@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { formatForDiscord, formatForReddit, formatForPlainText } from '@/lib/copy-format'
 import { buildTwitterShareText } from '@/lib/game-hashtags'
+import { getAppUrl } from '@/lib/app-url'
 import type { Game, GameEvent } from '@/types'
 
 interface ShareEventProps {
@@ -13,7 +14,7 @@ interface ShareEventProps {
 
 export function ShareEvent({ event, game }: ShareEventProps) {
   const [copied, setCopied] = useState<string | null>(null)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
+  const appUrl = getAppUrl()
 
   const formats = {
     discord: formatForDiscord(event, game),

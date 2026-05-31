@@ -6,6 +6,7 @@ import { PreferencesProvider } from '@/hooks/usePreferences'
 import { PostHogProvider } from '@/components/PostHogProvider'
 import { Toaster } from '@/components/ui/sonner'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
+import { getAppUrl } from '@/lib/app-url'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const rajdhani = Rajdhani({
@@ -15,7 +16,7 @@ const rajdhani = Rajdhani({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(getAppUrl()),
   title: 'GamerClock — Gaming Event Calendar | Never Miss a Reset',
   description:
     'Track Fortnite, WoW, Pokémon GO, Genshin, LoL events. Auto-sync to Google Calendar.',

@@ -20,12 +20,11 @@ import type {
   Importance,
 } from '@/types'
 import { getRewardSignals } from '@/lib/reward-signals'
+import { getAppUrl } from '@/lib/app-url'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
 
 export function withGamerClockUtm(
   href: string | undefined | null,
@@ -38,7 +37,7 @@ export function withGamerClockUtm(
     const base =
       typeof window !== 'undefined' && window.location?.href
         ? window.location.href
-        : APP_URL
+        : getAppUrl()
     const url = new URL(href, base)
     const appOrigin = new URL(base).origin
 

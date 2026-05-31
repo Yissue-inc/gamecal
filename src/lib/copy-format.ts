@@ -7,13 +7,12 @@ import {
 } from '@/lib/utils'
 import { buildDiscordEventMessage } from '@/lib/discord-format'
 import { getRewardSignals, getSourceConfidenceLabel } from '@/lib/reward-signals'
+import { getAppUrl } from '@/lib/app-url'
 import type { Game, GameEvent } from '@/types'
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
 
 function getShareUrl(game: Game, event?: GameEvent, medium = 'discord') {
   const path = `/games/${game.slug}`
-  const url = new URL(path, APP_URL)
+  const url = new URL(path, getAppUrl())
   if (event?.id) url.searchParams.set('event', event.id)
   url.searchParams.set('utm_source', 'gamerclock')
   url.searchParams.set('utm_medium', medium)

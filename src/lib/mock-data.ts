@@ -1,4 +1,5 @@
 import type { Game, GameEvent } from '@/types'
+import { getAppUrl } from '@/lib/app-url'
 
 export const MOCK_GAMES: Game[] = [
   { id: '1', slug: 'fortnite',   name: 'Fortnite',           brand_color: '#00d4ff', platform: ['PC','PS5','Xbox','Mobile','Switch'], sort_order: 1 },
@@ -34,7 +35,7 @@ function evt(
     start_at,
     end_at,
     is_recurring: false,
-    source_url: `https://gamecal-beryl.vercel.app/${game.slug}`,
+    source_url: `${getAppUrl()}/${game.slug}`,
     is_published: true,
     created_at: new Date().toISOString(),
   }

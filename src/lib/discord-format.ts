@@ -1,15 +1,14 @@
 import { getRewardSignals, getSourceConfidenceLabel } from '@/lib/reward-signals'
 import { getEventTypeIcon, getEventTypeLabel, getGamerCountdown } from '@/lib/utils'
+import { getAppUrl } from '@/lib/app-url'
 import type { Game, GameEvent } from '@/types'
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
 
 function discordTimestamp(iso: string, style: 'R' | 'f' = 'R') {
   return `<t:${Math.floor(new Date(iso).getTime() / 1000)}:${style}>`
 }
 
 function eventTrackingUrl(game: Game, event: GameEvent, medium: string) {
-  const url = new URL(`/games/${game.slug}`, APP_URL)
+  const url = new URL(`/games/${game.slug}`, getAppUrl())
   url.searchParams.set('event', event.id)
   url.searchParams.set('utm_source', 'gamerclock')
   url.searchParams.set('utm_medium', medium)

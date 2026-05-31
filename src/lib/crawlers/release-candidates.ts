@@ -2,6 +2,7 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
+import { getCrawlerUserAgent } from '@/lib/app-url'
 
 type ReleaseDatePrecision = 'exact' | 'month' | 'quarter' | 'year' | 'unknown'
 
@@ -209,7 +210,7 @@ async function isReachableImageUrl(value?: string): Promise<boolean> {
       timeout: 8000,
       maxRedirects: 3,
       headers: {
-        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; image validation)',
+        'User-Agent': getCrawlerUserAgent('image validation'),
       },
       validateStatus: (status) => status >= 200 && status < 400,
     })
@@ -221,7 +222,7 @@ async function isReachableImageUrl(value?: string): Promise<boolean> {
         maxRedirects: 3,
         responseType: 'stream',
         headers: {
-          'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; image validation)',
+          'User-Agent': getCrawlerUserAgent('image validation'),
           Range: 'bytes=0-1023',
         },
         validateStatus: (status) => status >= 200 && status < 400,
@@ -386,7 +387,7 @@ async function crawlSteamSearchPage(
   const response = await axios.get(url, {
     timeout: 15000,
     headers: {
-      'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; release discovery)',
+      'User-Agent': getCrawlerUserAgent('release discovery'),
     },
   })
   const $ = cheerio.load(response.data)
@@ -456,7 +457,7 @@ async function fetchSteamAppDetails(appId: string): Promise<SteamAppDetails | nu
         filters: 'basic,genres,categories,movies,price_overview',
       },
       headers: {
-        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; release discovery)',
+        'User-Agent': getCrawlerUserAgent('release discovery'),
       },
     })
 
@@ -613,7 +614,7 @@ function dedupeCandidates(candidates: ReleaseCandidateInput[], limit = 25): Rele
 export async function crawlNintendoReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
   const { data: html } = await axios.get(NINTENDO_COMING_SOON_URL, {
     timeout: 15000,
-    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+    headers: { 'User-Agent': getCrawlerUserAgent() },
   })
   const candidates: ReleaseCandidateInput[] = []
   const productRegex =
@@ -657,7 +658,7 @@ export async function crawlNintendoReleaseCandidates(): Promise<ReleaseCandidate
 export async function crawlPlayStationReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
   const { data: html } = await axios.get(PLAYSTATION_PS5_GAMES_URL, {
     timeout: 15000,
-    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+    headers: { 'User-Agent': getCrawlerUserAgent() },
   })
   const $ = cheerio.load(html)
   const candidates: ReleaseCandidateInput[] = []
@@ -706,7 +707,7 @@ export async function crawlPlayStationReleaseCandidates(): Promise<ReleaseCandid
 export async function crawlXboxReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
   const { data: html } = await axios.get(XBOX_UPCOMING_URL, {
     timeout: 15000,
-    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+    headers: { 'User-Agent': getCrawlerUserAgent() },
   })
   const candidates: ReleaseCandidateInput[] = []
   const productRegex =
@@ -749,7 +750,7 @@ async function crawlPocketGamerArticle(url: string, headline: string): Promise<R
   try {
     const { data: html } = await axios.get(url, {
       timeout: 12000,
-      headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+      headers: { 'User-Agent': getCrawlerUserAgent() },
     })
     const $ = cheerio.load(html)
     const title = normalizeTitle($('h1').first().text() || headline)
@@ -807,7 +808,7 @@ async function fetchAppStoreMetadata(url: string): Promise<MobileStoreMetadata |
         timeout: 10000,
         params: { id: appId, country },
         headers: {
-          'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; mobile release discovery)',
+          'User-Agent': getCrawlerUserAgent('mobile release discovery'),
         },
       })
       const result = response.data?.results?.[0]
@@ -836,7 +837,7 @@ async function fetchGooglePlayMetadata(url: string): Promise<MobileStoreMetadata
     const { data: html } = await axios.get(url, {
       timeout: 12000,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; GamerClockBot/0.1; +https://gamecal-beryl.vercel.app)',
+        'User-Agent': getCrawlerUserAgent(),
       },
     })
     const $ = cheerio.load(html)
@@ -891,7 +892,7 @@ async function crawlGamingOnPhoneMonthlyArticle(
     const { data: html } = await axios.get(url, {
       timeout: 15000,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; GamerClockBot/0.1; +https://gamecal-beryl.vercel.app)',
+        'User-Agent': getCrawlerUserAgent(),
       },
     })
     const $ = cheerio.load(html)
@@ -969,7 +970,7 @@ async function crawlGamingOnPhoneMonthlyArticle(
 export async function crawlMobileReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
   const { data: html } = await axios.get(POCKET_GAMER_UPCOMING_URL, {
     timeout: 15000,
-    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+    headers: { 'User-Agent': getCrawlerUserAgent() },
   })
   const $ = cheerio.load(html)
   const links = $('a[href]')
@@ -1001,7 +1002,7 @@ export async function crawlMobileReleaseCandidates(): Promise<ReleaseCandidateIn
 export async function crawlMediaReleaseCandidates(): Promise<ReleaseCandidateInput[]> {
   const { data: html } = await axios.get(GAMESPOT_2026_RELEASES_URL, {
     timeout: 15000,
-    headers: { 'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app)' },
+    headers: { 'User-Agent': getCrawlerUserAgent() },
   })
   const $ = cheerio.load(html)
   const text = $('main, article, body').text().replace(/\s+/g, ' ')
@@ -1058,7 +1059,7 @@ async function fetchRawgGame(candidate: ReleaseCandidateInput): Promise<RawgGame
         page_size: 5,
       },
       headers: {
-        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; metadata enrichment)',
+        'User-Agent': getCrawlerUserAgent('metadata enrichment'),
       },
     })
     const results = (search.data?.results ?? []) as RawgGame[]
@@ -1069,7 +1070,7 @@ async function fetchRawgGame(candidate: ReleaseCandidateInput): Promise<RawgGame
       timeout: 12000,
       params: { key },
       headers: {
-        'User-Agent': 'GamerClockBot/0.1 (+https://gamecal-beryl.vercel.app; metadata enrichment)',
+        'User-Agent': getCrawlerUserAgent('metadata enrichment'),
       },
     })
     return { ...match, ...detail.data }

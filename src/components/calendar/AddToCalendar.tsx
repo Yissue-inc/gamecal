@@ -8,16 +8,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { withGamerClockUtm } from '@/lib/utils'
+import { getAppHost, getAppUrl } from '@/lib/app-url'
 import type { Game, GameEvent, NewRelease } from '@/types'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
-const APP_HOST = (() => {
-  try {
-    return new URL(APP_URL).host
-  } catch {
-    return 'gamecal-beryl.vercel.app'
-  }
-})()
+const APP_URL = getAppUrl()
+const APP_HOST = getAppHost()
 
 interface AddToCalendarProps {
   event: GameEvent

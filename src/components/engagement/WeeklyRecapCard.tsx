@@ -1,8 +1,9 @@
 'use client'
 
 import type { WeeklyRecap } from '@/lib/engagement-store'
+import { getAppUrl } from '@/lib/app-url'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
+const APP_URL = getAppUrl()
 
 interface WeeklyRecapCardProps {
   recap: WeeklyRecap

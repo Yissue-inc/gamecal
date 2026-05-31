@@ -23,17 +23,11 @@ import {
 import { usePreferences } from '@/hooks/usePreferences'
 import { useAuth } from '@/hooks/useAuth'
 import { formatTimezoneLabel, getCommonTimezones } from '@/lib/timezone'
+import { getAppHost } from '@/lib/app-url'
 import { DEFAULT_SELECTED_GAMES } from '@/types'
 
 const SECTIONS = ['General', 'Time Zone', 'Calendar View', 'My Games', 'Account'] as const
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gamecal-beryl.vercel.app'
-const APP_HOST = (() => {
-  try {
-    return new URL(APP_URL).host
-  } catch {
-    return 'gamecal-beryl.vercel.app'
-  }
-})()
+const APP_HOST = getAppHost()
 
 interface SettingsFormProps {
   email: string
