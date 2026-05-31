@@ -25,7 +25,7 @@ test('GET /api/games returns 5 games', async ({ request }) => {
 test('GET /api/admin/verify requires valid secret', async ({ request }) => {
   const bad = await request.get('/api/admin/verify?secret=invalid')
   expect(bad.status()).toBe(401)
-  const secret = process.env.ADMIN_SECRET || 'dev-admin-secret'
+  const secret = process.env.ADMIN_SECRET || 'local-admin'
   const good = await request.get(`/api/admin/verify?secret=${secret}`)
   expect(good.status()).toBe(200)
 })
