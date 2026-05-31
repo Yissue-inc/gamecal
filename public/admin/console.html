@@ -73,7 +73,7 @@
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">사이트 URL (크롤러 API 호출용)</label>
-          <input x-model="cfg.siteUrl" type="text" data-testid="site-url-input" placeholder="https://gamecal-beryl.vercel.app"
+          <input x-model="cfg.siteUrl" type="text" data-testid="site-url-input" placeholder="https://gamerclock.com"
             class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
         </div>
         <button @click="saveConfig()" data-testid="connect-admin-button" :disabled="!cfg.supabaseUrl || !cfg.serviceKey"
