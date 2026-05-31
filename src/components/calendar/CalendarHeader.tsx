@@ -181,18 +181,36 @@ function UserMenu({
   onSignOut: () => void
   mobile?: boolean
 }) {
+  const initial = userEmail?.[0]?.toUpperCase() ?? 'U'
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button data-testid="user-menu" variant="ghost" size="icon" className={mobile ? 'h-9 w-9 shrink-0 rounded-full' : 'shrink-0 rounded-full'}>
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary text-xs">
-              {userEmail?.[0]?.toUpperCase() ?? 'U'}
+        <Button
+          data-testid="user-menu"
+          variant="ghost"
+          size={mobile ? 'icon' : 'sm'}
+          aria-label="Open profile menu"
+          className={
+            mobile
+              ? 'h-9 w-9 shrink-0 rounded-full border border-indigo-400/40 bg-indigo-500/90 p-0 text-white shadow-sm shadow-indigo-500/20 hover:bg-indigo-400'
+              : 'h-10 shrink-0 gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-2.5 pr-3 text-zinc-100 shadow-sm shadow-black/20 hover:border-indigo-400/70 hover:bg-zinc-800'
+          }
+        >
+          <Avatar className={mobile ? 'h-8 w-8' : 'h-7 w-7'}>
+            <AvatarFallback className="bg-indigo-500 text-xs font-bold text-white">
+              {initial}
             </AvatarFallback>
           </Avatar>
+          {!mobile && <span className="text-sm font-semibold">Profile</span>}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-48">
+        {userEmail && (
+          <DropdownMenuItem disabled className="max-w-64 truncate text-xs text-zinc-400">
+            {userEmail}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/my-schedule" data-testid="header-my-schedule">My Wishlists</Link>
         </DropdownMenuItem>
