@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 
 export function DigestSubscribe() {
@@ -29,7 +30,10 @@ export function DigestSubscribe() {
 
   return (
     <div className="border-t border-zinc-800 p-4">
-      <p className="mb-2 text-[11px] text-zinc-400">📬 Weekly gaming digest</p>
+      <p className="mb-2 flex items-center gap-2 text-[11px] text-zinc-400">
+        <Image src="/newsletter-icon-160.png" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
+        <span>Weekly gaming digest</span>
+      </p>
       <form data-testid="digest-subscribe-form" onSubmit={handleSubmit} className="flex gap-1.5">
         <input
           data-testid="digest-email-input"

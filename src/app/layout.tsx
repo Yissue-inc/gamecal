@@ -50,6 +50,12 @@ export const metadata: Metadata = {
     ],
     type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GamerClock — Gaming Event Calendar',
+    description: 'Track Fortnite, WoW, Pokémon GO, Genshin, LoL events. Auto-sync to Google Calendar.',
+    images: ['/og-image.png'],
+  },
 }
 
 export const viewport: Viewport = {
