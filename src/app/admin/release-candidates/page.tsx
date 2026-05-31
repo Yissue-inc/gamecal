@@ -137,6 +137,19 @@ export default function ReleaseCandidatesPage() {
     )
   }, [candidates])
 
+  const platformCounts = useMemo(() => {
+    const next: Record<string, number> = { all: candidates.length, PC: 0, PlayStation: 0, Xbox: 0, Switch: 0, Mobile: 0 }
+    for (const candidate of candidates) {
+      for (const option of PLATFORM_OPTIONS) {
+        if (option.value === 'all') continue
+        if (platformMatches(candidate.platforms, option.value)) {
+          next[option.value] += 1
+        }
+      }
+    }
+    return next
+  }, [candidates])
+
   const filteredCandidates = useMemo(() => {
     if (platformFilter === 'all') return candidates
     return candidates.filter((candidate) => platformMatches(candidate.platforms, platformFilter))
@@ -311,7 +324,7 @@ export default function ReleaseCandidatesPage() {
             >
               {PLATFORM_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {option.label} ({platformCounts[option.value] ?? 0})
                 </option>
               ))}
             </select>
@@ -327,6 +340,9 @@ export default function ReleaseCandidatesPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          <p className="text-xs text-zinc-500">
+            Showing {filteredCandidates.length} of {candidates.length} loaded candidates.
+          </p>
           {filteredCandidates.map((candidate) => {
             const draft = { ...candidate, ...editing[candidate.id] }
             const draftPlatforms = canonicalizePlatforms(draft.platforms ?? [])
