@@ -11,6 +11,26 @@ function normalizeReleaseKey(title: string, date?: string | null) {
   return `${title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}::${date ?? 'unknown'}`
 }
 
+function signalString(signals: Record<string, unknown> | null | undefined, key: string): string | null {
+  const value = signals?.[key]
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
+function signalNumber(signals: Record<string, unknown> | null | undefined, key: string): number {
+  const value = signals?.[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function signalBoolean(signals: Record<string, unknown> | null | undefined, key: string): boolean {
+  return signals?.[key] === true
+}
+
+function signalStringArray(signals: Record<string, unknown> | null | undefined, key: string): string[] {
+  const value = signals?.[key]
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
 export async function GET(request: NextRequest) {
   const featured = request.nextUrl.searchParams.get('featured') === 'true'
 
@@ -35,7 +55,7 @@ export async function GET(request: NextRequest) {
   if (!isAdmin && !featured && (!data || data.length === 0)) {
     const { data: candidates, error: fallbackError } = await admin
       .from('release_candidates')
-      .select('id,title,developer,platforms,release_date,description,image_url,source,source_url,confidence_score')
+      .select('id,title,developer,platforms,release_date,description,image_url,source,source_url,confidence_score,signals')
       .eq('status', 'pending')
       .not('release_date', 'is', null)
       .gte('confidence_score', 80)
@@ -56,6 +76,11 @@ export async function GET(request: NextRequest) {
       hero_color: null
       steam_url?: string | null
       nintendo_url?: string | null
+      trailer_url?: string | null
+      genre_tags?: string[]
+      preorder_url?: string | null
+      hype_score?: number
+      is_free_to_play?: boolean
       is_featured: boolean
       is_published: boolean
       source: string
@@ -65,7 +90,12 @@ export async function GET(request: NextRequest) {
     for (const candidate of candidates ?? []) {
       const key = normalizeReleaseKey(candidate.title, candidate.release_date)
       const existing = releaseMap.get(key)
+      const signals = candidate.signals as Record<string, unknown> | null | undefined
       const nextPlatforms = Array.from(new Set([...(existing?.platform ?? []), ...(candidate.platforms ?? [])]))
+      const nextGenreTags = Array.from(new Set([
+        ...(existing?.genre_tags ?? []),
+        ...signalStringArray(signals, 'genre_tags'),
+      ]))
       const next = {
         id: existing?.id ?? `candidate-${candidate.id}`,
         title: existing?.title ?? candidate.title,
@@ -77,6 +107,11 @@ export async function GET(request: NextRequest) {
         hero_color: null,
         steam_url: existing?.steam_url || (candidate.source === 'steam' ? candidate.source_url : null),
         nintendo_url: existing?.nintendo_url || (candidate.source === 'nintendo' ? candidate.source_url : null),
+        trailer_url: existing?.trailer_url || signalString(signals, 'trailer_url'),
+        genre_tags: nextGenreTags,
+        preorder_url: existing?.preorder_url || signalString(signals, 'preorder_url') || candidate.source_url,
+        hype_score: Math.max(existing?.hype_score ?? 0, signalNumber(signals, 'hype_score'), candidate.confidence_score ?? 0),
+        is_free_to_play: existing?.is_free_to_play || signalBoolean(signals, 'is_free_to_play'),
         is_featured: false,
         is_published: true,
         source: 'candidate_preview',
