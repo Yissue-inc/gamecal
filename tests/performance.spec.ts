@@ -1,16 +1,14 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
-test.beforeAll(async ({ browser }) => {
-  const page = await browser.newPage()
-  await page.goto('/')
-  await page.waitForSelector('[data-testid="calendar-grid"]')
-  await page.close()
-})
+async function waitForCalendarReady(page: Page) {
+  await page.locator('[data-testid="calendar-grid"]').waitFor({ state: 'attached' })
+  await expect(page.locator('[data-testid="today-cell"]')).toBeVisible()
+}
 
 test('homepage loads within 5 seconds', async ({ page }) => {
   const startTime = Date.now()
   await page.goto('/')
-  await page.waitForSelector('[data-testid="calendar-grid"]')
+  await waitForCalendarReady(page)
   const loadTime = Date.now() - startTime
   expect(loadTime).toBeLessThan(5000)
 })
@@ -19,7 +17,7 @@ test('mobile homepage reaches calendar within 5 seconds', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   const startTime = Date.now()
   await page.goto('/')
-  await page.waitForSelector('[data-testid="calendar-grid"]')
+  await waitForCalendarReady(page)
   const loadTime = Date.now() - startTime
   expect(loadTime).toBeLessThan(5000)
 })
@@ -38,7 +36,7 @@ test('no critical console errors on homepage', async ({ page }) => {
     if (msg.type() === 'error') errors.push(msg.text())
   })
   await page.goto('/')
-  await page.waitForSelector('[data-testid="calendar-grid"]')
+  await waitForCalendarReady(page)
   const criticalErrors = errors.filter(
     (e) => !e.includes('favicon') && !e.includes('404') && !e.includes('ServiceWorker')
   )
