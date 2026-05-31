@@ -1,23 +1,20 @@
 'use client'
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
-import FullCalendar from '@fullcalendar/react'
+import type FullCalendar from '@fullcalendar/react'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { GameSidebar } from '@/components/calendar/GameSidebar'
 import { GameCalendar } from '@/components/calendar/GameCalendar'
-import { EventDetailPanel } from '@/components/calendar/EventDetailPanel'
-import { ReleaseDetailPanel } from '@/components/calendar/ReleaseDetailPanel'
 import { GuestBanner } from '@/components/calendar/GuestBlur'
 import { WeeklyHighlights } from '@/components/calendar/WeeklyHighlights'
 import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
 import { ClashAlert } from '@/components/calendar/ClashAlert'
-import { CommandSearch } from '@/components/calendar/CommandSearch'
 import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
 import { CalEventBridge } from '@/components/engagement/CalEventBridge'
-import { BadgeUnlockModal } from '@/components/engagement/BadgeUnlockModal'
-import { CinematicIntro, hasSeenCinematic } from '@/components/cinematic/CinematicIntro'
-import { SignupOnboarding, shouldShowOnboarding } from '@/components/onboarding/SignupOnboarding'
+import { hasSeenCinematic } from '@/lib/cinematic-seen'
+import { shouldShowOnboarding } from '@/lib/onboarding-profile'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
 import { useReleases } from '@/hooks/useReleases'
@@ -27,6 +24,31 @@ import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-
 import { usePreferences } from '@/hooks/usePreferences'
 import { useLayoutEvents } from '@/hooks/useLayoutEvents'
 import type { Game, GameEvent, NewRelease } from '@/types'
+
+const EventDetailPanel = dynamic(
+  () => import('@/components/calendar/EventDetailPanel').then((mod) => mod.EventDetailPanel),
+  { ssr: false }
+)
+const ReleaseDetailPanel = dynamic(
+  () => import('@/components/calendar/ReleaseDetailPanel').then((mod) => mod.ReleaseDetailPanel),
+  { ssr: false }
+)
+const CommandSearch = dynamic(
+  () => import('@/components/calendar/CommandSearch').then((mod) => mod.CommandSearch),
+  { ssr: false }
+)
+const BadgeUnlockModal = dynamic(
+  () => import('@/components/engagement/BadgeUnlockModal').then((mod) => mod.BadgeUnlockModal),
+  { ssr: false }
+)
+const CinematicIntro = dynamic(
+  () => import('@/components/cinematic/CinematicIntro').then((mod) => mod.CinematicIntro),
+  { ssr: false }
+)
+const SignupOnboarding = dynamic(
+  () => import('@/components/onboarding/SignupOnboarding').then((mod) => mod.SignupOnboarding),
+  { ssr: false }
+)
 
 interface CalendarLayoutProps {
   games: Game[]

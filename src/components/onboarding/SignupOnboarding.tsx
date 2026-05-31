@@ -21,6 +21,7 @@ import {
 import { usePreferences } from '@/hooks/usePreferences'
 import { detectBrowserTimezone, formatTimezoneLabel, getCommonTimezones } from '@/lib/timezone'
 import { trackOnboardingCompleted } from '@/lib/posthog'
+import { saveProfileMeta } from '@/lib/onboarding-profile'
 import type { Game } from '@/types'
 
 const PLATFORMS = [
@@ -37,31 +38,6 @@ const SOURCES = [
   { id: 'stream', label: 'Streamer / YouTube' },
   { id: 'other', label: 'Other' },
 ]
-
-const PROFILE_KEY = 'gamecal_profile'
-
-export interface UserProfileMeta {
-  platform?: string
-  signup_source?: string
-  onboarding_completed?: boolean
-}
-
-export function loadProfileMeta(): UserProfileMeta {
-  if (typeof window === 'undefined') return {}
-  try {
-    return JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}')
-  } catch {
-    return {}
-  }
-}
-
-export function saveProfileMeta(meta: UserProfileMeta) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...loadProfileMeta(), ...meta }))
-}
-
-export function shouldShowOnboarding(): boolean {
-  return !loadProfileMeta().onboarding_completed
-}
 
 interface SignupOnboardingProps {
   open: boolean

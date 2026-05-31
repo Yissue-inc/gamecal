@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { bezier, bezierTangent, drawDragon, DRAGON_PATH } from './dragon-renderer'
 import { trackCinematicSeen } from '@/lib/posthog'
+import { markCinematicSeen } from '@/lib/cinematic-seen'
 import type { CinematicIntroSettings } from '@/lib/public-ui-settings'
 
 export interface CinematicFeaturedEvent {
@@ -23,7 +24,6 @@ interface CinematicIntroProps {
 }
 
 const TOTAL_DURATION = 5200
-const STORAGE_KEY = 'gamecal-cinematic-seen'
 
 interface Ember {
   x: number
@@ -34,15 +34,6 @@ interface Ember {
   decay: number
   size: number
   color: string
-}
-
-export function hasSeenCinematic(): boolean {
-  if (typeof window === 'undefined') return true
-  return localStorage.getItem(STORAGE_KEY) === '1'
-}
-
-export function markCinematicSeen(): void {
-  localStorage.setItem(STORAGE_KEY, '1')
 }
 
 export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar }: CinematicIntroProps) {
