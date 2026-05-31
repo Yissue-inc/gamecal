@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyAdminSecret } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 function inferHeroColor(platforms: string[]): string {
   if (platforms.includes('Switch')) return '#e4000f'
   if (platforms.includes('Mobile')) return '#22c55e'

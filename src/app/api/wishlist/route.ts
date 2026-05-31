@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import { getRewardSignals } from '@/lib/reward-signals'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ eventIds: [] })

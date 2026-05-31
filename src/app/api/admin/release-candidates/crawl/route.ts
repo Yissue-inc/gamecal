@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { crawlReleaseCandidates } from '@/lib/crawlers/release-candidates'
 import { verifyAdminSecret } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   if (!verifyAdminSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

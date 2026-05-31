@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 
+export const dynamic = 'force-dynamic'
+
 async function getUser() {
   const supabase = await createClient()
   const {

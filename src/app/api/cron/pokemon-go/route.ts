@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyCronSecret } from '@/lib/utils'
 import { crawlPokemonGo } from '@/lib/crawlers/pokemon-go'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

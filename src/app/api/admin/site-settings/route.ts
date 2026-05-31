@@ -8,6 +8,8 @@ import {
   sanitizePublicUiSettings,
 } from '@/lib/public-ui-settings'
 
+export const dynamic = 'force-dynamic'
+
 const ADMIN_SETTINGS_HEADERS = { 'Cache-Control': 'no-store' }
 
 export async function GET(request: NextRequest) {

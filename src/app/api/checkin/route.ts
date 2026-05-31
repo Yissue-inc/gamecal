@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 
+export const dynamic = 'force-dynamic'
+
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }

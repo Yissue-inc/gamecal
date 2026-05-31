@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ supported: true, stored: false, subscriptions: 0 })

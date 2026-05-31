@@ -5,6 +5,8 @@ import { crawlPokemonGo } from '@/lib/crawlers/pokemon-go'
 import { crawlGenshin } from '@/lib/crawlers/genshin'
 import { crawlLol } from '@/lib/crawlers/lol'
 
+export const dynamic = 'force-dynamic'
+
 const CRAWLERS: Record<string, () => Promise<{ inserted: number; updated: number }>> = {
   fortnite: crawlFortnite,
   wow: crawlWow,
