@@ -3,11 +3,10 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { AlertTriangle, Bell, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
-import { EventDetailPanel } from '@/components/calendar/EventDetailPanel'
-import { ReleaseDetailPanel } from '@/components/calendar/ReleaseDetailPanel'
 import { Button } from '@/components/ui/button'
 import { ensurePushSubscription } from '@/lib/push'
 import { getReleaseHeroColor } from '@/lib/utils'
@@ -15,6 +14,16 @@ import { getReleaseWishlistIds, getWishlistIds } from '@/lib/engagement-store'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import type { GameEvent, NewRelease } from '@/types'
+
+const EventDetailPanel = dynamic(
+  () => import('@/components/calendar/EventDetailPanel').then((mod) => mod.EventDetailPanel),
+  { ssr: false }
+)
+
+const ReleaseDetailPanel = dynamic(
+  () => import('@/components/calendar/ReleaseDetailPanel').then((mod) => mod.ReleaseDetailPanel),
+  { ssr: false }
+)
 
 function formatReminderOffset(offsetMin: number) {
   if (offsetMin === 0) return 'Release day'
