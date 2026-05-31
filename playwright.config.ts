@@ -17,6 +17,11 @@ function loadLocalEnv() {
 
 loadLocalEnv()
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001'
+const storageStateSlug = Buffer.from(new URL(baseURL).origin)
+  .toString('base64url')
+  .replace(/=+$/g, '')
+
 export default defineConfig({
   testDir: './tests',
   timeout: 30000,
@@ -28,8 +33,8 @@ export default defineConfig({
   outputDir: 'test-results/',
   snapshotPathTemplate: '{testDir}/snapshots/{testFilePath}/{arg}{ext}',
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
-    storageState: 'test-results/.auth/no-intro.json',
+    baseURL,
+    storageState: `test-results/.auth/no-intro-${storageStateSlug}.json`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, rename, writeFile } from 'node:fs/promises'
 
 export default async function globalSetup() {
   const required = ['PLAYWRIGHT_BASE_URL', 'TEST_USER_EMAIL', 'TEST_USER_PASSWORD']
@@ -9,11 +9,13 @@ export default async function globalSetup() {
 
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001'
   const origin = new URL(baseUrl).origin
-  const storagePath = 'test-results/.auth/no-intro.json'
+  const storageStateSlug = Buffer.from(origin).toString('base64url').replace(/=+$/g, '')
+  const storagePath = `test-results/.auth/no-intro-${storageStateSlug}.json`
+  const tmpStoragePath = `${storagePath}.${process.pid}.tmp`
 
   await mkdir('test-results/.auth', { recursive: true })
   await writeFile(
-    storagePath,
+    tmpStoragePath,
     JSON.stringify(
       {
         cookies: [],
@@ -31,4 +33,5 @@ export default async function globalSetup() {
       2
     )
   )
+  await rename(tmpStoragePath, storagePath)
 }
