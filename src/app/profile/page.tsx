@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, ShoppingBag, Trophy } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { Button } from '@/components/ui/button'
 import { BadgeGallery } from '@/components/engagement/BadgeGallery'
 import { CalCharacter } from '@/components/engagement/CalCharacter'
 import { DailyCheckIn } from '@/components/engagement/DailyCheckIn'
@@ -11,19 +12,26 @@ import {
   buildWeeklyRecap,
   getAttendanceLocal,
   getGpLocal,
+  getMayorTitlesLocal,
   getPartyHistoryLocal,
   getPrestigeLevel,
+  getShopStateLocal,
   type PartyHistoryItem,
+  type ShopState,
   type WeeklyRecap,
 } from '@/lib/engagement-store'
+import { isSupabaseConfigured } from '@/lib/mock-data'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 export default function ProfilePage() {
   const { user, isGuest } = useAuth()
   const [stats, setStats] = useState({ streak: 0, totalDays: 0, gp: 0 })
+  const [shopState, setShopState] = useState<ShopState>(getShopStateLocal())
+  const [mayorTitles, setMayorTitles] = useState<string[]>([])
   const [partyHistory, setPartyHistory] = useState<PartyHistoryItem[]>([])
   const [recap, setRecap] = useState<WeeklyRecap | null>(null)
+  const useApi = isSupabaseConfigured()
 
   useEffect(() => {
     const attendance = getAttendanceLocal()
@@ -34,7 +42,36 @@ export default function ProfilePage() {
     })
     setPartyHistory(getPartyHistoryLocal())
     setRecap(buildWeeklyRecap())
-  }, [])
+
+    if (useApi && user) {
+      fetch('/api/checkin')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => {
+          if (!payload) return
+          setStats({
+            streak: payload.currentStreak ?? 0,
+            totalDays: payload.totalDays ?? 0,
+            gp: payload.gp ?? 0,
+          })
+        })
+        .catch(() => undefined)
+
+      fetch('/api/shop')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => {
+          if (payload?.state) setShopState(payload.state)
+        })
+        .catch(() => undefined)
+
+      fetch('/api/leaderboard')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => setMayorTitles(payload?.me?.mayorTitles ?? []))
+        .catch(() => setMayorTitles(getMayorTitlesLocal()))
+    } else {
+      setShopState(getShopStateLocal())
+      setMayorTitles(getMayorTitlesLocal())
+    }
+  }, [useApi, user])
 
   const prestige = getPrestigeLevel(stats.gp)
 
@@ -61,7 +98,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]" data-testid="profile-page">
+    <div
+      className={`min-h-screen ${
+        shopState.activeTheme === 'neon'
+          ? 'bg-[radial-gradient(circle_at_top,#2e1065,#0f0f0f_45%)]'
+          : shopState.activeTheme === 'gold'
+            ? 'bg-[radial-gradient(circle_at_top,#451a03,#0f0f0f_48%)]'
+            : 'bg-[#0f0f0f]'
+      }`}
+      data-testid="profile-page"
+    >
       <header className="border-b border-zinc-800 px-6 py-4">
         <Link href="/" className="font-rajdhani text-xl font-bold">
           Gamer<span className="text-primary">Clock</span>
@@ -71,13 +117,50 @@ export default function ProfilePage() {
       <main className="mx-auto max-w-3xl space-y-8 px-6 py-8">
         <div className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
           <CalCharacter mood="happy" size="lg" />
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-sm text-zinc-400">{user.email}</p>
             <p data-testid="prestige-level" className="mt-1 text-lg font-bold text-white">
               {prestige.emoji} {prestige.label}
             </p>
             <p data-testid="gp-count" className="text-xs text-zinc-500">{stats.gp} GP</p>
+            {!!mayorTitles.length && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {mayorTitles.map((title) => (
+                  <span key={title} className="rounded-md border border-amber-600/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-200">
+                    {title}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
+          <div className="hidden shrink-0 gap-2 sm:flex">
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/leaderboard">
+                <Trophy className="h-4 w-4" />
+                Leaderboard
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/shop">
+                <ShoppingBag className="h-4 w-4" />
+                GP Shop
+              </Link>
+            </Button>
+          </div>
+        </div>
+        <div className="grid gap-2 sm:hidden">
+          <Button asChild variant="secondary">
+            <Link href="/leaderboard">
+              <Trophy className="h-4 w-4" />
+              Leaderboard
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/shop">
+              <ShoppingBag className="h-4 w-4" />
+              GP Shop
+            </Link>
+          </Button>
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div data-testid="stat-streak" className="rounded-lg border border-zinc-800 p-4 text-center">

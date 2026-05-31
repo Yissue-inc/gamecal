@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   getWishlistIds,
   isWishlistedLocal,
+  recordGameAffinityLocal,
   setWishlistLocal,
   toggleWishlistLocal,
 } from '@/lib/engagement-store'
@@ -57,6 +58,7 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
           setWishlistLocal(eventId, !wasWishlisted)
           window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
           if (!wasWishlisted) {
+            if (gameSlug) recordGameAffinityLocal(gameSlug)
             trackWishlistAdded(eventId, gameSlug)
             toast.success(getCalWishlistMessage(), { icon: '🤓' })
           }
@@ -65,6 +67,7 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
           setIsWishlisted(next)
           window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
           if (next && !wasWishlisted) {
+            if (gameSlug) recordGameAffinityLocal(gameSlug)
             trackWishlistAdded(eventId, gameSlug)
             toast.success('Saved locally. Cloud wishlist sync needs attention.', { icon: '🤓' })
           }
@@ -74,6 +77,7 @@ export function WishlistButton({ eventId, gameSlug, size = 'md' }: WishlistButto
         setIsWishlisted(next)
         window.dispatchEvent(new CustomEvent('cal:wishlist-changed', { detail: { eventId } }))
         if (next && !wasWishlisted) {
+          if (gameSlug) recordGameAffinityLocal(gameSlug)
           trackWishlistAdded(eventId, gameSlug)
           toast.success(getCalWishlistMessage(), { icon: '🤓' })
         }

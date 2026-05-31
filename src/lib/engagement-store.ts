@@ -8,6 +8,9 @@ const RECURRING_REMINDERS_KEY = 'gamecal-recurring-reminders'
 const ATTENDANCE_KEY = 'gamecal-attendance'
 const BADGES_KEY = 'gamecal-badges'
 const GP_KEY = 'gamecal-gp'
+const WEEKLY_GP_LOG_KEY = 'gamecal-weekly-gp-log'
+const SHOP_STATE_KEY = 'gamecal-shop-state'
+const GAME_AFFINITY_KEY = 'gamecal-game-affinity'
 const PARTY_HISTORY_KEY = 'gamecal-party-history'
 const EVENT_NOTES_KEY = 'gamecal-event-notes'
 
@@ -38,6 +41,76 @@ export interface WeeklyRecap {
   topGame?: string
   highPriorityThisWeek: number
 }
+
+export interface WeeklyGpEntry {
+  id: string
+  userId: string
+  displayName: string
+  gpAmount: number
+  actionType: string
+  weekStart: string
+  createdAt: string
+}
+
+export interface LeaderboardRow {
+  rank: number
+  userId: string
+  displayName: string
+  totalGp: number
+}
+
+export interface ShopState {
+  streakFreezeCount: number
+  doubleGpUntil: string | null
+  activeTheme: 'default' | 'neon' | 'gold'
+  unlockedBadges: string[]
+}
+
+export interface ShopItem {
+  id: string
+  name: string
+  description: string
+  price: number
+  icon: string
+}
+
+export const GP_SHOP_ITEMS: ShopItem[] = [
+  {
+    id: 'streak_freeze',
+    name: 'Streak Freeze',
+    description: 'Protects your streak if you miss one daily check-in.',
+    price: 100,
+    icon: '🧊',
+  },
+  {
+    id: 'double_gp_day',
+    name: 'Double GP Day',
+    description: 'Doubles GP earned for the next 24 hours.',
+    price: 200,
+    icon: '⚡',
+  },
+  {
+    id: 'theme_neon',
+    name: 'Profile Theme - Neon',
+    description: 'Turns your profile backdrop into an arcade neon panel.',
+    price: 50,
+    icon: '🌈',
+  },
+  {
+    id: 'theme_gold',
+    name: 'Profile Theme - Gold',
+    description: 'Adds a premium gold finish to your profile.',
+    price: 150,
+    icon: '🏆',
+  },
+  {
+    id: 'veteran_badge',
+    name: 'Veteran Badge',
+    description: 'Unlocks the limited Veteran profile badge.',
+    price: 500,
+    icon: '🎖',
+  },
+]
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback
@@ -77,6 +150,24 @@ export function setWishlistLocal(eventId: string, wishlisted: boolean): boolean 
     unlockBadgeLocal('special_cal_whisperer')
   }
   return wishlisted
+}
+
+export function recordGameAffinityLocal(gameName: string): Record<string, number> {
+  const key = gameName.trim()
+  if (!key) return readJson<Record<string, number>>(GAME_AFFINITY_KEY, {})
+  const counts = readJson<Record<string, number>>(GAME_AFFINITY_KEY, {})
+  const next = { ...counts, [key]: (counts[key] ?? 0) + 1 }
+  writeJson(GAME_AFFINITY_KEY, next)
+  return next
+}
+
+export function getMayorTitlesLocal(): string[] {
+  const counts = readJson<Record<string, number>>(GAME_AFFINITY_KEY, {})
+  return Object.entries(counts)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([game]) => `${game} Mayor 🏆`)
 }
 
 export function isWishlistedLocal(eventId: string): boolean {
@@ -243,7 +334,7 @@ export function checkInLocal(): AttendanceState {
     checkedDates: [...state.checkedDates, today],
   }
   writeJson(ATTENDANCE_KEY, next)
-  addGpLocal(2)
+  addGpLocal(2, 'daily_checkin')
   checkBadgeUnlocks(next)
   return next
 }
@@ -261,7 +352,7 @@ function unlockBadgeLocal(badgeId: string) {
   const badges = getBadgesLocal()
   if (badges.includes(badgeId)) return false
   writeJson(BADGES_KEY, [...badges, badgeId])
-  addGpLocal(5)
+  addGpLocal(5, 'badge_unlock')
   window.dispatchEvent(new CustomEvent('cal:badge-unlocked', { detail: { badgeId } }))
   return true
 }
@@ -276,10 +367,39 @@ function checkBadgeUnlocks(attendance: AttendanceState) {
   if (wishlistCount + releaseWishlistCount >= 1) unlockBadgeLocal('special_cal_whisperer')
 }
 
-export function addGpLocal(amount: number) {
+export function getWeekStartUtc(date = new Date()): string {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const day = d.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setUTCDate(d.getUTCDate() + diff)
+  return d.toISOString().slice(0, 10)
+}
+
+function getLocalGpMultiplier(): number {
+  const state = getShopStateLocal()
+  return state.doubleGpUntil && new Date(state.doubleGpUntil).getTime() > Date.now() ? 2 : 1
+}
+
+function recordWeeklyGpLocal(amount: number, actionType: string) {
+  const entries = readJson<WeeklyGpEntry[]>(WEEKLY_GP_LOG_KEY, [])
+  const entry: WeeklyGpEntry = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    userId: 'local-user',
+    displayName: 'You',
+    gpAmount: amount,
+    actionType,
+    weekStart: getWeekStartUtc(),
+    createdAt: new Date().toISOString(),
+  }
+  writeJson(WEEKLY_GP_LOG_KEY, [entry, ...entries].slice(0, 500))
+}
+
+export function addGpLocal(amount: number, actionType = 'local_reward') {
+  const awarded = amount * getLocalGpMultiplier()
   const previous = readJson<number>(GP_KEY, 0)
-  const gp = previous + amount
+  const gp = previous + awarded
   writeJson(GP_KEY, gp)
+  recordWeeklyGpLocal(awarded, actionType)
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('gamecal:gp-updated', { detail: { gp } }))
     for (const tier of [200, 500, 1000, 2500]) {
@@ -292,6 +412,78 @@ export function addGpLocal(amount: number) {
 
 export function getGpLocal(): number {
   return readJson<number>(GP_KEY, 0)
+}
+
+export function getShopStateLocal(): ShopState {
+  return readJson<ShopState>(SHOP_STATE_KEY, {
+    streakFreezeCount: 0,
+    doubleGpUntil: null,
+    activeTheme: 'default',
+    unlockedBadges: getBadgesLocal(),
+  })
+}
+
+export function getWeeklyLeaderboardLocal(): LeaderboardRow[] {
+  const weekStart = getWeekStartUtc()
+  const weeklyTotal = readJson<WeeklyGpEntry[]>(WEEKLY_GP_LOG_KEY, [])
+    .filter((entry) => entry.weekStart === weekStart)
+    .reduce((sum, entry) => sum + entry.gpAmount, 0)
+
+  return weeklyTotal > 0
+    ? [{ rank: 1, userId: 'local-user', displayName: 'You', totalGp: weeklyTotal }]
+    : []
+}
+
+export function getLocalWeeklyGp(): number {
+  return getWeeklyLeaderboardLocal()[0]?.totalGp ?? 0
+}
+
+export function purchaseItemLocal(itemId: string): ShopState {
+  const item = GP_SHOP_ITEMS.find((candidate) => candidate.id === itemId)
+  if (!item) throw new Error('Unknown shop item')
+
+  const currentGp = getGpLocal()
+  if (currentGp < item.price) throw new Error('Not enough GP')
+
+  const state = getShopStateLocal()
+  const next: ShopState = { ...state, unlockedBadges: [...state.unlockedBadges] }
+
+  if (itemId === 'streak_freeze') {
+    next.streakFreezeCount += 1
+  } else if (itemId === 'double_gp_day') {
+    const base = Math.max(Date.now(), next.doubleGpUntil ? new Date(next.doubleGpUntil).getTime() : 0)
+    next.doubleGpUntil = new Date(base + 24 * 60 * 60 * 1000).toISOString()
+  } else if (itemId === 'theme_neon') {
+    next.activeTheme = 'neon'
+  } else if (itemId === 'theme_gold') {
+    next.activeTheme = 'gold'
+  } else if (itemId === 'veteran_badge' && !next.unlockedBadges.includes('veteran')) {
+    next.unlockedBadges.push('veteran')
+    const badges = getBadgesLocal()
+    if (!badges.includes('veteran')) writeJson(BADGES_KEY, [...badges, 'veteran'])
+  }
+
+  writeJson(GP_KEY, currentGp - item.price)
+  writeJson(SHOP_STATE_KEY, next)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('gamecal:gp-updated', { detail: { gp: currentGp - item.price } }))
+  }
+  return next
+}
+
+export async function purchaseItem(itemId: string): Promise<{ gp: number; state: ShopState }> {
+  const response = await fetch('/api/shop', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId }),
+  })
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+    throw new Error(data?.error ?? 'Purchase failed')
+  }
+
+  return response.json()
 }
 
 export function getPrestigeLevel(gp: number): { id: string; label: string; emoji: string } {
@@ -334,4 +526,5 @@ export const BADGE_DEFINITIONS = [
   { id: 'streak_100', name: 'Centurion', description: '100-day check-in streak', icon: '🛡', rarity: 'epic' as const },
   { id: 'special_cal_whisperer', name: "CAL's Favorite", description: 'Added your first wishlist event', icon: '🤓', rarity: 'rare' as const },
   { id: 'special_sharer', name: 'Town Crier', description: 'Shared 10 events', icon: '📢', rarity: 'common' as const },
+  { id: 'veteran', name: 'Veteran', description: 'Unlocked from the GP Shop', icon: '🎖', rarity: 'legendary' as const },
 ]

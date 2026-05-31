@@ -67,6 +67,33 @@ export async function POST(request: NextRequest) {
   )
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const { data: event } = await admin
+    .from('events')
+    .select('game:games(name)')
+    .eq('id', eventId)
+    .maybeSingle()
+
+  const game = Array.isArray(event?.game) ? event.game[0] : event?.game
+  const gameName = game?.name
+  if (gameName) {
+    const { data: stats } = await admin
+      .from('user_stats')
+      .select('game_affinity_counts')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const counts = {
+      ...((stats?.game_affinity_counts as Record<string, number> | null) ?? {}),
+    }
+    counts[gameName] = (counts[gameName] ?? 0) + 1
+
+    await admin.from('user_stats').upsert({
+      user_id: user.id,
+      game_affinity_counts: counts,
+    })
+  }
+
   return NextResponse.json({ wishlisted: true })
 }
 

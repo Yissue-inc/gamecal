@@ -15,6 +15,13 @@ function yesterdayStr() {
   return d.toISOString().slice(0, 10)
 }
 
+function weekStartUtc(date = new Date()) {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const day = d.getUTCDay()
+  d.setUTCDate(d.getUTCDate() + (day === 0 ? -6 : 1 - day))
+  return d.toISOString().slice(0, 10)
+}
+
 export async function GET() {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({
@@ -119,7 +126,11 @@ export async function POST() {
   const currentStreak = continued ? (stats?.current_streak ?? 0) + 1 : 1
   const longestStreak = Math.max(stats?.longest_streak ?? 0, currentStreak)
   const totalDays = (stats?.total_days ?? 0) + 1
-  const gp = (stats?.gp ?? 0) + 2
+  const doubleGpActive = stats?.double_gp_until
+    ? new Date(stats.double_gp_until).getTime() > Date.now()
+    : false
+  const awardedGp = doubleGpActive ? 4 : 2
+  const gp = (stats?.gp ?? 0) + awardedGp
 
   const { error: upsertError } = await admin.from('user_stats').upsert({
     user_id: user.id,
@@ -133,6 +144,13 @@ export async function POST() {
   if (upsertError) {
     return NextResponse.json({ error: upsertError.message }, { status: 500 })
   }
+
+  await admin.from('weekly_gp_log').insert({
+    user_id: user.id,
+    gp_amount: awardedGp,
+    action_type: 'daily_checkin',
+    week_start: weekStartUtc(),
+  })
 
   const badgeIds: string[] = []
   if (currentStreak >= 3) badgeIds.push('streak_3')
@@ -154,6 +172,7 @@ export async function POST() {
     totalDays,
     lastCheckIn: today,
     gp,
+    awardedGp,
     newBadges: badgeIds,
   })
 }
