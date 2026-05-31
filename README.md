@@ -46,7 +46,7 @@ BATTLENET_CLIENT_SECRET=
 RIOT_API_KEY=
 ADMIN_SECRET=
 CRON_SECRET=
-NEXT_PUBLIC_APP_URL=https://gamecal-beryl.vercel.app
+NEXT_PUBLIC_APP_URL=https://gamerclock.com
 ```
 
 ### 6. Vercel Deploy
