@@ -208,7 +208,7 @@ function scheduleLocalReminder(eventId: string, offsetMin: number, eventStartAt:
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification('CAL: Event starting soon', {
         body: "Don't be the one who missed it.",
-        icon: '/og-image.svg',
+        icon: '/icon-192.png',
       })
     }
   }, delay)

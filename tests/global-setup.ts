@@ -20,7 +20,10 @@ export default async function globalSetup() {
         origins: [
           {
             origin,
-            localStorage: [{ name: 'gamecal-cinematic-seen', value: '1' }],
+            localStorage: [
+              { name: 'gamecal-cinematic-seen', value: '1' },
+              { name: 'gamecal_profile', value: JSON.stringify({ onboarding_completed: true }) },
+            ],
           },
         ],
       },

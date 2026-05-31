@@ -7,7 +7,7 @@ export async function loginWithEmail(page: Page, email: string, password: string
   await page.fill('[data-testid="email"]', email)
   await page.fill('[data-testid="password"]', password)
   await page.click('[data-testid="submit-auth"]')
-  await page.waitForSelector('[data-testid="calendar-grid"]', { timeout: 15000 })
+  await page.waitForSelector('[data-testid="user-menu"]', { timeout: 15000 })
 }
 
 export async function logout(page: Page) {

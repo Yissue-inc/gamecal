@@ -1,4 +1,4 @@
-export const DEFAULT_APP_URL = 'https://gamecal-beryl.vercel.app'
+export const DEFAULT_APP_URL = 'https://gamerclock.com'
 
 export function getAppUrl(): string {
   const value = process.env.NEXT_PUBLIC_APP_URL?.trim()

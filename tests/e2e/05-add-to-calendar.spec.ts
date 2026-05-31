@@ -29,7 +29,7 @@ test.describe('Add to Calendar', () => {
   test('Share Discord 버튼 클릭 시 클립보드에 복사된다', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     await page.click('[data-testid="share-discord-btn"]')
-    await expect(page.locator('text=/Copied/')).toBeVisible()
+    await expect(page.locator('[data-testid="share-discord-btn"]')).toContainText(/Copied/)
     const clipboard = await page.evaluate(() => navigator.clipboard.readText())
     expect(clipboard.length).toBeGreaterThan(10)
   })
@@ -37,6 +37,6 @@ test.describe('Add to Calendar', () => {
   test('Share Reddit 버튼이 동작한다', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     await page.click('[data-testid="share-reddit-btn"]')
-    await expect(page.locator('text=/Copied/')).toBeVisible()
+    await expect(page.locator('[data-testid="share-reddit-btn"]')).toContainText(/Copied/)
   })
 })

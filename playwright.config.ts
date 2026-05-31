@@ -1,4 +1,21 @@
 import { defineConfig, devices } from '@playwright/test'
+import { existsSync, readFileSync } from 'node:fs'
+
+function loadLocalEnv() {
+  if (!existsSync('.env.local')) return
+
+  for (const line of readFileSync('.env.local', 'utf8').split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const index = trimmed.indexOf('=')
+    if (index === -1) continue
+    const key = trimmed.slice(0, index).trim()
+    const value = trimmed.slice(index + 1).trim().replace(/^['"]|['"]$/g, '')
+    if (key && !process.env[key]) process.env[key] = value
+  }
+}
+
+loadLocalEnv()
 
 export default defineConfig({
   testDir: './tests',

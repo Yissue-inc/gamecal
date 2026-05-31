@@ -36,13 +36,12 @@ test.describe('Design UI — Sidebar & Calendar', () => {
     expect(text).toMatch(/[🔄🚀🏁🎉🎁🔧🏆📊⏳⚡🛠✨📌]/)
   })
 
-  test('로그인 사용자에게 critical 이벤트가 강조 표시된다', async ({ page }) => {
+  test('로그인 사용자에게 중요 이벤트가 강조 표시된다', async ({ page }) => {
     test.skip(!hasAuthCredentials(), 'Requires authenticated user')
     await loginWithEmail(page, process.env.TEST_USER_EMAIL!, process.env.TEST_USER_PASSWORD!)
     await page.goto('/')
-    await page.click('[data-testid="nav-next"]')
-    await page.waitForSelector('[data-testid="critical-event-bar"]', { timeout: 15000 })
-    await expect(page.locator('[data-testid="critical-event-bar"]').first()).toBeVisible()
+    const importantEvent = page.locator('.fc-event[data-importance="critical"], .fc-event[data-importance="high"]').first()
+    await expect(importantEvent).toBeVisible({ timeout: 15000 })
   })
 })
 

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { ChevronDown, ChevronLeft, ChevronRight, Menu, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -60,8 +61,9 @@ export function CalendarHeader({
     <header data-testid="calendar-header" className="border-b border-zinc-800 bg-[#0f0f0f]">
       <div className="hidden h-14 grid-cols-[minmax(140px,1fr)_auto_minmax(180px,1fr)] items-center gap-3 px-4 md:grid">
         <div className="flex min-w-0 items-center gap-4">
-          <Link href="/" data-testid="logo-link" className="font-rajdhani text-xl font-bold tracking-tight">
-            Gamer<span className="text-primary">Clock</span>
+          <Link href="/" data-testid="logo-link" className="flex items-center gap-2 font-rajdhani text-xl font-bold tracking-tight">
+            <Image src="/header-icon.png" alt="" width={44} height={44} className="h-11 w-11 shrink-0" priority />
+            <span>Gamer<span className="text-primary">Clock</span></span>
           </Link>
         </div>
 
@@ -127,8 +129,9 @@ export function CalendarHeader({
           </SheetContent>
         </Sheet>
 
-        <Link href="/" data-testid="mobile-logo-link" className="font-rajdhani min-w-0 shrink text-lg font-bold tracking-tight">
-          Gamer<span className="text-primary">Clock</span>
+        <Link href="/" data-testid="mobile-logo-link" className="flex min-w-0 shrink items-center gap-1.5 font-rajdhani text-lg font-bold tracking-tight">
+          <Image src="/header-icon.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0" priority />
+          <span className="truncate">Gamer<span className="text-primary">Clock</span></span>
         </Link>
 
         <button

@@ -21,7 +21,7 @@ test.describe('Gamer Design — Share & Countdown', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     await openEventPanel(page)
     await page.click('[data-testid="share-discord-btn"]')
-    await expect(page.locator('text=/Copied/')).toBeVisible()
+    await expect(page.locator('[data-testid="share-discord-btn"]')).toContainText(/Copied/)
     const clipboard = await page.evaluate(() => navigator.clipboard.readText())
     expect(clipboard).toContain('**')
   })

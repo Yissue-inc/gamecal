@@ -4,8 +4,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title ?? 'GamerClock', {
       body: body ?? "CAL: Don't miss this.",
-      icon: '/og-image.svg',
-      badge: '/og-image.svg',
+      icon: '/icon-192.png',
+      badge: '/badge-96.png',
       data: { url: url ?? '/' },
       vibrate: [100, 50, 100],
       actions: [
@@ -26,7 +26,7 @@ self.addEventListener('notificationclick', (event) => {
     const options = {
       body: event.notification.body,
       icon: event.notification.icon,
-      badge: '/og-image.svg',
+      badge: '/badge-96.png',
       data: event.notification.data,
       vibrate: [100, 50, 100],
     }
