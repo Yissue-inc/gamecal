@@ -275,9 +275,9 @@ export function getRewardBadgeLabel(event: GameEvent): string | null {
 }
 
 export function getSourceConfidenceLabel(confidence: SourceConfidence | string | undefined): string {
-  if (confidence === 'official') return 'Official'
-  if (confidence === 'media') return 'Reported'
-  return 'Rumored'
+  if (confidence === 'official') return '✅ Official'
+  if (confidence === 'media') return '📰 Reported'
+  return '🕵️ Rumored'
 }
 
 export function getSourceConfidenceTone(confidence: SourceConfidence | string | undefined): string {
