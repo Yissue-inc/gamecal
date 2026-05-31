@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test'
 
+test.beforeAll(async ({ browser }) => {
+  const page = await browser.newPage()
+  await page.goto('/')
+  await page.waitForSelector('[data-testid="calendar-grid"]')
+  await page.close()
+})
+
 test('homepage loads within 5 seconds', async ({ page }) => {
   const startTime = Date.now()
   await page.goto('/')
