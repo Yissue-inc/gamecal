@@ -12,10 +12,10 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   isGuest: boolean
-  signInWithGoogle: () => Promise<AuthActionResult>
-  signInWithApple: () => Promise<AuthActionResult>
+  signInWithGoogle: (nextPath?: string) => Promise<AuthActionResult>
+  signInWithApple: (nextPath?: string) => Promise<AuthActionResult>
   signInWithEmail: (email: string, password: string) => Promise<AuthActionResult>
-  signUpWithEmail: (email: string, password: string) => Promise<AuthActionResult>
+  signUpWithEmail: (email: string, password: string, nextPath?: string) => Promise<AuthActionResult>
   signOut: () => Promise<void>
 }
 
@@ -72,7 +72,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [supabaseConfigured])
 
-  const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
+  const getAuthRedirectUrl = useCallback((nextPath?: string) => {
+    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    const next = nextPath ?? `${window.location.pathname}${window.location.search}`
+    callbackUrl.searchParams.set('next', next || '/')
+    return callbackUrl.toString()
+  }, [])
+
+  const signInWithOAuth = useCallback(async (provider: OAuthProvider, nextPath?: string) => {
     if (!supabaseConfigured) {
       return { error: 'Supabase not configured. Set environment variables to enable auth.' }
     }
@@ -80,14 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: getAuthRedirectUrl(nextPath) },
     })
     return { error: error?.message ?? null }
-  }, [supabaseConfigured])
+  }, [getAuthRedirectUrl, supabaseConfigured])
 
-  const signInWithGoogle = useCallback(() => signInWithOAuth('google'), [signInWithOAuth])
+  const signInWithGoogle = useCallback((nextPath?: string) => signInWithOAuth('google', nextPath), [signInWithOAuth])
 
-  const signInWithApple = useCallback(() => signInWithOAuth('apple'), [signInWithOAuth])
+  const signInWithApple = useCallback((nextPath?: string) => signInWithOAuth('apple', nextPath), [signInWithOAuth])
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     if (!supabaseConfigured) {
@@ -99,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null }
   }, [supabaseConfigured])
 
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+  const signUpWithEmail = useCallback(async (email: string, password: string, nextPath?: string) => {
     if (!supabaseConfigured) {
       return { error: 'Supabase not configured. Set environment variables to enable auth.' }
     }
@@ -109,11 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: getAuthRedirectUrl(nextPath),
       },
     })
     return { error: error?.message ?? null }
-  }, [supabaseConfigured])
+  }, [getAuthRedirectUrl, supabaseConfigured])
 
   const signOut = useCallback(async () => {
     if (!supabaseConfigured) return

@@ -9,9 +9,10 @@ import { useAuth } from '@/hooks/useAuth'
 
 interface AuthFormProps {
   compact?: boolean
+  nextPath?: string
 }
 
-export function AuthForm({ compact = false }: AuthFormProps) {
+export function AuthForm({ compact = false, nextPath }: AuthFormProps) {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,7 +30,9 @@ export function AuthForm({ compact = false }: AuthFormProps) {
     setError(null)
     setMessage(null)
     const fn = isSignUp ? signUpWithEmail : signInWithEmail
-    const { error: err } = await fn(email, password)
+    const { error: err } = isSignUp
+      ? await signUpWithEmail(email, password, nextPath)
+      : await fn(email, password)
     if (err) {
       setError(err)
     } else if (isSignUp) {
@@ -42,7 +45,7 @@ export function AuthForm({ compact = false }: AuthFormProps) {
     setOauthLoading(provider)
     setError(null)
     setMessage(null)
-    const { error: err } = await signInWithGoogle()
+    const { error: err } = await signInWithGoogle(nextPath)
     if (err) {
       setError(err)
       setOauthLoading(null)

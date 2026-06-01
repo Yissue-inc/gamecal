@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { AuthModal } from '@/components/auth/AuthModal'
 
 const EVENT_ID = 'gamecal-level-up-launch-2026'
 const EVENT_NAME = 'GamerClock Level Up Launch'
@@ -150,6 +151,7 @@ export default function EventPage() {
   const [socialUrl, setSocialUrl] = useState('')
   const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   // Load user stats
   useEffect(() => {
@@ -170,6 +172,10 @@ export default function EventPage() {
   useEffect(() => {
     if (user?.email) setEmail(user.email)
   }, [user])
+
+  useEffect(() => {
+    if (!authLoading && user) setAuthModalOpen(false)
+  }, [authLoading, user])
 
   // Check existing entry
   useEffect(() => {
@@ -259,11 +265,12 @@ export default function EventPage() {
           <h1 className="font-rajdhani mt-4 text-3xl font-bold text-white">{EVENT_NAME}</h1>
           <p className="mt-2 text-zinc-400">Sign in to join the giveaway.</p>
           <div className="mt-6">
-            <Button asChild size="lg">
-              <Link href="/">Sign in →</Link>
+            <Button size="lg" onClick={() => setAuthModalOpen(true)}>
+              Sign in →
             </Button>
           </div>
         </main>
+        <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} nextPath="/event" />
       </div>
     )
   }

@@ -6,9 +6,10 @@ import { AuthForm } from '@/components/auth/AuthForm'
 interface AuthModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  nextPath?: string
 }
 
-export function AuthModal({ open, onOpenChange }: AuthModalProps) {
+export function AuthModal({ open, onOpenChange, nextPath }: AuthModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="auth-modal" className="sm:max-w-md">
@@ -25,7 +26,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             <li>Build streaks, badges, and future tier rewards from check-ins.</li>
           </ul>
         </div>
-        <AuthForm compact />
+        <AuthForm compact nextPath={nextPath} />
       </DialogContent>
     </Dialog>
   )
