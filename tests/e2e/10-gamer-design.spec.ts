@@ -78,6 +78,7 @@ test.describe('Gamer Design — Mobile & Calendar', () => {
     await page.waitForSelector('[data-testid="calendar-grid"]')
     const releaseCell = page.locator('[data-testid^="release-cell-"]').first()
     test.skip((await releaseCell.count()) === 0, 'No release dates in current month view')
+    await expect(releaseCell).toBeVisible()
     await releaseCell.click()
     await expect(page.locator('[data-testid="release-panel"]')).toBeVisible()
     await expect(page.locator('[data-testid="release-panel-title"]')).not.toBeEmpty()

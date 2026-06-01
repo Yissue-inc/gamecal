@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { isSupabaseConfigured } from '@/lib/mock-data'
+import { isSupabaseConfigured, MOCK_GAMES } from '@/lib/mock-data'
 import { generateICS } from '@/lib/ical'
 
 export async function GET(
@@ -9,13 +9,11 @@ export async function GET(
 ) {
   const { game: gameSlug } = await params
 
-  const VALID_SLUGS = ['fortnite', 'wow', 'pokemon-go', 'genshin', 'lol', 'all']
-
-  if (!VALID_SLUGS.includes(gameSlug)) {
-    return new NextResponse('Game not found', { status: 404 })
-  }
-
   if (!isSupabaseConfigured()) {
+    if (gameSlug !== 'all' && !MOCK_GAMES.some((game) => game.slug === gameSlug)) {
+      return new NextResponse('Game not found', { status: 404 })
+    }
+
     const calName = gameSlug === 'all' ? 'GamerClock — All Games' : `${gameSlug} Events`
     const ics = generateICS([], calName)
     return new NextResponse(ics, {
@@ -28,12 +26,26 @@ export async function GET(
   }
 
   const supabase = await createClient()
+
+  // 'all' 이외의 슬러그는 DB에서 유효 여부를 동적으로 확인
+  let gameId: string | null = null
+  let gameName = gameSlug
+  if (gameSlug !== 'all') {
+    const { data: gameRow } = await supabase
+      .from('games')
+      .select('id, name')
+      .eq('slug', gameSlug)
+      .eq('is_active', true)
+      .single()
+    if (!gameRow) return new NextResponse('Game not found', { status: 404 })
+    gameId = gameRow.id
+    gameName = gameRow.name
+  }
+
   let query = supabase.from('events').select('*, game:games(*)').eq('is_published', true)
 
-  if (gameSlug !== 'all') {
-    const { data: game } = await supabase.from('games').select('id, name').eq('slug', gameSlug).single()
-    if (!game) return new NextResponse('Game not found', { status: 404 })
-    query = query.eq('game_id', game.id)
+  if (gameId) {
+    query = query.eq('game_id', gameId)
   }
 
   const { data, error } = await query.order('start_at')
@@ -44,7 +56,7 @@ export async function GET(
     game: Array.isArray(row.game) ? row.game[0] : row.game,
   }))
 
-  const calName = gameSlug === 'all' ? 'GamerClock — All Games' : `${gameSlug} Events`
+  const calName = gameSlug === 'all' ? 'GamerClock — All Games' : `${gameName} Events`
   const ics = generateICS(events, calName)
 
   return new NextResponse(ics, {

@@ -1,35 +1,77 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
+const SESSION_KEY = 'admin_secret'
+
+async function verifySecret(secret: string): Promise<boolean> {
+  // URL 파라미터 대신 Authorization 헤더로 전달 (로그에 노출 방지)
+  const res = await fetch('/api/admin/verify', {
+    headers: { Authorization: `Bearer ${secret}` },
+  })
+  return res.ok
+}
 
 function AdminGate({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [authorized, setAuthorized] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [inputSecret, setInputSecret] = useState('')
+  const [error, setError] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const checkedRef = useRef(false)
 
   useEffect(() => {
-    async function verify() {
-      const fromUrl = searchParams.get('secret')
-      const stored = sessionStorage.getItem('admin_secret')
-      const secret = fromUrl ?? stored
+    if (checkedRef.current) return
+    checkedRef.current = true
 
-      if (!secret) {
+    async function verify() {
+      // URL에 secret이 있으면 세션에 저장 후 URL에서 제거
+      const fromUrl = searchParams.get('secret')
+      if (fromUrl) {
+        const ok = await verifySecret(fromUrl)
+        if (ok) {
+          sessionStorage.setItem(SESSION_KEY, fromUrl)
+          setAuthorized(true)
+        }
+        // URL에서 secret 제거 (히스토리/로그 노출 방지)
+        const url = new URL(window.location.href)
+        url.searchParams.delete('secret')
+        router.replace(url.pathname + url.search)
         setChecking(false)
         return
       }
 
-      const res = await fetch(`/api/admin/verify?secret=${encodeURIComponent(secret)}`)
-      if (res.ok) {
-        sessionStorage.setItem('admin_secret', secret)
-        setAuthorized(true)
+      const stored = sessionStorage.getItem(SESSION_KEY)
+      if (stored) {
+        const ok = await verifySecret(stored)
+        if (ok) setAuthorized(true)
+        else sessionStorage.removeItem(SESSION_KEY)
       }
       setChecking(false)
     }
     verify()
-  }, [searchParams])
+  }, [searchParams, router])
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(false)
+    const ok = await verifySecret(inputSecret)
+    if (ok) {
+      sessionStorage.setItem(SESSION_KEY, inputSecret)
+      setAuthorized(true)
+    } else {
+      setError(true)
+    }
+    setSubmitting(false)
+  }
 
   if (checking) {
     return (
@@ -47,9 +89,19 @@ function AdminGate({ children }: { children: React.ReactNode }) {
             <CardTitle>Admin Access Required</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Add <code>?secret=YOUR_ADMIN_SECRET</code> to the URL.
-            </p>
+            <form onSubmit={handleLogin} className="space-y-3">
+              <Input
+                type="password"
+                placeholder="Admin secret"
+                value={inputSecret}
+                onChange={(e) => setInputSecret(e.target.value)}
+                autoFocus
+              />
+              {error && <p className="text-sm text-red-400">Invalid secret.</p>}
+              <Button type="submit" className="w-full" disabled={submitting || !inputSecret}>
+                {submitting ? 'Verifying…' : 'Enter'}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>

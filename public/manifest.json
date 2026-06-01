@@ -8,6 +8,7 @@
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
   "orientation": "portrait-primary",
+  "lang": "en-US",
   "icons": [
     {
       "src": "/icon-1024.png",
@@ -32,6 +33,15 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "GamerClock gaming event calendar"
     }
   ],
   "categories": ["games", "productivity", "entertainment"]

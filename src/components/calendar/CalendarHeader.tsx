@@ -62,7 +62,7 @@ export function CalendarHeader({
       <div className="hidden h-14 grid-cols-[minmax(140px,1fr)_auto_minmax(180px,1fr)] items-center gap-3 px-4 md:grid">
         <div className="flex min-w-0 items-center gap-4">
           <Link href="/" data-testid="logo-link" className="flex items-center gap-2 font-rajdhani text-xl font-bold tracking-tight">
-            <Image src="/header-icon.png" alt="" width={44} height={44} className="h-11 w-11 shrink-0" priority />
+            <Image src="/header-icon.png" alt="GamerClock" width={44} height={44} className="h-11 w-11 shrink-0" priority />
             <span>Gamer<span className="text-primary">Clock</span></span>
           </Link>
         </div>
@@ -133,7 +133,7 @@ export function CalendarHeader({
         </Sheet>
 
         <Link href="/" data-testid="mobile-logo-link" className="flex min-w-0 shrink items-center gap-1.5 font-rajdhani text-lg font-bold tracking-tight">
-          <Image src="/header-icon.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0" priority />
+          <Image src="/header-icon.png" alt="GamerClock" width={40} height={40} className="h-10 w-10 shrink-0" priority />
           <span className="truncate">Gamer<span className="text-primary">Clock</span></span>
         </Link>
 

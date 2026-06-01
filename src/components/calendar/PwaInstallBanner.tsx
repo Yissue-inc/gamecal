@@ -26,7 +26,7 @@ export function PwaInstallBanner() {
       className="flex items-center justify-between gap-3 border-b border-indigo-900/50 bg-indigo-950/40 px-4 py-2 md:hidden"
     >
       <div className="flex min-w-0 items-center gap-2">
-        <Image src="/icon-192.png" alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded-md" />
+        <Image src="/icon-192.png" alt="GamerClock" width={28} height={28} className="h-7 w-7 shrink-0 rounded-md" />
         <p className="min-w-0 text-xs text-zinc-300">
           Add GamerClock to your home screen — never miss a reset.
         </p>

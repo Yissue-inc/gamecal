@@ -247,7 +247,7 @@ export default function EventPage() {
   // Not logged in
   if (!authLoading && (isGuest || !user)) {
     return (
-      <div className="min-h-screen bg-[#0f172a]">
+      <div className="min-h-screen w-full bg-[#0f172a]">
         <header className="border-b border-zinc-800 px-6 py-4">
           <Link href="/" className="font-rajdhani text-xl font-bold text-white">
             Gamer<span className="text-indigo-400">Clock</span>
@@ -269,14 +269,14 @@ export default function EventPage() {
 
   if (authLoading || statsLoading || entryLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f172a]">
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#0f172a]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a]">
+    <div className="min-h-screen w-full bg-[#0f172a]">
       <header className="border-b border-zinc-800 px-6 py-4">
         <Link href="/" className="font-rajdhani text-xl font-bold text-white">
           Gamer<span className="text-indigo-400">Clock</span>

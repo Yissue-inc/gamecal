@@ -35,10 +35,10 @@ export default function AboutPage() {
     <main className="min-h-screen overflow-hidden bg-[#0f0f0f] text-white">
       <section className="relative border-b border-zinc-800 bg-[linear-gradient(180deg,#141414_0%,#0f0f0f_100%)]">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:36px_36px] opacity-40" />
-        <div className="relative mx-auto flex min-h-[86vh] max-w-6xl flex-col justify-between px-5 py-6 sm:px-8 lg:px-10">
+        <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col justify-between px-5 py-6 sm:px-8 lg:px-10">
           <nav className="flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-2 font-rajdhani text-xl font-bold">
-              <Image src="/header-icon.png" alt="" width={44} height={44} className="h-11 w-11" priority />
+              <Image src="/header-icon.png" alt="GamerClock" width={44} height={44} className="h-11 w-11" priority />
               <span>Gamer<span className="text-primary">Clock</span></span>
             </Link>
             <Button variant="outline" size="sm" className="border-zinc-700" asChild>

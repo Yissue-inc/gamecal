@@ -25,6 +25,6 @@ test.describe('New Releases', () => {
 
   test('존재하지 않는 경로는 404 페이지를 표시한다', async ({ page }) => {
     await page.goto('/this-page-does-not-exist')
-    await expect(page.locator('text=Event not found')).toBeVisible()
+    await expect(page.locator('text=Page not found')).toBeVisible()
   })
 })

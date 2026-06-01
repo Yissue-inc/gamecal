@@ -85,8 +85,8 @@ export function SettingsForm({ email, onSaved }: SettingsFormProps) {
                 <SelectTrigger data-testid="language-select"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">English (US)</SelectItem>
-                  <SelectItem value="ko">한국어</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
+                  <SelectItem value="ko" disabled>한국어 (Coming soon)</SelectItem>
+                  <SelectItem value="ja" disabled>日本語 (Coming soon)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

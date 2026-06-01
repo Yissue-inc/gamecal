@@ -193,12 +193,20 @@ export default function MySchedulePage() {
 
   if (isGuest || !user) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0f0f0f] p-8 text-center" data-testid="my-schedule-page">
-        <CalCharacter mood="alert" size="lg" />
-        <p className="text-zinc-400">Sign in to view your wishlisted events.</p>
-        <Link href="/" className="text-indigo-400 hover:underline">
-          Back to calendar
-        </Link>
+      <div className="min-h-screen bg-[#0f0f0f]" data-testid="my-schedule-page">
+        <header className="border-b border-zinc-800 px-6 py-4">
+          <Link href="/" className="font-rajdhani text-xl font-bold">
+            Gamer<span className="text-primary">Clock</span>
+          </Link>
+          <h1 className="font-rajdhani mt-4 text-2xl font-semibold">My Wishlists</h1>
+        </header>
+        <div className="flex flex-col items-center justify-center gap-4 p-8 pt-20 text-center">
+          <CalCharacter mood="alert" size="lg" />
+          <p className="text-zinc-400">Sign in to view your wishlisted events.</p>
+          <Link href="/" className="text-indigo-400 hover:underline">
+            Back to calendar
+          </Link>
+        </div>
       </div>
     )
   }

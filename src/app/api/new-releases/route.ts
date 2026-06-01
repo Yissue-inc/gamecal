@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       .gte('confidence_score', 80)
       .order('release_date', { ascending: true })
       .order('confidence_score', { ascending: false })
-      .limit(80)
+      .limit(120)
 
     if (fallbackError) return NextResponse.json({ error: fallbackError.message }, { status: 500 })
 

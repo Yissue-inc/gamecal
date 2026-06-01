@@ -8,17 +8,34 @@ import { Button } from '@/components/ui/button'
 import { getDaysUntil, getReleaseHeroColor, withGamerClockUtm } from '@/lib/utils'
 import type { NewRelease } from '@/types'
 
+function ReleaseSkeleton() {
+  return (
+    <div className="animate-pulse rounded-xl border border-zinc-800 bg-zinc-900/50">
+      <div className="h-[280px] rounded-t-xl bg-zinc-800" />
+      <div className="p-6 space-y-3">
+        <div className="h-4 w-20 rounded bg-zinc-700" />
+        <div className="h-7 w-2/3 rounded bg-zinc-700" />
+        <div className="h-4 w-1/3 rounded bg-zinc-800" />
+      </div>
+    </div>
+  )
+}
+
 export default function NewReleasesPage() {
   const [all, setAll] = useState<NewRelease[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/new-releases')
       .then((r) => r.json())
       .then((d) => setAll(d.releases ?? []))
+      .finally(() => setLoading(false))
   }, [])
 
+  const today = new Date().toISOString().slice(0, 10)
   const featured = all.filter((release) => release.is_featured)
-  const hero = featured[0] ?? all[0]
+  const upcoming = all.filter((release) => (release.release_date ?? '') >= today)
+  const hero = featured[0] ?? upcoming[0] ?? all[0]
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]" data-testid="new-releases-page">
@@ -33,13 +50,17 @@ export default function NewReleasesPage() {
       </header>
 
       <main className="mx-auto max-w-6xl space-y-12 px-6 py-8">
-        {hero && (
+        {loading ? (
+          <section>
+            <ReleaseSkeleton />
+          </section>
+        ) : hero ? (
           <section data-testid="new-releases-hero">
             <HeroReleaseCard release={hero} />
           </section>
-        )}
+        ) : null}
 
-        {featured.length > 1 && (
+        {!loading && featured.length > 1 && (
           <section data-testid="featured-releases-section">
             <h2 className="font-rajdhani mb-6 text-lg font-semibold text-primary">Featured</h2>
             <div className="grid gap-6 md:grid-cols-3">
@@ -52,11 +73,23 @@ export default function NewReleasesPage() {
 
         <section data-testid="all-releases-section">
           <h2 className="font-rajdhani mb-6 text-lg font-semibold">All Upcoming</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {all.map((release) => (
-              <ReleaseCard key={release.id} release={release} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
+                  <div className="h-3 w-16 rounded bg-zinc-700" />
+                  <div className="h-5 w-2/3 rounded bg-zinc-700" />
+                  <div className="h-3 w-1/4 rounded bg-zinc-800" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {upcoming.map((release) => (
+                <ReleaseCard key={release.id} release={release} />
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

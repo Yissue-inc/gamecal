@@ -64,7 +64,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en-US" className="dark">
       <body className={`${inter.className} ${rajdhani.variable} bg-[#0f0f0f] text-white`}>
         <PostHogProvider>
           <AuthProvider>

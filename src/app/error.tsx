@@ -18,7 +18,9 @@ export default function Error({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f0f0f] px-4 text-center">
       <h1 className="text-4xl font-bold text-red-400">Something went wrong</h1>
-      <p className="mt-4 text-zinc-400">{error.message}</p>
+      <p className="mt-4 text-zinc-400">
+        {process.env.NODE_ENV === 'development' ? error.message : '예상치 못한 오류가 발생했습니다.'}
+      </p>
       <div className="mt-8 flex gap-4">
         <Button onClick={reset}>Try again</Button>
         <Button variant="outline" asChild>
