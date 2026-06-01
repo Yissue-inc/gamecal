@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { AuthModal } from '@/components/auth/AuthModal'
+import { CinematicIntro } from '@/components/cinematic/CinematicIntro'
 
 const EVENT_ID = 'gamecal-level-up-launch-2026'
 const EVENT_NAME = 'GamerClock Level Up Launch'
@@ -19,6 +20,30 @@ const START_DATE = process.env.NEXT_PUBLIC_EVENT_START_DATE || '2026-06-01'
 const END_DATE = process.env.NEXT_PUBLIC_EVENT_END_DATE || '2026-06-30'
 
 const SILVER_TIERS = ['silver', 'gold', 'platinum', 'diamond']
+const EVENT_INTRO_FEATURED = {
+  eyebrow: 'Launch Giveaway',
+  title: 'Steam $10 Gift Card',
+  titleAccent: '5 Winners',
+  subtitle: 'Join the GamerClock Level Up Launch event and claim your chance at the next reward.',
+  accentColor: '#8b5cf6',
+  eventId: EVENT_ID,
+}
+const EVENT_INTRO_SETTINGS = {
+  brandLabel: 'GamerClock',
+  sponsorLabel: 'Launch Event',
+  eyebrow: 'Launch Giveaway',
+  title: 'Steam $10 Gift Card',
+  titleAccent: '5 Winners',
+  subtitle: 'Join the GamerClock Level Up Launch event and claim your chance at the next reward.',
+  primaryCta: 'Enter Giveaway',
+  secondaryCta: 'View Details',
+  accentColor: '#8b5cf6',
+  animationStyle: 'minimal' as const,
+  autoDismissMs: 120000,
+  letterboxHeight: 80,
+  backdropOpacity: 72,
+  backdropBlur: 3,
+}
 
 function isEligible(prestigeId: string) {
   return SILVER_TIERS.includes(prestigeId)
@@ -152,6 +177,7 @@ export default function EventPage() {
   const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [eventIntroOpen, setEventIntroOpen] = useState(true)
 
   // Load user stats
   useEffect(() => {
@@ -264,12 +290,36 @@ export default function EventPage() {
           <div className="text-5xl">🎮</div>
           <h1 className="font-rajdhani mt-4 text-3xl font-bold text-white">{EVENT_NAME}</h1>
           <p className="mt-2 text-zinc-400">Sign in to join the giveaway.</p>
+          <div className="mx-auto mt-5 grid max-w-md gap-2 text-left text-sm text-zinc-300">
+            <div className="rounded-lg border border-violet-400/25 bg-violet-500/10 px-4 py-3">
+              {PRIZE}
+            </div>
+            <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-3">
+              Silver tier or higher can enter after login. Include {EVENT_HASHTAG} in your public post.
+            </div>
+          </div>
           <div className="mt-6">
             <Button size="lg" onClick={() => setAuthModalOpen(true)}>
               Sign in →
             </Button>
           </div>
+          <Button
+            type="button"
+            variant="ghost"
+            className="mt-3 text-zinc-400 hover:text-white"
+            onClick={() => setEventIntroOpen(true)}
+          >
+            View giveaway preview
+          </Button>
         </main>
+        {eventIntroOpen && (
+          <CinematicIntro
+            featured={EVENT_INTRO_FEATURED}
+            settings={EVENT_INTRO_SETTINGS}
+            onDismiss={() => setEventIntroOpen(false)}
+            onAddToCalendar={() => setAuthModalOpen(true)}
+          />
+        )}
         <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} nextPath="/event" />
       </div>
     )
