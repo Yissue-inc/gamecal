@@ -43,19 +43,19 @@ export async function POST(request: NextRequest) {
 
   // Validate fields
   if (!platform || !['instagram', 'tiktok', 'twitter'].includes(platform)) {
-    return NextResponse.json({ error: '유효하지 않은 플랫폼입니다' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid platform' }, { status: 400 })
   }
   if (!social_url || !social_url.startsWith('https://')) {
-    return NextResponse.json({ error: 'URL은 https://로 시작해야 합니다' }, { status: 400 })
+    return NextResponse.json({ error: 'URL must start with https://' }, { status: 400 })
   }
   if (!email || !email.trim()) {
-    return NextResponse.json({ error: '이메일을 입력해주세요' }, { status: 400 })
+    return NextResponse.json({ error: 'Enter your email address' }, { status: 400 })
   }
   if (!event_id) {
-    return NextResponse.json({ error: 'event_id가 필요합니다' }, { status: 400 })
+    return NextResponse.json({ error: 'event_id is required' }, { status: 400 })
   }
   if (event_id !== EVENT_ID) {
-    return NextResponse.json({ error: '지원하지 않는 이벤트입니다' }, { status: 400 })
+    return NextResponse.json({ error: 'Unsupported event_id' }, { status: 400 })
   }
 
   const admin = createAdminClient()
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   // Validate eligibility (silver or above)
   if (!SILVER_TIERS.includes(prestigeId) && !SILVER_TIERS.includes(getPrestigeId(gp))) {
     return NextResponse.json(
-      { error: 'Silver 등급 이상만 응모할 수 있습니다' },
+      { error: 'Silver tier or higher is required to enter' },
       { status: 403 }
     )
   }
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
   if (insertError) {
     // Unique constraint violation = already entered
     if (insertError.code === '23505') {
-      return NextResponse.json({ error: '이미 응모한 이벤트입니다' }, { status: 409 })
+      return NextResponse.json({ error: 'You have already entered this event' }, { status: 409 })
     }
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }

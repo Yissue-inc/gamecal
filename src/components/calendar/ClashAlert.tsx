@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { GameEvent } from '@/types'
 import { detectClashes } from '@/lib/clash-detector'
 import { formatShortDate } from '@/lib/calendar-dates'
@@ -11,15 +11,31 @@ interface ClashAlertProps {
 }
 
 export function ClashAlert({ events, onEventClick }: ClashAlertProps) {
-  const [dismissedDate, setDismissedDate] = useState<string | null>(null)
+  const today = new Date().toISOString().slice(0, 10)
+  const [dismissedToday, setDismissedToday] = useState(false)
   const clashes = useMemo(() => detectClashes(events), [events])
-  const clash = clashes.find((item) => item.date !== dismissedDate)
+  const clash = dismissedToday ? undefined : clashes[0]
+
+  useEffect(() => {
+    try {
+      setDismissedToday(window.localStorage.getItem('gamerclock-dismissed-clashes') === today)
+    } catch {
+      setDismissedToday(false)
+    }
+  }, [today])
 
   if (!clash) return null
 
-  const today = new Date().toISOString().slice(0, 10)
   const dateLabel = clash.date === today ? 'Today' : formatShortDate(`${clash.date}T00:00:00`)
   const games = Array.from(new Set(clash.events.map((event) => event.game?.name).filter(Boolean))).join(' · ')
+  const dismissClash = () => {
+    setDismissedToday(true)
+    try {
+      window.localStorage.setItem('gamerclock-dismissed-clashes', today)
+    } catch {
+      // Non-persistent dismissal is still fine if storage is unavailable.
+    }
+  }
 
   return (
     <div
@@ -45,7 +61,7 @@ export function ClashAlert({ events, onEventClick }: ClashAlertProps) {
         </button>
         <button
           type="button"
-          onClick={() => setDismissedDate(clash.date)}
+          onClick={dismissClash}
           className="rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:text-zinc-300"
           aria-label="Dismiss clash alert"
         >

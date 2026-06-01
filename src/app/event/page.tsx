@@ -11,8 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 
 const EVENT_ID = 'gamecal-level-up-launch-2026'
-const EVENT_NAME = 'GameCAL Level Up Launch'
-const PRIZE = 'Steam $10 기프트카드 × 5명'
+const EVENT_NAME = 'GamerClock Level Up Launch'
+const PRIZE = 'Steam $10 Gift Card x 5 winners'
+const EVENT_HASHTAG = '#gamerclock'
 const START_DATE = process.env.NEXT_PUBLIC_EVENT_START_DATE || '2026-06-01'
 const END_DATE = process.env.NEXT_PUBLIC_EVENT_END_DATE || '2026-06-30'
 
@@ -23,7 +24,7 @@ function isEligible(prestigeId: string) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('ko-KR', {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -62,10 +63,10 @@ function CountdownTimer({ endDate }: { endDate: string }) {
   return (
     <div className="flex items-center gap-3 text-center">
       {[
-        { value: timeLeft.days, label: '일' },
-        { value: timeLeft.hours, label: '시간' },
-        { value: timeLeft.minutes, label: '분' },
-        { value: timeLeft.seconds, label: '초' },
+        { value: timeLeft.days, label: 'Days' },
+        { value: timeLeft.hours, label: 'Hours' },
+        { value: timeLeft.minutes, label: 'Min' },
+        { value: timeLeft.seconds, label: 'Sec' },
       ].map(({ value, label }) => (
         <div key={label} className="flex flex-col items-center">
           <span className="font-rajdhani text-3xl font-bold tabular-nums text-white">
@@ -85,7 +86,7 @@ function GpProgressBar({ gp }: { gp: number }) {
     <div className="space-y-1">
       <div className="flex justify-between text-xs text-zinc-400">
         <span>{gp} GP</span>
-        <span>Silver까지 {Math.max(0, silverThreshold - gp)} GP 남음</span>
+        <span>{Math.max(0, silverThreshold - gp)} GP to Silver</span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
         <div
@@ -104,10 +105,10 @@ function HashtagCopyButton({ hashtag }: { hashtag: string }) {
     try {
       await navigator.clipboard.writeText(hashtag)
       setCopied(true)
-      toast.success(`${hashtag} 복사됨`)
+      toast.success(`${hashtag} copied`)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('복사 실패')
+      toast.error('Copy failed')
     }
   }
 
@@ -117,7 +118,7 @@ function HashtagCopyButton({ hashtag }: { hashtag: string }) {
       className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-300 transition-colors hover:border-indigo-400/50 hover:bg-indigo-500/20"
     >
       <span>{hashtag}</span>
-      <span className="text-xs text-indigo-400">{copied ? '✓' : '복사'}</span>
+      <span className="text-xs text-indigo-400">{copied ? '✓' : 'Copy'}</span>
     </button>
   )
 }
@@ -193,11 +194,11 @@ export default function EventPage() {
     e.preventDefault()
 
     if (!socialUrl.startsWith('https://')) {
-      toast.error('URL은 https://로 시작해야 합니다')
+      toast.error('URL must start with https://')
       return
     }
     if (!email.trim()) {
-      toast.error('이메일을 입력해주세요')
+      toast.error('Enter your email address')
       return
     }
 
@@ -210,13 +211,13 @@ export default function EventPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error ?? '응모 중 오류가 발생했습니다')
+        toast.error(data.error ?? 'Entry failed')
         return
       }
       setEntry(data.entry)
-      toast.success('응모 완료! 추첨 결과를 기다려주세요 🎮')
+      toast.success('Entry submitted. Good luck!')
     } catch {
-      toast.error('네트워크 오류가 발생했습니다')
+      toast.error('Network error')
     } finally {
       setSubmitting(false)
     }
@@ -227,7 +228,7 @@ export default function EventPage() {
       typeof window !== 'undefined'
         ? `${window.location.origin}/event`
         : 'https://gamerclock.com/event'
-    const text = `GameCAL Level Up Launch 이벤트에 응모했어요!\n🎮 ${PRIZE}\n👉 ${eventUrl}`
+    const text = `I entered the GamerClock Level Up Launch giveaway.\n${PRIZE}\n${EVENT_HASHTAG}\n${eventUrl}`
     if (navigator.share) {
       try {
         await navigator.share({ title: EVENT_NAME, text })
@@ -237,9 +238,9 @@ export default function EventPage() {
     } else {
       try {
         await navigator.clipboard.writeText(text)
-        toast.success('링크가 복사되었습니다')
+        toast.success('Link copied')
       } catch {
-        toast.error('복사 실패')
+        toast.error('Copy failed')
       }
     }
   }
@@ -256,10 +257,10 @@ export default function EventPage() {
         <main className="mx-auto max-w-2xl px-6 py-16 text-center">
           <div className="text-5xl">🎮</div>
           <h1 className="font-rajdhani mt-4 text-3xl font-bold text-white">{EVENT_NAME}</h1>
-          <p className="mt-2 text-zinc-400">로그인하고 이벤트에 참여하세요</p>
+          <p className="mt-2 text-zinc-400">Sign in to join the giveaway.</p>
           <div className="mt-6">
             <Button asChild size="lg">
-              <Link href="/">로그인하기 →</Link>
+              <Link href="/">Sign in →</Link>
             </Button>
           </div>
         </main>
@@ -287,7 +288,7 @@ export default function EventPage() {
         {/* Event Banner */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600 p-6">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent_60%)]" />
-          <Badge className="mb-3 bg-white/20 text-white hover:bg-white/30">LIVE 이벤트</Badge>
+          <Badge className="mb-3 bg-white/20 text-white hover:bg-white/30">LIVE EVENT</Badge>
           <h1 className="font-rajdhani text-3xl font-bold text-white">{EVENT_NAME}</h1>
           <p className="mt-1 text-lg font-semibold text-white/90">🏆 {PRIZE}</p>
           <p className="mt-1 text-sm text-white/70">
@@ -295,7 +296,7 @@ export default function EventPage() {
           </p>
           <div className="mt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">
-              종료까지
+              Ends in
             </p>
             <CountdownTimer endDate={END_DATE} />
           </div>
@@ -304,12 +305,12 @@ export default function EventPage() {
         {/* Eligibility Card */}
         <Card className="border-zinc-800 bg-[#1e293b]">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base text-white">참여 자격 확인</CardTitle>
+            <CardTitle className="text-base text-white">Eligibility Check</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-400">현재 등급</p>
+                <p className="text-sm text-zinc-400">Current tier</p>
                 <p className="text-lg font-bold text-white">
                   {prestige.emoji} {prestige.label}
                 </p>
@@ -329,20 +330,20 @@ export default function EventPage() {
             {eligible ? (
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
                 <p className="text-sm font-semibold text-emerald-300">
-                  Silver 이상 달성! 응모 자격이 있습니다.
+                  You are eligible. Silver tier or higher unlocked.
                 </p>
                 <p className="mt-0.5 text-xs text-emerald-400/70">
-                  Silver 등급은 200 GP 이상 달성 시 부여됩니다.
+                  Silver tier starts at 200 GP.
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
                   <p className="text-sm font-semibold text-amber-300">
-                    Silver 등급부터 참여 가능합니다
+                    Silver tier or higher is required.
                   </p>
                   <p className="mt-0.5 text-xs text-amber-400/70">
-                    매일 체크인으로 GP를 모아 Silver를 달성하세요!
+                    Check in daily to earn GP and reach Silver.
                   </p>
                 </div>
                 <GpProgressBar gp={gp} />
@@ -355,16 +356,15 @@ export default function EventPage() {
         <Card className="border-zinc-800 bg-[#1e293b]">
           <CardHeader className="pb-3">
             <CardTitle className="text-base text-white">
-              📣 SNS에 포스팅하고 아래 해시태그를 달아주세요
+              📣 Post on social media with this hashtag
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="mb-3 text-sm text-zinc-400">
-              인증 포스팅에 아래 해시태그를 모두 포함해야 합니다.
+              Include this hashtag in your public giveaway post.
             </p>
             <div className="flex flex-wrap gap-3">
-              <HashtagCopyButton hashtag="#GameCALLevelUp" />
-              <HashtagCopyButton hashtag="#GPDrop" />
+              <HashtagCopyButton hashtag={EVENT_HASHTAG} />
             </div>
           </CardContent>
         </Card>
@@ -374,18 +374,18 @@ export default function EventPage() {
           <Card className="border-emerald-500/30 bg-[#1e293b]">
             <CardHeader className="pb-3">
               <CardTitle className="text-base text-white">
-                🎉 응모 완료! 추첨까지 {daysLeft}일 남았어요
+                🎉 Entry submitted. {daysLeft} days until the drawing.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-4 text-sm">
                 <div className="grid gap-2">
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">플랫폼</span>
+                    <span className="text-zinc-500">Platform</span>
                     <span className="font-medium text-white capitalize">{entry.platform}</span>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <span className="shrink-0 text-zinc-500">포스팅 URL</span>
+                    <span className="shrink-0 text-zinc-500">Post URL</span>
                     <a
                       href={entry.social_url}
                       target="_blank"
@@ -396,25 +396,25 @@ export default function EventPage() {
                     </a>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">응모 시 GP</span>
+                    <span className="text-zinc-500">GP at entry</span>
                     <span className="font-medium text-amber-400">{entry.score_at_entry} GP</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">응모 일시</span>
+                    <span className="text-zinc-500">Entered at</span>
                     <span className="text-zinc-300">
-                      {new Date(entry.entered_at).toLocaleString('ko-KR')}
+                      {new Date(entry.entered_at).toLocaleString('en-US')}
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="rounded-lg border border-zinc-700 bg-zinc-900/30 p-4">
-                <p className="text-sm font-semibold text-white">친구에게 알리기</p>
+                <p className="text-sm font-semibold text-white">Share with friends</p>
                 <p className="mt-1 text-xs text-zinc-400">
-                  GameCAL Level Up Launch 이벤트에 응모했어요! Steam $10 기프트카드 × 5명
+                  I entered the GamerClock Level Up Launch giveaway. Steam $10 Gift Card x 5 winners.
                 </p>
                 <Button onClick={handleShare} variant="outline" size="sm" className="mt-3 border-zinc-700">
-                  친구에게 알리기 🔗
+                  Share 🔗
                 </Button>
               </div>
             </CardContent>
@@ -422,13 +422,13 @@ export default function EventPage() {
         ) : eligible ? (
           <Card className="border-zinc-800 bg-[#1e293b]">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base text-white">🎮 추첨 응모하기</CardTitle>
+              <CardTitle className="text-base text-white">🎮 Enter Giveaway</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Platform Select */}
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-zinc-300">포스팅 플랫폼</p>
+                  <p className="text-sm font-medium text-zinc-300">Posting platform</p>
                   <div className="grid grid-cols-3 gap-2">
                     {PLATFORMS.map(({ id, label, icon }) => (
                       <button
@@ -451,7 +451,7 @@ export default function EventPage() {
                 {/* Social URL */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-zinc-300" htmlFor="social-url">
-                    포스팅 URL
+                    Post URL
                   </label>
                   <Input
                     id="social-url"
@@ -463,14 +463,14 @@ export default function EventPage() {
                     className="border-zinc-700 bg-zinc-900 text-white placeholder:text-zinc-600"
                   />
                   <p className="text-xs text-zinc-500">
-                    해시태그가 포함된 포스팅 링크를 붙여넣으세요 (https://로 시작)
+                    Paste the link to your public post that includes {EVENT_HASHTAG}. The URL must start with https://.
                   </p>
                 </div>
 
                 {/* Email */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-zinc-300" htmlFor="email">
-                    이메일 (당첨 연락용)
+                    Email for winner contact
                   </label>
                   <Input
                     id="email"
@@ -484,14 +484,12 @@ export default function EventPage() {
                 </div>
 
                 <div className="rounded-lg border border-zinc-700 bg-zinc-900/30 p-3 text-xs text-zinc-500">
-                  <p className="font-semibold text-zinc-400">응모 주의사항</p>
+                  <p className="font-semibold text-zinc-400">Entry notes</p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5">
-                    <li>실제 본인 계정의 공개 포스팅이어야 합니다</li>
-                    <li>
-                      #GameCALLevelUp, #GPDrop 해시태그 두 개 모두 포함 필수
-                    </li>
-                    <li>이벤트 기간({formatDate(START_DATE)} ~ {formatDate(END_DATE)}) 내 포스팅만 인정</li>
-                    <li>계정당 1회 응모 가능</li>
+                    <li>Your post must be public and from your own account.</li>
+                    <li>Include {EVENT_HASHTAG} in the post.</li>
+                    <li>Posts must be published during the event period ({formatDate(START_DATE)} - {formatDate(END_DATE)}).</li>
+                    <li>One entry per account.</li>
                   </ul>
                 </div>
 
@@ -501,7 +499,7 @@ export default function EventPage() {
                   className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500"
                   size="lg"
                 >
-                  {submitting ? '응모 중…' : '추첨 응모하기 🎮'}
+                  {submitting ? 'Submitting...' : 'Enter Giveaway 🎮'}
                 </Button>
               </form>
             </CardContent>
@@ -510,12 +508,12 @@ export default function EventPage() {
           <Card className="border-zinc-800 bg-[#1e293b]">
             <CardContent className="py-6 text-center">
               <p className="text-4xl">🔒</p>
-              <p className="mt-3 font-semibold text-white">Silver 등급 달성 후 응모 가능</p>
+              <p className="mt-3 font-semibold text-white">Reach Silver tier to enter</p>
               <p className="mt-1 text-sm text-zinc-400">
-                매일 체크인하여 GP를 쌓아 Silver(200 GP)를 달성하세요!
+                Check in daily to earn GP and reach Silver (200 GP).
               </p>
               <Button asChild variant="outline" className="mt-4 border-zinc-700" size="sm">
-                <Link href="/profile">체크인 하러 가기 →</Link>
+                <Link href="/profile">Go to check-in →</Link>
               </Button>
             </CardContent>
           </Card>
