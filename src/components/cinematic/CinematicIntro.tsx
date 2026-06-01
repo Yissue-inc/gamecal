@@ -301,14 +301,23 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
             phase.atmos ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-4 scale-[0.98] opacity-0'
           }`}
         >
-          <div className="relative min-h-[240px] border-b border-violet-400/20 bg-black md:min-h-[430px] md:border-b-0 md:border-r">
+          <div className="relative min-h-[240px] overflow-hidden border-b border-violet-400/20 bg-black md:min-h-[430px] md:border-b-0 md:border-r">
+            <Image
+              src="/gamerclock-reward.png"
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 62vw"
+              className="scale-110 object-cover opacity-35 blur-xl"
+              aria-hidden="true"
+            />
             <Image
               src="/gamerclock-reward.png"
               alt="GamerClock Steam gift card giveaway"
               fill
               priority
               sizes="(max-width: 768px) 100vw, 62vw"
-              className="object-cover"
+              className="object-contain"
             />
           </div>
           <div className="flex flex-col justify-center p-6 sm:p-8">
