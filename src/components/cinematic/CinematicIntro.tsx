@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { bezier, bezierTangent, drawDragon, DRAGON_PATH } from './dragon-renderer'
 import { trackCinematicSeen } from '@/lib/posthog'
 import { markCinematicSeen } from '@/lib/cinematic-seen'
@@ -293,62 +294,88 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
         </div>
       )}
 
-      {/* Text overlay */}
-      <div className="pointer-events-none fixed inset-0 z-[225] flex flex-col items-center justify-center gap-3 px-6">
-        <p
-          className={`text-[11px] font-bold uppercase tracking-[0.35em] transition-all duration-600 ${
-            phase.eyebrow ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-          }`}
-          style={{ color: accent }}
-        >
-          {displayFeatured.eyebrow}
-        </p>
-        <h2
-          className={`max-w-3xl text-center text-4xl font-black leading-tight tracking-tight text-white transition-all duration-700 md:text-6xl ${
-            phase.title ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-0'
-          }`}
-          style={{ textShadow: `0 0 80px ${accent}88` }}
-        >
-          {titleMain}
-          {titleSub && (
-            <>
-              <br />
-              <span style={{ color: accent }}>{titleSub}</span>
-            </>
-          )}
-        </h2>
-        <p
-          className={`text-base tracking-wide text-zinc-400 transition-opacity duration-600 ${
-            phase.sub ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          {displayFeatured.subtitle}
-        </p>
+      {/* Reward event overlay */}
+      <div className="pointer-events-none fixed inset-0 z-[225] flex items-center justify-center px-4 py-20">
         <div
-          className={`pointer-events-auto mt-2 flex flex-wrap justify-center gap-3 transition-all duration-500 ${
-            phase.cta ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+          className={`grid w-full max-w-5xl overflow-hidden rounded-lg border border-violet-400/25 bg-zinc-950/95 shadow-2xl shadow-violet-950/50 transition-all duration-700 md:grid-cols-[1.25fr_0.75fr] ${
+            phase.atmos ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-4 scale-[0.98] opacity-0'
           }`}
         >
-          <button
-            type="button"
-            data-testid="cinematic-add-btn"
-            className="rounded-md px-7 py-3 text-sm font-extrabold text-[#0f0f0f] shadow-lg transition hover:-translate-y-0.5"
-            style={{ backgroundColor: accent, boxShadow: `0 0 24px ${accent}66` }}
-            onClick={() => {
-              onAddToCalendar?.()
-              dismiss()
-            }}
-          >
-            {settings?.primaryCta || '+ Add to GamerClock'}
-          </button>
-          <button
-            type="button"
-            data-testid="cinematic-view-btn"
-            className="rounded-md border border-zinc-600 px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:border-zinc-400 hover:text-white"
-            onClick={dismiss}
-          >
-            {settings?.secondaryCta || 'View Calendar'}
-          </button>
+          <div className="relative min-h-[240px] border-b border-violet-400/20 bg-black md:min-h-[430px] md:border-b-0 md:border-r">
+            <Image
+              src="/gamerclock-reward.png"
+              alt="GamerClock Steam gift card giveaway"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 62vw"
+              className="object-cover"
+            />
+          </div>
+          <div className="flex flex-col justify-center p-6 sm:p-8">
+            <p
+              className={`text-[11px] font-bold uppercase tracking-[0.35em] transition-all duration-600 ${
+                phase.eyebrow ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+              }`}
+              style={{ color: accent }}
+            >
+              {displayFeatured.eyebrow}
+            </p>
+            <h2
+              className={`mt-4 font-rajdhani text-4xl font-black leading-none tracking-tight text-white transition-all duration-700 sm:text-5xl ${
+                phase.title ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-0'
+              }`}
+              style={{ textShadow: `0 0 80px ${accent}88` }}
+            >
+              {titleMain}
+              {titleSub && (
+                <>
+                  <br />
+                  <span style={{ color: accent }}>{titleSub}</span>
+                </>
+              )}
+            </h2>
+            <p
+              className={`mt-4 text-sm leading-6 text-zinc-300 transition-opacity duration-600 sm:text-base ${
+                phase.sub ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {displayFeatured.subtitle}
+            </p>
+            <div className="mt-5 grid gap-2 text-sm text-zinc-300">
+              <div className="rounded-md border border-violet-400/20 bg-violet-500/10 px-3 py-2">
+                Steam $10 Gift Card x 5 winners
+              </div>
+              <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2">
+                Silver tier or higher can enter after login.
+              </div>
+            </div>
+            <div
+              className={`pointer-events-auto mt-6 flex flex-wrap gap-3 transition-all duration-500 ${
+                phase.cta ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+              }`}
+            >
+              <button
+                type="button"
+                data-testid="cinematic-add-btn"
+                className="rounded-md px-7 py-3 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
+                style={{ backgroundColor: accent, boxShadow: `0 0 24px ${accent}66` }}
+                onClick={() => {
+                  onAddToCalendar?.()
+                  dismiss()
+                }}
+              >
+                {settings?.primaryCta || 'Enter Giveaway'}
+              </button>
+              <button
+                type="button"
+                data-testid="cinematic-view-btn"
+                className="rounded-md border border-zinc-600 px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:border-zinc-400 hover:text-white"
+                onClick={dismiss}
+              >
+                {settings?.secondaryCta || 'View Calendar'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

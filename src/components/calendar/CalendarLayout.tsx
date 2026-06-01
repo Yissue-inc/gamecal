@@ -19,7 +19,7 @@ import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
 import { useReleases } from '@/hooks/useReleases'
 import { RELEASE_PLATFORM_ALL, countReleasePlatforms, releaseMatchesPlatforms } from '@/lib/release-platforms'
-import { getEventTypeLabel, isToday } from '@/lib/utils'
+import { isToday } from '@/lib/utils'
 import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useLayoutEvents } from '@/hooks/useLayoutEvents'
@@ -136,30 +136,14 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }, [authLoading, user])
 
   const featuredEvent = useMemo(() => {
-    const hero =
-      events.find((e) => e.importance === 'critical' && e.game) ??
-      events.find((e) => e.importance === 'high' && e.game) ??
-      events.find((e) => e.game)
-
-    if (!hero?.game) {
-      return {
-        eyebrow: 'World of Warcraft',
-        title: 'Patch 11.2 / Seeds of Renewal',
-        subtitle: 'New Raid · New Zone · Live Now',
-        accentColor: '#f59e0b',
-      }
-    }
-
-    const parts = hero.title.split('—').map((s) => s.trim())
     return {
-      eyebrow: hero.game.name,
-      title: parts[0] ?? hero.title,
-      titleAccent: parts[1],
-      subtitle: `${getEventTypeLabel(hero.event_type)} · Live Now`,
-      accentColor: hero.game.brand_color,
-      eventId: hero.id,
+      eyebrow: 'Launch Giveaway',
+      title: 'Steam $10 Gift Card',
+      titleAccent: '5 Winners',
+      subtitle: 'Join the GameCAL Level Up Launch event before the reward window closes.',
+      accentColor: '#8b5cf6',
     }
-  }, [events])
+  }, [])
 
   const handleToggle = (slug: string) => {
     const next = selectedGames.includes(slug)
@@ -328,14 +312,24 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
       {showCinematic && (
         <CinematicIntro
           featured={featuredEvent}
-          settings={introSettings.cinematic_intro}
+          settings={{
+            ...introSettings.cinematic_intro,
+            eyebrow: 'Launch Giveaway',
+            title: 'Steam $10 Gift Card',
+            titleAccent: '5 Winners',
+            subtitle: 'Join the GameCAL Level Up Launch event and claim your chance at the next reward.',
+            primaryCta: 'Enter Giveaway',
+            secondaryCta: 'View Calendar',
+            sponsorLabel: 'Launch Event',
+            accentColor: '#8b5cf6',
+            animationStyle: 'minimal',
+            autoDismissMs: Math.max(introSettings.cinematic_intro.autoDismissMs, 12000),
+            backdropOpacity: Math.max(introSettings.cinematic_intro.backdropOpacity, 68),
+            backdropBlur: Math.max(introSettings.cinematic_intro.backdropBlur, 3),
+          }}
           onDismiss={() => setShowCinematic(false)}
           onAddToCalendar={() => {
-            if (shouldPromptAuth) setAuthModalOpen(true)
-            else if (featuredEvent.eventId) {
-              const match = events.find((e) => e.id === featuredEvent.eventId)
-              if (match?.game) handleEventClick(match, match.game)
-            }
+            window.location.href = '/event'
           }}
         />
       )}
