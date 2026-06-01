@@ -21,7 +21,7 @@ const TYPE_BASE: Record<EventType, Partial<RewardSignals>> = {
     reward_type: 'progression',
     reward_summary: 'Weekly progression and reward reset',
     reward_rarity: 'common',
-    reward_score: 35,
+    reward_score: 41,
   },
   season_start: {
     reward_type: 'content',
@@ -111,14 +111,17 @@ const KEYWORD_RULES: Array<{
   score: number
   timeLimited?: boolean
 }> = [
+  // ── XP / 부스트 ──────────────────────────────────────────────────────────
   {
-    match: /\b(double\s*xp|2xp|bonus xp|xp boost|boosted xp|experience boost)\b/i,
+    // "supercharged xp"도 포함
+    match: /\b(double\s*xp|2xp|bonus xp|xp boost|boosted xp|experience boost|supercharged xp)\b/i,
     type: 'xp_boost',
     summary: 'Boosted XP gains',
     rarity: 'limited',
     score: 92,
     timeLimited: true,
   },
+  // ── 코스메틱 ─────────────────────────────────────────────────────────────
   {
     match: /\b(skin|outfit|cosmetic|style|emote|spray|wrap|mount|pet)\b/i,
     type: 'skin',
@@ -127,14 +130,17 @@ const KEYWORD_RULES: Array<{
     score: 86,
     timeLimited: true,
   },
+  // ── 통화 / 리소스 ─────────────────────────────────────────────────────────
   {
-    match: /\b(primogem|v-?bucks|coins?|currency|tokens?|stardust|candy|gems?|gold)\b/i,
+    // rivalry credits, star bits 등 게임 내 크레딧 류 포함
+    match: /\b(primogem|v-?bucks|coins?|currency|tokens?|stardust|candy|gems?|gold|credits?|rivalry credits?)\b/i,
     type: 'currency',
     summary: 'Currency or resource reward',
     rarity: 'limited',
     score: 82,
     timeLimited: true,
   },
+  // ── 로그인 보너스 ─────────────────────────────────────────────────────────
   {
     match: /\b(login bonus|daily login|check[-\s]?in reward|sign[-\s]?in bonus)\b/i,
     type: 'login_bonus',
@@ -143,6 +149,7 @@ const KEYWORD_RULES: Array<{
     score: 84,
     timeLimited: true,
   },
+  // ── 배너 / 픽업 ──────────────────────────────────────────────────────────
   {
     match: /\b(banner|character banner|wish|pull|limited character|featured character)\b/i,
     type: 'banner',
@@ -151,23 +158,46 @@ const KEYWORD_RULES: Array<{
     score: 88,
     timeLimited: true,
   },
+  // ── 패스 / 배틀패스 진행 ─────────────────────────────────────────────────
   {
-    match: /\b(raid|drop|loot|chest|boss|dungeon|mythic\+|lockout)\b/i,
+    match: /\b(battle\s*pass|go\s*pass|season\s*pass|reward\s*pass|pass\s*tier)\b/i,
+    type: 'progression',
+    summary: 'Pass or reward-track progression',
+    rarity: 'limited',
+    score: 76,
+    timeLimited: true,
+  },
+  // ── 레이드 / 던전 (진짜 레이드 드롭만) ───────────────────────────────────
+  {
+    // "loot" 단독은 제외 — raid/boss/dungeon/chest/mythic+ 처럼 명확한 PvE 문맥만
+    match: /\b(raid(?!\s*hour)(?!\s*battle)|chest|boss(?!\s*pass)|dungeon|mythic\+|lockout)\b/i,
     type: 'raid_drop',
-    summary: 'Loot, drop, or raid reward window',
+    summary: 'Raid or dungeon loot window',
     rarity: 'common',
     score: 70,
   },
+  // ── Raid Hour (Pokémon GO 등) — tournament_prize가 아닌 live_event 계열 ──
   {
-    match: /\b(tournament|cup|prize|drops?|twitch drops?|reward track)\b/i,
+    match: /\b(raid\s*hour|raid\s*day|raid\s*weekend)\b/i,
+    type: 'raid_drop',
+    summary: 'Raid hour — bonus raid appearance window',
+    rarity: 'limited',
+    score: 74,
+    timeLimited: true,
+  },
+  // ── 토너먼트 / Twitch 드롭 (진짜 경쟁·시청 보상) ───────────────────────
+  {
+    // "drops" 단독·"drop in/drop by" 제외 → twitch drops / viewer drops / tournament/cup/prize 만
+    match: /\b(tournament|cup|prize|twitch\s*drops?|viewer\s*drops?|reward\s*track|fncs|esports|cash\s*priz(?:e|ing))\b/i,
     type: 'tournament_prize',
-    summary: 'Competitive reward or drops',
+    summary: 'Competitive reward or viewing drops',
     rarity: 'limited',
     score: 78,
     timeLimited: true,
   },
+  // ── 한정 시간 아이템 (bare "ends"·"end" 제외 — "ending soon"·"last chance"만) ──
   {
-    match: /\b(limited|exclusive|last chance|ends?|ending soon|time[-\s]?limited)\b/i,
+    match: /\b(limited|exclusive|last\s*chance|ending\s*soon|time[-\s]?limited)\b/i,
     type: 'item',
     summary: 'Time-limited reward window',
     rarity: 'time_limited',
@@ -237,12 +267,16 @@ export function inferRewardSignals(
 
 export function getRewardSignals(event: GameEvent, game?: Game | null): RewardSignals {
   const inferred = inferRewardSignals(event, game ?? event.game)
+
+  // 수동 저장 필드가 의미있는 값을 갖는 경우에만 override
+  // reward_score=0 / reward_type=null 인 "빈 행"은 inferred를 그대로 사용
   const hasManualReward =
-    Boolean(event.reward_type) ||
+    (Boolean(event.reward_type) && event.reward_type !== 'none') ||
     Boolean(event.reward_summary) ||
-    Boolean(event.reward_rarity) ||
+    (Boolean(event.reward_rarity) && event.reward_rarity !== 'common') ||
     Boolean(event.source_confidence) ||
-    event.is_time_limited_reward === true
+    event.is_time_limited_reward === true ||
+    (typeof event.reward_score === 'number' && event.reward_score > 0)
 
   if (!hasManualReward) return inferred
 
@@ -251,7 +285,11 @@ export function getRewardSignals(event: GameEvent, game?: Game | null): RewardSi
     reward_type: event.reward_type ?? inferred.reward_type,
     reward_summary: event.reward_summary ?? inferred.reward_summary,
     reward_rarity: event.reward_rarity ?? inferred.reward_rarity,
-    reward_score: event.reward_score ?? inferred.reward_score,
+    // 저장된 score가 0이면 inferred 점수 사용 (크롤러 기본값 0 문제 방지)
+    reward_score:
+      typeof event.reward_score === 'number' && event.reward_score > 0
+        ? event.reward_score
+        : inferred.reward_score,
     is_time_limited_reward: event.is_time_limited_reward ?? inferred.is_time_limited_reward,
     source_confidence: event.source_confidence ?? inferred.source_confidence,
   }
