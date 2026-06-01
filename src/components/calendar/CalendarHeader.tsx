@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, Search } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Menu, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -93,6 +93,9 @@ export function CalendarHeader({
           <Button variant="ghost" size="sm" asChild>
             <Link href="/new-releases" data-testid="new-releases-link">New Releases</Link>
           </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/about" data-testid="about-link">About</Link>
+          </Button>
           {shouldShowSignIn ? (
             <Button data-testid="signin-button" size="sm" className="shrink-0" onClick={onSignIn}>
               Sign In
@@ -148,6 +151,11 @@ export function CalendarHeader({
           <Button data-testid="mobile-search-button" variant="ghost" size="icon" className="h-9 w-9" onClick={openSearch}>
             <Search className="h-4 w-4" />
             <span className="sr-only">Search</span>
+          </Button>
+          <Button data-testid="mobile-about-link" variant="ghost" size="icon" className="h-9 w-9" asChild>
+            <Link href="/about" aria-label="About GamerClock">
+              <Info className="h-4 w-4" />
+            </Link>
           </Button>
           <Button data-testid="mobile-new-link" variant="ghost" size="sm" className="h-9 px-1.5 text-[11px] font-bold text-primary" asChild>
             <Link href="/new-releases">New</Link>

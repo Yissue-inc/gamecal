@@ -184,6 +184,9 @@ export function GameSidebar({
         <Button variant="ghost" className="w-full text-sm text-zinc-400" asChild>
           <Link href="/profile" data-testid="profile-link">Profile & Badges</Link>
         </Button>
+        <Button variant="ghost" className="w-full text-sm text-zinc-400" asChild>
+          <Link href="/about" data-testid={mobile ? 'mobile-about-menu-link' : 'about-menu-link'}>About GamerClock</Link>
+        </Button>
       </div>
       <DigestSubscribe />
     </Root>
