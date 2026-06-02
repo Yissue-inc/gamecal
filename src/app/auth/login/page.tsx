@@ -16,7 +16,7 @@ function LoginContent() {
       </Link>
       {error && (
         <div className="mb-4 w-full max-w-md rounded-lg border border-red-800/60 bg-red-950/30 px-4 py-3 text-sm text-red-300">
-          로그인 중 오류가 발생했습니다. 다시 시도해주세요.
+          Sign-in failed. Please try again.
         </div>
       )}
       <div data-testid="auth-modal" className="w-full max-w-md rounded-lg border border-zinc-800 bg-[#1a1a1a] p-8">

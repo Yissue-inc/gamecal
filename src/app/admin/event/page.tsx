@@ -133,10 +133,10 @@ export default function AdminEventPage() {
       if (res.ok) {
         setEntries(data.entries ?? [])
       } else {
-        toast.error(data.error ?? '데이터 로드 실패')
+        toast.error(data.error ?? 'Failed to load data')
       }
     } catch {
-      toast.error('네트워크 오류')
+      toast.error('Network error')
     } finally {
       setLoading(false)
     }
@@ -148,40 +148,40 @@ export default function AdminEventPage() {
 
   const handleDraw = () => {
     if (entries.length === 0) {
-      toast.error('응모자가 없습니다')
+      toast.error('No entries yet')
       return
     }
     const drawn = pickWinners(entries, 5)
     setWinners(drawn)
     setShowConfetti(true)
-    toast.success(`🎲 ${drawn.length}명 추첨 완료!`)
+    toast.success(`🎲 ${drawn.length} winners selected!`)
     setTimeout(() => setShowConfetti(false), 4000)
   }
 
   const handleCsvDownload = () => {
     if (entries.length === 0) {
-      toast.error('다운로드할 데이터가 없습니다')
+      toast.error('No data to download')
       return
     }
     downloadCsv(entries)
-    toast.success('CSV 다운로드 완료')
+    toast.success('CSV downloaded')
   }
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">이벤트 응모 관리</h1>
+          <h1 className="text-2xl font-bold text-white">Event Entry Management</h1>
           <p className="text-sm text-zinc-400">
-            {EVENT_ID} · 총 {entries.length}명 응모
+            {EVENT_ID} · {entries.length} entries
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={loadEntries} disabled={loading} className="border-zinc-700">
-            {loading ? '로딩중…' : '새로고침'}
+            {loading ? 'Loading…' : 'Refresh'}
           </Button>
           <Button variant="outline" size="sm" onClick={handleCsvDownload} className="border-zinc-700">
-            CSV 다운로드
+            Download CSV
           </Button>
           <Button
             size="sm"
@@ -189,7 +189,7 @@ export default function AdminEventPage() {
             disabled={entries.length === 0}
             className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
           >
-            추첨 실행 🎲
+            Draw Winners 🎲
           </Button>
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function AdminEventPage() {
       {winners.length > 0 && (
         <div className="relative overflow-hidden rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-6">
           <ConfettiEffect active={showConfetti} />
-          <h2 className="mb-4 text-lg font-bold text-yellow-300">🏆 추첨 당첨자 ({winners.length}명)</h2>
+          <h2 className="mb-4 text-lg font-bold text-yellow-300">🏆 Winners ({winners.length})</h2>
           <div className="space-y-2">
             {winners.map((w, i) => (
               <div
@@ -231,7 +231,7 @@ export default function AdminEventPage() {
             className="mt-4 border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/10"
             onClick={() => setWinners([])}
           >
-            결과 닫기
+            Close Results
           </Button>
         </div>
       )}
@@ -239,7 +239,7 @@ export default function AdminEventPage() {
       {/* Entries table */}
       <Card className="border-zinc-800 bg-zinc-900">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">전체 응모자 목록</CardTitle>
+          <CardTitle className="text-base text-white">All Entries</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -247,17 +247,17 @@ export default function AdminEventPage() {
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
             </div>
           ) : entries.length === 0 ? (
-            <p className="py-12 text-center text-sm text-zinc-500">응모자가 없습니다</p>
+            <p className="py-12 text-center text-sm text-zinc-500">No entries yet</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-800 bg-zinc-950/50">
-                    <th className="px-4 py-3 text-left font-medium text-zinc-400">이메일</th>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-400">플랫폼</th>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-400">포스팅 URL</th>
+                    <th className="px-4 py-3 text-left font-medium text-zinc-400">Email</th>
+                    <th className="px-4 py-3 text-left font-medium text-zinc-400">Platform</th>
+                    <th className="px-4 py-3 text-left font-medium text-zinc-400">Post URL</th>
                     <th className="px-4 py-3 text-right font-medium text-zinc-400">GP</th>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-400">응모 일시</th>
+                    <th className="px-4 py-3 text-left font-medium text-zinc-400">Entered At</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -283,7 +283,7 @@ export default function AdminEventPage() {
                         {entry.score_at_entry}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-zinc-400">
-                        {new Date(entry.entered_at).toLocaleString('ko-KR')}
+                        {new Date(entry.entered_at).toLocaleString('en-US')}
                       </td>
                     </tr>
                   ))}

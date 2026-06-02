@@ -51,7 +51,7 @@
       <div class="text-center mb-6">
         <div class="text-3xl mb-2">🎮</div>
         <h1 class="text-xl font-bold text-white">GAMECAL Admin Setup</h1>
-        <p class="text-gray-400 text-sm mt-1">로컬에만 저장됩니다 (localStorage)</p>
+        <p class="text-gray-400 text-sm mt-1">Stored locally only (localStorage)</p>
       </div>
       <div class="space-y-4">
         <div>
@@ -61,18 +61,18 @@
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">
-            Service Role Key <span class="text-red-400">(⚠️ 로컬 전용 — 절대 공유 금지)</span>
+            Service Role Key <span class="text-red-400">(⚠️ local only — never share)</span>
           </label>
           <input x-model="cfg.serviceKey" type="password" placeholder="eyJhbGci..."
             class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
         </div>
         <div>
-          <label class="block text-xs text-gray-400 mb-1">Admin Secret (크롤러 실행용)</label>
+          <label class="block text-xs text-gray-400 mb-1">Admin Secret (for crawler runs)</label>
           <input x-model="cfg.adminSecret" type="password" placeholder="your-admin-secret"
             class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
         </div>
         <div>
-          <label class="block text-xs text-gray-400 mb-1">사이트 URL (크롤러 API 호출용)</label>
+          <label class="block text-xs text-gray-400 mb-1">Site URL (for crawler API calls)</label>
           <input x-model="cfg.siteUrl" type="text" placeholder="https://gamecal.vercel.app"
             class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
         </div>
@@ -81,7 +81,7 @@
           Connect & Enter Admin
         </button>
       </div>
-      <p class="text-center text-xs text-gray-600 mt-4">설정은 브라우저 localStorage에 저장됩니다</p>
+      <p class="text-center text-xs text-gray-600 mt-4">Settings are stored in browser localStorage</p>
     </div>
   </div>
 
@@ -109,7 +109,7 @@
           </button>
         </template>
       </nav>
-      <button @click="resetConfig()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">⚙ 재설정</button>
+      <button @click="resetConfig()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">⚙ Reset</button>
     </header>
 
     <!-- LOADING BAR -->
@@ -133,7 +133,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Game Breakdown -->
         <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 class="text-sm font-semibold mb-4 text-gray-300">게임별 이벤트 수</h3>
+          <h3 class="text-sm font-semibold mb-4 text-gray-300">Events by Game</h3>
           <div class="space-y-3">
             <template x-for="g in gameStats" :key="g.name">
               <div>
@@ -142,7 +142,7 @@
                     <span class="w-2.5 h-2.5 rounded-full inline-block" :style="`background:${g.color}`"></span>
                     <span x-text="g.name"></span>
                   </span>
-                  <span class="text-gray-400" x-text="g.count + '개'"></span>
+                  <span class="text-gray-400" x-text="g.count + ' events'"></span>
                 </div>
                 <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                   <div class="h-full rounded-full transition-all"
@@ -155,7 +155,7 @@
 
         <!-- Crawl Status -->
         <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 class="text-sm font-semibold mb-4 text-gray-300">크롤링 현황</h3>
+          <h3 class="text-sm font-semibold mb-4 text-gray-300">Crawl Status</h3>
           <div class="space-y-2">
             <template x-for="log in crawlStatus" :key="log.game">
               <div class="flex items-center justify-between text-xs py-1.5 border-b border-gray-800">
@@ -167,7 +167,7 @@
                 <span class="text-gray-500" x-text="log.ago"></span>
               </div>
             </template>
-            <p x-show="crawlStatus.length === 0" class="text-xs text-gray-600 py-2">크롤 기록 없음</p>
+            <p x-show="crawlStatus.length === 0" class="text-xs text-gray-600 py-2">No crawl history</p>
           </div>
         </div>
       </div>
@@ -179,7 +179,7 @@
       <!-- Filter Sidebar -->
       <aside class="w-48 bg-gray-900 border-r border-gray-800 p-4 space-y-4 flex-shrink-0 overflow-y-auto">
         <div>
-          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">게임</p>
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Game</p>
           <div class="space-y-1">
             <label class="flex items-center gap-2 text-xs cursor-pointer hover:text-white">
               <input type="radio" x-model="evFilter.game" value="" class="accent-indigo-500"> All
@@ -194,7 +194,7 @@
           </div>
         </div>
         <div>
-          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">타입</p>
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Type</p>
           <select x-model="evFilter.type" @change="loadEvents()"
             class="w-full bg-gray-800 border border-gray-700 rounded text-xs px-2 py-1.5 focus:outline-none">
             <option value="">All Types</option>
@@ -204,7 +204,7 @@
           </select>
         </div>
         <div>
-          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">상태</p>
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Status</p>
           <div class="space-y-1">
             <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="radio" x-model="evFilter.status" value="" class="accent-indigo-500"> All</label>
             <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="radio" x-model="evFilter.status" value="published" class="accent-indigo-500"> Published</label>
@@ -213,7 +213,7 @@
         </div>
         <button @click="evFilter = {game:'',type:'',status:'',search:''}; loadEvents()"
           class="w-full text-xs text-gray-500 hover:text-white py-1 border border-gray-700 rounded hover:border-gray-500 transition-colors">
-          필터 초기화
+          Reset Filters
         </button>
       </aside>
 
@@ -222,9 +222,9 @@
         <!-- Toolbar -->
         <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-800 bg-gray-950">
           <input x-model="evFilter.search" @input.debounce.300ms="loadEvents()"
-            placeholder="🔍 이벤트 검색..."
+            placeholder="🔍 Search events..."
             class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-indigo-500">
-          <span class="text-xs text-gray-500" x-text="`${events.length}개`"></span>
+          <span class="text-xs text-gray-500" x-text="`${events.length} events`"></span>
           <div class="flex-1"></div>
           <button @click="openNewEvent()"
             class="bg-indigo-600 hover:bg-indigo-500 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5">
@@ -237,12 +237,12 @@
           <table class="w-full text-sm border-collapse">
             <thead class="sticky top-0 bg-gray-900 z-10">
               <tr class="text-xs text-gray-500 uppercase">
-                <th class="text-left px-4 py-2.5 font-medium">게임</th>
-                <th class="text-left px-4 py-2.5 font-medium">제목</th>
-                <th class="text-left px-4 py-2.5 font-medium">타입</th>
-                <th class="text-left px-4 py-2.5 font-medium">시작</th>
-                <th class="text-left px-4 py-2.5 font-medium">종료</th>
-                <th class="text-left px-4 py-2.5 font-medium">상태</th>
+                <th class="text-left px-4 py-2.5 font-medium">Game</th>
+                <th class="text-left px-4 py-2.5 font-medium">Title</th>
+                <th class="text-left px-4 py-2.5 font-medium">Type</th>
+                <th class="text-left px-4 py-2.5 font-medium">Start</th>
+                <th class="text-left px-4 py-2.5 font-medium">End</th>
+                <th class="text-left px-4 py-2.5 font-medium">Status</th>
                 <th class="px-4 py-2.5"></th>
               </tr>
             </thead>
@@ -282,7 +282,7 @@
                 </tr>
               </template>
               <tr x-show="events.length === 0 && !loading">
-                <td colspan="7" class="text-center text-gray-600 text-sm py-16">이벤트가 없습니다</td>
+                <td colspan="7" class="text-center text-gray-600 text-sm py-16">No events</td>
               </tr>
             </tbody>
           </table>
@@ -293,17 +293,17 @@
       <aside class="w-96 bg-gray-900 border-l border-gray-800 flex-shrink-0 flex flex-col overflow-hidden edit-panel"
         :class="showEditPanel ? 'open' : 'closed'">
         <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-800">
-          <h3 class="font-semibold text-sm" x-text="editingEvent?.id ? '이벤트 편집' : '새 이벤트'"></h3>
+          <h3 class="font-semibold text-sm" x-text="editingEvent?.id ? 'Edit Event' : 'New Event'"></h3>
           <button @click="showEditPanel = false; editingEvent = null" class="text-gray-500 hover:text-white text-lg leading-none">✕</button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-5 space-y-4">
           <!-- Game -->
           <div>
-            <label class="block text-xs text-gray-400 mb-1">게임 *</label>
+            <label class="block text-xs text-gray-400 mb-1">Game *</label>
             <select x-model="editForm.game_id"
               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-              <option value="">선택...</option>
+              <option value="">Select...</option>
               <template x-for="g in games" :key="g.id">
                 <option :value="g.id" x-text="g.name"></option>
               </template>
@@ -311,16 +311,16 @@
           </div>
           <!-- Title -->
           <div>
-            <label class="block text-xs text-gray-400 mb-1">제목 *</label>
+            <label class="block text-xs text-gray-400 mb-1">Title *</label>
             <input x-model="editForm.title" type="text"
               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
           </div>
           <!-- Event Type -->
           <div>
-            <label class="block text-xs text-gray-400 mb-1">이벤트 타입 *</label>
+            <label class="block text-xs text-gray-400 mb-1">Event Type *</label>
             <select x-model="editForm.event_type"
               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-              <option value="">선택...</option>
+              <option value="">Select...</option>
               <template x-for="[val, label] in Object.entries(eventTypeLabels)" :key="val">
                 <option :value="val" x-text="label"></option>
               </template>
@@ -328,7 +328,7 @@
           </div>
           <!-- Importance -->
           <div>
-            <label class="block text-xs text-gray-400 mb-2">중요도</label>
+            <label class="block text-xs text-gray-400 mb-2">Importance</label>
             <div class="flex gap-2">
               <template x-for="imp in ['critical','high','normal','low']" :key="imp">
                 <label :class="editForm.importance === imp
@@ -343,25 +343,25 @@
           </div>
           <!-- Start -->
           <div>
-            <label class="block text-xs text-gray-400 mb-1">시작 (UTC) *</label>
+            <label class="block text-xs text-gray-400 mb-1">Start (UTC) *</label>
             <input x-model="editForm.start_at" type="datetime-local"
               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
           </div>
           <!-- End -->
           <div>
-            <label class="block text-xs text-gray-400 mb-1">종료 (UTC)</label>
+            <label class="block text-xs text-gray-400 mb-1">End (UTC)</label>
             <input x-model="editForm.end_at" type="datetime-local"
               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
           </div>
           <!-- Description -->
           <div>
-            <label class="block text-xs text-gray-400 mb-1">설명</label>
+            <label class="block text-xs text-gray-400 mb-1">Description</label>
             <textarea x-model="editForm.description" rows="3"
               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 resize-none"></textarea>
           </div>
           <!-- Source URL -->
           <div>
-            <label class="block text-xs text-gray-400 mb-1">출처 URL</label>
+            <label class="block text-xs text-gray-400 mb-1">Source URL</label>
             <input x-model="editForm.source_url" type="url" placeholder="https://..."
               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
           </div>
@@ -381,7 +381,7 @@
         <div class="border-t border-gray-800 p-4 flex gap-2">
           <button @click="saveEvent()" :disabled="saving"
             class="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 rounded-lg py-2 text-sm font-medium transition-colors">
-            <span x-text="saving ? '저장 중...' : '저장'"></span>
+            <span x-text="saving ? 'Saving...' : 'Save'"></span>
           </button>
           <button x-show="editingEvent?.id" @click="askDelete(editingEvent)"
             class="px-3 py-2 text-sm rounded-lg bg-gray-800 hover:bg-red-900/50 hover:text-red-400 transition-colors">✕</button>
@@ -392,10 +392,10 @@
     <!-- ── TAB: GAMES ──────────────────────────────────────────── -->
     <div x-show="currentTab === 'games'" class="flex-1 p-6">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold">게임 관리</h2>
+        <h2 class="text-lg font-bold">Game Management</h2>
         <button @click="openNewGame()"
           class="bg-indigo-600 hover:bg-indigo-500 text-sm px-4 py-2 rounded-lg font-medium transition-colors">
-          + 게임 추가
+          + Add Game
         </button>
       </div>
 
@@ -422,17 +422,17 @@
             </div>
             <div class="flex gap-2 pt-3 border-t border-gray-800">
               <div class="flex items-center gap-1.5">
-                <label class="text-xs text-gray-500">컬러:</label>
+                <label class="text-xs text-gray-500">Color:</label>
                 <input type="color" :value="g.brand_color" @change="updateGameColor(g, $event.target.value)"
                   class="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0">
               </div>
               <div class="flex-1"></div>
               <button @click="toggleGameActive(g)"
                 class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors"
-                x-text="g.is_active ? '비활성화' : '활성화'">
+                x-text="g.is_active ? 'Disable' : 'Enable'">
               </button>
               <button @click="openEditGame(g)"
-                class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors">편집</button>
+                class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors">Edit</button>
             </div>
           </div>
         </template>
@@ -441,20 +441,20 @@
       <!-- Game Edit Modal -->
       <div x-show="showGameModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
         <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-96 shadow-2xl">
-          <h3 class="font-semibold mb-4" x-text="gameForm.id ? '게임 편집' : '게임 추가'"></h3>
+          <h3 class="font-semibold mb-4" x-text="gameForm.id ? 'Edit Game' : 'Add Game'"></h3>
           <div class="space-y-3">
             <div>
-              <label class="block text-xs text-gray-400 mb-1">Slug (영문, 하이픈)</label>
+              <label class="block text-xs text-gray-400 mb-1">Slug (English, hyphenated)</label>
               <input x-model="gameForm.slug" :disabled="!!gameForm.id" type="text" placeholder="fortnite"
                 class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50">
             </div>
             <div>
-              <label class="block text-xs text-gray-400 mb-1">게임 이름</label>
+              <label class="block text-xs text-gray-400 mb-1">Game Name</label>
               <input x-model="gameForm.name" type="text"
                 class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
             </div>
             <div>
-              <label class="block text-xs text-gray-400 mb-1">브랜드 컬러</label>
+              <label class="block text-xs text-gray-400 mb-1">Brand Color</label>
               <div class="flex gap-2 items-center">
                 <input type="color" x-model="gameForm.brand_color"
                   class="w-10 h-9 rounded cursor-pointer bg-transparent border-gray-700 border rounded-lg">
@@ -463,7 +463,7 @@
               </div>
             </div>
             <div>
-              <label class="block text-xs text-gray-400 mb-2">플랫폼</label>
+              <label class="block text-xs text-gray-400 mb-2">Platforms</label>
               <div class="flex flex-wrap gap-2">
                 <template x-for="p in ['PC','PS5','Xbox','Mobile','Switch']" :key="p">
                   <label :class="(gameForm.platform||[]).includes(p) ? 'bg-indigo-600 border-indigo-500' : 'bg-gray-800 border-gray-700'"
@@ -478,8 +478,8 @@
             </div>
           </div>
           <div class="flex gap-2 mt-5">
-            <button @click="showGameModal = false" class="flex-1 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700">취소</button>
-            <button @click="saveGame()" class="flex-1 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium">저장</button>
+            <button @click="showGameModal = false" class="flex-1 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700">Cancel</button>
+            <button @click="saveGame()" class="flex-1 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium">Save</button>
           </div>
         </div>
       </div>
@@ -490,11 +490,11 @@
       <div class="flex items-center justify-between mb-6">
         <div>
           <h2 class="text-lg font-bold">New Releases</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Featured 최대 3개</p>
+          <p class="text-xs text-gray-500 mt-0.5">Up to 3 featured items</p>
         </div>
         <button @click="openNewRelease()"
           class="bg-indigo-600 hover:bg-indigo-500 text-sm px-4 py-2 rounded-lg font-medium transition-colors">
-          + 추가
+          + Add
         </button>
       </div>
 
@@ -516,51 +516,51 @@
             </div>
             <!-- D-Day -->
             <p class="text-xs font-mono" :class="dday(r.release_date) > 0 ? 'text-indigo-400' : 'text-gray-600'"
-               x-text="dday(r.release_date) > 0 ? `D-${dday(r.release_date)}` : '출시됨'">
+               x-text="dday(r.release_date) > 0 ? `D-${dday(r.release_date)}` : 'Released'">
             </p>
             <div class="flex gap-2 mt-3 pt-3 border-t border-gray-800">
               <button @click="toggleFeatured(r)"
                 :class="r.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-500 hover:text-yellow-400'"
-                class="text-xs transition-colors" x-text="r.is_featured ? '⭐ Featured' : '☆ Featured 설정'">
+                class="text-xs transition-colors" x-text="r.is_featured ? '⭐ Featured' : '☆ Set Featured'">
               </button>
               <div class="flex-1"></div>
-              <button @click="openEditRelease(r)" class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400">편집</button>
+              <button @click="openEditRelease(r)" class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400">Edit</button>
               <button @click="askDeleteRelease(r)" class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-red-900/50 hover:text-red-400 text-gray-600">✕</button>
             </div>
           </div>
         </template>
-        <p x-show="releases.length === 0 && !loading" class="text-gray-600 text-sm col-span-3 py-16 text-center">릴리즈가 없습니다</p>
+        <p x-show="releases.length === 0 && !loading" class="text-gray-600 text-sm col-span-3 py-16 text-center">No releases</p>
       </div>
 
       <!-- Release Edit Modal -->
       <div x-show="showReleaseModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
         <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-96 shadow-2xl">
-          <h3 class="font-semibold mb-4" x-text="releaseForm.id ? '릴리즈 편집' : '릴리즈 추가'"></h3>
+          <h3 class="font-semibold mb-4" x-text="releaseForm.id ? 'Edit Release' : 'Add Release'"></h3>
           <div class="space-y-3">
             <div>
-              <label class="block text-xs text-gray-400 mb-1">게임 제목 *</label>
+              <label class="block text-xs text-gray-400 mb-1">Game Title *</label>
               <input x-model="releaseForm.title" type="text"
                 class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs text-gray-400 mb-1">장르</label>
+                <label class="block text-xs text-gray-400 mb-1">Genre</label>
                 <input x-model="releaseForm.genre" type="text"
                   class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
               </div>
               <div>
-                <label class="block text-xs text-gray-400 mb-1">개발사</label>
+                <label class="block text-xs text-gray-400 mb-1">Developer</label>
                 <input x-model="releaseForm.developer" type="text"
                   class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
               </div>
             </div>
             <div>
-              <label class="block text-xs text-gray-400 mb-1">출시일 *</label>
+              <label class="block text-xs text-gray-400 mb-1">Release Date *</label>
               <input x-model="releaseForm.release_date" type="date"
                 class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
             </div>
             <div>
-              <label class="block text-xs text-gray-400 mb-2">플랫폼</label>
+              <label class="block text-xs text-gray-400 mb-2">Platforms</label>
               <div class="flex flex-wrap gap-2">
                 <template x-for="p in ['PC','PS5','Xbox','Mobile','Switch']" :key="p">
                   <label :class="(releaseForm.platform||[]).includes(p) ? 'bg-indigo-600 border-indigo-500' : 'bg-gray-800 border-gray-700'"
@@ -584,8 +584,8 @@
             </div>
           </div>
           <div class="flex gap-2 mt-5">
-            <button @click="showReleaseModal = false" class="flex-1 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700">취소</button>
-            <button @click="saveRelease()" class="flex-1 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium">저장</button>
+            <button @click="showReleaseModal = false" class="flex-1 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700">Cancel</button>
+            <button @click="saveRelease()" class="flex-1 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium">Save</button>
           </div>
         </div>
       </div>
@@ -595,12 +595,12 @@
     <div x-show="currentTab === 'crawlers'" class="flex-1 p-6">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-lg font-bold">크롤러 관리</h2>
-          <p class="text-xs text-gray-500 mt-0.5">사이트 URL: <span x-text="cfg.siteUrl || '미설정'"></span></p>
+          <h2 class="text-lg font-bold">Crawler Management</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Site URL: <span x-text="cfg.siteUrl || 'Not set'"></span></p>
         </div>
         <button @click="runAllCrawlers()" :disabled="crawling"
           class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 text-sm px-4 py-2 rounded-lg font-medium transition-colors">
-          <span x-text="crawling ? '실행 중...' : '전체 실행'"></span>
+          <span x-text="crawling ? 'Running...' : 'Run All'"></span>
         </button>
       </div>
 
@@ -608,10 +608,10 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-gray-500 uppercase border-b border-gray-800">
-              <th class="text-left px-5 py-3 font-medium">게임</th>
-              <th class="text-left px-5 py-3 font-medium">데이터 소스</th>
-              <th class="text-left px-5 py-3 font-medium">마지막 실행</th>
-              <th class="text-left px-5 py-3 font-medium">결과</th>
+              <th class="text-left px-5 py-3 font-medium">Game</th>
+              <th class="text-left px-5 py-3 font-medium">Data Source</th>
+              <th class="text-left px-5 py-3 font-medium">Last Run</th>
+              <th class="text-left px-5 py-3 font-medium">Result</th>
               <th class="px-5 py-3"></th>
             </tr>
           </thead>
@@ -635,7 +635,7 @@
                 <td class="px-5 py-3 text-right">
                   <button @click="runCrawler(g.slug)" :disabled="crawlRunning[g.slug]"
                     class="text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-indigo-600 disabled:opacity-50 text-gray-300 hover:text-white transition-colors">
-                    <span x-text="crawlRunning[g.slug] ? '⟳' : '▶ 실행'"></span>
+                    <span x-text="crawlRunning[g.slug] ? '⟳' : '▶ Run'"></span>
                   </button>
                 </td>
               </tr>
@@ -646,19 +646,19 @@
 
       <!-- Recent Crawl Logs -->
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h3 class="text-sm font-semibold mb-3 text-gray-300">최근 크롤 로그</h3>
+        <h3 class="text-sm font-semibold mb-3 text-gray-300">Recent Crawl Logs</h3>
         <div class="space-y-1.5 max-h-64 overflow-y-auto">
           <template x-for="log in crawlLogs" :key="log.id">
             <div class="flex items-center gap-3 text-xs py-1 border-b border-gray-800/50">
               <span :class="log.status === 'success' ? 'text-emerald-400' : log.status === 'error' ? 'text-red-400' : 'text-yellow-400'"
                 x-text="log.status === 'success' ? '✓' : log.status === 'running' ? '⟳' : '✗'"></span>
               <span class="text-gray-400 w-28 flex-shrink-0" x-text="gameNameById(log.game_id)"></span>
-              <span class="text-gray-600" x-text="`+${log.events_added} 추가`"></span>
+              <span class="text-gray-600" x-text="`+${log.events_added} added`"></span>
               <span class="text-gray-600 ml-auto" x-text="timeAgo(log.created_at)"></span>
               <span x-show="log.error" class="text-red-400 truncate max-w-48" x-text="log.error"></span>
             </div>
           </template>
-          <p x-show="crawlLogs.length === 0" class="text-gray-600 text-xs py-4 text-center">크롤 기록 없음</p>
+          <p x-show="crawlLogs.length === 0" class="text-gray-600 text-xs py-4 text-center">No crawl history</p>
         </div>
       </div>
     </div>
@@ -666,16 +666,16 @@
     <!-- ── TAB: HEALTH ─────────────────────────────────────────── -->
     <div x-show="currentTab === 'health'" class="flex-1 p-6">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold">데이터 품질</h2>
+        <h2 class="text-lg font-bold">Data Quality</h2>
         <button @click="loadHealth()" class="text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors">
-          새로고침
+          Refresh
         </button>
       </div>
 
       <!-- Score -->
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold text-gray-300">전체 품질 점수</h3>
+          <h3 class="text-sm font-semibold text-gray-300">Overall Quality Score</h3>
           <span class="text-2xl font-bold" :class="healthScore >= 85 ? 'text-emerald-400' : healthScore >= 60 ? 'text-yellow-400' : 'text-red-400'"
             x-text="healthScore + '/100'"></span>
         </div>
@@ -703,7 +703,7 @@
             </div>
             <button x-show="w.count > 0" @click="filterToWarning(w.key)"
               class="text-xs text-gray-500 hover:text-white mt-2 transition-colors">
-              이벤트 보기 →
+              View Events →
             </button>
           </div>
         </template>
@@ -822,7 +822,7 @@
       },
 
       resetConfig() {
-        if (!confirm('설정을 초기화하시겠습니까?')) return
+        if (!confirm('Reset admin settings?')) return
         localStorage.removeItem('gcal_cfg')
         this.configured = false
         this.cfg = { supabaseUrl: '', serviceKey: '', adminSecret: '', siteUrl: '' }
@@ -870,10 +870,10 @@
           const expired_pub = evs.filter(e => e.is_published && e.start_at < now).length
 
           this.statCards = [
-            { label: '총 이벤트', value: total,       sub: '전체 등록됨',     subColor: 'text-gray-500' },
-            { label: '오늘 이벤트', value: today_evs, sub: '오늘 진행 중',    subColor: 'text-indigo-400' },
-            { label: '미발행',     value: unpublished, sub: 'Draft 상태',     subColor: 'text-yellow-500' },
-            { label: '만료 발행',  value: expired_pub, sub: '종료된 이벤트',  subColor: expired_pub > 0 ? 'text-red-400' : 'text-gray-500' },
+            { label: 'Total Events', value: total,       sub: 'Registered total',     subColor: 'text-gray-500' },
+            { label: 'Today's Events', value: today_evs, sub: 'Happening today',    subColor: 'text-indigo-400' },
+            { label: 'Unpublished',     value: unpublished, sub: 'Draft status',     subColor: 'text-yellow-500' },
+            { label: 'Expired Published',  value: expired_pub, sub: 'Ended events',  subColor: expired_pub > 0 ? 'text-red-400' : 'text-gray-500' },
           ]
 
           // Game breakdown
@@ -893,7 +893,7 @@
               status: l.status,
               ago: this.timeAgo(l.created_at)
             }))
-        } catch(e) { this.showToast('대시보드 로드 실패: ' + e.message, 'error') }
+        } catch(e) { this.showToast('Failed to load dashboard: ' + e.message, 'error') }
         this.loading = false
       },
 
@@ -917,7 +917,7 @@
           const { data, error } = await q
           if (error) throw error
           this.events = data || []
-        } catch(e) { this.showToast('이벤트 로드 실패: ' + e.message, 'error') }
+        } catch(e) { this.showToast('Failed to load events: ' + e.message, 'error') }
         this.loading = false
       },
 
@@ -955,7 +955,7 @@
 
       async saveEvent() {
         if (!this.editForm.game_id || !this.editForm.title || !this.editForm.event_type || !this.editForm.start_at) {
-          return this.showToast('게임, 제목, 타입, 시작일은 필수입니다', 'error')
+          return this.showToast('Game, title, type, and start date are required', 'error')
         }
         this.saving = true
         try {
@@ -979,19 +979,19 @@
           }
           if (error) throw error
 
-          this.showToast(this.editingEvent?.id ? '저장 완료 ✓' : '이벤트 추가 완료 ✓')
+          this.showToast(this.editingEvent?.id ? 'Saved ✓' : 'Event added ✓')
           this.showEditPanel = false
           this.editingEvent = null
           await this.loadEvents()
-        } catch(e) { this.showToast('저장 실패: ' + e.message, 'error') }
+        } catch(e) { this.showToast('Save failed: ' + e.message, 'error') }
         this.saving = false
       },
 
       askDelete(ev) {
         this.confirm = {
           show: true,
-          title: '이벤트 삭제',
-          message: `"${ev.title}"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+          title: 'Delete Event',
+          message: `Delete "${ev.title}"? This action cannot be undone.`,
           ok: async () => {
             this.confirm.show = false
             await this.deleteEvent(ev.id)
@@ -1001,8 +1001,8 @@
 
       async deleteEvent(id) {
         const { error } = await this.db.from('events').delete().eq('id', id)
-        if (error) return this.showToast('삭제 실패: ' + error.message, 'error')
-        this.showToast('삭제 완료')
+        if (error) return this.showToast('Delete failed: ' + error.message, 'error')
+        this.showToast('Deleted')
         this.showEditPanel = false
         this.editingEvent = null
         await this.loadEvents()
@@ -1034,7 +1034,7 @@
       },
 
       async saveGame() {
-        if (!this.gameForm.slug || !this.gameForm.name) return this.showToast('Slug와 이름은 필수입니다', 'error')
+        if (!this.gameForm.slug || !this.gameForm.name) return this.showToast('Slug and name are required', 'error')
         const payload = {
           slug: this.gameForm.slug,
           name: this.gameForm.name,
@@ -1049,17 +1049,17 @@
           const maxOrder = Math.max(0, ...this.games.map(g => g.sort_order || 0))
           ;({ error } = await this.db.from('games').insert({ ...payload, sort_order: maxOrder + 1 }))
         }
-        if (error) return this.showToast('저장 실패: ' + error.message, 'error')
-        this.showToast('게임 저장 완료 ✓')
+        if (error) return this.showToast('Save failed: ' + error.message, 'error')
+        this.showToast('Game saved ✓')
         this.showGameModal = false
         await this.loadGames()
       },
 
       async toggleGameActive(g) {
         const { error } = await this.db.from('games').update({ is_active: !g.is_active }).eq('id', g.id)
-        if (error) return this.showToast('업데이트 실패', 'error')
+        if (error) return this.showToast('Update failed', 'error')
         g.is_active = !g.is_active
-        this.showToast(g.is_active ? '게임 활성화됨' : '게임 비활성화됨')
+        this.showToast(g.is_active ? 'Game enabled' : 'Game disabled')
       },
 
       async updateGameColor(g, color) {
@@ -1094,10 +1094,10 @@
       },
 
       async saveRelease() {
-        if (!this.releaseForm.title || !this.releaseForm.release_date) return this.showToast('제목과 출시일은 필수입니다', 'error')
+        if (!this.releaseForm.title || !this.releaseForm.release_date) return this.showToast('Title and release date are required', 'error')
         if (this.releaseForm.is_featured) {
           const featuredCount = this.releases.filter(r => r.is_featured && r.id !== this.releaseForm.id).length
-          if (featuredCount >= 3) return this.showToast('Featured는 최대 3개까지 가능합니다', 'error')
+          if (featuredCount >= 3) return this.showToast('Featured is limited to 3 items', 'error')
         }
         const payload = {
           title: this.releaseForm.title,
@@ -1113,8 +1113,8 @@
         } else {
           ;({ error } = await this.db.from('new_releases').insert(payload))
         }
-        if (error) return this.showToast('저장 실패: ' + error.message, 'error')
-        this.showToast('저장 완료 ✓')
+        if (error) return this.showToast('Save failed: ' + error.message, 'error')
+        this.showToast('Saved ✓')
         this.showReleaseModal = false
         await this.loadReleases()
       },
@@ -1122,23 +1122,23 @@
       async toggleFeatured(r) {
         if (!r.is_featured) {
           const featuredCount = this.releases.filter(x => x.is_featured && x.id !== r.id).length
-          if (featuredCount >= 3) return this.showToast('Featured는 최대 3개까지 가능합니다', 'error')
+          if (featuredCount >= 3) return this.showToast('Featured is limited to 3 items', 'error')
         }
         const { error } = await this.db.from('new_releases').update({ is_featured: !r.is_featured }).eq('id', r.id)
-        if (error) return this.showToast('실패: ' + error.message, 'error')
+        if (error) return this.showToast('Failed: ' + error.message, 'error')
         r.is_featured = !r.is_featured
       },
 
       askDeleteRelease(r) {
         this.confirm = {
           show: true,
-          title: '릴리즈 삭제',
-          message: `"${r.title}"을(를) 삭제하시겠습니까?`,
+          title: 'Delete Release',
+          message: `Delete "${r.title}"?`,
           ok: async () => {
             this.confirm.show = false
             const { error } = await this.db.from('new_releases').delete().eq('id', r.id)
-            if (error) return this.showToast('삭제 실패', 'error')
-            this.showToast('삭제 완료')
+            if (error) return this.showToast('Delete failed', 'error')
+            this.showToast('Deleted')
             await this.loadReleases()
           }
         }
@@ -1154,7 +1154,7 @@
       },
 
       async runCrawler(slug) {
-        if (!this.cfg.siteUrl) return this.showToast('사이트 URL을 설정에서 입력해주세요', 'error')
+        if (!this.cfg.siteUrl) return this.showToast('Enter the site URL in settings', 'error')
         this.crawlRunning = { ...this.crawlRunning, [slug]: true }
         try {
           const res = await fetch(`${this.cfg.siteUrl}/api/admin/crawl/${slug}`, {
@@ -1165,13 +1165,13 @@
           if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`)
           this.crawlResults = {
             ...this.crawlResults,
-            [slug]: { ok: true, msg: `✓ +${body.events_added || 0} 추가` }
+            [slug]: { ok: true, msg: `✓ +${body.events_added || 0} added` }
           }
-          this.showToast(`${slug} 크롤 완료: ${body.events_added || 0}개 추가`)
+          this.showToast(`${slug} crawl completed: ${body.events_added || 0} events added`)
           await this.loadCrawlLogs()
         } catch(e) {
           this.crawlResults = { ...this.crawlResults, [slug]: { ok: false, msg: '✗ ' + e.message } }
-          this.showToast(`${slug} 크롤 실패: ${e.message}`, 'error')
+          this.showToast(`${slug} crawl failed: ${e.message}`, 'error')
         }
         this.crawlRunning = { ...this.crawlRunning, [slug]: false }
       },
@@ -1183,7 +1183,7 @@
           await new Promise(r => setTimeout(r, 2000))
         }
         this.crawling = false
-        this.showToast('전체 크롤링 완료')
+        this.showToast('All crawlers completed')
       },
 
       crawlerSource(slug) {
@@ -1206,7 +1206,7 @@
 
       lastCrawl(gameId) {
         const log = this.crawlLogs.find(l => l.game_id === gameId)
-        return log ? this.timeAgo(log.created_at) : '기록 없음'
+        return log ? this.timeAgo(log.created_at) : 'No history'
       },
 
       // ────────────────────────────────────────────────────────────
@@ -1234,11 +1234,11 @@
           ).length
 
           this.healthWarnings = [
-            { key: 'no_description', label: '설명 없음',        desc: 'description이 비어있는 이벤트',   count: noDesc,     critical: false },
-            { key: 'no_source',      label: '출처 URL 없음',     desc: 'source_url이 없는 이벤트',        count: noSource,   critical: false },
-            { key: 'no_end_date',    label: '종료일 없음',       desc: 'end_at이 없는 이벤트',            count: noEndDate,  critical: false },
-            { key: 'expired_pub',    label: '만료된 발행 이벤트', desc: '종료됐지만 Published 상태',       count: expiredPub, critical: true  },
-            { key: 'duplicates',     label: '중복 의심',         desc: '같은 게임+제목이 3일 내에 중복',  count: dupes,      critical: false },
+            { key: 'no_description', label: 'No Description',        desc: 'Events with an empty description',   count: noDesc,     critical: false },
+            { key: 'no_source',      label: 'No Source URL',     desc: 'Events without a source_url',        count: noSource,   critical: false },
+            { key: 'no_end_date',    label: 'No End Date',       desc: 'Events without end_at',            count: noEndDate,  critical: false },
+            { key: 'expired_pub',    label: 'Expired Published Events', desc: 'Ended but still published',       count: expiredPub, critical: true  },
+            { key: 'duplicates',     label: 'Possible Duplicates',         desc: 'Same game and title duplicated within 3 days',  count: dupes,      critical: false },
           ]
 
           // Score: 100 - penalty
@@ -1247,7 +1247,7 @@
             100
           )
           this.healthScore = Math.max(0, 100 - penalty)
-        } catch(e) { this.showToast('Health 로드 실패: ' + e.message, 'error') }
+        } catch(e) { this.showToast('Failed to load health: ' + e.message, 'error') }
         this.loading = false
       },
 
@@ -1292,10 +1292,10 @@
       timeAgo(iso) {
         if (!iso) return '—'
         const diff = (Date.now() - new Date(iso)) / 1000
-        if (diff < 60)   return `${Math.floor(diff)}초 전`
-        if (diff < 3600) return `${Math.floor(diff/60)}분 전`
-        if (diff < 86400) return `${Math.floor(diff/3600)}시간 전`
-        return `${Math.floor(diff/86400)}일 전`
+        if (diff < 60)   return `${Math.floor(diff)}sec ago`
+        if (diff < 3600) return `${Math.floor(diff/60)}min ago`
+        if (diff < 86400) return `${Math.floor(diff/3600)}hr ago`
+        return `${Math.floor(diff/86400)}day ago`
       },
 
       toLocalDT(d) {
