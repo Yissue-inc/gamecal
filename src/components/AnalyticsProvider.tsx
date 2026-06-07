@@ -14,7 +14,27 @@ declare global {
   interface Window {
     dataLayer?: unknown[]
     gtag?: (...args: unknown[]) => void
+    __gamerclockGA4Initialized?: boolean
   }
+}
+
+function initializeGA4() {
+  if (!gaMeasurementId || typeof window === 'undefined') return false
+
+  window.dataLayer = window.dataLayer || []
+  window.gtag =
+    window.gtag ||
+    function gtag(...args: unknown[]) {
+      window.dataLayer?.push(args)
+    }
+
+  if (!window.__gamerclockGA4Initialized) {
+    window.gtag('js', new Date())
+    window.gtag('config', gaMeasurementId, { send_page_view: false })
+    window.__gamerclockGA4Initialized = true
+  }
+
+  return true
 }
 
 function GA4PageTracker() {
@@ -22,12 +42,15 @@ function GA4PageTracker() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    if (!gaMeasurementId || typeof window === 'undefined' || typeof window.gtag !== 'function') {
+    if (!initializeGA4()) {
       return
     }
 
     const query = searchParams?.toString()
-    window.gtag('config', gaMeasurementId, {
+    const gtag = window.gtag
+    if (!gtag) return
+
+    gtag('config', gaMeasurementId, {
       page_path: query ? `${pathname}?${query}` : pathname,
       send_page_view: true,
     })
@@ -50,15 +73,6 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
             src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
             strategy="afterInteractive"
           />
-          <Script id="ga4-init" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              window.gtag = window.gtag || gtag;
-              gtag('js', new Date());
-              gtag('config', '${gaMeasurementId}', { send_page_view: false });
-            `}
-          </Script>
         </>
       )}
     </>
