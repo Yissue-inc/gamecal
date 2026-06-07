@@ -9,12 +9,16 @@ import { Button } from '@/components/ui/button'
 
 const SESSION_KEY = 'admin_secret'
 
-async function verifySecret(secret: string): Promise<boolean> {
+async function verifySecret(secret: string): Promise<{ ok: boolean; networkError?: boolean }> {
   // URL 파라미터 대신 Authorization 헤더로 전달 (로그에 노출 방지)
-  const res = await fetch('/api/admin/verify', {
-    headers: { Authorization: `Bearer ${secret}` },
-  })
-  return res.ok
+  try {
+    const res = await fetch('/api/admin/verify', {
+      headers: { Authorization: `Bearer ${secret}` },
+    })
+    return { ok: res.ok }
+  } catch {
+    return { ok: false, networkError: true }
+  }
 }
 
 function AdminGate({ children }: { children: React.ReactNode }) {
@@ -35,10 +39,12 @@ function AdminGate({ children }: { children: React.ReactNode }) {
       // URL에 secret이 있으면 세션에 저장 후 URL에서 제거
       const fromUrl = searchParams.get('secret')
       if (fromUrl) {
-        const ok = await verifySecret(fromUrl)
-        if (ok) {
+        const result = await verifySecret(fromUrl)
+        if (result.ok) {
           sessionStorage.setItem(SESSION_KEY, fromUrl)
           setAuthorized(true)
+        } else if (result.networkError) {
+          setError(true)
         }
         // URL에서 secret 제거 (히스토리/로그 노출 방지)
         const url = new URL(window.location.href)
@@ -50,9 +56,10 @@ function AdminGate({ children }: { children: React.ReactNode }) {
 
       const stored = sessionStorage.getItem(SESSION_KEY)
       if (stored) {
-        const ok = await verifySecret(stored)
-        if (ok) setAuthorized(true)
+        const result = await verifySecret(stored)
+        if (result.ok) setAuthorized(true)
         else sessionStorage.removeItem(SESSION_KEY)
+        if (result.networkError) setError(true)
       }
       setChecking(false)
     }
@@ -63,8 +70,8 @@ function AdminGate({ children }: { children: React.ReactNode }) {
     e.preventDefault()
     setSubmitting(true)
     setError(false)
-    const ok = await verifySecret(inputSecret)
-    if (ok) {
+    const result = await verifySecret(inputSecret)
+    if (result.ok) {
       sessionStorage.setItem(SESSION_KEY, inputSecret)
       setAuthorized(true)
     } else {
@@ -97,7 +104,7 @@ function AdminGate({ children }: { children: React.ReactNode }) {
                 onChange={(e) => setInputSecret(e.target.value)}
                 autoFocus
               />
-              {error && <p className="text-sm text-red-400">Invalid secret.</p>}
+              {error && <p className="text-sm text-red-400">Could not verify the admin secret. Check the local server and try again.</p>}
               <Button type="submit" className="w-full" disabled={submitting || !inputSecret}>
                 {submitting ? 'Verifying…' : 'Enter'}
               </Button>
