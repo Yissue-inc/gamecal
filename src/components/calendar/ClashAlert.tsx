@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { GameEvent } from '@/types'
 import { detectClashes } from '@/lib/clash-detector'
 import { formatShortDate } from '@/lib/calendar-dates'
+import { trackClashAlertAction } from '@/lib/posthog'
 
 interface ClashAlertProps {
   events: GameEvent[]
@@ -29,6 +30,11 @@ export function ClashAlert({ events, onEventClick }: ClashAlertProps) {
   const dateLabel = clash.date === today ? 'Today' : formatShortDate(`${clash.date}T00:00:00`)
   const games = Array.from(new Set(clash.events.map((event) => event.game?.name).filter(Boolean))).join(' · ')
   const dismissClash = () => {
+    trackClashAlertAction('dismiss', {
+      date: clash.date,
+      event_count: clash.events.length,
+      game_count: clash.gameCount,
+    })
     setDismissedToday(true)
     try {
       window.localStorage.setItem('gamerclock-dismissed-clashes', today)
@@ -54,7 +60,14 @@ export function ClashAlert({ events, onEventClick }: ClashAlertProps) {
       <div className="flex shrink-0 items-center gap-1.5">
         <button
           type="button"
-          onClick={() => onEventClick(clash.events[0])}
+          onClick={() => {
+            trackClashAlertAction('view', {
+              date: clash.date,
+              event_count: clash.events.length,
+              game_count: clash.gameCount,
+            })
+            onEventClick(clash.events[0])
+          }}
           className="rounded-md border border-amber-500/30 px-2 py-1 text-[11px] font-semibold text-amber-200 transition hover:border-amber-400/60 hover:text-amber-100"
         >
           View

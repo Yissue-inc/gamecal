@@ -11,6 +11,14 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { CinematicIntro } from '@/components/cinematic/CinematicIntro'
+import {
+  trackLaunchEventAuthClick,
+  trackLaunchEventEntryFailed,
+  trackLaunchEventEntrySubmitted,
+  trackLaunchEventHashtagCopied,
+  trackLaunchEventShared,
+  trackLaunchEventViewed,
+} from '@/lib/posthog'
 
 const EVENT_ID = 'gamecal-level-up-launch-2026'
 const EVENT_NAME = 'GamerClock Level Up Launch'
@@ -130,6 +138,7 @@ function HashtagCopyButton({ hashtag }: { hashtag: string }) {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(hashtag)
+      trackLaunchEventHashtagCopied(hashtag)
       setCopied(true)
       toast.success(`${hashtag} copied`)
       setTimeout(() => setCopied(false), 2000)
@@ -222,14 +231,24 @@ export default function EventPage() {
   const eligible = isEligible(prestige.id)
   const daysLeft = daysUntil(END_DATE)
 
+  useEffect(() => {
+    if (authLoading || statsLoading) return
+    trackLaunchEventViewed({
+      signed_in: Boolean(user && !isGuest),
+      eligible: Boolean(user && !isGuest && eligible),
+    })
+  }, [authLoading, eligible, isGuest, statsLoading, user])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!socialUrl.startsWith('https://')) {
+      trackLaunchEventEntryFailed('invalid_url', { platform, eligible, gp })
       toast.error('URL must start with https://')
       return
     }
     if (!email.trim()) {
+      trackLaunchEventEntryFailed('missing_email', { platform, eligible, gp })
       toast.error('Enter your email address')
       return
     }
@@ -243,12 +262,15 @@ export default function EventPage() {
       })
       const data = await res.json()
       if (!res.ok) {
+        trackLaunchEventEntryFailed(data.error ?? 'api_error', { platform, eligible, gp })
         toast.error(data.error ?? 'Entry failed')
         return
       }
+      trackLaunchEventEntrySubmitted({ platform, eligible, gp })
       setEntry(data.entry)
       toast.success('Entry submitted. Good luck!')
     } catch {
+      trackLaunchEventEntryFailed('network_error', { platform, eligible, gp })
       toast.error('Network error')
     } finally {
       setSubmitting(false)
@@ -264,12 +286,14 @@ export default function EventPage() {
     if (navigator.share) {
       try {
         await navigator.share({ title: EVENT_NAME, text })
+        trackLaunchEventShared('native_share')
       } catch {
         // user cancelled — ignore
       }
     } else {
       try {
         await navigator.clipboard.writeText(text)
+        trackLaunchEventShared('clipboard')
         toast.success('Link copied')
       } catch {
         toast.error('Copy failed')
@@ -299,7 +323,13 @@ export default function EventPage() {
             </div>
           </div>
           <div className="mt-6">
-            <Button size="lg" onClick={() => setAuthModalOpen(true)}>
+            <Button
+              size="lg"
+              onClick={() => {
+                trackLaunchEventAuthClick('event_page')
+                setAuthModalOpen(true)
+              }}
+            >
               Sign in →
             </Button>
           </div>
@@ -317,7 +347,10 @@ export default function EventPage() {
             featured={EVENT_INTRO_FEATURED}
             settings={EVENT_INTRO_SETTINGS}
             onDismiss={() => setEventIntroOpen(false)}
-            onAddToCalendar={() => setAuthModalOpen(true)}
+            onAddToCalendar={() => {
+              trackLaunchEventAuthClick('cinematic_intro')
+              setAuthModalOpen(true)
+            }}
           />
         )}
         <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} nextPath="/event" />

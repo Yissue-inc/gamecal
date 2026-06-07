@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
+import { trackAuthFailed, trackAuthStarted } from '@/lib/posthog'
 
 interface AuthFormProps {
   compact?: boolean
@@ -29,11 +30,13 @@ export function AuthForm({ compact = false, nextPath }: AuthFormProps) {
     setEmailLoading(true)
     setError(null)
     setMessage(null)
+    trackAuthStarted({ method: 'email', mode: isSignUp ? 'sign_up' : 'sign_in', source: nextPath })
     const fn = isSignUp ? signUpWithEmail : signInWithEmail
     const { error: err } = isSignUp
       ? await signUpWithEmail(email, password, nextPath)
       : await fn(email, password)
     if (err) {
+      trackAuthFailed({ method: 'email', mode: isSignUp ? 'sign_up' : 'sign_in', reason: err })
       setError(err)
     } else if (isSignUp) {
       setMessage('Check your email to finish creating your GamerClock account.')
@@ -45,8 +48,10 @@ export function AuthForm({ compact = false, nextPath }: AuthFormProps) {
     setOauthLoading(provider)
     setError(null)
     setMessage(null)
+    trackAuthStarted({ method: provider, mode: 'sign_in', source: nextPath })
     const { error: err } = await signInWithGoogle(nextPath)
     if (err) {
+      trackAuthFailed({ method: provider, mode: 'sign_in', reason: err })
       setError(err)
       setOauthLoading(null)
     }

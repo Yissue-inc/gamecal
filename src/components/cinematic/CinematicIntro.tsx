@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { bezier, bezierTangent, drawDragon, DRAGON_PATH } from './dragon-renderer'
-import { trackCinematicSeen } from '@/lib/posthog'
+import { trackCinematicCta, trackCinematicSeen } from '@/lib/posthog'
 import { markCinematicSeen } from '@/lib/cinematic-seen'
 import type { CinematicIntroSettings } from '@/lib/public-ui-settings'
 
@@ -223,6 +223,7 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
 
   const skipToEnd = () => {
     trackCinematicSeen(true)
+    trackCinematicCta('skip')
     setPhase({
       letterbox: true,
       atmos: true,
@@ -369,6 +370,7 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
                 className="rounded-md px-7 py-3 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5"
                 style={{ backgroundColor: accent, boxShadow: `0 0 24px ${accent}66` }}
                 onClick={() => {
+                  trackCinematicCta('enter_giveaway')
                   onAddToCalendar?.()
                   dismiss()
                 }}
@@ -379,7 +381,10 @@ export function CinematicIntro({ featured, settings, onDismiss, onAddToCalendar 
                 type="button"
                 data-testid="cinematic-view-btn"
                 className="rounded-md border border-zinc-600 px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:border-zinc-400 hover:text-white"
-                onClick={dismiss}
+                onClick={() => {
+                  trackCinematicCta('view_calendar')
+                  dismiss()
+                }}
               >
                 {settings?.secondaryCta || 'View Calendar'}
               </button>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
+import { trackNewsletterSubscribeFailed, trackNewsletterSubscribed } from '@/lib/posthog'
 
 export function DigestSubscribe() {
   const [email, setEmail] = useState('')
@@ -19,9 +20,11 @@ export function DigestSubscribe() {
         body: JSON.stringify({ email }),
       })
       if (!res.ok) throw new Error('Failed')
+      trackNewsletterSubscribed()
       toast.success('Subscribed! Weekly digest coming Monday.')
       setEmail('')
     } catch {
+      trackNewsletterSubscribeFailed()
       toast.error('Could not subscribe. Try again later.')
     } finally {
       setLoading(false)

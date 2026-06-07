@@ -3,6 +3,7 @@ import { Inter, Rajdhani } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { PreferencesProvider } from '@/hooks/usePreferences'
+import { AnalyticsProvider } from '@/components/AnalyticsProvider'
 import { PostHogProvider } from '@/components/PostHogProvider'
 import { Toaster } from '@/components/ui/sonner'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
@@ -66,15 +67,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-US" className="dark">
       <body className={`${inter.className} ${rajdhani.variable} bg-[#0f0f0f] text-white`}>
-        <PostHogProvider>
-          <AuthProvider>
-            <PreferencesProvider>
-              {children}
-              <Toaster />
-              <ServiceWorkerRegister />
-            </PreferencesProvider>
-          </AuthProvider>
-        </PostHogProvider>
+        <AnalyticsProvider>
+          <PostHogProvider>
+            <AuthProvider>
+              <PreferencesProvider>
+                {children}
+                <Toaster />
+                <ServiceWorkerRegister />
+              </PreferencesProvider>
+            </AuthProvider>
+          </PostHogProvider>
+        </AnalyticsProvider>
       </body>
     </html>
   )
