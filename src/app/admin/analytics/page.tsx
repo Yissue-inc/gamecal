@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { DailyReportTestButton } from './DailyReportTestButton'
 
 const GA4_MEASUREMENT_ID = 'G-KPBE1ZDTNZ'
 const GTM_CONTAINER_ID = 'GTM-M5L3BPDF'
@@ -94,7 +95,7 @@ const healthChecks = [
   {
     label: 'Daily report',
     value: process.env.RESEND_API_KEY ? 'Email enabled' : 'Awaiting email key',
-    detail: `Scheduled for 16:00 UTC daily to ${process.env.REPORT_RECIPIENT_EMAIL ?? 'ck@yissue.biz'}.`,
+    detail: `Scheduled for 9:00 AM PDT daily to ${process.env.REPORT_RECIPIENT_EMAIL ?? 'ck@yissue.biz'}.`,
   },
 ]
 
@@ -190,11 +191,16 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className="rounded-lg border border-zinc-800 bg-black/25 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Schedule</div>
-            <div className="mt-2 font-semibold text-white">Daily at 16:00 UTC</div>
+            <div className="mt-2 font-semibold text-white">Daily at 9:00 AM PDT</div>
+            <div className="mt-1 text-xs text-zinc-500">Cron: 16:00 UTC</div>
           </div>
           <div className="rounded-lg border border-zinc-800 bg-black/25 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Manual trigger</div>
             <div className="mt-2 font-mono text-xs text-zinc-300">/api/cron/daily-report</div>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-black/25 p-4 md:col-span-3">
+            <div className="mb-3 text-xs uppercase tracking-[0.18em] text-zinc-500">Test delivery</div>
+            <DailyReportTestButton />
           </div>
         </CardContent>
       </Card>
