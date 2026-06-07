@@ -91,6 +91,11 @@ const healthChecks = [
     value: 'Single tracking layer',
     detail: 'trackEvent sends to PostHog, Vercel custom events, and GA4.',
   },
+  {
+    label: 'Daily report',
+    value: process.env.RESEND_API_KEY ? 'Email enabled' : 'Awaiting email key',
+    detail: `Scheduled for 16:00 UTC daily to ${process.env.REPORT_RECIPIENT_EMAIL ?? 'ck@yissue.biz'}.`,
+  },
 ]
 
 export default function AdminAnalyticsPage() {
@@ -109,7 +114,7 @@ export default function AdminAnalyticsPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         {healthChecks.map((item) => (
           <Card key={item.label} className="border-zinc-800 bg-zinc-900">
             <CardHeader className="pb-2">
@@ -173,6 +178,26 @@ export default function AdminAnalyticsPage() {
           </CardContent>
         </Card>
       </section>
+
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader>
+          <CardTitle>Daily Email Report</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg border border-zinc-800 bg-black/25 p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Recipient</div>
+            <div className="mt-2 font-semibold text-white">{process.env.REPORT_RECIPIENT_EMAIL ?? 'ck@yissue.biz'}</div>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-black/25 p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Schedule</div>
+            <div className="mt-2 font-semibold text-white">Daily at 16:00 UTC</div>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-black/25 p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Manual trigger</div>
+            <div className="mt-2 font-mono text-xs text-zinc-300">/api/cron/daily-report</div>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   )
 }
