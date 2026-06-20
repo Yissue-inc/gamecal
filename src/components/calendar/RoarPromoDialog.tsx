@@ -57,12 +57,17 @@ export function RoarPromoDialog({ events }: { events: GameEvent[] }) {
   const close = (action: 'dismiss' | 'play' | 'calendar') => {
     window.localStorage.setItem(DISMISS_KEY, '1')
     setOpen(false)
+    window.dispatchEvent(new CustomEvent('gamerclock:roar-promo-state', { detail: { open: false } }))
     trackEvent('roar_promo_action', {
       action,
       match_id: nextMatch?.id,
       match_title: nextMatch?.title,
     })
   }
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('gamerclock:roar-promo-state', { detail: { open } }))
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={(value) => (value ? setOpen(true) : close('dismiss'))}>

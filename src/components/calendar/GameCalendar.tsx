@@ -101,6 +101,16 @@ function getGameAcronym(game?: Game): string {
     .toUpperCase()
 }
 
+function getMatchStatusBadge(event: GameEvent) {
+  const now = Date.now()
+  const start = new Date(event.start_at).getTime()
+  const end = new Date(event.end_at ?? event.start_at).getTime()
+  if (now >= start && now <= end) return { label: 'LIVE', className: 'border-red-400/45 bg-red-500/15 text-red-200' }
+  if (event.game?.slug === 'world-cup' && now < start) return { label: 'PRE', className: 'border-emerald-300/40 bg-emerald-400/15 text-emerald-200' }
+  if (event.game?.slug === 'world-cup' && now > end) return { label: 'FINAL', className: 'border-zinc-500/45 bg-zinc-700/35 text-zinc-200' }
+  return null
+}
+
 function useIsMobileViewport() {
   const [isMobile, setIsMobile] = useState(false)
 
@@ -505,6 +515,7 @@ export function GameCalendar({
                   (() => {
                     const reward = getRewardSignals(event, event.game)
                     const rewardLabel = getRewardBadgeLabel(event)
+                    const statusBadge = getMatchStatusBadge(event)
                     return (
                   <button
                     key={event.id}
@@ -546,6 +557,11 @@ export function GameCalendar({
                         <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-zinc-400">
                           {getEventTypeLabel(event.event_type)}
                         </span>
+                        {statusBadge && (
+                          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black leading-none tracking-wide ${statusBadge.className}`}>
+                            {statusBadge.label}
+                          </span>
+                        )}
                         {rewardLabel && (
                           <span className="max-w-[8rem] shrink truncate rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300 sm:max-w-[14rem]">
                             🎁 {reward.reward_score} · {rewardLabel}

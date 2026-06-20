@@ -71,7 +71,7 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
       <div className="absolute inset-0 opacity-70" style={{ backgroundImage: 'var(--hero-bg)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" />
 
-      <div className="relative mx-auto grid max-w-[1600px] gap-3 px-4 py-4 md:px-5 lg:grid-cols-[1.25fr_1fr]">
+      <div className="relative mx-auto grid max-w-[1600px] gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-4 md:px-5 lg:grid-cols-[1.25fr_1fr]">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-emerald-300/40 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-100">
@@ -81,19 +81,19 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
               {formatCountdown(nextMatch)}
             </span>
           </div>
-          <div className="mt-2 grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-amber-300/40 bg-black/35 shadow-[0_0_40px_rgba(246,197,0,.18)]">
+          <div className="mt-2 grid gap-2 md:grid-cols-[auto_1fr_auto] md:items-center md:gap-3">
+            <div className="hidden h-14 w-14 items-center justify-center rounded-lg border border-amber-300/40 bg-black/35 shadow-[0_0_40px_rgba(246,197,0,.18)] sm:flex">
               <Trophy className="h-7 w-7 text-amber-200" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-rajdhani text-2xl font-black tracking-tight text-white md:text-4xl">
+              <h2 className="line-clamp-1 font-rajdhani text-[1.7rem] font-black tracking-tight text-white sm:text-2xl md:text-4xl">
                 {flagFor(team1)} {team1} vs {team2} {flagFor(team2)}
               </h2>
-              <p className="mt-1 text-sm text-emerald-50/75">
+              <p className="mt-0.5 line-clamp-1 text-xs text-emerald-50/75 sm:mt-1 sm:text-sm">
                 {nextMatch ? `${String(nextMatch.metadata?.group ?? nextMatch.reward_summary ?? 'Summer Cup match')} · predict, cheer, and keep the calendar moving.` : 'All Summer Cup fixtures are on GamerClock.'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 md:justify-end">
+            <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end">
               <Button asChild size="sm" className="bg-emerald-400 text-emerald-950 hover:bg-emerald-300">
                 <Link href={nextMatch ? `/roar?match=${encodeURIComponent(nextMatch.id)}&source=home_takeover` : '/roar?source=home_takeover'}>
                   <Gamepad2 className="mr-1.5 h-4 w-4" />
@@ -110,7 +110,7 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="hidden gap-2 md:grid sm:grid-cols-2">
           <div className="rounded-lg border border-white/10 bg-black/30 p-3 backdrop-blur">
             <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200">
               <Flame className="h-3.5 w-3.5" /> ROAR live
@@ -127,7 +127,7 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
         </div>
 
         {fixtures.length > 0 && (
-          <div className="lg:col-span-2 -mb-1 flex gap-2 overflow-x-auto pb-1">
+          <div className="lg:col-span-2 -mb-1 hidden gap-2 overflow-x-auto pb-1 sm:flex">
             {fixtures.map((event) => (
               <Link
                 key={event.id}

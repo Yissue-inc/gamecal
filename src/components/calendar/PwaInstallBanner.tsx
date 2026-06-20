@@ -7,6 +7,7 @@ import { X } from 'lucide-react'
 export function PwaInstallBanner() {
   const [visible, setVisible] = useState(false)
   const [dismissed, setDismissed] = useState(true)
+  const [promoOpen, setPromoOpen] = useState(false)
 
   useEffect(() => {
     const wasDismissed = localStorage.getItem('gamecal-pwa-dismissed') === '1'
@@ -18,7 +19,17 @@ export function PwaInstallBanner() {
     setVisible(isMobile && !isStandalone && !wasDismissed)
   }, [])
 
-  if (!visible || dismissed) return null
+  useEffect(() => {
+    const handlePromoState = (event: Event) => {
+      const detail = (event as CustomEvent<{ open?: boolean }>).detail
+      setPromoOpen(Boolean(detail?.open))
+    }
+
+    window.addEventListener('gamerclock:roar-promo-state', handlePromoState)
+    return () => window.removeEventListener('gamerclock:roar-promo-state', handlePromoState)
+  }, [])
+
+  if (!visible || dismissed || promoOpen) return null
 
   return (
     <div

@@ -57,6 +57,16 @@ function formatScorer(goal: WorldCupGoal) {
   return `${goal.name}${goal.minute ? ` ${goal.minute}'` : ''}${goal.penalty ? ' pen' : ''}`
 }
 
+function getMatchStatusBadge(event: GameEvent) {
+  const now = Date.now()
+  const start = new Date(event.start_at).getTime()
+  const end = new Date(event.end_at ?? event.start_at).getTime()
+  if (now >= start && now <= end) return { label: 'LIVE', className: 'border-red-400/45 bg-red-500/15 text-red-200' }
+  if (event.game?.slug === WORLD_CUP_SLUG && now < start) return { label: 'PRE', className: 'border-emerald-300/40 bg-emerald-400/15 text-emerald-200' }
+  if (event.game?.slug === WORLD_CUP_SLUG && now > end) return { label: 'FINAL', className: 'border-zinc-500/45 bg-zinc-700/35 text-zinc-200' }
+  return null
+}
+
 function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
   const [data, setData] = useState<WorldCupPulseData | null>(null)
 
@@ -209,6 +219,7 @@ function UpcomingItem({
   const game = event.game!
   const rewardLabel = getRewardBadgeLabel(event)
   const reward = getRewardSignals(event, game)
+  const statusBadge = getMatchStatusBadge(event)
 
   return (
     <button
@@ -231,6 +242,11 @@ function UpcomingItem({
           ) : (
             <div className="mb-0.5 text-[10px] text-zinc-500">
               {getEventTypeIcon(event.event_type)} {formatShortTime(event.start_at, timezone, timeFormat)}
+            </div>
+          )}
+          {statusBadge && (
+            <div className={`mb-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black leading-none tracking-wide ${statusBadge.className}`}>
+              {statusBadge.label}
             </div>
           )}
           <div className="line-clamp-2 text-xs font-semibold leading-tight text-zinc-200 group-hover:text-white">
