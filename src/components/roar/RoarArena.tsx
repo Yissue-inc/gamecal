@@ -35,6 +35,11 @@ type CupTab = "trophies" | "play" | "matches" | "bets";
 type TranslationKey = string;
 type Translator = (key: TranslationKey) => string;
 type ScoreSaveStatus = "idle" | "saving" | "saved" | "error";
+type RoarAuthIntent =
+  | "save_rank"
+  | "prediction_pick"
+  | "prediction_settle"
+  | "prediction_claim";
 
 type FeedEvent = {
   id: number;
@@ -2164,9 +2169,6 @@ const I18N: Record<LocaleCode, Record<string, string>> = {
 const PERSONAL_STAND_COLS = 24;
 const PERSONAL_STAND_ROWS = 6;
 const PERSONAL_STAND_COUNT = PERSONAL_STAND_COLS * PERSONAL_STAND_ROWS;
-const RIVAL_STAND_COLS = 24;
-const RIVAL_STAND_ROWS = 3;
-const RIVAL_STAND_COUNT = RIVAL_STAND_COLS * RIVAL_STAND_ROWS;
 const SCOREBOARD_COLS = 18;
 const SCOREBOARD_ROWS = 10;
 const SCOREBOARD_CELL_COUNT = SCOREBOARD_COLS * SCOREBOARD_ROWS;
@@ -2784,26 +2786,179 @@ function flagFor(country: string) {
   return FLAG_EMOJI[country] ?? "🏳️";
 }
 
-const TIFO_COUNTRY_CODE: Record<string, string> = {
-  Argentina: "ar",
-  Brazil: "br",
-  England: "en",
-  France: "fr",
-  Germany: "de",
-  Japan: "jp",
-  Mexico: "mx",
-  Portugal: "pt",
-  Spain: "es",
-  "South Korea": "kr",
-};
-
-function tifoSrcFor(country: string) {
-  const code = TIFO_COUNTRY_CODE[country];
-  return code ? `/mini-cup/assets/crowd/tifo/tifo-${code}.webp` : null;
-}
-
 function colorsFor(country: string) {
   return TEAM_COLOR[country] ?? ["#2937e8", "#0b6555"];
+}
+
+type CrowdScheme = "rw" | "bw" | "gy" | "ry" | "gr" | "kg";
+
+const CROWD_SCHEME_SWATCH: Record<CrowdScheme, [string, string]> = {
+  rw: ["#f8fafc", "#cf142b"],
+  bw: ["#0f172a", "#f8fafc"],
+  gy: ["#16a34a", "#facc15"],
+  ry: ["#dc2626", "#facc15"],
+  gr: ["#16a34a", "#dc2626"],
+  kg: ["#111827", "#facc15"],
+};
+
+const CROWD_SCHEME_BY_CODE: Record<string, CrowdScheme> = {
+  en: "rw",
+  jp: "rw",
+  ch: "rw",
+  dk: "rw",
+  pl: "rw",
+  ca: "rw",
+  ar: "bw",
+  uy: "bw",
+  scot: "bw",
+  us: "bw",
+  br: "gy",
+  au: "gy",
+  es: "ry",
+  cn: "ry",
+  mx: "gr",
+  pt: "gr",
+  it: "gr",
+  ma: "gr",
+  de: "kg",
+  be: "kg",
+};
+
+const CROWD_COUNTRY_CODE: Record<string, string> = {
+  argentina: "ar",
+  australia: "au",
+  belgium: "be",
+  bosnia: "ba",
+  "bosnia and herzegovina": "ba",
+  "bosnia & herzegovina": "ba",
+  brazil: "br",
+  canada: "ca",
+  cameroon: "cm",
+  chile: "cl",
+  china: "cn",
+  colombia: "co",
+  croatia: "hr",
+  "czech republic": "cz",
+  denmark: "dk",
+  ecuador: "ec",
+  england: "en",
+  france: "fr",
+  germany: "de",
+  ghana: "gh",
+  haiti: "ht",
+  iran: "ir",
+  italy: "it",
+  japan: "jp",
+  mexico: "mx",
+  morocco: "ma",
+  netherlands: "nl",
+  nigeria: "ng",
+  poland: "pl",
+  portugal: "pt",
+  qatar: "qa",
+  "saudi arabia": "sa",
+  scotland: "scot",
+  senegal: "sn",
+  serbia: "rs",
+  "south africa": "za",
+  "south korea": "kr",
+  korea: "kr",
+  spain: "es",
+  sweden: "se",
+  switzerland: "ch",
+  ukraine: "ua",
+  uruguay: "uy",
+  usa: "us",
+  "united states": "us",
+  "united states of america": "us",
+};
+
+function normalizeCountryKey(country: string) {
+  return country.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
+}
+
+function hexChannels(hex: string) {
+  const normalized = hex.replace("#", "");
+  const value =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((char) => char + char)
+          .join("")
+      : normalized;
+  return [
+    Number.parseInt(value.slice(0, 2), 16),
+    Number.parseInt(value.slice(2, 4), 16),
+    Number.parseInt(value.slice(4, 6), 16),
+  ] as const;
+}
+
+function colorDistance(a: string, b: string) {
+  const [ar, ag, ab] = hexChannels(a);
+  const [br, bg, bb] = hexChannels(b);
+  return Math.sqrt((ar - br) ** 2 + (ag - bg) ** 2 + (ab - bb) ** 2);
+}
+
+function nearestCrowdScheme(country: string): CrowdScheme {
+  const [from, to] = colorsFor(country);
+  return (Object.entries(CROWD_SCHEME_SWATCH) as Array<
+    [CrowdScheme, [string, string]]
+  >).reduce(
+    (best, [scheme, [schemeFrom, schemeTo]]) => {
+      const distance =
+        colorDistance(from, schemeFrom) + colorDistance(to, schemeTo);
+      if (distance < best.distance) return { scheme, distance };
+      return best;
+    },
+    { scheme: "rw" as CrowdScheme, distance: Number.POSITIVE_INFINITY },
+  ).scheme;
+}
+
+function crowdCountryCode(country: string) {
+  return CROWD_COUNTRY_CODE[normalizeCountryKey(country)] ?? null;
+}
+
+function crowdSchemeFor(country: string): CrowdScheme {
+  const code = crowdCountryCode(country);
+  if (code && CROWD_SCHEME_BY_CODE[code]) return CROWD_SCHEME_BY_CODE[code];
+  return nearestCrowdScheme(country);
+}
+
+function tifoSrcFor(country: string) {
+  const code = crowdCountryCode(country);
+  if (!code) return null;
+  const supported = new Set([
+    "ar",
+    "au",
+    "be",
+    "br",
+    "ca",
+    "ch",
+    "co",
+    "de",
+    "dk",
+    "en",
+    "es",
+    "fr",
+    "gh",
+    "hr",
+    "ir",
+    "jp",
+    "kr",
+    "ma",
+    "mx",
+    "ng",
+    "nl",
+    "pl",
+    "pt",
+    "sa",
+    "sn",
+    "us",
+    "uy",
+  ]);
+  return supported.has(code)
+    ? `/mini-cup/assets/crowd/tifo/tifo-${code}.webp`
+    : null;
 }
 
 function hashStr(value: string) {
@@ -3200,7 +3355,9 @@ export function RoarArena({
   });
   const [soundUnlocked, setSoundUnlocked] = useState(false);
   const [qaMode, setQaMode] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [authIntent, setAuthIntent] = useState<RoarAuthIntent>("save_rank");
   const [sessionLinked, setSessionLinked] = useState(false);
   const [scoreSaveStatus, setScoreSaveStatus] =
     useState<ScoreSaveStatus>("idle");
@@ -3239,6 +3396,7 @@ export function RoarArena({
   const prefersReducedRef = useRef(false);
   const mascotTimerRef = useRef<number | null>(null);
   const trackedViewRef = useRef(new Set<string>());
+  const predictionGatePreviewRef = useRef(new Set<string>());
   const deviceIdRef = useRef("");
   const sourceRef = useRef(source);
   const sessionSyncRef = useRef("");
@@ -3457,14 +3615,6 @@ export function RoarArena({
       Math.round(((visibleAllyCheer - 450) / 2550) * PERSONAL_STAND_COUNT),
     ),
   );
-  const rivalPersonalCount = Math.min(
-    RIVAL_STAND_COUNT,
-    Math.round(
-      (visibleRivalCheer / Math.max(1, visibleAllyCheer + visibleRivalCheer)) *
-        RIVAL_STAND_COUNT *
-        0.85,
-    ),
-  );
   const personalStandStage =
     visibleAllyCheer >= 3000
       ? 5
@@ -3514,6 +3664,7 @@ export function RoarArena({
               : 0;
   const [allyColorA, allyColorB] = colorsFor(selectedCountry);
   const [rivalColorA, rivalColorB] = colorsFor(opponentCountry);
+  const allyCrowdScheme = crowdSchemeFor(selectedCountry);
   const selectedTifoSrc = tifoSrcFor(selectedCountry);
   const hypeTier =
     totalScore > 1000
@@ -3590,6 +3741,14 @@ export function RoarArena({
       totalScore,
     ],
   );
+  const authReturnPath = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("match", selectedMatch.id);
+    params.set("source", source || "direct");
+    params.set("auth_intent", authIntent);
+    return `/roar?${params.toString()}`;
+  }, [authIntent, selectedMatch.id, source]);
+  const authModalSource = `roar_${authIntent}`;
 
   useEffect(() => {
     if (!selectedMatch?.id || trackedViewRef.current.has(selectedMatch.id))
@@ -3604,6 +3763,20 @@ export function RoarArena({
       }),
     );
   }, [initialMatchId, retentionAnalyticsProps, selectedMatch?.id, source]);
+
+  useEffect(() => {
+    if (signedIn || cupTab !== "bets") return;
+    const key = `${selectedMatch.id}:bets`;
+    if (predictionGatePreviewRef.current.has(key)) return;
+    predictionGatePreviewRef.current.add(key);
+    trackEvent(
+      "roar_prediction_gate_previewed",
+      retentionAnalyticsProps({
+        prompt_reason: "prediction_pick",
+        entry_point: "bets_tab_preview",
+      }),
+    );
+  }, [cupTab, retentionAnalyticsProps, selectedMatch.id, signedIn]);
 
   const earnedBadges = BADGES.filter((badge) =>
     earnedBadgeIds.includes(badge.id),
@@ -3635,8 +3808,8 @@ export function RoarArena({
     : { current: 1, goal: 1 };
   const shouldShowBoardBurst = comboBurst > 0;
   const shouldShowCrowdAccent =
-    comboBurst > 0 && (comboBurst % 2 === 0 || personalStandStage >= 4);
-  const rivalWaveColumn = Math.floor(nowMs / 900) % RIVAL_STAND_COLS;
+    comboBurst > 0 &&
+    (comboBurst % 4 === 0 || (personalStandStage >= 5 && comboBurst % 3 === 0));
 
   const cheerTotalForCountry = useCallback(
     (country: string) => {
@@ -3682,13 +3855,6 @@ export function RoarArena({
         return "seat";
       }),
     [personalFanCount, personalReactiveCount, personalSeatCount],
-  );
-  const rivalStandMap = useMemo(
-    () =>
-      Array.from({ length: RIVAL_STAND_COUNT }, (_, index) =>
-        index < rivalPersonalCount ? "rival" : "empty",
-      ),
-    [rivalPersonalCount],
   );
   const scoreboardCells = useMemo(
     () =>
@@ -4252,29 +4418,35 @@ export function RoarArena({
       } catch {
         setRecords([]);
       }
+      setStorageReady(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [addCoinPop, addFeed]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-room", roomCode);
-  }, [roomCode]);
+  }, [roomCode, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-country", selectedCountry);
-  }, [selectedCountry]);
+  }, [selectedCountry, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-locale", locale);
-  }, [locale]);
+  }, [locale, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-onboarded", onboarded ? "1" : "0");
-  }, [onboarded]);
+  }, [onboarded, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem(PLAYER_NAME_KEY, playerName);
-  }, [playerName]);
+  }, [playerName, storageReady]);
 
   useEffect(
     () => () => {
@@ -4284,16 +4456,19 @@ export function RoarArena({
   );
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-coins", String(coinBalance));
-  }, [coinBalance]);
+  }, [coinBalance, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-impact", String(impactPower));
-  }, [impactPower]);
+  }, [impactPower, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-bets", JSON.stringify(bets));
-  }, [bets]);
+  }, [bets, storageReady]);
 
   useEffect(() => {
     if (!deviceId) return;
@@ -4332,19 +4507,22 @@ export function RoarArena({
   }, [deviceId]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem(
       "roar-badges",
       JSON.stringify(earnedBadgeIds),
     );
-  }, [earnedBadgeIds]);
+  }, [earnedBadgeIds, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-daily", JSON.stringify(daily));
-  }, [daily]);
+  }, [daily, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("roar-records", JSON.stringify(records));
-  }, [records]);
+  }, [records, storageReady]);
 
   useEffect(() => {
     if (countryChoices.includes(selectedCountry)) return;
@@ -4710,6 +4888,14 @@ export function RoarArena({
   };
 
   const placeBet = (pick: Pick) => {
+    if (!signedIn) {
+      promptRoarSignIn("prediction_pick", {
+        pick,
+        stake: effectiveStake,
+        entry_point: "prediction_pick_button",
+      });
+      return;
+    }
     if (!canBetOnMatch(selectedMatch)) {
       addFeed("drop", t("betClosedTitle"), t("betClosedBody"));
       showBetReveal({
@@ -4843,6 +5029,14 @@ export function RoarArena({
   };
 
   const settleBet = (bet: BetSlip) => {
+    if (!signedIn) {
+      promptRoarSignIn("prediction_settle", {
+        slip_id: bet.id,
+        match_id: bet.matchId,
+        entry_point: "prediction_settle_button",
+      });
+      return;
+    }
     const match =
       matches.find((item) => item.id === bet.matchId) ?? selectedMatch;
     const realOutcome = outcomeFromScore(match);
@@ -4921,6 +5115,14 @@ export function RoarArena({
   };
 
   const claimBetPayout = (slipId?: string, payout?: number) => {
+    if (!signedIn) {
+      promptRoarSignIn("prediction_claim", {
+        slip_id: slipId,
+        payout,
+        entry_point: "prediction_claim_button",
+      });
+      return;
+    }
     const target = slipId ? bets.find((bet) => bet.id === slipId) : undefined;
     const amount = payout ?? target?.payout ?? 0;
     if (amount <= 0 || target?.claimed) return;
@@ -5016,15 +5218,37 @@ export function RoarArena({
     playBurst(3);
   };
 
-  const promptSignInForRank = () => {
-    trackEvent("roar_signin_prompt_viewed", retentionAnalyticsProps());
+  const promptRoarSignIn = (
+    intent: RoarAuthIntent,
+    extra?: Record<string, unknown>,
+  ) => {
+    setAuthIntent(intent);
+    trackEvent(
+      "roar_auth_gate_hit",
+      retentionAnalyticsProps({
+        auth_intent: intent,
+        guest_mode: isGuest,
+        ...extra,
+      }),
+    );
+    trackEvent(
+      "roar_signin_prompt_viewed",
+      retentionAnalyticsProps({
+        prompt_reason: intent,
+        guest_mode: isGuest,
+        ...extra,
+      }),
+    );
     setAuthOpen(true);
   };
 
   const saveRoarScore = async () => {
     if (authLoading || scoreSaveStatus === "saving") return;
     if (!signedIn) {
-      promptSignInForRank();
+      promptRoarSignIn("save_rank", {
+        score: lifetimeSupport,
+        rank_label: rankName(currentRoarRank),
+      });
       return;
     }
 
@@ -5050,7 +5274,11 @@ export function RoarArena({
       };
       if (!response.ok) {
         if (payload.authRequired) {
-          promptSignInForRank();
+          promptRoarSignIn("save_rank", {
+            score: lifetimeSupport,
+            rank_label: rankName(currentRoarRank),
+            response_gate: "api_auth_required",
+          });
           setScoreSaveStatus("idle");
           return;
         }
@@ -5345,7 +5573,15 @@ export function RoarArena({
               <strong>Play now, sign in to save your rank.</strong>
               <span>Keep playing as guest. Save when the moment feels worth it.</span>
             </div>
-            <button type="button" onClick={promptSignInForRank}>
+            <button
+              type="button"
+              onClick={() =>
+                promptRoarSignIn("save_rank", {
+                  entry_point: "retention_panel",
+                  score: lifetimeSupport,
+                })
+              }
+            >
               Sign in to save
             </button>
             <button
@@ -5453,7 +5689,31 @@ export function RoarArena({
         <AuthModal
           open={authOpen}
           onOpenChange={setAuthOpen}
-          nextPath={`/roar?match=${encodeURIComponent(selectedMatch.id)}&source=${encodeURIComponent(source)}`}
+          nextPath={authReturnPath}
+          source={authModalSource}
+          title={
+            authIntent === "save_rank"
+              ? "Sign in free to save your ROAR rank."
+              : "Sign in free to unlock predictions."
+          }
+          description={
+            authIntent === "save_rank"
+              ? "You can keep cheering as a guest. Sign in when you want this ROAR run saved to GamerClock."
+              : "Your first cheer run stays open to guests. Sign in to lock picks, settle results, and keep your prediction history."
+          }
+          bullets={
+            authIntent === "save_rank"
+              ? [
+                  "Save this match rank and your ROAR history to GamerClock.",
+                  "See your progress again when the next Summer Cup match starts.",
+                  "Keep your support proof tied to your GamerClock profile.",
+                ]
+              : [
+                  "Lock prediction picks before kickoff.",
+                  "Settle results and claim rewards after the match.",
+                  "Keep prediction history and ROAR progress in one account.",
+                ]
+          }
         />
         {!onboarded && (
           <div className="onboarding-scrim">
@@ -5603,13 +5863,6 @@ export function RoarArena({
             }
           >
             <div className="arena-sky" aria-hidden="true" />
-            {selectedTifoSrc && (
-              <div
-                className="selected-country-tifo"
-                aria-hidden="true"
-                style={{ backgroundImage: `url('${selectedTifoSrc}')` }}
-              />
-            )}
             <div className="arena-header">
               <div className="arena-matchline">
                 <div className="arena-kicker">
@@ -5693,43 +5946,23 @@ export function RoarArena({
               </button>
             </div>
 
-            <section
-              className="rival-stand-panel"
-              aria-label={`${opponentCountry} rival stand`}
-            >
-              <div className="mini-stand mini-stand-rival" aria-hidden="true">
-                {rivalStandMap.map((state, index) => (
+            <section className="rival-cheer-strip" aria-label={`${opponentCountry} rival pressure`}>
+              <div className="rival-cheer-strip-meta">
+                <span>
+                  {flagFor(opponentCountry)} {t("rivalTeam")}
+                </span>
+                <b>{fmt.format(rivalTotal)}</b>
+              </div>
+              <div className="rival-cheer-track" aria-hidden="true">
+                <i style={{ width: `${Math.max(6, 100 - possession)}%` }} />
+                {Array.from({ length: 18 }, (_, index) => (
                   <span
                     key={index}
-                    className={
-                      state === "rival"
-                        ? `mini-seat spectator-seat mini-seat-rival-on ${crowdMotionClass(index)} ${index % RIVAL_STAND_COLS === rivalWaveColumn ? "rival-wave-seat" : ""}`
-                        : "mini-seat spectator-seat spectator-seat-empty"
-                    }
-                    style={
-                      {
-                        "--i": index,
-                        "--col": index % RIVAL_STAND_COLS,
-                      } as CSSProperties
-                    }
-                  >
-                    {state === "rival" && (
-                      <Image
-                        className="spectator-img spectator-img-rival"
-                        src={spectatorSrc(
-                          index,
-                          selectedSpectatorSet[0],
-                          selectedSpectatorSet[1],
-                        )}
-                        alt=""
-                        width={102}
-                        height={110}
-                      />
-                    )}
-                  </span>
+                    className={index < Math.round((100 - possession) / 6) ? "rival-cheer-dot-on" : ""}
+                    style={{ "--i": index } as CSSProperties}
+                  />
                 ))}
               </div>
-              <div className="rival-surge" aria-hidden="true" />
             </section>
 
             <section
@@ -5823,6 +6056,13 @@ export function RoarArena({
                   ),
                 )}
               </div>
+              {selectedTifoSrc && (
+                <div
+                  className="selected-country-tifo"
+                  aria-hidden="true"
+                  style={{ backgroundImage: `url('${selectedTifoSrc}')` }}
+                />
+              )}
               {shouldShowBoardBurst && (
                 <div
                   key={`confetti-${comboBurst}`}
@@ -5849,6 +6089,9 @@ export function RoarArena({
                   key={`scarf-${comboBurst}`}
                   className="crowd-scarf-wall"
                   aria-hidden="true"
+                  style={{
+                    backgroundImage: `url('/mini-cup/assets/crowd/recolor/scarf-wall-${allyCrowdScheme}.webp')`,
+                  }}
                 />
               )}
               {shouldShowCrowdAccent && (
@@ -5856,11 +6099,14 @@ export function RoarArena({
                   key={`giant-flag-${comboBurst}-${scoreBeat}`}
                   className="crowd-giant-flag"
                   aria-hidden="true"
+                  style={{
+                    backgroundImage: `url('/mini-cup/assets/crowd/recolor/giant-flag-${allyCrowdScheme}.webp')`,
+                  }}
                 />
               )}
               {shouldShowCrowdAccent &&
                 Array.from(
-                  { length: Math.min(3, 1 + (comboBurst % 3)) },
+                  { length: Math.min(2, 1 + (comboBurst % 2)) },
                   (_, index) => (
                     <Image
                       key={`impact-avatar-${comboBurst}-${index}`}
@@ -5909,7 +6155,7 @@ export function RoarArena({
                     )}
                     {shouldShowCrowdAccent &&
                       state !== "empty" &&
-                      index % 17 === scoreBeat % 17 && (
+                      index % 29 === scoreBeat % 29 && (
                         <i
                           className="crowd-prop"
                           style={
@@ -6181,6 +6427,36 @@ export function RoarArena({
                 </div>
               </div>
 
+              {!signedIn && (
+                <div className="roar-auth-gate-card mb-4">
+                  <div>
+                    <strong>Predictions unlock after sign in.</strong>
+                    <span>
+                      Your first cheer run stays open to guests. Sign in to lock picks, settle results, and claim rewards.
+                    </span>
+                  </div>
+                  <div className="roar-auth-gate-actions">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        promptRoarSignIn("prediction_pick", {
+                          entry_point: "bets_tab_gate_mobile",
+                        })
+                      }
+                    >
+                      Sign in to predict
+                    </button>
+                    <button
+                      type="button"
+                      className="roar-auth-gate-secondary"
+                      onClick={() => setCupTab("play")}
+                    >
+                      Keep cheering
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="betting-console">
                 <div className="bet-match-ticket">
                   <div className="flex items-center justify-between gap-3">
@@ -6213,9 +6489,11 @@ export function RoarArena({
                       label={selectedMatch.team1}
                       chance={matchPrediction.team1}
                       country={selectedMatch.team1}
-                      disabled={!selectedCanBet || coinBalance <= 0}
+                      disabled={!signedIn || !selectedCanBet || coinBalance <= 0}
                       disabledReason={
-                        !selectedCanBet
+                        !signedIn
+                          ? "auth"
+                          : !selectedCanBet
                           ? "closed"
                           : coinBalance <= 0
                             ? "coins"
@@ -6227,9 +6505,11 @@ export function RoarArena({
                     <BetButton
                       label={t("draw")}
                       chance={matchPrediction.draw}
-                      disabled={!selectedCanBet || coinBalance <= 0}
+                      disabled={!signedIn || !selectedCanBet || coinBalance <= 0}
                       disabledReason={
-                        !selectedCanBet
+                        !signedIn
+                          ? "auth"
+                          : !selectedCanBet
                           ? "closed"
                           : coinBalance <= 0
                             ? "coins"
@@ -6242,9 +6522,11 @@ export function RoarArena({
                       label={selectedMatch.team2}
                       chance={matchPrediction.team2}
                       country={selectedMatch.team2}
-                      disabled={!selectedCanBet || coinBalance <= 0}
+                      disabled={!signedIn || !selectedCanBet || coinBalance <= 0}
                       disabledReason={
-                        !selectedCanBet
+                        !signedIn
+                          ? "auth"
+                          : !selectedCanBet
                           ? "closed"
                           : coinBalance <= 0
                             ? "coins"
@@ -6280,7 +6562,7 @@ export function RoarArena({
                     min={10}
                     max={maxStake}
                     step={10}
-                    disabled={!selectedCanBet || coinBalance <= 0}
+                    disabled={!signedIn || !selectedCanBet || coinBalance <= 0}
                     value={Math.min(stake, maxStake)}
                     onChange={(event) => setStake(Number(event.target.value))}
                     className="w-full accent-yellow-300 disabled:opacity-35"
@@ -6295,13 +6577,17 @@ export function RoarArena({
                         : selectedMatchTitle}
                     </b>
                     <em>
-                      {selectedCanBet
+                      {!signedIn
+                        ? "Sign in to unlock picks"
+                        : selectedCanBet
                         ? `${t("potentialReturn")} ${coinCopy(effectiveStake * 2)}`
                         : t("settlesAfterKickoff")}
                     </em>
                   </div>
                   <div className="mt-3 text-xs leading-relaxed text-white/56">
-                    {t("supportCoinRule")}
+                    {signedIn
+                      ? t("supportCoinRule")
+                      : "Guest mode covers cheering only. Predictions and reward claims start after sign in."}
                   </div>
                 </div>
               </div>
@@ -7081,6 +7367,35 @@ export function RoarArena({
                   <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-yellow-100">
                     <Target className="h-4 w-4" /> prediction picks
                   </div>
+                  {!signedIn && (
+                    <div className="roar-auth-gate-card mb-3">
+                      <div>
+                        <strong>Predictions unlock after sign in.</strong>
+                        <span>
+                          You can finish your first cheer run as a guest, then sign in to lock picks and keep results.
+                        </span>
+                      </div>
+                      <div className="roar-auth-gate-actions">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            promptRoarSignIn("prediction_pick", {
+                              entry_point: "bets_tab_gate_desktop",
+                            })
+                          }
+                        >
+                          Sign in to predict
+                        </button>
+                        <button
+                          type="button"
+                          className="roar-auth-gate-secondary"
+                          onClick={() => setCupTab("play")}
+                        >
+                          Keep cheering
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div className="rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-3">
                     <div className="mb-2 flex items-center justify-between text-sm">
                       <span className="font-black">Stake</span>
@@ -7093,13 +7408,15 @@ export function RoarArena({
                       min={10}
                       max={maxStake}
                       step={10}
-                      disabled={!selectedCanBet}
+                      disabled={!signedIn || !selectedCanBet}
                       value={Math.min(stake, maxStake)}
                       onChange={(event) => setStake(Number(event.target.value))}
                       className="w-full accent-yellow-300 disabled:opacity-40"
                     />
                     <div className="mt-1 text-xs text-white/56">
-                      {selectedCanBet
+                      {!signedIn
+                        ? "Guest mode covers cheering only. Sign in to lock prediction picks and claim rewards."
+                        : selectedCanBet
                         ? "1 support point earns 1 coin. Betting closes at kickoff. Correct picks pay 2x."
                         : "This match has started, so new bets are closed."}
                     </div>
@@ -7108,9 +7425,11 @@ export function RoarArena({
                     <BetButton
                       label={selectedMatch.team1}
                       chance={matchPrediction.team1}
-                      disabled={!selectedCanBet || coinBalance <= 0}
+                      disabled={!signedIn || !selectedCanBet || coinBalance <= 0}
                       disabledReason={
-                        !selectedCanBet
+                        !signedIn
+                          ? "auth"
+                          : !selectedCanBet
                           ? "closed"
                           : coinBalance <= 0
                             ? "coins"
@@ -7122,9 +7441,11 @@ export function RoarArena({
                     <BetButton
                       label={t("draw")}
                       chance={matchPrediction.draw}
-                      disabled={!selectedCanBet || coinBalance <= 0}
+                      disabled={!signedIn || !selectedCanBet || coinBalance <= 0}
                       disabledReason={
-                        !selectedCanBet
+                        !signedIn
+                          ? "auth"
+                          : !selectedCanBet
                           ? "closed"
                           : coinBalance <= 0
                             ? "coins"
@@ -7136,9 +7457,11 @@ export function RoarArena({
                     <BetButton
                       label={selectedMatch.team2}
                       chance={matchPrediction.team2}
-                      disabled={!selectedCanBet || coinBalance <= 0}
+                      disabled={!signedIn || !selectedCanBet || coinBalance <= 0}
                       disabledReason={
-                        !selectedCanBet
+                        !signedIn
+                          ? "auth"
+                          : !selectedCanBet
                           ? "closed"
                           : coinBalance <= 0
                             ? "coins"
@@ -7783,12 +8106,14 @@ function BetButton({
   chance: number;
   country?: string;
   disabled?: boolean;
-  disabledReason?: "closed" | "coins";
+  disabledReason?: "auth" | "closed" | "coins";
   onClick: () => void;
   t?: Translator;
 }) {
   const statusText =
-    disabledReason === "closed"
+    disabledReason === "auth"
+      ? "Sign in"
+      : disabledReason === "closed"
       ? t("closed")
       : disabledReason === "coins"
         ? t("needCoins")

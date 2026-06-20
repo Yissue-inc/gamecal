@@ -78,11 +78,19 @@ export function RoarPromoDialog({ events }: { events: GameEvent[] }) {
         <div className="grid md:min-h-[min(720px,92vh)] md:grid-cols-[1.18fr_.82fr]">
           <div className="relative min-h-[240px] overflow-hidden bg-black sm:min-h-[285px] md:min-h-full">
             <Image
-              src="/mini-cup/assets/themes/hero-stadium.webp"
+              src="/mini-cup/assets/promo/keyvisual-16x9.webp"
               alt=""
               fill
               sizes="(max-width: 768px) 100vw, 58vw"
-              className="object-cover"
+              className="hidden object-cover md:block"
+              priority
+            />
+            <Image
+              src="/mini-cup/assets/promo/hero-9x16-mobile.webp"
+              alt=""
+              fill
+              sizes="100vw"
+              className="object-cover md:hidden"
               priority
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,10,8,.08),rgba(3,10,8,.62)),linear-gradient(90deg,rgba(3,10,8,.35),transparent_48%)]" />

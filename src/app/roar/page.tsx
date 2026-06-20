@@ -9,7 +9,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'ROAR | Summer Cup 2026 Crowd Battle',
     description: 'Turn Summer Cup 2026 calendar fixtures into a playable cheering battle.',
-    images: ['/roar-logo-lockup.png'],
+    images: ['/mini-cup/assets/promo/og-1200x630.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ROAR | Summer Cup 2026 Crowd Battle',
+    description: 'Turn Summer Cup 2026 calendar fixtures into a playable cheering battle.',
+    images: ['/mini-cup/assets/promo/og-1200x630.png'],
   },
 }
 

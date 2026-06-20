@@ -11,9 +11,10 @@ import { trackAuthFailed, trackAuthStarted } from '@/lib/posthog'
 interface AuthFormProps {
   compact?: boolean
   nextPath?: string
+  source?: string
 }
 
-export function AuthForm({ compact = false, nextPath }: AuthFormProps) {
+export function AuthForm({ compact = false, nextPath, source }: AuthFormProps) {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -30,7 +31,7 @@ export function AuthForm({ compact = false, nextPath }: AuthFormProps) {
     setEmailLoading(true)
     setError(null)
     setMessage(null)
-    trackAuthStarted({ method: 'email', mode: isSignUp ? 'sign_up' : 'sign_in', source: nextPath })
+    trackAuthStarted({ method: 'email', mode: isSignUp ? 'sign_up' : 'sign_in', source: source ?? nextPath })
     const fn = isSignUp ? signUpWithEmail : signInWithEmail
     const { error: err } = isSignUp
       ? await signUpWithEmail(email, password, nextPath)
@@ -48,7 +49,7 @@ export function AuthForm({ compact = false, nextPath }: AuthFormProps) {
     setOauthLoading(provider)
     setError(null)
     setMessage(null)
-    trackAuthStarted({ method: provider, mode: 'sign_in', source: nextPath })
+    trackAuthStarted({ method: provider, mode: 'sign_in', source: source ?? nextPath })
     const { error: err } = await signInWithGoogle(nextPath)
     if (err) {
       trackAuthFailed({ method: provider, mode: 'sign_in', reason: err })
