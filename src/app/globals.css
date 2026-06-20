@@ -37,13 +37,13 @@
   }
 
   [data-theme="stadium"],
-  [data-theme="wc"] {
+  [data-theme="sc"] {
     --bg: #06130d;
     --card: #0b1d18;
     --acc: var(--gold);
     --acc2: var(--stadium);
     --txt: var(--text-hi);
-    --hero-bg: linear-gradient(135deg, #06130d, #1ca64c 58%, #f6c500);
+    --hero-bg: linear-gradient(90deg, rgba(4,18,12,0.98) 0%, rgba(4,18,12,0.78) 45%, rgba(4,18,12,0.48) 100%), url("/mini-cup/assets/themes/hero-stadium.webp");
   }
 
   [data-theme="fortnite"] {
@@ -52,7 +52,7 @@
     --acc: #22d3ee;
     --acc2: #a855f7;
     --txt: var(--text-hi);
-    --hero-bg: linear-gradient(135deg, #071225, #22d3ee 45%, #a855f7);
+    --hero-bg: linear-gradient(90deg, rgba(7,18,37,0.95) 0%, rgba(7,18,37,0.7) 50%, rgba(168,85,247,0.38) 100%), url("/mini-cup/assets/themes/hero-fortnite.webp");
   }
 
   [data-theme="pokemon"] {
@@ -61,7 +61,7 @@
     --acc: #facc15;
     --acc2: #ef4444;
     --txt: var(--text-hi);
-    --hero-bg: linear-gradient(135deg, #10131f, #facc15 48%, #ef4444);
+    --hero-bg: linear-gradient(90deg, rgba(16,19,31,0.94) 0%, rgba(16,19,31,0.7) 50%, rgba(239,68,68,0.36) 100%), url("/mini-cup/assets/themes/hero-pokemon.webp");
   }
 
   [data-theme="seasonal"] {
@@ -79,7 +79,7 @@
     --acc: #f0abfc;
     --acc2: #22d3ee;
     --txt: var(--text-hi);
-    --hero-bg: linear-gradient(135deg, #080a1f, #f0abfc 48%, #22d3ee);
+    --hero-bg: linear-gradient(90deg, rgba(8,10,31,0.95) 0%, rgba(8,10,31,0.7) 50%, rgba(34,211,238,0.36) 100%), url("/mini-cup/assets/themes/hero-arcade.webp");
   }
 
   * {
@@ -1291,6 +1291,23 @@
   mix-blend-mode: screen;
   filter: saturate(1.12) brightness(1.06);
   animation: tifoTakeover 1.45s cubic-bezier(.16, 1, .28, 1) forwards;
+}
+
+.selected-country-tifo {
+  position: absolute;
+  z-index: 1;
+  left: 2%;
+  right: 2%;
+  top: 18%;
+  height: 34%;
+  pointer-events: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: .28;
+  mix-blend-mode: screen;
+  filter: saturate(1.08) brightness(1.04);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 74%, transparent 100%);
 }
 
 .crowd-scarf-wall {

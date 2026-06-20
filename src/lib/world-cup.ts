@@ -6,8 +6,8 @@ export { WORLD_CUP_SLUG } from '@/lib/world-cup-config'
 export const WORLD_CUP_GAME: Game = {
   id: 'world-cup-2026',
   slug: WORLD_CUP_SLUG,
-  name: 'World Cup 2026',
-  icon_url: '/world-cup-hero-stadium.png',
+  name: 'Summer Cup 2026',
+  icon_url: '/mini-cup/assets/themes/hero-stadium.webp',
   brand_color: '#22c55e',
   platform: ['Global'],
   sort_order: 0,
@@ -96,16 +96,16 @@ function matchToEvent(match: OpenFootballMatch, index: number): GameEvent {
     game_id: WORLD_CUP_GAME.id,
     game: WORLD_CUP_GAME,
     title: `${team1} vs ${team2}`,
-    description: `${group}${match.round ?? 'World Cup 2026 match'}.${venue}${score}${scorers}`.trim(),
+    description: `${group}${match.round ?? 'Summer Cup 2026 match'}.${venue}${score}${scorers}`.trim(),
     event_type: 'tournament',
     importance: match.round?.toLowerCase().includes('final') ? 'critical' : 'high',
     start_at: start.toISOString(),
     end_at: end.toISOString(),
     is_recurring: false,
     source_url: 'https://github.com/openfootball/worldcup.json',
-    image_url: '/world-cup-hero-stadium.png',
+    image_url: '/mini-cup/assets/themes/hero-stadium.webp',
     reward_type: 'content',
-    reward_summary: 'World Cup 2026 match',
+    reward_summary: 'Summer Cup 2026 match',
     reward_rarity: 'time_limited',
     reward_score: 60,
     is_time_limited_reward: true,
@@ -136,7 +136,7 @@ async function fetchWorldCupMatches(): Promise<OpenFootballMatch[]> {
     headers,
   })
 
-  if (!response.ok) throw new Error(`World Cup 2026 data failed: ${response.status}`)
+  if (!response.ok) throw new Error(`Summer Cup 2026 data failed: ${response.status}`)
 
   const data = await response.json()
   return Array.isArray(data?.matches) ? data.matches as OpenFootballMatch[] : []

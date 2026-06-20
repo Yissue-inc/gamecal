@@ -20,21 +20,21 @@ ROAR currently lives in `/Users/ck/Yissue_Brain/TTS_Home Supplies_Project/planb-
 - Assets:
   - `public/mini-cup/assets/**`
 
-GamerClock now has a World Cup calendar source:
+GamerClock now has a Summer Cup calendar source:
 
 - `src/lib/world-cup.ts`
 - `src/app/api/world-cup/matches/route.ts`
-- `src/app/api/events/route.ts` merges World Cup matches into the main calendar.
+- `src/app/api/events/route.ts` merges Summer Cup matches into the main calendar.
 - `src/app/api/feed/[game]/route.ts` supports `/api/feed/world-cup`.
 - `/roar` currently exists as a teaser/entry page.
 
-The goal is to make ROAR the interactive game layer for the World Cup calendar, without breaking GamerClock's calendar-first UX.
+The goal is to make ROAR the interactive game layer for the Summer Cup calendar, without breaking GamerClock's calendar-first UX.
 
 ## Product Direction
 
-By July 2026, GamerClock should feel like it has a World Cup 2026 mode:
+By July 2026, GamerClock should feel like it has a Summer Cup 2026 mode:
 
-- Calendar contains every World Cup 2026 fixture as `World Cup 2026` events.
+- Calendar contains every Summer Cup 2026 fixture as `Summer Cup 2026` events.
 - Top calendar takeover invites users to play ROAR.
 - Each match can open a ROAR experience scoped to that match.
 - Users can cheer for one side, fill the crowd, earn coins/ranks, and share proof.
@@ -64,7 +64,7 @@ Prefer a focused port over copying the whole PlanB Lab app:
 
 ## Data Integration
 
-World Cup match events have:
+Summer Cup match events have:
 
 - `id`
 - `title`
@@ -95,21 +95,21 @@ Then select that match from the world cup API. If absent, default to the next up
 - First screen should be the playable game, not a marketing page.
 - Keep mobile portrait excellent.
 - Preserve the stadium/crowd fantasy from ROAR.
-- Make it obvious which World Cup match the user is cheering for.
+- Make it obvious which Summer Cup match the user is cheering for.
 - Add a compact path back to the calendar.
-- Avoid official FIFA logos, official trophy marks, or protected mascots.
-- Use "World Cup 2026" and "ROAR", not official tournament branding beyond generic football/soccer language.
+- Avoid official tournament logos, official trophy marks, or protected mascots.
+- Use "Summer Cup 2026" and "ROAR", not official tournament branding beyond generic football/soccer language.
 
 ## Suggested GamerClock Touchpoints
 
 - Calendar banner CTA: `/roar`
 - Event detail panel CTA for `world-cup` events: `Play ROAR for this match`
-- Weekly highlights World Cup 2026 card should use stadium art.
+- Weekly highlights Summer Cup 2026 card should use stadium art.
 - `/games/world-cup` can link into `/roar`.
 
 ## Assets Already Copied Into GamerClock
 
-- `public/world-cup-hero-stadium.png`
+- `public/mini-cup/assets/themes/hero-stadium.webp`
 - `public/world-cup-crowd-board.webp`
 - `public/world-cup-trophy.png`
 - `public/roar-logo-lockup.png`

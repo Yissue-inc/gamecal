@@ -2308,7 +2308,7 @@ const BADGES: Badge[] = [
     id: "first-roar",
     name: "First Roar",
     icon: "01",
-    image: `${BADGE_ART}badge-01.png`,
+    image: `${BADGE_ART}badge-sc-01.png`,
     tier: "bronze",
     description: "Earn your first support point",
     reward: 20,
@@ -2317,7 +2317,7 @@ const BADGES: Badge[] = [
     id: "tap-30",
     name: "Finger Warm-Up",
     icon: "30",
-    image: `${BADGE_ART}badge-02.png`,
+    image: `${BADGE_ART}badge-sc-02.png`,
     tier: "bronze",
     description: "Tap 30 times",
     reward: 40,
@@ -2326,7 +2326,7 @@ const BADGES: Badge[] = [
     id: "shake-15",
     name: "Shake Signal",
     icon: "15",
-    image: `${BADGE_ART}badge-03.png`,
+    image: `${BADGE_ART}badge-sc-03.png`,
     tier: "bronze",
     description: "Shake 15 times",
     reward: 40,
@@ -2335,7 +2335,7 @@ const BADGES: Badge[] = [
     id: "combo-10",
     name: "Combo Fever",
     icon: "10",
-    image: `${BADGE_ART}badge-04.png`,
+    image: `${BADGE_ART}badge-sc-04.png`,
     tier: "silver",
     description: "Reach combo x10",
     reward: 80,
@@ -2344,7 +2344,7 @@ const BADGES: Badge[] = [
     id: "first-drop",
     name: "First Drop",
     icon: "IT",
-    image: `${BADGE_ART}badge-05.png`,
+    image: `${BADGE_ART}badge-sc-05.png`,
     tier: "silver",
     description: "Collect 1 item",
     reward: 80,
@@ -2353,7 +2353,7 @@ const BADGES: Badge[] = [
     id: "rare-owner",
     name: "Rare Collector",
     icon: "R",
-    image: `${BADGE_ART}badge-06.png`,
+    image: `${BADGE_ART}badge-sc-06.png`,
     tier: "gold",
     description: "Own a rare item",
     reward: 120,
@@ -2362,7 +2362,7 @@ const BADGES: Badge[] = [
     id: "epic-owner",
     name: "Epic Proof",
     icon: "E",
-    image: `${BADGE_ART}badge-07.png`,
+    image: `${BADGE_ART}badge-sc-07.png`,
     tier: "legend",
     description: "Own an epic item",
     reward: 220,
@@ -2371,7 +2371,7 @@ const BADGES: Badge[] = [
     id: "hype-3",
     name: "Stadium Heat",
     icon: "H3",
-    image: `${BADGE_ART}badge-08.png`,
+    image: `${BADGE_ART}badge-sc-08.png`,
     tier: "gold",
     description: "Reach HYPE LV.4",
     reward: 140,
@@ -2380,7 +2380,7 @@ const BADGES: Badge[] = [
     id: "score-500",
     name: "Wrist Booster",
     icon: "500",
-    image: `${BADGE_ART}badge-09.png`,
+    image: `${BADGE_ART}badge-sc-09.png`,
     tier: "gold",
     description: "Score 500 support points",
     reward: 160,
@@ -2782,6 +2782,24 @@ function pickLabel(match: CupMatch, pick: Pick) {
 
 function flagFor(country: string) {
   return FLAG_EMOJI[country] ?? "🏳️";
+}
+
+const TIFO_COUNTRY_CODE: Record<string, string> = {
+  Argentina: "ar",
+  Brazil: "br",
+  England: "en",
+  France: "fr",
+  Germany: "de",
+  Japan: "jp",
+  Mexico: "mx",
+  Portugal: "pt",
+  Spain: "es",
+  "South Korea": "kr",
+};
+
+function tifoSrcFor(country: string) {
+  const code = TIFO_COUNTRY_CODE[country];
+  return code ? `/mini-cup/assets/crowd/tifo/tifo-${code}.webp` : null;
 }
 
 function colorsFor(country: string) {
@@ -3496,6 +3514,7 @@ export function RoarArena({
               : 0;
   const [allyColorA, allyColorB] = colorsFor(selectedCountry);
   const [rivalColorA, rivalColorB] = colorsFor(opponentCountry);
+  const selectedTifoSrc = tifoSrcFor(selectedCountry);
   const hypeTier =
     totalScore > 1000
       ? 5
@@ -5584,6 +5603,13 @@ export function RoarArena({
             }
           >
             <div className="arena-sky" aria-hidden="true" />
+            {selectedTifoSrc && (
+              <div
+                className="selected-country-tifo"
+                aria-hidden="true"
+                style={{ backgroundImage: `url('${selectedTifoSrc}')` }}
+              />
+            )}
             <div className="arena-header">
               <div className="arena-matchline">
                 <div className="arena-kicker">

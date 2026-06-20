@@ -57,11 +57,53 @@ async function getTotals(matchId: string) {
     }))
 }
 
+async function getGlobalTotals(limit = 10) {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('mini_cup_cheer_totals')
+    .select('country, taps, shakes, total, updated_at')
+    .order('total', { ascending: false })
+    .limit(500)
+
+  if (error) {
+    if (isRoarSchemaMissing(error)) return []
+    throw error
+  }
+
+  const totals = new Map<string, { country: string; taps: number; shakes: number; total: number; updatedAt: string }>()
+  for (const row of data ?? []) {
+    const current = totals.get(row.country) ?? {
+      country: row.country,
+      taps: 0,
+      shakes: 0,
+      total: 0,
+      updatedAt: row.updated_at,
+    }
+    current.taps += Number(row.taps) || 0
+    current.shakes += Number(row.shakes) || 0
+    current.total += Number(row.total) || 0
+    if (new Date(String(row.updated_at)).getTime() > new Date(current.updatedAt).getTime()) {
+      current.updatedAt = row.updated_at
+    }
+    totals.set(row.country, current)
+  }
+
+  return Array.from(totals.values())
+    .sort((a, b) => b.total - a.total || a.country.localeCompare(b.country))
+    .slice(0, limit)
+    .map((row) => ({ ...row, team: row.country, score: row.total }))
+}
+
 export async function GET(request: NextRequest) {
   const matchId = cleanRoarText(request.nextUrl.searchParams.get('matchId'))
-  if (!matchId) return NextResponse.json({ error: 'matchId is required' }, { status: 400 })
+  const scope = cleanRoarText(request.nextUrl.searchParams.get('scope'))
   if (!isSupabaseConfigured()) return NextResponse.json({ totals: [] })
   try {
+    if (scope === 'global') {
+      const limit = Math.min(50, Math.max(1, cleanRoarNumber(request.nextUrl.searchParams.get('limit'), 10)))
+      return NextResponse.json({ totals: await getGlobalTotals(limit), scope: 'global' })
+    }
+    if (!matchId) return NextResponse.json({ error: 'matchId is required' }, { status: 400 })
     return NextResponse.json({ totals: await getTotals(matchId) })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Could not load cheer totals' }, { status: 500 })

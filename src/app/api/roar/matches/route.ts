@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       })
 
   return NextResponse.json({
-    source: 'gamerclock-world-cup',
+    source: 'gamerclock-summer-cup',
     realtime: false,
     fetchedAt: new Date().toISOString(),
     counts: {

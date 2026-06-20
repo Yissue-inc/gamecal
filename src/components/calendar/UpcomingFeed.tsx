@@ -50,6 +50,7 @@ type WorldCupStandingRow = {
 type WorldCupPulseData = {
   matches: WorldCupMatchSummary[]
   standings: Record<string, WorldCupStandingRow[]>
+  cheerTotals: Record<string, number>
 }
 
 function formatScorer(goal: WorldCupGoal) {
@@ -62,13 +63,22 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
   useEffect(() => {
     let cancelled = false
 
-    fetch('/api/world-cup/matches?limit=200')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((payload) => {
+    Promise.all([
+      fetch('/api/world-cup/matches?limit=200').then((res) => (res.ok ? res.json() : null)),
+      fetch('/api/roar/cheer?scope=global&limit=80').then((res) => (res.ok ? res.json() : null)).catch(() => null),
+    ])
+      .then(([payload, cheerPayload]) => {
         if (!cancelled && payload) {
+          const cheerTotals = Object.fromEntries(
+            ((cheerPayload?.totals ?? []) as Array<{ country: string; total: number }>).map((row) => [
+              row.country,
+              Number(row.total) || 0,
+            ])
+          )
           setData({
             matches: payload.matches ?? [],
             standings: payload.standings ?? {},
+            cheerTotals,
           })
         }
       })
@@ -170,7 +180,9 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
                 <div key={row.team} className="grid grid-cols-[18px_1fr_auto_auto] items-center gap-1 text-[10px] text-zinc-300">
                   <span className="font-mono text-zinc-500">{index + 1}</span>
                   <span className="truncate font-semibold text-zinc-100">{row.team}</span>
-                  <span className="font-mono text-zinc-500">GD {row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</span>
+                  <span className="font-mono text-zinc-500">
+                    ROAR {data?.cheerTotals[row.team] ? Intl.NumberFormat().format(data.cheerTotals[row.team]) : '0'}
+                  </span>
                   <span className="font-mono font-bold text-emerald-200">{row.points} pts</span>
                 </div>
               ))}

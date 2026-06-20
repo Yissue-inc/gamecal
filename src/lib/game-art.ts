@@ -1,7 +1,7 @@
 import type { Game, GameEvent } from '@/types'
 
 const GAME_ART_BY_SLUG: Record<string, string> = {
-  'world-cup': '/world-cup-hero-stadium.png',
+  'world-cup': '/mini-cup/assets/themes/hero-stadium.webp',
   fortnite: 'https://images.igdb.com/igdb/image/upload/t_1080p/cobz58.jpg',
   apex: 'https://images.igdb.com/igdb/image/upload/t_1080p/coc1di.jpg',
   valorant: 'https://images.igdb.com/igdb/image/upload/t_1080p/cobtjo.jpg',

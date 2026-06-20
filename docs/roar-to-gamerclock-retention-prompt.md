@@ -1,12 +1,12 @@
 # ROAR → GamerClock Retention Loop Prompt
 
-You are the ROAR implementation agent. GamerClock is the parent product and ROAR is the World Cup 2026 participation layer inside it.
+You are the ROAR implementation agent. GamerClock is the parent product and ROAR is the Summer Cup 2026 participation layer inside it.
 
 ## Product Intent
 
 ROAR should not behave like a detached mini-game. It should create a loop:
 
-1. User arrives for World Cup match interest.
+1. User arrives for Summer Cup match interest.
 2. GamerClock shows the match calendar, scores, scorers, and group standings.
 3. User enters ROAR for a specific match.
 4. ROAR gives the user a reason to cheer, pick a side, earn a rank, and share.
@@ -28,7 +28,7 @@ GamerClock already has:
   - goal scorers
   - group standings
   - ROAR CTA
-- World Cup 2026 event detail CTA:
+- Summer Cup 2026 event detail CTA:
   - `/roar?matchId=<world-cup-event-id>&source=event_detail`
 
 GamerClock has also added account-owned ROAR API endpoints:
@@ -67,9 +67,9 @@ Design and implement the post-game and in-game retention prompts that return use
    - Show score, rank, supported team, and match title.
    - Primary CTA:
      - “Follow next match”
-     - links to `/` with World Cup 2026 still selected.
+     - links to `/` with Summer Cup 2026 still selected.
    - Secondary CTA:
-     - “Add World Cup calendar”
+     - “Add Summer Cup calendar”
      - links to `/api/feed/world-cup`
    - Tertiary CTA:
      - “Track my other games”
@@ -92,7 +92,7 @@ Design and implement the post-game and in-game retention prompts that return use
 - “You backed Brazil. Follow their next match on GamerClock.”
 - “Your ROAR rank is saved to your GamerClock profile.”
 - “Don’t miss the next kickoff.”
-- “Add the World Cup calendar.”
+- “Add the Summer Cup calendar.”
 - “Track the games you actually play after the match.”
 
 ## Analytics Events
@@ -129,7 +129,7 @@ Use properties:
 - Use `deviceId` for guest-only session/cheer.
 - Save score only after sign-in via `/api/roar/score`.
 - Keep UI mobile-first.
-- Avoid official FIFA logos, official trophy marks, or protected mascots.
+- Avoid official tournament logos, official trophy marks, or protected mascots.
 
 ## QA
 
