@@ -9,6 +9,7 @@ import { GameCalendar } from '@/components/calendar/GameCalendar'
 import { GuestBanner } from '@/components/calendar/GuestBlur'
 import { WeeklyHighlights } from '@/components/calendar/WeeklyHighlights'
 import { WorldCupTakeover } from '@/components/calendar/WorldCupTakeover'
+import { RoarPromoDialog } from '@/components/calendar/RoarPromoDialog'
 import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
 import { ClashAlert } from '@/components/calendar/ClashAlert'
 import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
@@ -304,6 +305,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         onComplete={() => setShowOnboarding(false)}
       />
       <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+      <RoarPromoDialog events={allEvents} />
     </div>
   )
 }
