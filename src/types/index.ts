@@ -60,6 +60,7 @@ export interface GameEvent {
   reward_score?: number
   is_time_limited_reward?: boolean
   source_confidence?: SourceConfidence
+  metadata?: Record<string, unknown>
   is_published: boolean
   created_at: string
 }

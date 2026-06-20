@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
 import { usePreferences } from '@/hooks/usePreferences'
 import type { GameEvent, NewRelease } from '@/types'
 import {
@@ -20,6 +22,165 @@ import {
   getSourceConfidenceLabel,
   getSourceConfidenceTooltip,
 } from '@/lib/reward-signals'
+import { WORLD_CUP_SLUG } from '@/lib/world-cup-config'
+
+type WorldCupGoal = {
+  name: string
+  minute?: string
+  penalty?: boolean
+}
+
+type WorldCupMatchSummary = {
+  id: string
+  title: string
+  startAt: string
+  group?: string
+  score?: { ft?: [number, number] }
+  goals1?: WorldCupGoal[]
+  goals2?: WorldCupGoal[]
+}
+
+type WorldCupStandingRow = {
+  team: string
+  played: number
+  goalDifference: number
+  points: number
+}
+
+type WorldCupPulseData = {
+  matches: WorldCupMatchSummary[]
+  standings: Record<string, WorldCupStandingRow[]>
+}
+
+function formatScorer(goal: WorldCupGoal) {
+  return `${goal.name}${goal.minute ? ` ${goal.minute}'` : ''}${goal.penalty ? ' pen' : ''}`
+}
+
+function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
+  const [data, setData] = useState<WorldCupPulseData | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch('/api/world-cup/matches?limit=200')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        if (!cancelled && payload) {
+          setData({
+            matches: payload.matches ?? [],
+            standings: payload.standings ?? {},
+          })
+        }
+      })
+      .catch(() => undefined)
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const now = Date.now()
+  const nextMatch = useMemo(() => {
+    const fromApi = data?.matches
+      ?.filter((match) => new Date(match.startAt).getTime() >= now)
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())[0]
+    if (fromApi) return fromApi
+
+    const fromEvents = events
+      .filter((event) => event.game?.slug === WORLD_CUP_SLUG)
+      .filter((event) => new Date(event.start_at).getTime() >= now)
+      .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())[0]
+    return fromEvents
+      ? {
+          id: fromEvents.id,
+          title: fromEvents.title,
+          startAt: fromEvents.start_at,
+          group: String(fromEvents.metadata?.group ?? ''),
+        }
+      : null
+  }, [data?.matches, events, now])
+
+  const recentResults = useMemo(() => {
+    return (data?.matches ?? [])
+      .filter((match) => match.score?.ft)
+      .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime())
+      .slice(0, 2)
+  }, [data?.matches])
+
+  const standingsGroups = useMemo(() => {
+    const preferredGroup = nextMatch?.group
+    const groups = Object.keys(data?.standings ?? {})
+    return [
+      ...(preferredGroup && data?.standings?.[preferredGroup] ? [preferredGroup] : []),
+      ...groups.filter((group) => group !== preferredGroup),
+    ].slice(0, 2)
+  }, [data?.standings, nextMatch?.group])
+
+  if (!events.some((event) => event.game?.slug === WORLD_CUP_SLUG) && !data?.matches?.length) return null
+
+  return (
+    <section className="border-b border-emerald-400/20 bg-emerald-950/20 px-3 py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-300">World Cup Pulse</div>
+          <div className="mt-0.5 line-clamp-1 text-xs font-bold text-white">
+            {nextMatch ? `Next: ${nextMatch.title}` : 'Scores, scorers, standings'}
+          </div>
+        </div>
+        <Link
+          href={nextMatch ? `/roar?matchId=${encodeURIComponent(nextMatch.id)}` : '/roar'}
+          className="shrink-0 rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-950"
+        >
+          ROAR
+        </Link>
+      </div>
+
+      {recentResults.length > 0 && (
+        <div className="space-y-2">
+          {recentResults.map((match) => {
+            const [homeScore, awayScore] = match.score?.ft ?? [0, 0]
+            const [homeTeam, awayTeam] = match.title.split(' vs ')
+            const goals = [...(match.goals1 ?? []), ...(match.goals2 ?? [])].slice(0, 4)
+            return (
+              <div key={match.id} className="rounded-md border border-white/10 bg-black/20 p-2">
+                <div className="flex items-center justify-between gap-2 text-xs font-bold text-white">
+                  <span className="truncate">{homeTeam}</span>
+                  <span className="rounded bg-white/10 px-2 py-0.5 font-mono text-emerald-100">
+                    {homeScore} - {awayScore}
+                  </span>
+                  <span className="truncate text-right">{awayTeam}</span>
+                </div>
+                {goals.length > 0 && (
+                  <div className="mt-1 line-clamp-2 text-[10px] leading-4 text-emerald-100/70">
+                    Goals: {goals.map(formatScorer).join(', ')}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {standingsGroups.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {standingsGroups.map((group) => (
+            <div key={group} className="rounded-md border border-white/10 bg-black/20 p-2">
+              <div className="mb-1 text-[10px] font-black uppercase tracking-wider text-emerald-200">{group}</div>
+              {(data?.standings[group] ?? []).slice(0, 4).map((row, index) => (
+                <div key={row.team} className="grid grid-cols-[18px_1fr_auto_auto] items-center gap-1 text-[10px] text-zinc-300">
+                  <span className="font-mono text-zinc-500">{index + 1}</span>
+                  <span className="truncate font-semibold text-zinc-100">{row.team}</span>
+                  <span className="font-mono text-zinc-500">GD {row.goalDifference > 0 ? '+' : ''}{row.goalDifference}</span>
+                  <span className="font-mono font-bold text-emerald-200">{row.points} pts</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
 
 function UpcomingItem({
   event,
@@ -189,6 +350,7 @@ export function UpcomingFeed({
         <span className="text-sm text-yellow-400">⚡</span>
       </div>
       <div className="flex-1 overflow-y-auto">
+        <WorldCupPulsePanel events={events} />
         {groupLabels.map((day) => (
           <div key={day}>
             <div className="sticky top-0 border-b border-zinc-800/50 bg-[#111111] px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-500">

@@ -22,10 +22,33 @@ type OpenFootballMatch = {
   group?: string
   ground?: string
   score?: { ft?: [number, number] }
+  goals1?: WorldCupGoal[]
+  goals2?: WorldCupGoal[]
 }
 
 const DEFAULT_WORLD_CUP_DATA_URL =
   'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json'
+
+export type WorldCupGoal = {
+  name: string
+  minute?: string
+  penalty?: boolean
+  ownGoal?: boolean
+}
+
+export type WorldCupTeamStanding = {
+  team: string
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  goalsFor: number
+  goalsAgainst: number
+  goalDifference: number
+  points: number
+}
+
+export type WorldCupStandings = Record<string, WorldCupTeamStanding[]>
 
 export function appendWorldCupGame(games: Game[]): Game[] {
   if (games.some((game) => game.slug === WORLD_CUP_SLUG)) return games
@@ -61,6 +84,10 @@ function matchToEvent(match: OpenFootballMatch, index: number): GameEvent {
   const team1 = match.team1 || 'Team A'
   const team2 = match.team2 || 'Team B'
   const score = match.score?.ft ? ` Final score: ${match.score.ft[0]}-${match.score.ft[1]}.` : ''
+  const goals = [...(match.goals1 ?? []), ...(match.goals2 ?? [])]
+  const scorers = goals.length
+    ? ` Goals: ${goals.map((goal) => `${goal.name}${goal.minute ? ` ${goal.minute}'` : ''}${goal.penalty ? ' pen' : ''}`).join(', ')}.`
+    : ''
   const venue = match.ground ? ` Venue: ${match.ground}.` : ''
   const group = match.group ? `${match.group} · ` : ''
 
@@ -69,7 +96,7 @@ function matchToEvent(match: OpenFootballMatch, index: number): GameEvent {
     game_id: WORLD_CUP_GAME.id,
     game: WORLD_CUP_GAME,
     title: `${team1} vs ${team2}`,
-    description: `${group}${match.round ?? 'World Cup match'}.${venue}${score}`.trim(),
+    description: `${group}${match.round ?? 'World Cup match'}.${venue}${score}${scorers}`.trim(),
     event_type: 'tournament',
     importance: match.round?.toLowerCase().includes('final') ? 'critical' : 'high',
     start_at: start.toISOString(),
@@ -83,16 +110,22 @@ function matchToEvent(match: OpenFootballMatch, index: number): GameEvent {
     reward_score: 60,
     is_time_limited_reward: true,
     source_confidence: 'media',
+    metadata: {
+      round: match.round,
+      group: match.group,
+      venue: match.ground,
+      team1,
+      team2,
+      score: match.score,
+      goals1: match.goals1 ?? [],
+      goals2: match.goals2 ?? [],
+    },
     is_published: true,
     created_at: new Date().toISOString(),
   }
 }
 
-export async function fetchWorldCupEvents(options: {
-  start?: string | null
-  end?: string | null
-  limit?: number
-} = {}): Promise<GameEvent[]> {
+async function fetchWorldCupMatches(): Promise<OpenFootballMatch[]> {
   const source = process.env.WORLD_CUP_DATA_URL ?? process.env.MINI_CUP_DATA_URL ?? DEFAULT_WORLD_CUP_DATA_URL
   const headers = process.env.WORLD_CUP_API_KEY || process.env.MINI_CUP_API_KEY
     ? { Authorization: `Bearer ${process.env.WORLD_CUP_API_KEY ?? process.env.MINI_CUP_API_KEY}` }
@@ -106,19 +139,96 @@ export async function fetchWorldCupEvents(options: {
   if (!response.ok) throw new Error(`World Cup data failed: ${response.status}`)
 
   const data = await response.json()
-  const rawMatches = Array.isArray(data?.matches) ? data.matches as OpenFootballMatch[] : []
+  return Array.isArray(data?.matches) ? data.matches as OpenFootballMatch[] : []
+}
+
+function filterWorldCupEvents(events: GameEvent[], options: {
+  start?: string | null
+  end?: string | null
+  limit?: number
+} = {}) {
   const startMs = options.start ? new Date(options.start).getTime() : Number.NEGATIVE_INFINITY
   const endMs = options.end ? new Date(options.end).getTime() : Number.POSITIVE_INFINITY
   const limit = options.limit ?? 200
 
-  return rawMatches
-    .map(matchToEvent)
+  return events
     .filter((event) => {
       const eventStart = new Date(event.start_at).getTime()
       return eventStart >= startMs && eventStart <= endMs
     })
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
     .slice(0, limit)
+}
+
+export async function fetchWorldCupEvents(options: {
+  start?: string | null
+  end?: string | null
+  limit?: number
+} = {}): Promise<GameEvent[]> {
+  const rawMatches = await fetchWorldCupMatches()
+  return filterWorldCupEvents(rawMatches.map(matchToEvent), options)
+}
+
+function emptyStanding(team: string): WorldCupTeamStanding {
+  return {
+    team,
+    played: 0,
+    won: 0,
+    drawn: 0,
+    lost: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+    goalDifference: 0,
+    points: 0,
+  }
+}
+
+function addResult(
+  standings: Map<string, WorldCupTeamStanding>,
+  team: string,
+  goalsFor: number,
+  goalsAgainst: number
+) {
+  const row = standings.get(team) ?? emptyStanding(team)
+  row.played += 1
+  row.goalsFor += goalsFor
+  row.goalsAgainst += goalsAgainst
+  row.goalDifference = row.goalsFor - row.goalsAgainst
+  if (goalsFor > goalsAgainst) {
+    row.won += 1
+    row.points += 3
+  } else if (goalsFor === goalsAgainst) {
+    row.drawn += 1
+    row.points += 1
+  } else {
+    row.lost += 1
+  }
+  standings.set(team, row)
+}
+
+export async function fetchWorldCupStandings(): Promise<WorldCupStandings> {
+  const rawMatches = await fetchWorldCupMatches()
+  const grouped = new Map<string, Map<string, WorldCupTeamStanding>>()
+
+  for (const match of rawMatches) {
+    if (!match.group || !match.team1 || !match.team2 || !match.score?.ft) continue
+    const group = grouped.get(match.group) ?? new Map<string, WorldCupTeamStanding>()
+    addResult(group, match.team1, match.score.ft[0], match.score.ft[1])
+    addResult(group, match.team2, match.score.ft[1], match.score.ft[0])
+    grouped.set(match.group, group)
+  }
+
+  return Object.fromEntries(
+    Array.from(grouped.entries()).map(([group, rows]) => [
+      group,
+      Array.from(rows.values()).sort((a, b) =>
+        b.points - a.points ||
+        b.goalDifference - a.goalDifference ||
+        b.goalsFor - a.goalsFor ||
+        a.team.localeCompare(b.team)
+      ),
+    ])
+  )
 }
 
 export function getRoarUrl(): string {
