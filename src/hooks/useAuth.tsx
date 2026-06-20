@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 
@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const supabaseConfigured = isSupabaseConfigured()
+  const lastTrackedAuthUserIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!supabaseConfigured) {
@@ -59,8 +60,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
             await supabase.from('user_preferences').insert({ id: session.user.id, timezone: tz })
           }
-          const { identifyUser } = await import('@/lib/posthog')
+          const {
+            consumePendingAuthContext,
+            identifyUser,
+            trackAuthSuccess,
+          } = await import('@/lib/posthog')
           identifyUser(session.user.id, { email: session.user.email })
+          const pendingAuth = consumePendingAuthContext()
+          if (pendingAuth && lastTrackedAuthUserIdRef.current !== session.user.id) {
+            trackAuthSuccess({
+              ...pendingAuth,
+              user_id: session.user.id,
+            })
+            lastTrackedAuthUserIdRef.current = session.user.id
+          }
+        } else {
+          lastTrackedAuthUserIdRef.current = null
         }
       })
       unsubscribe = () => subscription.unsubscribe()

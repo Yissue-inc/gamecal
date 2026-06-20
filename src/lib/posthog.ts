@@ -2,6 +2,7 @@ import posthog from 'posthog-js'
 import { track as trackVercelEvent } from '@vercel/analytics'
 
 const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
+const PENDING_AUTH_KEY = 'gamerclock-pending-auth-context'
 const gaMeasurementId =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ||
   process.env.NEXT_PUBLIC_GA4_ID ||
@@ -9,6 +10,9 @@ const gaMeasurementId =
 
 type AnalyticsProperties = Record<string, unknown>
 type FlatAnalyticsProperties = Record<string, string | number | boolean | null | undefined>
+type AuthMethod = 'google' | 'apple' | 'email'
+type AuthMode = 'sign_in' | 'sign_up'
+type AuthTrackingMeta = { method: AuthMethod; mode: AuthMode; source?: string }
 
 declare global {
   interface Window {
@@ -82,6 +86,32 @@ export function trackEvent(event: string, properties?: AnalyticsProperties) {
   }
 }
 
+function canUseStorage() {
+  return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined'
+}
+
+export function persistPendingAuthContext(meta: AuthTrackingMeta) {
+  if (!canUseStorage()) return
+  window.sessionStorage.setItem(PENDING_AUTH_KEY, JSON.stringify({ ...meta, started_at: Date.now() }))
+}
+
+export function consumePendingAuthContext(): (AuthTrackingMeta & { started_at?: number }) | null {
+  if (!canUseStorage()) return null
+  const raw = window.sessionStorage.getItem(PENDING_AUTH_KEY)
+  if (!raw) return null
+  window.sessionStorage.removeItem(PENDING_AUTH_KEY)
+  try {
+    return JSON.parse(raw) as AuthTrackingMeta & { started_at?: number }
+  } catch {
+    return null
+  }
+}
+
+export function clearPendingAuthContext() {
+  if (!canUseStorage()) return
+  window.sessionStorage.removeItem(PENDING_AUTH_KEY)
+}
+
 /** Wishlist */
 export function trackWishlistAdded(eventId: string, gameSlug?: string) {
   trackEvent('wishlist_added', { event_id: eventId, game_slug: gameSlug })
@@ -121,11 +151,19 @@ export function trackPartyReferralInstallClick(meta: { source_slug: string; game
 }
 
 /** Auth */
-export function trackAuthStarted(meta: { method: 'google' | 'email'; mode: 'sign_in' | 'sign_up'; source?: string }) {
+export function trackAuthStarted(meta: AuthTrackingMeta) {
   trackEvent('auth_started', meta)
 }
 
-export function trackAuthFailed(meta: { method: 'google' | 'email'; mode: 'sign_in' | 'sign_up'; reason?: string }) {
+export function trackAuthSubmitted(meta: AuthTrackingMeta) {
+  trackEvent('auth_submitted', meta)
+}
+
+export function trackAuthSuccess(meta: AuthTrackingMeta & { user_id?: string }) {
+  trackEvent('auth_success', meta)
+}
+
+export function trackAuthFailed(meta: AuthTrackingMeta & { reason?: string }) {
   trackEvent('auth_failed', meta)
 }
 

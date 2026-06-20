@@ -4509,13 +4509,17 @@
 @media (max-width: 640px) {
   .arena-scoreline {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 7px;
+    grid-template-columns: minmax(0, 1.14fr) auto minmax(0, .86fr);
+    gap: 4px;
   }
 
   .score-team {
-    gap: 4px;
+    gap: 3px;
     min-width: 0;
+  }
+
+  .score-flag {
+    font-size: 15px;
   }
 
   .score-name {
@@ -4531,7 +4535,7 @@
   }
 
   .score-num {
-    font-size: clamp(16px, 4.5vw, 18px) !important;
+    font-size: clamp(15px, 4.2vw, 17px) !important;
   }
 
   .mini-mascot-avatar {

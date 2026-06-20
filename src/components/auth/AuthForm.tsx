@@ -6,7 +6,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
-import { trackAuthFailed, trackAuthStarted } from '@/lib/posthog'
+import {
+  clearPendingAuthContext,
+  persistPendingAuthContext,
+  trackAuthFailed,
+  trackAuthStarted,
+  trackAuthSubmitted,
+} from '@/lib/posthog'
 
 interface AuthFormProps {
   compact?: boolean
@@ -25,19 +31,24 @@ export function AuthForm({ compact = false, nextPath, source }: AuthFormProps) {
   const [oauthLoading, setOauthLoading] = useState<'google' | null>(null)
 
   const loading = emailLoading || oauthLoading !== null
+  const authSource = source ?? nextPath
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setEmailLoading(true)
     setError(null)
     setMessage(null)
-    trackAuthStarted({ method: 'email', mode: isSignUp ? 'sign_up' : 'sign_in', source: source ?? nextPath })
+    const meta = { method: 'email' as const, mode: isSignUp ? 'sign_up' as const : 'sign_in' as const, source: authSource }
+    persistPendingAuthContext(meta)
+    trackAuthStarted(meta)
+    trackAuthSubmitted(meta)
     const fn = isSignUp ? signUpWithEmail : signInWithEmail
     const { error: err } = isSignUp
       ? await signUpWithEmail(email, password, nextPath)
       : await fn(email, password)
     if (err) {
-      trackAuthFailed({ method: 'email', mode: isSignUp ? 'sign_up' : 'sign_in', reason: err })
+      clearPendingAuthContext()
+      trackAuthFailed({ ...meta, reason: err })
       setError(err)
     } else if (isSignUp) {
       setMessage('Check your email to finish creating your GamerClock account.')
@@ -49,10 +60,14 @@ export function AuthForm({ compact = false, nextPath, source }: AuthFormProps) {
     setOauthLoading(provider)
     setError(null)
     setMessage(null)
-    trackAuthStarted({ method: provider, mode: 'sign_in', source: source ?? nextPath })
+    const meta = { method: provider, mode: 'sign_in' as const, source: authSource }
+    persistPendingAuthContext(meta)
+    trackAuthStarted(meta)
+    trackAuthSubmitted(meta)
     const { error: err } = await signInWithGoogle(nextPath)
     if (err) {
-      trackAuthFailed({ method: provider, mode: 'sign_in', reason: err })
+      clearPendingAuthContext()
+      trackAuthFailed({ ...meta, reason: err })
       setError(err)
       setOauthLoading(null)
     }
