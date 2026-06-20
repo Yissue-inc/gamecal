@@ -3341,7 +3341,11 @@ export function RoarArena({
   const [boardSide, setBoardSide] = useState<BoardSide>("ally");
   const [runnerBestProgress, setRunnerBestProgress] = useState(0);
   const [locale, setLocale] = useState<LocaleCode>("en");
-  const [onboarded, setOnboarded] = useState(false);
+  const [onboarded, setOnboarded] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem("roar-onboarded") === "1",
+  );
   const [playerName, setPlayerName] = useState("");
   const [draftPlayerName, setDraftPlayerName] = useState("");
   const [mascotPose, setMascotPose] = useState<MascotPose>("idle");
@@ -3498,11 +3502,20 @@ export function RoarArena({
     setSelectedMatchId((current) =>
       current === scopedMatch.id ? current : scopedMatch.id,
     );
-    setSelectedCountry((current) =>
-      current === scopedMatch.team1 || current === scopedMatch.team2
-        ? current
-        : scopedMatch.team1,
-    );
+    setSelectedCountry((current) => {
+      const storedCountry =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("roar-country")
+          : null;
+      const preferredCountry =
+        storedCountry === scopedMatch.team1 || storedCountry === scopedMatch.team2
+          ? storedCountry
+          : current;
+      return preferredCountry === scopedMatch.team1 ||
+        preferredCountry === scopedMatch.team2
+        ? preferredCountry
+        : scopedMatch.team1;
+    });
   }, [initialMatchId, matches]);
 
   const playerDisplayName = playerName.trim() || "Roari Fan";
