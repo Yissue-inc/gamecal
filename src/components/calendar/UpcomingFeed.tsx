@@ -122,13 +122,13 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
     <section className="border-b border-emerald-400/20 bg-emerald-950/20 px-3 py-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-300">World Cup Pulse</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-300">Summer Cup Pulse</div>
           <div className="mt-0.5 line-clamp-1 text-xs font-bold text-white">
             {nextMatch ? `Next: ${nextMatch.title}` : 'Scores, scorers, standings'}
           </div>
         </div>
         <Link
-          href={nextMatch ? `/roar?matchId=${encodeURIComponent(nextMatch.id)}` : '/roar'}
+          href={nextMatch ? `/roar?match=${encodeURIComponent(nextMatch.id)}&source=next_up_pulse` : '/roar?source=next_up_pulse'}
           className="shrink-0 rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-950"
         >
           ROAR

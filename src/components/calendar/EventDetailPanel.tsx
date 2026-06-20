@@ -1,9 +1,11 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
-import { X, ExternalLink, Calendar, Clock } from 'lucide-react'
+import { X, ExternalLink, Calendar, Clock, RadioTower } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { AddToCalendar } from '@/components/calendar/AddToCalendar'
 import { ShareEvent } from '@/components/calendar/ShareEvent'
@@ -32,6 +34,18 @@ import {
 import { usePreferences } from '@/hooks/usePreferences'
 import type { Game, GameEvent } from '@/types'
 
+const EmbeddedRoarArena = dynamic(
+  () => import('@/components/roar/RoarArena').then((mod) => mod.RoarArena),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid min-h-[60vh] place-items-center rounded-2xl bg-[#070d1f] text-sm font-bold text-[#cdd9f5]">
+        Loading ROAR...
+      </div>
+    ),
+  },
+)
+
 interface EventDetailPanelProps {
   event: GameEvent | null
   game: Game | null
@@ -42,6 +56,7 @@ interface EventDetailPanelProps {
 
 function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: Game; onClose: () => void }) {
   const { preferences } = usePreferences()
+  const [roarOpen, setRoarOpen] = useState(false)
   const artUrl = getEventArtUrl(event, game)
   const description = getEventFallbackDescription(event, game)
   const reward = getRewardSignals(event, game)
@@ -183,11 +198,39 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
 
         <PartyButton event={event} game={game} />
         {game.slug === WORLD_CUP_SLUG && (
-          <Button className="w-full bg-emerald-400 text-emerald-950 hover:bg-emerald-300" asChild>
-            <a href={`/roar?matchId=${encodeURIComponent(event.id)}&source=event_detail`}>
-              Pick your side in ROAR
-            </a>
-          </Button>
+          <>
+            <section data-theme="stadium" className="rounded-lg border border-[color:var(--acc)]/35 bg-[color:var(--card)] p-4 text-[color:var(--txt)]">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-[color:var(--acc)]/15 p-2 text-[color:var(--acc)]">
+                  <RadioTower className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--text-lo)]">ROAR match panel</div>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--text-mid)]">
+                    Back a team, build the crowd, and keep this match tied to your GamerClock session.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Button className="bg-[color:var(--acc)] text-[#07111f] hover:brightness-110" onClick={() => setRoarOpen(true)}>
+                  Back team in ROAR
+                </Button>
+                <Button variant="outline" className="border-white/15 bg-black/20 text-white hover:bg-white/10" asChild>
+                  <a href={`/roar?match=${encodeURIComponent(event.id)}&source=event_detail`}>
+                    Open full arena
+                  </a>
+                </Button>
+              </div>
+            </section>
+            <Dialog open={roarOpen} onOpenChange={setRoarOpen}>
+              <DialogContent className="max-h-[94vh] max-w-6xl overflow-y-auto border-white/15 bg-[#070d1f] p-2">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>ROAR embedded match arena</DialogTitle>
+                </DialogHeader>
+                <EmbeddedRoarArena initialMatchId={event.id} source="event_detail_embed" embedded />
+              </DialogContent>
+            </Dialog>
+          </>
         )}
         <AddToCalendar event={event} game={game} />
         <ShareEvent event={event} game={game} />

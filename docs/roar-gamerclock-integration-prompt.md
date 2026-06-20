@@ -32,9 +32,9 @@ The goal is to make ROAR the interactive game layer for the World Cup calendar, 
 
 ## Product Direction
 
-By July 2026, GamerClock should feel like it has a World Cup mode:
+By July 2026, GamerClock should feel like it has a World Cup 2026 mode:
 
-- Calendar contains every World Cup fixture as `World Cup` events.
+- Calendar contains every World Cup 2026 fixture as `World Cup 2026` events.
 - Top calendar takeover invites users to play ROAR.
 - Each match can open a ROAR experience scoped to that match.
 - Users can cheer for one side, fill the crowd, earn coins/ranks, and share proof.
@@ -98,13 +98,13 @@ Then select that match from the world cup API. If absent, default to the next up
 - Make it obvious which World Cup match the user is cheering for.
 - Add a compact path back to the calendar.
 - Avoid official FIFA logos, official trophy marks, or protected mascots.
-- Use "World Cup" and "ROAR", not official tournament branding beyond generic football/soccer language.
+- Use "World Cup 2026" and "ROAR", not official tournament branding beyond generic football/soccer language.
 
 ## Suggested GamerClock Touchpoints
 
 - Calendar banner CTA: `/roar`
 - Event detail panel CTA for `world-cup` events: `Play ROAR for this match`
-- Weekly highlights World Cup card should use stadium art.
+- Weekly highlights World Cup 2026 card should use stadium art.
 - `/games/world-cup` can link into `/roar`.
 
 ## Assets Already Copied Into GamerClock

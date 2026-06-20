@@ -1,6 +1,6 @@
 # ROAR → GamerClock Retention Loop Prompt
 
-You are the ROAR implementation agent. GamerClock is the parent product and ROAR is the World Cup participation layer inside it.
+You are the ROAR implementation agent. GamerClock is the parent product and ROAR is the World Cup 2026 participation layer inside it.
 
 ## Product Intent
 
@@ -23,12 +23,12 @@ GamerClock already has:
 - `/api/world-cup/matches`
 - `/api/events?game=world-cup`
 - `/api/feed/world-cup`
-- `NEXT UP` World Cup Pulse panel with:
+- `NEXT UP` Summer Cup Pulse panel with:
   - recent scores
   - goal scorers
   - group standings
   - ROAR CTA
-- World Cup event detail CTA:
+- World Cup 2026 event detail CTA:
   - `/roar?matchId=<world-cup-event-id>&source=event_detail`
 
 GamerClock has also added account-owned ROAR API endpoints:
@@ -67,7 +67,7 @@ Design and implement the post-game and in-game retention prompts that return use
    - Show score, rank, supported team, and match title.
    - Primary CTA:
      - “Follow next match”
-     - links to `/` with World Cup still selected.
+     - links to `/` with World Cup 2026 still selected.
    - Secondary CTA:
      - “Add World Cup calendar”
      - links to `/api/feed/world-cup`

@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   const matchId = cleanRoarText(body.matchId)
-  const matchTitle = cleanRoarText(body.matchTitle, 'World Cup match')
+  const matchTitle = cleanRoarText(body.matchTitle, 'Summer Cup 2026 match')
   const team = cleanRoarText(body.team)
   const score = cleanRoarNumber(body.score)
   const rankLabel = cleanRoarText(body.rankLabel)

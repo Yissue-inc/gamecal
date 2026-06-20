@@ -25,7 +25,15 @@ async function getTotals(matchId: string) {
     current.score += Number(row.score_delta) || 0
     totals.set(row.team, current)
   }
-  return Array.from(totals.values()).sort((a, b) => b.score - a.score || b.taps - a.taps)
+  return Array.from(totals.values())
+    .sort((a, b) => b.score - a.score || b.taps - a.taps)
+    .map((row) => ({
+      ...row,
+      country: row.team,
+      total: row.score,
+      shakes: Math.max(0, row.score - row.taps),
+      updatedAt: new Date().toISOString(),
+    }))
 }
 
 export async function GET(request: NextRequest) {
@@ -48,9 +56,10 @@ export async function POST(request: NextRequest) {
   }
 
   const matchId = cleanRoarText(body.matchId)
-  const matchTitle = cleanRoarText(body.matchTitle, 'World Cup match')
-  const team = cleanRoarText(body.team)
+  const matchTitle = cleanRoarText(body.matchTitle, 'Summer Cup 2026 match')
+  const team = cleanRoarText(body.team ?? body.country)
   const taps = Math.min(500, cleanRoarNumber(body.taps, 1))
+  const shakes = Math.min(500, cleanRoarNumber(body.shakes, 0))
   const source = cleanRoarText(body.source, 'direct')
 
   if (!matchId || !matchTitle || !team) {
@@ -59,8 +68,8 @@ export async function POST(request: NextRequest) {
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({
-      accepted: { matchId, matchTitle, team, taps, scoreDelta: taps },
-      totals: [{ team, taps, score: taps }],
+      accepted: { matchId, matchTitle, team, country: team, taps, shakes, scoreDelta: taps + shakes },
+      totals: [{ team, country: team, taps, shakes, score: taps + shakes, total: taps + shakes, updatedAt: new Date().toISOString() }],
       identity: 'mock',
     })
   }
@@ -74,7 +83,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'deviceId is required for guest cheers' }, { status: 400 })
   }
 
-  const scoreDelta = taps
+  const scoreDelta = taps + shakes
   const admin = createAdminClient()
   const { error } = await admin.from('roar_cheers').insert({
     user_id: identity.userId,

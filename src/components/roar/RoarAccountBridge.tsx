@@ -111,7 +111,7 @@ export function RoarAccountBridge() {
             GamerClock ID Bridge
           </div>
           <h2 className="mt-2 font-rajdhani text-2xl font-black text-white">
-            {selectedMatch?.title ?? 'World Cup match'}
+            {selectedMatch?.title ?? 'Summer Cup match'}
           </h2>
           <p className="mt-1 text-sm text-emerald-50/65">
             {selectedMatch?.group ? `${selectedMatch.group} · ` : ''}
@@ -149,7 +149,7 @@ export function RoarAccountBridge() {
           <div className="space-y-3">
             <div className="flex items-start gap-2 text-sm text-emerald-50/75">
               <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" />
-              You can preview ROAR now. Sign in to save scores, claim ranks, and keep your World Cup history.
+              You can preview ROAR now. Sign in to save scores, claim ranks, and keep your Summer Cup 2026 history.
             </div>
             <Button variant="outline" className="border-white/20 bg-black/20 text-white hover:bg-white/10" onClick={() => setAuthOpen(true)}>
               Sign in to claim ROAR progress

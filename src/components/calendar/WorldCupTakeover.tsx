@@ -18,8 +18,9 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
 
   return (
     <section
+      data-theme="stadium"
       data-testid="world-cup-takeover"
-      className="relative shrink-0 overflow-hidden border-b border-emerald-400/20 bg-[#06130d]"
+      className="relative shrink-0 overflow-hidden border-b border-[color:var(--acc2)]/20 bg-[color:var(--bg)]"
     >
       <div
         className="absolute inset-0 opacity-55"
@@ -40,24 +41,24 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-emerald-300/40 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-200">
-                World Cup Mode
+                Summer Cup Mode
               </span>
               <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55 sm:inline">
                 Live through July
               </span>
             </div>
             <h2 className="mt-1 truncate font-rajdhani text-xl font-black tracking-tight text-white md:text-2xl">
-              ROAR with every match on GamerClock
+              ROAR with every Summer Cup match
             </h2>
             <p className="mt-0.5 truncate text-xs text-emerald-50/70 md:text-sm">
-              {nextMatch ? `Next: ${nextMatch.title}` : 'All World Cup fixtures are now on the calendar.'}
+              {nextMatch ? `Next: ${nextMatch.title}` : 'All Summer Cup fixtures are now on the calendar.'}
             </p>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           <Button asChild size="sm" className="hidden bg-emerald-400 text-emerald-950 hover:bg-emerald-300 sm:inline-flex">
-            <Link href="/roar">
+            <Link href={nextMatch ? `/roar?match=${encodeURIComponent(nextMatch.id)}&source=home_takeover` : '/roar?source=home_takeover'}>
               <Gamepad2 className="mr-1.5 h-4 w-4" />
               Play ROAR
             </Link>
