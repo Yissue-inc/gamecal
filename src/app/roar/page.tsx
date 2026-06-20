@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { CalendarDays, Gamepad2, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { RoarAccountBridge } from '@/components/roar/RoarAccountBridge'
 
 export default function RoarPage() {
   return (
@@ -18,7 +20,7 @@ export default function RoarPage() {
         />
         <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/60 to-transparent" />
 
-        <div className="relative mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_420px]">
+        <div className="relative mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_440px]">
           <div>
             <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.25em] text-emerald-200/80">
               GamerClock
@@ -46,6 +48,11 @@ export default function RoarPage() {
                   View Match API
                 </a>
               </Button>
+            </div>
+            <div className="mt-8 max-w-2xl">
+              <Suspense fallback={null}>
+                <RoarAccountBridge />
+              </Suspense>
             </div>
           </div>
 

@@ -184,8 +184,8 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
         <PartyButton event={event} game={game} />
         {game.slug === WORLD_CUP_SLUG && (
           <Button className="w-full bg-emerald-400 text-emerald-950 hover:bg-emerald-300" asChild>
-            <a href={`/roar?matchId=${encodeURIComponent(event.id)}`}>
-              Play ROAR for this match
+            <a href={`/roar?matchId=${encodeURIComponent(event.id)}&source=event_detail`}>
+              Pick your side in ROAR
             </a>
           </Button>
         )}
