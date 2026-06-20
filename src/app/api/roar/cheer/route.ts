@@ -8,18 +8,39 @@ export const dynamic = 'force-dynamic'
 
 async function getTotals(matchId: string) {
   const admin = createAdminClient()
-  const { data, error } = await admin
+  const { data: miniCupData, error: miniCupError } = await admin
+    .from('mini_cup_cheer_totals')
+    .select('match_id, country, taps, shakes, total, updated_at')
+    .eq('match_id', matchId)
+    .order('total', { ascending: false })
+
+  if (!miniCupError) {
+    return (miniCupData ?? []).map((row) => ({
+      matchId: row.match_id,
+      team: row.country,
+      country: row.country,
+      taps: Number(row.taps) || 0,
+      shakes: Number(row.shakes) || 0,
+      score: Number(row.total) || 0,
+      total: Number(row.total) || 0,
+      updatedAt: row.updated_at,
+    }))
+  }
+
+  if (!isRoarSchemaMissing(miniCupError)) throw miniCupError
+
+  const { data: cheerLogData, error: cheerLogError } = await admin
     .from('roar_cheers')
     .select('team, taps, score_delta')
     .eq('match_id', matchId)
 
-  if (error) {
-    if (isRoarSchemaMissing(error)) return []
-    throw error
+  if (cheerLogError) {
+    if (isRoarSchemaMissing(cheerLogError)) return []
+    throw cheerLogError
   }
 
   const totals = new Map<string, { team: string; taps: number; score: number }>()
-  for (const row of data ?? []) {
+  for (const row of cheerLogData ?? []) {
     const current = totals.get(row.team) ?? { team: row.team, taps: 0, score: 0 }
     current.taps += Number(row.taps) || 0
     current.score += Number(row.score_delta) || 0
@@ -85,7 +106,18 @@ export async function POST(request: NextRequest) {
 
   const scoreDelta = taps + shakes
   const admin = createAdminClient()
-  const { error } = await admin.from('roar_cheers').insert({
+  const { error: miniCupError } = await admin.rpc('mini_cup_add_cheer', {
+    p_match_id: matchId,
+    p_country: team,
+    p_taps: taps,
+    p_shakes: shakes,
+  })
+
+  if (miniCupError && !isRoarSchemaMissing(miniCupError)) {
+    return NextResponse.json({ error: miniCupError.message }, { status: 500 })
+  }
+
+  const { error: cheerLogError } = await admin.from('roar_cheers').insert({
     user_id: identity.userId,
     device_id: identity.deviceId,
     match_id: matchId,
@@ -96,23 +128,29 @@ export async function POST(request: NextRequest) {
     source,
   })
 
-  if (error) {
-    if (isRoarSchemaMissing(error)) {
-      return NextResponse.json({
-        accepted: { matchId, matchTitle, team, taps, scoreDelta },
-        totals: [{ team, taps, score: scoreDelta }],
-        identity: identity.identityType,
-        persisted: false,
-        migrationRequired: true,
-      })
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (miniCupError && cheerLogError && isRoarSchemaMissing(cheerLogError)) {
+    return NextResponse.json({
+      accepted: { matchId, matchTitle, team, country: team, taps, shakes, scoreDelta },
+      totals: [{ matchId, team, country: team, taps, shakes, score: scoreDelta, total: scoreDelta, updatedAt: new Date().toISOString() }],
+      identity: identity.identityType,
+      persisted: false,
+      migrationRequired: true,
+    })
+  }
+
+  if (cheerLogError && !isRoarSchemaMissing(cheerLogError)) {
+    console.warn('ROAR cheer log insert failed', cheerLogError)
+  }
+
+  let totals = await getTotals(matchId)
+  if (!totals.length) {
+    totals = [{ matchId, team, country: team, taps, shakes, score: scoreDelta, total: scoreDelta, updatedAt: new Date().toISOString() }]
   }
 
   return NextResponse.json({
-    accepted: { matchId, matchTitle, team, taps, scoreDelta },
-    totals: await getTotals(matchId),
+    accepted: { matchId, matchTitle, team, country: team, taps, shakes, scoreDelta },
+    totals,
     identity: identity.identityType,
-    persisted: true,
+    persisted: !miniCupError,
   })
 }

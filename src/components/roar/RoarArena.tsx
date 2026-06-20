@@ -4928,6 +4928,19 @@ export function RoarArena({
           item.id === slipId ? { ...item, claimed: true } : item,
         ),
       );
+      if (deviceId) {
+        void fetch(BETS_DATA_URL, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: slipId,
+            deviceId,
+            claimed: true,
+          }),
+        }).catch((error) =>
+          console.warn("ROAR bet claim persist failed", error),
+        );
+      }
     }
     setResultReveal((current) =>
       current ? { ...current, claimed: true } : current,
