@@ -1,7 +1,9 @@
 import type { Game, GameEvent } from '@/types'
 import { getAppUrl } from '@/lib/app-url'
+import { WORLD_CUP_GAME } from '@/lib/world-cup'
 
 export const MOCK_GAMES: Game[] = [
+  WORLD_CUP_GAME,
   { id: '1', slug: 'fortnite',   name: 'Fortnite',           brand_color: '#00d4ff', platform: ['PC','PS5','Xbox','Mobile','Switch'], sort_order: 1 },
   { id: '2', slug: 'apex',       name: 'Apex Legends',        brand_color: '#e33c3c', platform: ['PC','PS5','Xbox'],                   sort_order: 2 },
   { id: '3', slug: 'valorant',   name: 'Valorant',            brand_color: '#ff4655', platform: ['PC'],                                sort_order: 3 },
@@ -61,7 +63,11 @@ function todayEvent(): GameEvent {
   )
 }
 
-const [fn, wow, pogo, genshin, lol] = MOCK_GAMES
+const fn = MOCK_GAMES.find((game) => game.slug === 'fortnite')!
+const wow = MOCK_GAMES.find((game) => game.slug === 'wow')!
+const pogo = MOCK_GAMES.find((game) => game.slug === 'pokemon-go')!
+const genshin = MOCK_GAMES.find((game) => game.slug === 'genshin')!
+const lol = MOCK_GAMES.find((game) => game.slug === 'lol')!
 
 export const MOCK_EVENTS: GameEvent[] = [
   todayEvent(),

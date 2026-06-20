@@ -1,4 +1,5 @@
 const GAME_HASHTAGS: Record<string, string[]> = {
+  'world-cup': ['WorldCup', 'ROAR', 'GamerClock'],
   fortnite: ['Fortnite', 'FortniteSeason', 'GamerClock'],
   wow: ['WorldOfWarcraft', 'WoW', 'GamerClock'],
   'pokemon-go': ['PokemonGO', 'PokemonGOEvents', 'GamerClock'],

@@ -8,6 +8,7 @@ import { GameSidebar } from '@/components/calendar/GameSidebar'
 import { GameCalendar } from '@/components/calendar/GameCalendar'
 import { GuestBanner } from '@/components/calendar/GuestBlur'
 import { WeeklyHighlights } from '@/components/calendar/WeeklyHighlights'
+import { WorldCupTakeover } from '@/components/calendar/WorldCupTakeover'
 import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
 import { ClashAlert } from '@/components/calendar/ClashAlert'
 import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
@@ -21,6 +22,7 @@ import { isToday } from '@/lib/utils'
 import { DEFAULT_PUBLIC_UI_SETTINGS, mergePublicUiSettings } from '@/lib/public-ui-settings'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useLayoutEvents } from '@/hooks/useLayoutEvents'
+import { isWorldCupThemeActive, WORLD_CUP_SLUG } from '@/lib/world-cup-config'
 import type { Game, GameEvent, NewRelease } from '@/types'
 
 const EventDetailPanel = dynamic(
@@ -54,9 +56,14 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const { preferences, setSelectedGames } = usePreferences()
   const calendarRef = useRef<FullCalendar>(null!)
 
-  const [selectedGames, setLocalSelectedGames] = useState<string[]>(
-    preferences.selected_games.length ? preferences.selected_games : games.map((g) => g.slug)
-  )
+  const initialSelectedGames = useMemo(() => {
+    const base = preferences.selected_games.length ? preferences.selected_games : games.map((g) => g.slug)
+    if (isWorldCupThemeActive() && games.some((game) => game.slug === WORLD_CUP_SLUG) && !base.includes(WORLD_CUP_SLUG)) {
+      return [WORLD_CUP_SLUG, ...base]
+    }
+    return base
+  }, [games, preferences.selected_games])
+  const [selectedGames, setLocalSelectedGames] = useState<string[]>(initialSelectedGames)
   const [selectedReleasePlatforms, setSelectedReleasePlatforms] = useState<string[]>([RELEASE_PLATFORM_ALL])
   const [selectedEvent, setSelectedEvent] = useState<GameEvent | null>(null)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
@@ -81,6 +88,13 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
     [allEvents, preferences.timezone]
   )
   const shouldPromptAuth = !authLoading && isGuest
+
+  useEffect(() => {
+    setLocalSelectedGames((current) => {
+      if (!isWorldCupThemeActive() || !games.some((game) => game.slug === WORLD_CUP_SLUG)) return current
+      return current.includes(WORLD_CUP_SLUG) ? current : [WORLD_CUP_SLUG, ...current]
+    })
+  }, [games])
 
   useEffect(() => {
     let cancelled = false
@@ -213,6 +227,7 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         />
         {shouldPromptAuth && <GuestBanner lockedCount={guestLockedCount} onSignUp={() => setAuthModalOpen(true)} />}
         <PwaInstallBanner />
+        {isWorldCupThemeActive() && <WorldCupTakeover events={allEvents} />}
         <LiveBanner events={events} onEventClick={handleFeedEventClick} />
         <ClashAlert events={events} onEventClick={handleFeedEventClick} />
         <div className="flex min-h-0 flex-1 overflow-hidden">

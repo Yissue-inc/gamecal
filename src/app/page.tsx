@@ -3,10 +3,11 @@ import { CalendarLayout } from '@/components/calendar/CalendarLayout'
 import { MOCK_GAMES } from '@/lib/mock-data'
 import { isSupabaseConfigured } from '@/lib/mock-data'
 import { createClient } from '@/lib/supabase/server'
+import { appendWorldCupGame } from '@/lib/world-cup'
 import type { Game } from '@/types'
 
 async function getGames(): Promise<Game[]> {
-  if (!isSupabaseConfigured()) return MOCK_GAMES
+  if (!isSupabaseConfigured()) return appendWorldCupGame(MOCK_GAMES)
 
   try {
     const supabase = await createClient()
@@ -16,10 +17,10 @@ async function getGames(): Promise<Game[]> {
       .eq('is_active', true)
       .order('sort_order')
 
-    if (error || !data?.length) return MOCK_GAMES
-    return data as Game[]
+    if (error || !data?.length) return appendWorldCupGame(MOCK_GAMES)
+    return appendWorldCupGame(data as Game[])
   } catch {
-    return MOCK_GAMES
+    return appendWorldCupGame(MOCK_GAMES)
   }
 }
 

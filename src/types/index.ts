@@ -135,6 +135,7 @@ export interface CalendarEvent {
 }
 
 export const DEFAULT_SELECTED_GAMES = [
+  'world-cup',
   'fortnite',
   'wow',
   'pokemon-go',

@@ -177,6 +177,7 @@ export function isEndingSoon(date: string, hours = 48): boolean {
 
 export function getGameTextColor(brandColor: string): string {
   const lightened: Record<string, string> = {
+    '#22c55e': '#86efac',
     '#00d4ff': '#00d4ff',
     '#e33c3c': '#ef8080',
     '#ff4655': '#ff8090',

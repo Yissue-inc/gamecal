@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isSupabaseConfigured, MOCK_EVENTS, MOCK_GAMES } from '@/lib/mock-data'
+import { fetchWorldCupEvents, WORLD_CUP_GAME, WORLD_CUP_SLUG } from '@/lib/world-cup'
 import type { Game, GameEvent } from '@/types'
 import { GameHubClient } from './GameHubClient'
 
@@ -9,6 +10,12 @@ export const dynamic = 'force-dynamic'
 export default async function GameHubPage({ params }: { params: { slug: string } }) {
   let game: Game | null = null
   let events: GameEvent[] = []
+
+  if (params.slug === WORLD_CUP_SLUG) {
+    game = WORLD_CUP_GAME
+    events = await fetchWorldCupEvents().catch(() => [])
+    return <GameHubClient game={game} events={events} />
+  }
 
   if (!isSupabaseConfigured()) {
     game = MOCK_GAMES.find((item) => item.slug === params.slug) ?? null

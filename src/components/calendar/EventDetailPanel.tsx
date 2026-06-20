@@ -22,6 +22,7 @@ import {
 } from '@/lib/utils'
 import { getEventArtUrl, getEventFallbackDescription } from '@/lib/game-art'
 import { getTrackingCount } from '@/lib/push'
+import { WORLD_CUP_SLUG } from '@/lib/world-cup-config'
 import {
   getRewardSignals,
   getSourceConfidenceLabel,
@@ -181,6 +182,13 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
         </section>
 
         <PartyButton event={event} game={game} />
+        {game.slug === WORLD_CUP_SLUG && (
+          <Button className="w-full bg-emerald-400 text-emerald-950 hover:bg-emerald-300" asChild>
+            <a href={`/roar?matchId=${encodeURIComponent(event.id)}`}>
+              Play ROAR for this match
+            </a>
+          </Button>
+        )}
         <AddToCalendar event={event} game={game} />
         <ShareEvent event={event} game={game} />
 
