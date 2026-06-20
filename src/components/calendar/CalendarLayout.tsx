@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { useSearchParams } from 'next/navigation'
 import type FullCalendar from '@fullcalendar/react'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { GameSidebar } from '@/components/calendar/GameSidebar'
@@ -13,7 +12,6 @@ import { UpcomingFeed, LiveBanner } from '@/components/calendar/UpcomingFeed'
 import { ClashAlert } from '@/components/calendar/ClashAlert'
 import { PwaInstallBanner } from '@/components/calendar/PwaInstallBanner'
 import { CalEventBridge } from '@/components/engagement/CalEventBridge'
-import { hasSeenCinematic } from '@/lib/cinematic-seen'
 import { shouldShowOnboarding } from '@/lib/onboarding-profile'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { useAuth } from '@/hooks/useAuth'
@@ -41,10 +39,6 @@ const BadgeUnlockModal = dynamic(
   () => import('@/components/engagement/BadgeUnlockModal').then((mod) => mod.BadgeUnlockModal),
   { ssr: false }
 )
-const CinematicIntro = dynamic(
-  () => import('@/components/cinematic/CinematicIntro').then((mod) => mod.CinematicIntro),
-  { ssr: false }
-)
 const SignupOnboarding = dynamic(
   () => import('@/components/onboarding/SignupOnboarding').then((mod) => mod.SignupOnboarding),
   { ssr: false }
@@ -57,7 +51,6 @@ interface CalendarLayoutProps {
 
 export function CalendarLayout({ games }: CalendarLayoutProps) {
   const { isGuest, user, loading: authLoading } = useAuth()
-  const searchParams = useSearchParams()
   const { preferences, setSelectedGames } = usePreferences()
   const calendarRef = useRef<FullCalendar>(null!)
 
@@ -71,7 +64,6 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isReleaseOpen, setIsReleaseOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [showCinematic, setShowCinematic] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [introSettings, setIntroSettings] = useState(DEFAULT_PUBLIC_UI_SETTINGS)
   const [currentTitle, setCurrentTitle] = useState('')
@@ -108,14 +100,6 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
   }, [])
 
   useEffect(() => {
-    if (!introSettings.show_cinematic_intro) return
-    const replay = searchParams.get('replay') === 'cinematic'
-    if (replay || !hasSeenCinematic()) {
-      setShowCinematic(true)
-    }
-  }, [introSettings.show_cinematic_intro, searchParams])
-
-  useEffect(() => {
     const id = window.setTimeout(() => {
       calendarRef.current?.getApi().today()
       window.dispatchEvent(new Event('gamecal:center-today'))
@@ -134,16 +118,6 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
       setAuthModalOpen(false)
     }
   }, [authLoading, user])
-
-  const featuredEvent = useMemo(() => {
-    return {
-      eyebrow: 'Launch Giveaway',
-      title: 'Steam $10 Gift Card',
-      titleAccent: '5 Winners',
-      subtitle: 'Join the GameCAL Level Up Launch event before the reward window closes.',
-      accentColor: '#8b5cf6',
-    }
-  }, [])
 
   const handleToggle = (slug: string) => {
     const next = selectedGames.includes(slug)
@@ -309,30 +283,6 @@ export function CalendarLayout({ games }: CalendarLayoutProps) {
         }}
       />
       <BadgeUnlockModal />
-      {showCinematic && (
-        <CinematicIntro
-          featured={featuredEvent}
-          settings={{
-            ...introSettings.cinematic_intro,
-            eyebrow: 'Launch Giveaway',
-            title: 'Steam $10 Gift Card',
-            titleAccent: '5 Winners',
-            subtitle: 'Join the GameCAL Level Up Launch event and claim your chance at the next reward.',
-            primaryCta: 'Enter Giveaway',
-            secondaryCta: 'View Calendar',
-            sponsorLabel: 'Launch Event',
-            accentColor: '#8b5cf6',
-            animationStyle: 'minimal',
-            autoDismissMs: Math.max(introSettings.cinematic_intro.autoDismissMs, 12000),
-            backdropOpacity: Math.max(introSettings.cinematic_intro.backdropOpacity, 68),
-            backdropBlur: Math.max(introSettings.cinematic_intro.backdropBlur, 3),
-          }}
-          onDismiss={() => setShowCinematic(false)}
-          onAddToCalendar={() => {
-            window.location.href = '/event'
-          }}
-        />
-      )}
       <SignupOnboarding
         open={showOnboarding}
         games={games}

@@ -48,15 +48,6 @@ const toolLinks = [
 
 const trackedEvents = [
   'page_view',
-  'cinematic_seen',
-  'cinematic_skipped',
-  'cinematic_cta_clicked',
-  'launch_event_viewed',
-  'launch_event_auth_clicked',
-  'launch_event_hashtag_copied',
-  'launch_event_entry_submitted',
-  'launch_event_entry_failed',
-  'launch_event_shared',
   'auth_started',
   'auth_failed',
   'newsletter_subscribed',
@@ -107,11 +98,11 @@ export default function AdminAnalyticsPage() {
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-violet-300">Analytics Control</p>
           <h1 className="text-3xl font-bold text-white">GamerClock Analytics</h1>
           <p className="max-w-2xl text-sm text-zinc-400">
-            One place to check the connected analytics tools, launch event tracking, and production dashboard links.
+            One place to check connected analytics tools, key events, and production dashboard links.
           </p>
         </div>
         <Button asChild variant="outline" className="border-zinc-700">
-          <Link href="/event">Open Launch Event</Link>
+          <Link href="/">Open Calendar</Link>
         </Button>
       </div>
 

@@ -82,15 +82,6 @@ export function trackEvent(event: string, properties?: AnalyticsProperties) {
   }
 }
 
-/** Cinematic intro */
-export function trackCinematicSeen(skipped = false) {
-  trackEvent(skipped ? 'cinematic_skipped' : 'cinematic_seen')
-}
-
-export function trackCinematicCta(action: 'enter_giveaway' | 'view_calendar' | 'skip') {
-  trackEvent('cinematic_cta_clicked', { action })
-}
-
 /** Wishlist */
 export function trackWishlistAdded(eventId: string, gameSlug?: string) {
   trackEvent('wishlist_added', { event_id: eventId, game_slug: gameSlug })
@@ -127,35 +118,6 @@ export function trackPartyReferralVisit(meta: { source_slug: string; game?: stri
 
 export function trackPartyReferralInstallClick(meta: { source_slug: string; game?: string }) {
   trackEvent('party_referral_install_click', meta)
-}
-
-/** Launch giveaway */
-export function trackLaunchEventViewed(meta?: { signed_in?: boolean; eligible?: boolean }) {
-  trackEvent('launch_event_viewed', meta)
-}
-
-export function trackLaunchEventAuthClick(source: 'event_page' | 'cinematic_intro') {
-  trackEvent('launch_event_auth_clicked', { source })
-}
-
-export function trackLaunchEventHashtagCopied(hashtag: string) {
-  trackEvent('launch_event_hashtag_copied', { hashtag })
-}
-
-export function trackLaunchEventEntrySubmitted(meta: {
-  platform: string
-  eligible: boolean
-  gp: number
-}) {
-  trackEvent('launch_event_entry_submitted', meta)
-}
-
-export function trackLaunchEventEntryFailed(reason: string, meta?: AnalyticsProperties) {
-  trackEvent('launch_event_entry_failed', { reason, ...meta })
-}
-
-export function trackLaunchEventShared(method: 'native_share' | 'clipboard') {
-  trackEvent('launch_event_shared', { method })
 }
 
 /** Auth */

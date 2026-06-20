@@ -1,17 +1,17 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'GamerClock Level Up Launch Giveaway — GamerClock',
-  description: 'Join the GamerClock launch giveaway for a chance to win a Steam $10 Gift Card. Silver tier or higher required.',
+  title: 'GamerClock Promotions — GamerClock',
+  description: 'GamerClock promotions are currently paused. Track game events, resets, release dates, and reminders on GamerClock.',
   openGraph: {
-    title: 'GamerClock Level Up Launch Giveaway — GamerClock',
-    description: 'Join the GamerClock launch giveaway. Steam $10 Gift Card x 5 winners.',
+    title: 'GamerClock Promotions — GamerClock',
+    description: 'Promotions are currently paused. Open GamerClock to track your game calendar.',
     images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GamerClock Level Up Launch Giveaway',
-    description: 'Join the GamerClock Steam gift card giveaway.',
+    title: 'GamerClock Promotions',
+    description: 'Promotions are currently paused. Open GamerClock to track your game calendar.',
     images: ['/og-image.png'],
   },
 }
