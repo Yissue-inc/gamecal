@@ -2,16 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
-import { cleanRoarNumber, cleanRoarText, getRoarIdentity } from '@/lib/roar'
+import { cleanRoarNumber, cleanRoarText, getRoarIdentity, isRoarSchemaMissing } from '@/lib/roar'
 
 export const dynamic = 'force-dynamic'
 
 async function getTotals(matchId: string) {
   const admin = createAdminClient()
-  const { data } = await admin
+  const { data, error } = await admin
     .from('roar_cheers')
     .select('team, taps, score_delta')
     .eq('match_id', matchId)
+
+  if (error) {
+    if (isRoarSchemaMissing(error)) return []
+    throw error
+  }
 
   const totals = new Map<string, { team: string; taps: number; score: number }>()
   for (const row of data ?? []) {
@@ -27,7 +32,11 @@ export async function GET(request: NextRequest) {
   const matchId = cleanRoarText(request.nextUrl.searchParams.get('matchId'))
   if (!matchId) return NextResponse.json({ error: 'matchId is required' }, { status: 400 })
   if (!isSupabaseConfigured()) return NextResponse.json({ totals: [] })
-  return NextResponse.json({ totals: await getTotals(matchId) })
+  try {
+    return NextResponse.json({ totals: await getTotals(matchId) })
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Could not load cheer totals' }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -78,11 +87,23 @@ export async function POST(request: NextRequest) {
     source,
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (isRoarSchemaMissing(error)) {
+      return NextResponse.json({
+        accepted: { matchId, matchTitle, team, taps, scoreDelta },
+        totals: [{ team, taps, score: scoreDelta }],
+        identity: identity.identityType,
+        persisted: false,
+        migrationRequired: true,
+      })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({
     accepted: { matchId, matchTitle, team, taps, scoreDelta },
     totals: await getTotals(matchId),
     identity: identity.identityType,
+    persisted: true,
   })
 }

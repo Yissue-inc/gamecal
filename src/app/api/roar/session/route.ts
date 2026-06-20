@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
-import { cleanRoarText, getRoarIdentity } from '@/lib/roar'
+import { cleanRoarText, getRoarIdentity, isRoarSchemaMissing } from '@/lib/roar'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +32,12 @@ export async function GET(request: NextRequest) {
   query = identity.userId ? query.eq('user_id', identity.userId) : query.eq('device_id', identity.deviceId)
   const { data, error } = await query.maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (isRoarSchemaMissing(error)) {
+      return NextResponse.json({ session: null, identity: identity.identityType, migrationRequired: true })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ session: data ?? null, identity: identity.identityType })
 }
 
@@ -85,7 +90,17 @@ export async function POST(request: NextRequest) {
     ? existingQuery.eq('user_id', identity.userId)
     : existingQuery.eq('device_id', identity.deviceId)
   const { data: existing, error: existingError } = await existingQuery.maybeSingle()
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 })
+  if (existingError) {
+    if (isRoarSchemaMissing(existingError)) {
+      return NextResponse.json({
+        session: { match_id: matchId, match_title: matchTitle, team_selected: teamSelected || null },
+        identity: identity.identityType,
+        persisted: false,
+        migrationRequired: true,
+      })
+    }
+    return NextResponse.json({ error: existingError.message }, { status: 500 })
+  }
 
   const mutation = existing?.id
     ? admin.from('roar_sessions').update(payload).eq('id', existing.id).select().single()
@@ -93,6 +108,16 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await mutation
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ session: data, identity: identity.identityType })
+  if (error) {
+    if (isRoarSchemaMissing(error)) {
+      return NextResponse.json({
+        session: { match_id: matchId, match_title: matchTitle, team_selected: teamSelected || null },
+        identity: identity.identityType,
+        persisted: false,
+        migrationRequired: true,
+      })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  return NextResponse.json({ session: data, identity: identity.identityType, persisted: true })
 }

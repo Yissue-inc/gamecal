@@ -34,6 +34,13 @@ export function getRoarIdentity(user: User | null | undefined, deviceId: unknown
   }
 }
 
+export function isRoarSchemaMissing(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const message = 'message' in error && typeof error.message === 'string' ? error.message : ''
+  const code = 'code' in error && typeof error.code === 'string' ? error.code : ''
+  return code === 'PGRST205' || message.includes('Could not find the table')
+}
+
 export function weekStartUtc(date = new Date()) {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
   const day = d.getUTCDay()

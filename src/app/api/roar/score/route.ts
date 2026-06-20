@@ -2,19 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSupabaseConfigured } from '@/lib/mock-data'
-import { cleanRoarNumber, cleanRoarText, weekStartUtc } from '@/lib/roar'
+import { cleanRoarNumber, cleanRoarText, isRoarSchemaMissing, weekStartUtc } from '@/lib/roar'
 
 export const dynamic = 'force-dynamic'
 
 async function getLeaderboard(matchId: string) {
   const admin = createAdminClient()
-  const { data } = await admin
+  const { data, error } = await admin
     .from('roar_scores')
     .select('user_id, match_id, match_title, team, score, rank_label, updated_at')
     .eq('match_id', matchId)
     .order('score', { ascending: false })
     .order('updated_at', { ascending: true })
     .limit(20)
+
+  if (error) {
+    if (isRoarSchemaMissing(error)) return []
+    throw error
+  }
 
   return (data ?? []).map((row, index) => ({
     rank: index + 1,
@@ -37,7 +42,12 @@ export async function GET(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const rows = await getLeaderboard(matchId)
+  let rows
+  try {
+    rows = await getLeaderboard(matchId)
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Could not load leaderboard' }, { status: 500 })
+  }
   const me = user ? rows.find((row) => row.userId === user.id) ?? null : null
   return NextResponse.json({ rows, me })
 }
@@ -91,7 +101,15 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (isRoarSchemaMissing(error)) {
+      return NextResponse.json({
+        error: 'ROAR persistence migration is required before scores can be saved',
+        migrationRequired: true,
+      }, { status: 503 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   const { error: gpError } = await admin
     .from('weekly_gp_log')
