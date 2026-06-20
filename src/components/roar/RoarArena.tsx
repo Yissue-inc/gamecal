@@ -2790,6 +2790,61 @@ function colorsFor(country: string) {
   return TEAM_COLOR[country] ?? ["#2937e8", "#0b6555"];
 }
 
+const CROWD_HUE_BUCKETS: Record<string, string> = {
+  base: "0deg",
+  redWhite: "145deg",
+  greenYellow: "265deg",
+  redYellow: "160deg",
+  orange: "175deg",
+  purple: "55deg",
+};
+
+const CROWD_HUE_COUNTRY: Record<string, keyof typeof CROWD_HUE_BUCKETS> = {
+  Argentina: "base",
+  Australia: "greenYellow",
+  Belgium: "redYellow",
+  Brazil: "greenYellow",
+  Cameroon: "greenYellow",
+  Canada: "redWhite",
+  Chile: "redWhite",
+  China: "redYellow",
+  Colombia: "greenYellow",
+  Croatia: "redWhite",
+  "Czech Republic": "redWhite",
+  Denmark: "redWhite",
+  Ecuador: "greenYellow",
+  England: "redWhite",
+  France: "redWhite",
+  Germany: "redYellow",
+  Ghana: "redYellow",
+  Haiti: "purple",
+  Iran: "greenYellow",
+  Italy: "greenYellow",
+  Japan: "redWhite",
+  Mexico: "greenYellow",
+  Morocco: "redWhite",
+  Netherlands: "orange",
+  Nigeria: "greenYellow",
+  Poland: "redWhite",
+  Portugal: "greenYellow",
+  Qatar: "redWhite",
+  Scotland: "base",
+  Senegal: "greenYellow",
+  Serbia: "redWhite",
+  "South Africa": "greenYellow",
+  "South Korea": "redWhite",
+  Spain: "redYellow",
+  Sweden: "base",
+  Switzerland: "redWhite",
+  Ukraine: "base",
+  Uruguay: "base",
+  USA: "redWhite",
+};
+
+function crowdHueFor(country: string) {
+  return CROWD_HUE_BUCKETS[CROWD_HUE_COUNTRY[country] ?? "purple"];
+}
+
 type CrowdScheme = "rw" | "bw" | "gy" | "ry" | "gr" | "kg";
 
 const CROWD_SCHEME_SWATCH: Record<CrowdScheme, [string, string]> = {
@@ -2922,43 +2977,6 @@ function crowdSchemeFor(country: string): CrowdScheme {
   const code = crowdCountryCode(country);
   if (code && CROWD_SCHEME_BY_CODE[code]) return CROWD_SCHEME_BY_CODE[code];
   return nearestCrowdScheme(country);
-}
-
-function tifoSrcFor(country: string) {
-  const code = crowdCountryCode(country);
-  if (!code) return null;
-  const supported = new Set([
-    "ar",
-    "au",
-    "be",
-    "br",
-    "ca",
-    "ch",
-    "co",
-    "de",
-    "dk",
-    "en",
-    "es",
-    "fr",
-    "gh",
-    "hr",
-    "ir",
-    "jp",
-    "kr",
-    "ma",
-    "mx",
-    "ng",
-    "nl",
-    "pl",
-    "pt",
-    "sa",
-    "sn",
-    "us",
-    "uy",
-  ]);
-  return supported.has(code)
-    ? `/mini-cup/assets/crowd/tifo/tifo-${code}.webp`
-    : null;
 }
 
 function hashStr(value: string) {
@@ -3518,6 +3536,26 @@ export function RoarArena({
     });
   }, [initialMatchId, matches]);
 
+  useEffect(() => {
+    if (!initialMatchId || !storageReady) return;
+    const storedCountry = window.localStorage.getItem("roar-country");
+    if (
+      !storedCountry ||
+      (storedCountry !== selectedMatch.team1 &&
+        storedCountry !== selectedMatch.team2) ||
+      storedCountry === selectedCountry
+    ) {
+      return;
+    }
+    setSelectedCountry(storedCountry);
+  }, [
+    initialMatchId,
+    selectedCountry,
+    selectedMatch.team1,
+    selectedMatch.team2,
+    storageReady,
+  ]);
+
   const playerDisplayName = playerName.trim() || "Roari Fan";
   const onboardingNameReady = draftPlayerName.trim().length >= 2;
   const countryChoices = useMemo(
@@ -3678,7 +3716,8 @@ export function RoarArena({
   const [allyColorA, allyColorB] = colorsFor(selectedCountry);
   const [rivalColorA, rivalColorB] = colorsFor(opponentCountry);
   const allyCrowdScheme = crowdSchemeFor(selectedCountry);
-  const selectedTifoSrc = tifoSrcFor(selectedCountry);
+  const allyCrowdHue = crowdHueFor(selectedCountry);
+  const rivalCrowdHue = crowdHueFor(opponentCountry);
   const hypeTier =
     totalScore > 1000
       ? 5
@@ -5872,6 +5911,8 @@ export function RoarArena({
                 "--ally-to": allyColorB,
                 "--rival-from": rivalColorA,
                 "--rival-to": rivalColorB,
+                "--crowd-hue": allyCrowdHue,
+                "--rival-crowd-hue": rivalCrowdHue,
               } as CSSProperties
             }
           >
@@ -6069,13 +6110,6 @@ export function RoarArena({
                   ),
                 )}
               </div>
-              {selectedTifoSrc && (
-                <div
-                  className="selected-country-tifo"
-                  aria-hidden="true"
-                  style={{ backgroundImage: `url('${selectedTifoSrc}')` }}
-                />
-              )}
               {shouldShowBoardBurst && (
                 <div
                   key={`confetti-${comboBurst}`}
