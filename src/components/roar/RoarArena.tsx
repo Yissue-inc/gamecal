@@ -194,6 +194,7 @@ const CROWD_AVATAR_ASSETS = "/mini-cup/assets/crowd/avatars/";
 const SPECTATOR_ASSETS = "/mini-cup/assets/crowd/spectators/";
 const MASCOT_ASSETS = "/mini-cup/assets/mascot/";
 const DATA_CACHE_MS = 60 * 1000;
+const MATCH_REFRESH_MS = 90 * 1000;
 const SCORE_VERSION = "unit-score-v3";
 const WELCOME_COIN_KEY = "roar-welcome-coins-v1";
 const PLAYER_NAME_KEY = "roar-player-name";
@@ -3083,10 +3084,7 @@ function supportTotalFor(country: string, base: number, score: number) {
 }
 
 function seededRivalCheer(matchId: string, country: string) {
-  let hash = 0;
-  for (const char of `${matchId}:${country}`)
-    hash = (hash * 33 + char.charCodeAt(0)) % 420;
-  return 70 + hash;
+  return hashStr(`${matchId}:${country}`) % 7;
 }
 
 function isKnownCountry(country: string) {
@@ -3317,8 +3315,8 @@ export function RoarArena({
   const [shakeScore, setShakeScore] = useState(0);
   const [comboBonus, setComboBonus] = useState(0);
   const [combo, setCombo] = useState(1);
-  const [teamPulse, setTeamPulse] = useState(1850);
-  const [rivalPulse, setRivalPulse] = useState(1690);
+  const [teamPulse, setTeamPulse] = useState(0);
+  const [rivalPulse, setRivalPulse] = useState(0);
   const [feed, setFeed] = useState<FeedEvent[]>([
     {
       id: 1,
@@ -3350,6 +3348,7 @@ export function RoarArena({
     FALLBACK_MATCHES[0].team1,
   );
   const [dataStatus, setDataStatus] = useState("fallback data");
+  const [matchDataSyncedAt, setMatchDataSyncedAt] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [burst, setBurst] = useState(0);
   const [shakeReady, setShakeReady] = useState(false);
@@ -3368,7 +3367,7 @@ export function RoarArena({
   const [globalCheer, setGlobalCheer] = useState<CheerAggregate[]>([]);
   const [scoreBeat, setScoreBeat] = useState(0);
   const [nowMs, setNowMs] = useState(0);
-  const [aiRivalCheer, setAiRivalCheer] = useState(64);
+  const [aiRivalCheer, setAiRivalCheer] = useState(0);
   const [boardSide, setBoardSide] = useState<BoardSide>("ally");
   const [runnerBestProgress, setRunnerBestProgress] = useState(0);
   const [locale, setLocale] = useState<LocaleCode>("en");
@@ -3382,6 +3381,7 @@ export function RoarArena({
   const [qaMode, setQaMode] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [boardTrophyReveal, setBoardTrophyReveal] = useState(0);
   const [authIntent, setAuthIntent] = useState<RoarAuthIntent>("save_rank");
   const [sessionLinked, setSessionLinked] = useState(false);
   const [scoreSaveStatus, setScoreSaveStatus] =
@@ -3426,6 +3426,7 @@ export function RoarArena({
   const deviceIdRef = useRef("");
   const sourceRef = useRef(source);
   const sessionSyncRef = useRef("");
+  const boardTrophyShownRef = useRef(false);
 
   const selectedMatch =
     matches.find((match) => match.id === selectedMatchId) ?? matches[0];
@@ -3439,6 +3440,14 @@ export function RoarArena({
     [copy],
   );
   const fmt = useMemo(() => new Intl.NumberFormat(localeTag(locale)), [locale]);
+  const timeFmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat(localeTag(locale), {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [locale],
+  );
   const compactFmt = useMemo(
     () =>
       new Intl.NumberFormat(localeTag(locale), {
@@ -3580,6 +3589,13 @@ export function RoarArena({
     selectedCountry === selectedMatch.team1
       ? selectedMatch.team2
       : selectedMatch.team1;
+  const realMatchScore = selectedMatch.score?.ft;
+  const realScoreSummary = realMatchScore
+    ? `${selectedMatch.team1} ${realMatchScore[0]}-${realMatchScore[1]} ${selectedMatch.team2}`
+    : null;
+  const realScoreSyncedLabel = matchDataSyncedAt
+    ? timeFmt.format(matchDataSyncedAt)
+    : null;
   const totalScore = tapScore + shakeScore;
   const matchCheerByCountry = useMemo(() => {
     const totals = new Map<string, CheerAggregate>();
@@ -4111,6 +4127,23 @@ export function RoarArena({
     [soundMuted],
   );
 
+  useEffect(() => {
+    if (!comboBurst) return;
+    const timer = window.setTimeout(() => setComboBurst(0), 1250);
+    return () => window.clearTimeout(timer);
+  }, [comboBurst]);
+
+  useEffect(() => {
+    if (scoreboardIconCount < COLLECTIVE_SCOREBOARD_GOALS.length) return;
+    if (boardTrophyShownRef.current) return;
+    boardTrophyShownRef.current = true;
+    setBoardTrophyReveal(Date.now());
+    playSound("cheer");
+    playBurst(4);
+    const timer = window.setTimeout(() => setBoardTrophyReveal(0), 1900);
+    return () => window.clearTimeout(timer);
+  }, [playBurst, playSound, scoreboardIconCount]);
+
   const addFloatingPop = useCallback(
     (text: string, tone: FloatingPop["tone"]) => {
       const id = Date.now() + Math.random();
@@ -4365,7 +4398,6 @@ export function RoarArena({
       const nextRunnerProgress = campaignStageProgress(nextScore);
       setRunnerBestProgress((value) => Math.max(value, nextRunnerProgress));
       setTeamPulse((value) => value + 1 + Math.floor(nextCombo / 4));
-      setRivalPulse((value) => value + (Math.random() > 0.72 ? 2 : 0));
       maybeMilestone(nextScore);
       maybeDrop(nextScore);
       if (paired) {
@@ -4593,6 +4625,10 @@ export function RoarArena({
   useEffect(() => {
     if (countryChoices.includes(selectedCountry)) return;
     const timer = window.setTimeout(() => {
+      if (initialMatchId) {
+        setSelectedCountry(selectedMatch.team1);
+        return;
+      }
       const nextMatch = bestMatchForCountry(matches, selectedCountry);
       if (nextMatch) {
         setSelectedMatchId(nextMatch.id);
@@ -4601,12 +4637,21 @@ export function RoarArena({
       setSelectedCountry(selectedMatch.team1);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [countryChoices, matches, selectedCountry, selectedMatch.team1]);
+  }, [
+    countryChoices,
+    initialMatchId,
+    matches,
+    selectedCountry,
+    selectedMatch.team1,
+  ]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setAiRivalCheer(seededRivalCheer(selectedMatch.id, opponentCountry));
+      setAiRivalCheer(0);
+      setRivalPulse(0);
       setBoardSide("ally");
+      boardTrophyShownRef.current = false;
+      setBoardTrophyReveal(0);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [opponentCountry, selectedMatch.id]);
@@ -4660,7 +4705,7 @@ export function RoarArena({
   ]);
 
   const loadOpenData = useCallback(
-    async (force = false) => {
+    async (force = false, quiet = false) => {
       const cacheKey = `roar-summer-cup-cache-v3-${initialMatchId ?? "next"}`;
       setLoadingData(true);
       try {
@@ -4678,6 +4723,7 @@ export function RoarArena({
             const nextMatches = ensureBettableDemo(parsed.matches);
             setMatches(nextMatches);
             setSelectedMatchId((current) => initialMatchId && nextMatches.some((match) => match.id === initialMatchId) ? initialMatchId : preferredMatchId(nextMatches, current));
+            setMatchDataSyncedAt(parsed.fetchedAt ?? Date.now());
             setDataStatus(
               `open data cache ${new Date(parsed.fetchedAt ?? Date.now()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
             );
@@ -4696,6 +4742,9 @@ export function RoarArena({
           source?: string;
           counts?: { upcoming?: number; live?: number; ended?: number };
         };
+        const syncedAt = payload.fetchedAt
+          ? Date.parse(payload.fetchedAt)
+          : Date.now();
         const data = ensureBettableDemo(
           Array.isArray(payload.matches)
             ? payload.matches
@@ -4712,26 +4761,32 @@ export function RoarArena({
         );
         setMatches(data);
         setSelectedMatchId((current) => initialMatchId && data.some((match) => match.id === initialMatchId) ? initialMatchId : preferredMatchId(data, current));
+        setMatchDataSyncedAt(Number.isFinite(syncedAt) ? syncedAt : Date.now());
         setDataStatus(
           `${payload.realtime ? "realtime" : (payload.source ?? "open data")} · ${payload.counts?.upcoming ?? data.filter((match) => matchStartAt(match).getTime() >= Date.now()).length} upcoming · sync ${new Date(payload.fetchedAt ?? Date.now()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
         );
-        addFeed(
-          "clutch",
-          "Open data synced",
-          force
-            ? "Latest match data checked again."
-            : "Summer Cup 2026 schedule and result data loaded.",
-        );
+        if (!quiet) {
+          addFeed(
+            "clutch",
+            "Open data synced",
+            force
+              ? "Latest match data checked again."
+              : "Summer Cup 2026 schedule and result data loaded.",
+          );
+        }
       } catch {
         const data = ensureBettableDemo(FALLBACK_MATCHES);
         setMatches(data);
         setSelectedMatchId((current) => initialMatchId && data.some((match) => match.id === initialMatchId) ? initialMatchId : preferredMatchId(data, current));
+        setMatchDataSyncedAt(null);
         setDataStatus("fallback data");
-        addFeed(
-          "drop",
-          "Open data failed",
-          "Built-in sample matches keep the game playable.",
-        );
+        if (!quiet) {
+          addFeed(
+            "drop",
+            "Open data failed",
+            "Built-in sample matches keep the game playable.",
+          );
+        }
       } finally {
         setLoadingData(false);
       }
@@ -4748,8 +4803,9 @@ export function RoarArena({
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void loadOpenData(true);
-    }, DATA_CACHE_MS);
+      if (document.visibilityState !== "visible") return;
+      void loadOpenData(true, true);
+    }, MATCH_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [loadOpenData]);
 
@@ -4757,30 +4813,37 @@ export function RoarArena({
     setNowMs(Date.now());
     const timer = window.setInterval(() => {
       setNowMs(Date.now());
-      setTeamPulse((value) => value + Math.floor(4 + Math.random() * 11));
-      setRivalPulse((value) => value + Math.floor(5 + Math.random() * 13));
+      setTeamPulse((value) =>
+        totalScore > 0 ? value + (Math.random() > 0.55 ? 1 : 0) : value,
+      );
+      setRivalPulse((value) =>
+        totalScore > 0 ? value + (Math.random() > 0.7 ? 1 : 0) : value,
+      );
     }, 1400);
     return () => window.clearInterval(timer);
-  }, [currentRoarRank, rankName, signedIn]);
+  }, [totalScore]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setAiRivalCheer((value) => {
-        const pressure = totalScore + opponentGlobalCheer > value ? 4 : 2;
-        const catchup = Math.max(
-          0,
-          Math.min(
-            22,
-            Math.floor((totalScore + opponentGlobalCheer - value) / 14),
-          ),
-        );
-        const surge =
-          Math.random() > 0.62 ? Math.floor(7 + Math.random() * 24) : 0;
-        return value + pressure + catchup + surge;
+        const seed = seededRivalCheer(selectedMatch.id, opponentCountry);
+        const tempo = Date.now() / 6200 + seed;
+        const leadSwing = Math.round(Math.sin(tempo) * 9);
+        const target =
+          totalScore <= 0 && opponentGlobalCheer <= 0
+            ? seed
+            : Math.max(0, totalScore + opponentGlobalCheer + 7 + leadSwing);
+        const delta = target - value;
+        if (Math.abs(delta) <= 1) return Math.max(0, value + (Math.random() > 0.72 ? 1 : 0));
+        const step =
+          delta > 0
+            ? Math.min(5, Math.max(1, Math.ceil(delta * 0.22)))
+            : -Math.min(4, Math.max(1, Math.ceil(Math.abs(delta) * 0.18)));
+        return Math.max(0, value + step);
       });
-    }, 1150);
+    }, 950);
     return () => window.clearInterval(timer);
-  }, [opponentGlobalCheer, totalScore]);
+  }, [opponentCountry, opponentGlobalCheer, selectedMatch.id, totalScore]);
 
   useEffect(() => {
     const flushCheer = async () => {
@@ -5410,6 +5473,8 @@ export function RoarArena({
     setRunnerBestProgress(0);
     setScoreSaveStatus("idle");
     setSavedScoreInfo(null);
+    boardTrophyShownRef.current = false;
+    setBoardTrophyReveal(0);
     milestoneRef.current.clear();
     dropThresholdRef.current.clear();
     contributionThresholdRef.current.clear();
@@ -5760,6 +5825,18 @@ export function RoarArena({
             onClose={() => setResultReveal(null)}
           />
         )}
+        {boardTrophyReveal > 0 && (
+          <div
+            key={boardTrophyReveal}
+            className="board-trophy-reveal"
+            aria-hidden="true"
+          >
+            <div>
+              <strong>BOARD COMPLETE</strong>
+              <span>{flagFor(activeBoardCountry)} {activeBoardCountry}</span>
+            </div>
+          </div>
+        )}
         <AuthModal
           open={authOpen}
           onOpenChange={setAuthOpen}
@@ -6028,7 +6105,15 @@ export function RoarArena({
                 <span>
                   {flagFor(opponentCountry)} {t("rivalTeam")}
                 </span>
-                <b>{fmt.format(rivalTotal)}</b>
+                <div className="rival-meta-right">
+                  {realScoreSummary && (
+                    <em className="live-score-chip">
+                      Score {realScoreSummary}
+                      {realScoreSyncedLabel ? ` · as of ${realScoreSyncedLabel}` : ""}
+                    </em>
+                  )}
+                  <b>{fmt.format(rivalTotal)}</b>
+                </div>
               </div>
               <div className="rival-cheer-track" aria-hidden="true">
                 <i style={{ width: `${Math.max(6, 100 - possession)}%` }} />
@@ -6262,6 +6347,7 @@ export function RoarArena({
 
           <div className="top-action-bar relative grid grid-cols-2 gap-3 bg-[#10236b] px-4 py-4">
             <button
+              type="button"
               onClick={() => scoreAction("tap")}
               className="hero-action hero-action-tap"
               aria-label={t("tap")}
@@ -6271,6 +6357,7 @@ export function RoarArena({
               <b>{fmt.format(tapScore)}</b>
             </button>
             <button
+              type="button"
               onClick={() => void handleShakePress()}
               className="hero-action hero-action-shake"
               aria-label={t("shake")}
@@ -6498,7 +6585,7 @@ export function RoarArena({
               </div>
 
               {!signedIn && (
-                <div className="roar-auth-gate-card mb-4">
+                <div className="roar-auth-gate-card roar-bets-auth-gate mb-4">
                   <div>
                     <strong>Predictions unlock after sign in.</strong>
                     <span>
