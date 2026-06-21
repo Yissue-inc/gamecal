@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, ChevronRight, Flame, Gamepad2, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { flagFor } from "@/lib/flags";
 
 type WorldCupGoal = {
   name: string;
@@ -212,14 +214,22 @@ export function SummerCupOverview() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Image
+                  src="/mini-cup/assets/mascot/mascot-cheer.png"
+                  alt=""
+                  aria-hidden
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_6px_10px_rgba(0,0,0,0.45)]"
+                />
                 <Link
                   href={
                     nextMatch
                       ? `/roar?match=${encodeURIComponent(nextMatch.id)}&source=summer_cup_board`
                       : "/roar?source=summer_cup_board"
                   }
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-4 py-2.5 text-sm font-black text-emerald-950 transition hover:bg-emerald-300"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-300 via-emerald-300 to-emerald-400 px-5 py-2.5 text-sm font-black text-emerald-950 shadow-[0_0_24px_rgba(52,211,153,0.45)] ring-1 ring-emerald-200/40 transition hover:brightness-110"
                 >
                   <Gamepad2 className="h-4 w-4" />
                   Play ROAR
@@ -245,14 +255,32 @@ export function SummerCupOverview() {
 
             {nextMatch && (
               <div className="mt-5 grid gap-3 lg:grid-cols-[1.35fr_.85fr]">
-                <div className="rounded-3xl border border-emerald-300/20 bg-emerald-400/10 p-4">
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-200">
-                    Match of the moment
+                <div className="relative overflow-hidden rounded-3xl border border-emerald-300/25 bg-gradient-to-br from-emerald-400/15 via-emerald-400/[0.06] to-transparent p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-200">
+                      Match of the moment
+                    </div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black leading-none ${matchStatus(nextMatch).className}`}>
+                      {matchStatus(nextMatch).label}
+                    </span>
                   </div>
-                  <div className="mt-2 text-2xl font-black text-white">
-                    {nextMatch.title}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-emerald-50/70">
+                  {(() => {
+                    const { team1, team2 } = matchTeams(nextMatch);
+                    return (
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <span className="text-3xl leading-none">{flagFor(team1)}</span>
+                          <span className="truncate text-lg font-black text-white">{team1}</span>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-black/35 px-2.5 py-1 text-xs font-black text-emerald-200">VS</span>
+                        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right">
+                          <span className="truncate text-lg font-black text-white">{team2}</span>
+                          <span className="text-3xl leading-none">{flagFor(team2)}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-emerald-50/70">
                     <span>{nextMatch.group ?? nextMatch.round ?? "Summer Cup fixture"}</span>
                     <span>{formatKickoff(nextMatch.startAt)}</span>
                     {nextMatch.venue && <span>{nextMatch.venue}</span>}
@@ -314,8 +342,12 @@ export function SummerCupOverview() {
                                 {match.group ?? match.round ?? "Summer Cup fixture"}
                               </span>
                             </div>
-                            <div className="mt-1 text-lg font-black text-white">
-                              {team1} vs {team2}
+                            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-lg font-black text-white">
+                              <span className="text-xl leading-none">{flagFor(team1)}</span>
+                              <span>{team1}</span>
+                              <span className="px-0.5 text-sm font-bold text-white/40">vs</span>
+                              <span className="text-xl leading-none">{flagFor(team2)}</span>
+                              <span>{team2}</span>
                             </div>
                             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/58">
                               <span>{formatKickoff(match.startAt)}</span>
@@ -368,14 +400,16 @@ export function SummerCupOverview() {
                           <span className="truncate text-xs text-white/45">{match.group ?? match.round ?? "Summer Cup result"}</span>
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="text-lg font-black text-white">
-                            {team1}
+                          <div className="flex min-w-0 flex-1 items-center gap-2 text-lg font-black text-white">
+                            <span className="text-2xl leading-none">{flagFor(team1)}</span>
+                            <span className="truncate">{team1}</span>
                           </div>
-                          <div className="rounded-2xl bg-white/10 px-3 py-1 font-mono text-lg font-black text-emerald-100">
+                          <div className="shrink-0 rounded-2xl border border-emerald-300/20 bg-white/10 px-3.5 py-1 font-mono text-xl font-black text-emerald-100">
                             {matchScoreLine(match)}
                           </div>
-                          <div className="text-right text-lg font-black text-white">
-                            {team2}
+                          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right text-lg font-black text-white">
+                            <span className="truncate">{team2}</span>
+                            <span className="text-2xl leading-none">{flagFor(team2)}</span>
                           </div>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/58">
@@ -413,8 +447,9 @@ export function SummerCupOverview() {
                         <div className="text-center font-mono text-sm font-black text-zinc-400">
                           {index + 1}
                         </div>
-                        <div className="truncate text-sm font-bold text-white">
-                          {row.team}
+                        <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-white">
+                          <span className="text-lg leading-none">{flagFor(row.team)}</span>
+                          <span className="truncate">{row.team}</span>
                         </div>
                         <div className="font-mono text-sm font-black text-emerald-200">
                           {Intl.NumberFormat().format(row.total)}
@@ -452,14 +487,15 @@ export function SummerCupOverview() {
                         {rows.map((row, index) => (
                           <div
                             key={row.team}
-                            className="grid grid-cols-[20px_1fr_auto] items-center gap-3"
+                            className={`grid grid-cols-[22px_1fr_auto] items-center gap-3 rounded-xl px-2 py-1.5 ${index < 2 ? "bg-emerald-400/[0.09] ring-1 ring-inset ring-emerald-300/25" : ""}`}
                           >
-                            <div className="font-mono text-sm text-zinc-500">
+                            <div className={`text-center font-mono text-sm ${index < 2 ? "font-black text-emerald-300" : "text-zinc-500"}`}>
                               {index + 1}
                             </div>
-                            <div>
-                              <div className="truncate text-sm font-bold text-white">
-                                {row.team}
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-white">
+                                <span className="text-base leading-none">{flagFor(row.team)}</span>
+                                <span className="truncate">{row.team}</span>
                               </div>
                               <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-white/48">
                                 <span>P {row.played}</span>
