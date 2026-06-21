@@ -185,6 +185,7 @@ export function SummerCupOverview() {
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(5,17,13,.78),rgba(5,17,13,.94)),url('/mini-cup/assets/themes/hero-stadium.webp')] bg-cover bg-center" />
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-[28px] border border-emerald-300/15 bg-black/30 shadow-[0_20px_80px_rgba(0,0,0,.35)] backdrop-blur">
+          <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-400" />
           <div className="border-b border-white/10 px-5 py-6 sm:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-3xl">
@@ -416,8 +417,25 @@ export function SummerCupOverview() {
                           <span>{formatKickoff(match.startAt)}</span>
                         </div>
                         {goals.length > 0 && (
-                          <div className="mt-3 text-sm leading-6 text-emerald-50/72">
-                            Goals: {goals.map(formatScorer).join(", ")}
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {(match.goals1 ?? []).map((g, i) => (
+                              <span
+                                key={`g1-${i}`}
+                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-xs font-bold text-emerald-50/85"
+                              >
+                                <span className="leading-none">{flagFor(team1)}</span>
+                                <span>{formatScorer(g)}</span>
+                              </span>
+                            ))}
+                            {(match.goals2 ?? []).map((g, i) => (
+                              <span
+                                key={`g2-${i}`}
+                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-xs font-bold text-emerald-50/85"
+                              >
+                                <span className="leading-none">{flagFor(team2)}</span>
+                                <span>{formatScorer(g)}</span>
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -439,23 +457,43 @@ export function SummerCupOverview() {
                       Live ROAR nation totals will appear here as players cheer.
                     </p>
                   ) : (
-                    loudestNations.map((row, index) => (
-                      <div
-                        key={row.team}
-                        className="grid grid-cols-[28px_1fr_auto] items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
-                      >
-                        <div className="text-center font-mono text-sm font-black text-zinc-400">
-                          {index + 1}
+                    loudestNations.map((row, index) => {
+                      const max = loudestNations[0]?.total || 1;
+                      const pct = Math.max(4, Math.round((row.total / max) * 100));
+                      const medal =
+                        index === 0
+                          ? "text-amber-300"
+                          : index === 1
+                            ? "text-zinc-200"
+                            : index === 2
+                              ? "text-amber-600"
+                              : "text-zinc-400";
+                      return (
+                        <div
+                          key={row.team}
+                          className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-6 text-center font-mono text-sm font-black ${medal}`}>
+                              {index + 1}
+                            </div>
+                            <div className="flex min-w-0 flex-1 items-center gap-2 text-sm font-bold text-white">
+                              <span className="text-lg leading-none">{flagFor(row.team)}</span>
+                              <span className="truncate">{row.team}</span>
+                            </div>
+                            <div className="font-mono text-sm font-black text-emerald-200">
+                              {Intl.NumberFormat().format(row.total)}
+                            </div>
+                          </div>
+                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-amber-300"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-white">
-                          <span className="text-lg leading-none">{flagFor(row.team)}</span>
-                          <span className="truncate">{row.team}</span>
-                        </div>
-                        <div className="font-mono text-sm font-black text-emerald-200">
-                          {Intl.NumberFormat().format(row.total)}
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
