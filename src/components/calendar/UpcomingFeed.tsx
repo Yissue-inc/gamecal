@@ -34,7 +34,10 @@ type WorldCupMatchSummary = {
   id: string
   title: string
   startAt: string
+  endAt?: string
   group?: string
+  round?: string
+  venue?: string
   score?: { ft?: [number, number] }
   goals1?: WorldCupGoal[]
   goals2?: WorldCupGoal[]
@@ -55,6 +58,24 @@ type WorldCupPulseData = {
 
 function formatScorer(goal: WorldCupGoal) {
   return `${goal.name}${goal.minute ? ` ${goal.minute}'` : ''}${goal.penalty ? ' pen' : ''}`
+}
+
+function formatPulseKickoff(dateIso: string) {
+  return new Date(dateIso).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function getPulseStatus(match: WorldCupMatchSummary) {
+  const now = Date.now()
+  const start = new Date(match.startAt).getTime()
+  const end = new Date(match.endAt ?? match.startAt).getTime()
+  if (match.score?.ft) return { label: 'FINAL', className: 'border-zinc-500/45 bg-zinc-700/35 text-zinc-200' }
+  if (now >= start && now <= end) return { label: 'LIVE', className: 'border-red-400/45 bg-red-500/15 text-red-200' }
+  return { label: 'UP NEXT', className: 'border-emerald-300/40 bg-emerald-400/15 text-emerald-200' }
 }
 
 function getMatchStatusBadge(event: GameEvent) {
@@ -127,6 +148,14 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
       .slice(0, 2)
   }, [data?.matches])
 
+  const todayFixtures = useMemo(() => {
+    const today = new Date().toDateString()
+    return (data?.matches ?? [])
+      .filter((match) => new Date(match.startAt).toDateString() === today)
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+      .slice(0, 3)
+  }, [data?.matches])
+
   const standingsGroups = useMemo(() => {
     const preferredGroup = nextMatch?.group
     const groups = Object.keys(data?.standings ?? {})
@@ -152,7 +181,7 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
             href="/summer-cup"
             className="rounded-full border border-emerald-300/35 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-100"
           >
-            Board
+            Full Board
           </Link>
           <Link
             href={nextMatch ? `/roar?match=${encodeURIComponent(nextMatch.id)}&source=next_up_pulse` : '/roar?source=next_up_pulse'}
@@ -163,6 +192,40 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
         </div>
       </div>
 
+      {nextMatch && (
+        <Link
+          href={`/roar?match=${encodeURIComponent(nextMatch.id)}&source=next_up_featured`}
+          className="mb-2 block rounded-md border border-emerald-300/20 bg-emerald-300/10 p-2.5 transition hover:border-emerald-300/45 hover:bg-emerald-300/15"
+        >
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black leading-none tracking-wide ${getPulseStatus(nextMatch).className}`}>
+              {getPulseStatus(nextMatch).label}
+            </span>
+            <span className="truncate text-[10px] font-semibold text-emerald-50/65">
+              {formatPulseKickoff(nextMatch.startAt)}
+            </span>
+          </div>
+          <div className="line-clamp-2 text-sm font-black leading-tight text-white">{nextMatch.title}</div>
+          <div className="mt-1 line-clamp-1 text-[10px] text-emerald-50/60">
+            {nextMatch.group ?? 'Summer Cup fixture'}{nextMatch.venue ? ` · ${nextMatch.venue}` : ''} · predict and cheer in ROAR
+          </div>
+        </Link>
+      )}
+
+      {todayFixtures.length > 0 && (
+        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5">
+          {todayFixtures.map((match) => (
+            <Link
+              key={match.id}
+              href={`/roar?match=${encodeURIComponent(match.id)}&source=next_up_today_strip`}
+              className="shrink-0 rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[10px] font-bold text-white/75 hover:border-emerald-300/40 hover:text-white"
+            >
+              {match.title}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {recentResults.length > 0 && (
         <div className="space-y-2">
           {recentResults.map((match) => {
@@ -171,6 +234,12 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
             const goals = [...(match.goals1 ?? []), ...(match.goals2 ?? [])].slice(0, 4)
             return (
               <div key={match.id} className="rounded-md border border-white/10 bg-black/20 p-2">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black leading-none tracking-wide ${getPulseStatus(match).className}`}>
+                    {getPulseStatus(match).label}
+                  </span>
+                  <span className="truncate text-[10px] text-zinc-500">{match.group ?? match.round ?? 'Result'}</span>
+                </div>
                 <div className="flex items-center justify-between gap-2 text-xs font-bold text-white">
                   <span className="truncate">{homeTeam}</span>
                   <span className="rounded bg-white/10 px-2 py-0.5 font-mono text-emerald-100">

@@ -68,6 +68,15 @@ function formatCountdown(dateIso: string) {
   return `${hours}h ${Math.floor((diff % 36e5) / 6e4)}m to kickoff`;
 }
 
+function matchStatus(match: WorldCupMatchSummary) {
+  const now = Date.now();
+  const start = new Date(match.startAt).getTime();
+  const end = new Date(match.endAt ?? match.startAt).getTime();
+  if (match.score?.ft) return { label: "FINAL", className: "border-zinc-500/45 bg-zinc-700/35 text-zinc-200" };
+  if (now >= start && now <= end) return { label: "LIVE", className: "border-red-400/45 bg-red-500/15 text-red-100" };
+  return { label: "UPCOMING", className: "border-emerald-300/40 bg-emerald-400/15 text-emerald-100" };
+}
+
 function scoreGoals(match: WorldCupMatchSummary) {
   return [...(match.goals1 ?? []), ...(match.goals2 ?? [])];
 }
@@ -156,6 +165,16 @@ export function SummerCupOverview() {
     [data?.cheerTotals],
   );
 
+  const liveMatches = useMemo(
+    () =>
+      (data?.matches ?? []).filter((match) => {
+        const start = new Date(match.startAt).getTime();
+        const end = new Date(match.endAt ?? match.startAt).getTime();
+        return Date.now() >= start && Date.now() <= end && !match.score?.ft;
+      }),
+    [data?.matches],
+  );
+
   return (
     <div
       data-theme="stadium"
@@ -178,6 +197,20 @@ export function SummerCupOverview() {
                   Track every group table, upcoming match, final score, and
                   loudest nation signal from one place.
                 </p>
+                <div className="mt-4 grid max-w-2xl grid-cols-3 gap-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Live</div>
+                    <div className="mt-1 font-mono text-lg font-black text-red-100">{liveMatches.length}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Next</div>
+                    <div className="mt-1 font-mono text-lg font-black text-emerald-100">{upcomingMatches.length}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Finals</div>
+                    <div className="mt-1 font-mono text-lg font-black text-amber-100">{recentResults.length}</div>
+                  </div>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link
@@ -199,6 +232,13 @@ export function SummerCupOverview() {
                 >
                   <CalendarDays className="h-4 w-4" />
                   Add SC calendar
+                </a>
+                <a
+                  href="#standings"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-black text-emerald-100 transition hover:bg-emerald-300/15"
+                >
+                  <Trophy className="h-4 w-4" />
+                  Standings
                 </a>
               </div>
             </div>
@@ -234,7 +274,7 @@ export function SummerCupOverview() {
           </div>
 
           <div className="grid gap-4 p-5 sm:p-7 xl:grid-cols-[1.1fr_.9fr]">
-            <section className="order-2 space-y-4 xl:order-1">
+            <section className="order-1 space-y-4">
               <div className="rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
@@ -250,8 +290,14 @@ export function SummerCupOverview() {
                   </span>
                 </div>
                 <div className="space-y-3">
+                  {upcomingMatches.length === 0 && (
+                    <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/58">
+                      No upcoming fixtures are available yet.
+                    </p>
+                  )}
                   {upcomingMatches.slice(0, 18).map((match) => {
                     const { team1, team2 } = matchTeams(match);
+                    const status = matchStatus(match);
                     return (
                       <Link
                         key={match.id}
@@ -260,8 +306,13 @@ export function SummerCupOverview() {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300/90">
-                              {match.group ?? match.round ?? "Summer Cup fixture"}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black leading-none tracking-wide ${status.className}`}>
+                                {status.label}
+                              </span>
+                              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300/90">
+                                {match.group ?? match.round ?? "Summer Cup fixture"}
+                              </span>
                             </div>
                             <div className="mt-1 text-lg font-black text-white">
                               {team1} vs {team2}
@@ -297,6 +348,11 @@ export function SummerCupOverview() {
                   </span>
                 </div>
                 <div className="space-y-3">
+                  {recentResults.length === 0 && (
+                    <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/58">
+                      Final scores and goal history will appear here after matches settle.
+                    </p>
+                  )}
                   {recentResults.slice(0, 18).map((match) => {
                     const { team1, team2 } = matchTeams(match);
                     const goals = scoreGoals(match);
@@ -305,6 +361,12 @@ export function SummerCupOverview() {
                         key={match.id}
                         className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
                       >
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black leading-none tracking-wide ${matchStatus(match).className}`}>
+                            {matchStatus(match).label}
+                          </span>
+                          <span className="truncate text-xs text-white/45">{match.group ?? match.round ?? "Summer Cup result"}</span>
+                        </div>
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="text-lg font-black text-white">
                             {team1}
@@ -317,7 +379,6 @@ export function SummerCupOverview() {
                           </div>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/58">
-                          <span>{match.group ?? match.round ?? "Summer Cup result"}</span>
                           <span>{formatKickoff(match.startAt)}</span>
                         </div>
                         {goals.length > 0 && (
@@ -332,8 +393,8 @@ export function SummerCupOverview() {
               </div>
             </section>
 
-            <section className="order-1 space-y-4 xl:order-2">
-              <div className="rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
+            <section className="order-2 space-y-4">
+              <div id="standings" className="scroll-mt-6 rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
                 <div className="mb-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">
                   <Flame className="h-4 w-4" />
                   Loudest nation
@@ -374,6 +435,11 @@ export function SummerCupOverview() {
                   </h2>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+                  {groups.length === 0 && (
+                    <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/58">
+                      Group standings are syncing.
+                    </p>
+                  )}
                   {groups.map(([group, rows]) => (
                     <div
                       key={group}

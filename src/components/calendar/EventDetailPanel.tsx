@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
-import { X, ExternalLink, Calendar, Clock, RadioTower } from 'lucide-react'
+import { X, ExternalLink, Calendar, Clock, RadioTower, Trophy, Gamepad2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -46,6 +46,15 @@ const EmbeddedRoarArena = dynamic(
   },
 )
 
+function getSummerCupEventStatus(event: GameEvent) {
+  const now = Date.now()
+  const start = new Date(event.start_at).getTime()
+  const end = new Date(event.end_at ?? event.start_at).getTime()
+  if (now >= start && now <= end) return { label: 'LIVE', tone: 'border-red-400/45 bg-red-500/15 text-red-100' }
+  if (now < start) return { label: 'UPCOMING', tone: 'border-emerald-300/40 bg-emerald-400/15 text-emerald-100' }
+  return { label: 'FINAL', tone: 'border-zinc-500/45 bg-zinc-700/35 text-zinc-200' }
+}
+
 interface EventDetailPanelProps {
   event: GameEvent | null
   game: Game | null
@@ -61,6 +70,8 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
   const description = getEventFallbackDescription(event, game)
   const reward = getRewardSignals(event, game)
   const squadsForming = getSquadsFormingCount(event.id)
+  const isSummerCupMatch = game.slug === WORLD_CUP_SLUG
+  const summerCupStatus = isSummerCupMatch ? getSummerCupEventStatus(event) : null
 
   return (
     <div className="flex h-full flex-col">
@@ -153,6 +164,81 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </div>
         </div>
 
+        <PartyButton event={event} game={game} />
+        {isSummerCupMatch && (
+          <>
+            <section data-theme="stadium" className="overflow-hidden rounded-lg border border-[color:var(--acc)]/35 bg-[color:var(--card)] text-[color:var(--txt)]">
+              <div
+                className="relative min-h-28 bg-cover bg-center p-4"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(120deg, rgba(5,17,13,.92), rgba(5,17,13,.55)), url('/mini-cup/assets/themes/hero-stadium.webp')",
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="rounded-full bg-[color:var(--acc)]/15 p-2 text-[color:var(--acc)]">
+                      <RadioTower className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--text-lo)]">Summer Cup match hub</div>
+                      <p className="mt-1 text-sm font-semibold text-[color:var(--text-mid)]">
+                        Back a team, build the crowd, then return to the full board for standings and results.
+                      </p>
+                    </div>
+                  </div>
+                  {summerCupStatus && (
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${summerCupStatus.tone}`}>
+                      {summerCupStatus.label}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                    <div className="font-black uppercase tracking-[0.16em] text-white/45">Group</div>
+                    <div className="mt-1 truncate font-bold text-white">{String(event.metadata?.group ?? 'Summer Cup')}</div>
+                  </div>
+                  <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                    <div className="font-black uppercase tracking-[0.16em] text-white/45">Session</div>
+                    <div className="mt-1 truncate font-bold text-white">GamerClock ROAR</div>
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-2 p-4 sm:grid-cols-2">
+                <Button className="bg-[color:var(--acc)] text-[#07111f] hover:brightness-110" onClick={() => setRoarOpen(true)}>
+                  <Gamepad2 className="mr-2 h-4 w-4" />
+                  Play ROAR here
+                </Button>
+                <Button variant="outline" className="border-white/15 bg-black/20 text-white hover:bg-white/10" asChild>
+                  <a href={`/roar?match=${encodeURIComponent(event.id)}&source=event_detail`}>
+                    Open full arena
+                  </a>
+                </Button>
+                <Button variant="outline" className="border-emerald-300/25 bg-black/20 text-emerald-100 hover:bg-emerald-300/10" asChild>
+                  <a href="/summer-cup">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    View full board
+                  </a>
+                </Button>
+                <Button variant="outline" className="border-white/15 bg-black/20 text-white hover:bg-white/10" asChild>
+                  <a href="/api/feed/world-cup" target="_blank" rel="noopener noreferrer">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Add SC calendar
+                  </a>
+                </Button>
+              </div>
+            </section>
+            <Dialog open={roarOpen} onOpenChange={setRoarOpen}>
+              <DialogContent className="max-h-[94vh] max-w-6xl overflow-y-auto border-white/15 bg-[#070d1f] p-2">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>ROAR embedded match arena</DialogTitle>
+                </DialogHeader>
+                <EmbeddedRoarArena initialMatchId={event.id} source="event_detail_embed" embedded />
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
+
         <section className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
           <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Event Details</div>
           <p data-testid="event-description" className="text-sm leading-relaxed text-zinc-300">{description}</p>
@@ -196,42 +282,6 @@ function EventDetailContent({ event, game, onClose }: { event: GameEvent; game: 
           </p>
         </section>
 
-        <PartyButton event={event} game={game} />
-        {game.slug === WORLD_CUP_SLUG && (
-          <>
-            <section data-theme="stadium" className="rounded-lg border border-[color:var(--acc)]/35 bg-[color:var(--card)] p-4 text-[color:var(--txt)]">
-              <div className="flex items-start gap-3">
-                <div className="rounded-full bg-[color:var(--acc)]/15 p-2 text-[color:var(--acc)]">
-                  <RadioTower className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--text-lo)]">ROAR match panel</div>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--text-mid)]">
-                    Back a team, build the crowd, and keep this match tied to your GamerClock session.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <Button className="bg-[color:var(--acc)] text-[#07111f] hover:brightness-110" onClick={() => setRoarOpen(true)}>
-                  Back team in ROAR
-                </Button>
-                <Button variant="outline" className="border-white/15 bg-black/20 text-white hover:bg-white/10" asChild>
-                  <a href={`/roar?match=${encodeURIComponent(event.id)}&source=event_detail`}>
-                    Open full arena
-                  </a>
-                </Button>
-              </div>
-            </section>
-            <Dialog open={roarOpen} onOpenChange={setRoarOpen}>
-              <DialogContent className="max-h-[94vh] max-w-6xl overflow-y-auto border-white/15 bg-[#070d1f] p-2">
-                <DialogHeader className="sr-only">
-                  <DialogTitle>ROAR embedded match arena</DialogTitle>
-                </DialogHeader>
-                <EmbeddedRoarArena initialMatchId={event.id} source="event_detail_embed" embedded />
-              </DialogContent>
-            </Dialog>
-          </>
-        )}
         <AddToCalendar event={event} game={game} />
         <ShareEvent event={event} game={game} />
 
