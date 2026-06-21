@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarDays, ChevronRight, Flame, Gamepad2, Trophy } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronRight, Flame, Gamepad2, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { flagFor } from "@/lib/flags";
 
@@ -184,6 +184,29 @@ export function SummerCupOverview() {
     >
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(5,17,13,.78),rgba(5,17,13,.94)),url('/mini-cup/assets/themes/hero-stadium.webp')] bg-cover bg-center" />
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <Link href="/" className="inline-flex items-center gap-2 text-white transition hover:opacity-90">
+            <Image
+              src="/header-icon.png"
+              alt="GamerClock"
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0"
+            />
+            <span className="text-lg font-black tracking-tight">GamerClock</span>
+            <ChevronRight className="hidden h-4 w-4 text-white/30 sm:block" />
+            <span className="hidden text-sm font-bold text-emerald-200/80 sm:block">
+              Summer Cup
+            </span>
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-black text-white transition hover:border-emerald-300/40 hover:bg-emerald-300/10"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Home
+          </Link>
+        </div>
         <div className="overflow-hidden rounded-[28px] border border-emerald-300/15 bg-black/30 shadow-[0_20px_80px_rgba(0,0,0,.35)] backdrop-blur">
           <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-400" />
           {liveMatches.length > 0 && (
