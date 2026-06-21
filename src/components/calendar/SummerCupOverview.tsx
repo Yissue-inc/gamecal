@@ -38,6 +38,14 @@ type WorldCupPulseData = {
   cheerTotals: Record<string, number>;
 };
 
+type MobileTab = "live" | "fixtures" | "standings";
+
+const MOBILE_TABS: Array<{ id: MobileTab; label: string }> = [
+  { id: "live", label: "Live" },
+  { id: "fixtures", label: "Fixtures" },
+  { id: "standings", label: "Standings" },
+];
+
 function formatScorer(goal: WorldCupGoal) {
   return `${goal.name}${goal.minute ? ` ${goal.minute}'` : ""}${goal.penalty ? " pen" : ""}`;
 }
@@ -85,6 +93,7 @@ function scoreGoals(match: WorldCupMatchSummary) {
 
 export function SummerCupOverview() {
   const [data, setData] = useState<WorldCupPulseData | null>(null);
+  const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("live");
 
   useEffect(() => {
     let cancelled = false;
@@ -370,7 +379,7 @@ export function SummerCupOverview() {
           </div>
 
           {groups.length > 0 && (
-            <div className="border-b border-white/10 px-5 py-4 sm:px-7">
+            <div className="hidden border-b border-white/10 px-5 py-4 sm:block sm:px-7">
               <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">
                 <Trophy className="h-4 w-4" />
                 On track to advance
@@ -407,8 +416,115 @@ export function SummerCupOverview() {
             </div>
           )}
 
-          <div className="grid gap-4 p-5 sm:p-7 xl:grid-cols-[1.1fr_.9fr]">
-            <section className="order-1 space-y-4">
+          <div className="sticky top-0 z-20 border-b border-white/10 bg-[#06130d]/92 px-5 py-3 backdrop-blur sm:hidden">
+            <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/25 p-1">
+              {MOBILE_TABS.map((tab) => {
+                const active = activeMobileTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveMobileTab(tab.id)}
+                    className={`rounded-xl px-2 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
+                      active
+                        ? "bg-emerald-400 text-emerald-950 shadow-[0_0_18px_rgba(52,211,153,.24)]"
+                        : "text-white/58 hover:bg-white/[0.06] hover:text-white"
+                    }`}
+                    aria-pressed={active}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <section className={`${activeMobileTab === "live" ? "block" : "hidden"} space-y-4 p-5 sm:hidden`}>
+            <div className="rounded-3xl border border-red-400/20 bg-red-500/[0.08] p-4">
+              <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-red-200">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+                Live pulse
+              </div>
+              {liveMatches.length === 0 ? (
+                <p className="text-sm leading-6 text-white/62">
+                  No match is live right now. Jump into the next fixture before kickoff and build ROAR momentum.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {liveMatches.slice(0, 4).map((match) => {
+                    const { team1, team2 } = matchTeams(match);
+                    return (
+                      <Link
+                        key={match.id}
+                        href={`/summer-cup/${encodeURIComponent(match.id)}`}
+                        className="block rounded-2xl border border-red-400/25 bg-black/25 p-3"
+                      >
+                        <div className="flex items-center justify-between gap-2 text-sm font-black text-white">
+                          <span className="truncate">{flagFor(team1)} {team1}</span>
+                          <span className="rounded-lg bg-white/10 px-2 py-0.5 font-mono text-red-100">
+                            {match.score?.ft ? matchScoreLine(match) : "LIVE"}
+                          </span>
+                          <span className="truncate text-right">{team2} {flagFor(team2)}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {nextMatch && (
+              <Link
+                href={`/roar?match=${encodeURIComponent(nextMatch.id)}&source=summer_cup_mobile_live_tab`}
+                className="block rounded-3xl border border-emerald-300/25 bg-emerald-400/[0.09] p-4"
+              >
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-200">
+                  Next ROAR match
+                </div>
+                {(() => {
+                  const { team1, team2 } = matchTeams(nextMatch);
+                  return (
+                    <div className="mt-2 text-xl font-black text-white">
+                      {flagFor(team1)} {team1} vs {team2} {flagFor(team2)}
+                    </div>
+                  );
+                })()}
+                <div className="mt-2 text-sm text-white/58">
+                  {formatKickoff(nextMatch.startAt)}{nextMatch.venue ? ` · ${nextMatch.venue}` : ""}
+                </div>
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-emerald-950">
+                  Play ROAR
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </div>
+              </Link>
+            )}
+
+            <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+              <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">
+                <Flame className="h-4 w-4" />
+                Loudest nation
+              </div>
+              {loudestNations.length === 0 ? (
+                <p className="text-sm text-white/58">Live ROAR nation totals will appear here as players cheer.</p>
+              ) : (
+                <div className="space-y-2">
+                  {loudestNations.slice(0, 5).map((row, index) => (
+                    <div key={row.team} className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
+                      <span className="w-5 text-center font-mono text-sm font-black text-amber-200">{index + 1}</span>
+                      <span className="text-lg leading-none">{flagFor(row.team)}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{row.team}</span>
+                      <span className="font-mono text-sm font-black text-emerald-200">
+                        {Intl.NumberFormat().format(row.total)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <div className={`${activeMobileTab === "live" ? "hidden" : "grid"} gap-4 p-5 sm:grid sm:p-7 xl:grid-cols-[1.1fr_.9fr]`}>
+            <section className={`${activeMobileTab === "fixtures" ? "block" : "hidden"} order-1 space-y-4 sm:block`}>
               <div className="rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
@@ -551,7 +667,7 @@ export function SummerCupOverview() {
               </div>
             </section>
 
-            <section className="order-2 space-y-4">
+            <section className={`${activeMobileTab === "standings" ? "block" : "hidden"} order-2 space-y-4 sm:block`}>
               <div id="standings" className="scroll-mt-6 rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
                 <div className="mb-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">
                   <Flame className="h-4 w-4" />
