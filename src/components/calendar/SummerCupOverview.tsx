@@ -186,6 +186,50 @@ export function SummerCupOverview() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-[28px] border border-emerald-300/15 bg-black/30 shadow-[0_20px_80px_rgba(0,0,0,.35)] backdrop-blur">
           <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-400" />
+          {liveMatches.length > 0 && (
+            <div className="border-b border-red-400/25 bg-red-500/[0.08] px-5 py-4 sm:px-7">
+              <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-red-200">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                </span>
+                Live now · cheer in ROAR
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {liveMatches.slice(0, 6).map((match) => {
+                  const { team1, team2 } = matchTeams(match);
+                  return (
+                    <Link
+                      key={match.id}
+                      href={`/roar?match=${encodeURIComponent(match.id)}&source=summer_cup_live`}
+                      className="rounded-2xl border border-red-400/25 bg-black/30 p-3 transition hover:border-red-300/50 hover:bg-red-500/[0.1]"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-black text-white">
+                          <span className="text-lg leading-none">{flagFor(team1)}</span>
+                          <span className="truncate">{team1}</span>
+                        </div>
+                        <span className="shrink-0 rounded-lg bg-white/10 px-2.5 py-0.5 font-mono text-base font-black text-red-100">
+                          {match.score?.ft ? matchScoreLine(match) : "LIVE"}
+                        </span>
+                        <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-right text-sm font-black text-white">
+                          <span className="truncate">{team2}</span>
+                          <span className="text-lg leading-none">{flagFor(team2)}</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-white/55">
+                        <span className="truncate">{match.group ?? match.round ?? "Summer Cup"}</span>
+                        <span className="inline-flex shrink-0 items-center gap-1 font-black text-red-200">
+                          Cheer live
+                          <ChevronRight className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="border-b border-white/10 bg-[linear-gradient(115deg,rgba(5,17,13,.94),rgba(5,17,13,.58)_52%,rgba(5,17,13,.88)),url('/mini-cup/assets/themes/hero-stadium.webp')] bg-cover bg-center px-5 py-6 sm:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-3xl">
