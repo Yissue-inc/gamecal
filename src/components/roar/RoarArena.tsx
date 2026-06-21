@@ -3648,11 +3648,24 @@ export function RoarArena({
   const realScoreLine = realMatchScore
     ? `${realMatchScore[0]}-${realMatchScore[1]}`
     : null;
+  const livePhase = matchPhase(selectedMatch);
+  const displayMatchScore = realMatchScore ?? ([0, 0] as [number, number]);
+  const displayScoreStatus =
+    livePhase === "ended"
+      ? "END"
+      : livePhase === "live"
+        ? "LIVE"
+        : "STARTING SOON";
+  const displayScoreKicker =
+    livePhase === "ended"
+      ? "Final score"
+      : livePhase === "live"
+        ? "Live score"
+        : "Pre-match";
   const realScoreSyncedLabel = matchDataSyncedAt
     ? timeFmt.format(matchDataSyncedAt)
     : null;
   const goalFeed = useMemo(() => goalEventsFor(selectedMatch), [selectedMatch]);
-  const livePhase = matchPhase(selectedMatch);
   const totalScore = tapScore + shakeScore;
   const matchCheerByCountry = useMemo(() => {
     const totals = new Map<string, CheerAggregate>();
@@ -5108,7 +5121,7 @@ export function RoarArena({
       setRivalPulse((value) =>
         totalScore > 0 ? value + (Math.random() > 0.7 ? 1 : 0) : value,
       );
-    }, 1400);
+    }, 2000);
     return () => window.clearInterval(timer);
   }, [totalScore]);
 
@@ -5130,7 +5143,7 @@ export function RoarArena({
             : -Math.min(4, Math.max(1, Math.ceil(Math.abs(delta) * 0.18)));
         return Math.max(0, value + step);
       });
-    }, 950);
+    }, 1600);
     return () => window.clearInterval(timer);
   }, [opponentCountry, opponentGlobalCheer, selectedMatch.id, totalScore]);
 
@@ -5193,7 +5206,7 @@ export function RoarArena({
 
     const timer = window.setInterval(() => {
       void flushCheer();
-    }, 1000);
+    }, 1600);
     return () => window.clearInterval(timer);
   }, [currentRoarRank, rankName, signedIn]);
 
@@ -5216,8 +5229,9 @@ export function RoarArena({
 
     void loadCheer();
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       void loadCheer();
-    }, 2000);
+    }, 5000);
     return () => window.clearInterval(timer);
   }, [selectedMatch.id]);
 
@@ -6366,36 +6380,6 @@ export function RoarArena({
                   {selectedMatch.date} · {selectedMatch.time ?? "TBD"} ·{" "}
                   {matchPhaseLabel(selectedMatch)}
                 </div>
-                {realMatchScore && (
-                  <div className="live-match-scoreboard" aria-label="Actual match score">
-                    <span>
-                      {flagFor(selectedMatch.team1)} {selectedMatch.team1}
-                    </span>
-                    <b>
-                      {realMatchScore[0]}-{realMatchScore[1]}
-                    </b>
-                    <span>
-                      {selectedMatch.team2} {flagFor(selectedMatch.team2)}
-                    </span>
-                    <em>
-                      {livePhase === "live"
-                        ? "Live sync"
-                        : livePhase === "ended"
-                          ? "Full-time"
-                          : "Score sync"}
-                      {realScoreSyncedLabel ? ` · ${realScoreSyncedLabel}` : ""}
-                    </em>
-                  </div>
-                )}
-                {goalFeed.length > 0 && (
-                  <div className="goal-feed-row" aria-label="Goal feed">
-                    {goalFeed.slice(-3).map((goal) => (
-                      <span key={goal.id}>
-                        ⚽ {goalMinuteLabel(goal)} {goal.name ?? goal.team}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
               <button
                 type="button"
@@ -6423,50 +6407,33 @@ export function RoarArena({
               </button>
             </div>
 
-            <section className="rival-cheer-strip" aria-label={`${opponentCountry} rival pressure`}>
-              {realMatchScore && (
-                <div className="rival-live-scoreboard" aria-label="Actual match score">
-                  <span>
-                    Actual score
-                    {realScoreSyncedLabel ? ` · ${realScoreSyncedLabel}` : ""}
-                  </span>
-                  <strong>
-                    <em>
-                      {flagFor(selectedMatch.team1)} {selectedMatch.team1}
-                    </em>
-                    <b>
-                      {realMatchScore[0]}-{realMatchScore[1]}
-                    </b>
-                    <em>
-                      {selectedMatch.team2} {flagFor(selectedMatch.team2)}
-                    </em>
-                  </strong>
-                  {goalFeed.length > 0 && (
-                    <div className="rival-goal-feed" aria-label="Goal feed">
-                      {goalFeed.slice(-3).map((goal) => (
-                        <i key={goal.id}>
-                          ⚽ {goalMinuteLabel(goal)} {goal.name ?? goal.team}
-                        </i>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="rival-cheer-strip-meta">
+            <section className="rival-cheer-strip actual-score-strip" aria-label="Actual match score">
+              <div className="rival-live-scoreboard">
                 <span>
-                  {flagFor(opponentCountry)} {t("rivalTeam")}
+                  {displayScoreKicker}
+                  {realScoreSyncedLabel ? ` · ${realScoreSyncedLabel}` : ""}
                 </span>
-                <b>{fmt.format(rivalTotal)}</b>
-              </div>
-              <div className="rival-cheer-track" aria-hidden="true">
-                <i style={{ width: `${Math.max(6, 100 - possession)}%` }} />
-                {Array.from({ length: 18 }, (_, index) => (
-                  <span
-                    key={index}
-                    className={index < Math.round((100 - possession) / 6) ? "rival-cheer-dot-on" : ""}
-                    style={{ "--i": index } as CSSProperties}
-                  />
-                ))}
+                <strong>
+                  <em>
+                    {flagFor(selectedMatch.team1)} {selectedMatch.team1}
+                  </em>
+                  <b>
+                    {displayMatchScore[0]}-{displayMatchScore[1]}
+                  </b>
+                  <em>
+                    {selectedMatch.team2} {flagFor(selectedMatch.team2)}
+                  </em>
+                </strong>
+                <small>{displayScoreStatus}</small>
+                {goalFeed.length > 0 && (
+                  <div className="rival-goal-feed" aria-label="Goal feed">
+                    {goalFeed.slice(-3).map((goal) => (
+                      <i key={goal.id}>
+                        ⚽ {goalMinuteLabel(goal)} {goal.name ?? goal.team}
+                      </i>
+                    ))}
+                  </div>
+                )}
               </div>
             </section>
 
