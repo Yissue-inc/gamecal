@@ -2210,6 +2210,74 @@ const PERSONAL_STAGE_STEPS = [
   { goal: 1200, label: "Combo fever", key: "comboFever" },
   { goal: 3000, label: "Board transfer", key: "boardTransfer" },
 ];
+const COMBO_TIERS = [
+  { count: 60, multiplier: 5 },
+  { count: 40, multiplier: 4 },
+  { count: 20, multiplier: 3 },
+  { count: 10, multiplier: 2 },
+  { count: 6, multiplier: 1.5 },
+  { count: 1, multiplier: 1 },
+] as const;
+const BASE_COMBO_DECAY_DELAY_MS = 1500;
+const FEVER_DURATION_MS = 5000;
+const UPGRADE_STORAGE_KEY = "roar-upgrades-v1";
+const DEFAULT_UPGRADES = {
+  tapPower: 0,
+  comboKeeper: 0,
+  critChance: 0,
+};
+type UpgradeKey = keyof typeof DEFAULT_UPGRADES;
+type UpgradeState = Record<UpgradeKey, number>;
+type SessionSummary = {
+  id: number;
+  country: string;
+  roar: number;
+  bestMultiplier: number;
+  coinsEarned: number;
+  boardIcons: number;
+};
+
+function comboMultiplierFor(comboCount: number) {
+  return (
+    COMBO_TIERS.find((tier) => comboCount >= tier.count)?.multiplier ?? 1
+  );
+}
+
+function decayComboCount(comboCount: number) {
+  if (comboCount <= 1) return 1;
+  if (comboCount > 60) return 60;
+  if (comboCount > 40) return 40;
+  if (comboCount > 20) return 20;
+  if (comboCount > 10) return 10;
+  if (comboCount > 6) return 6;
+  return 1;
+}
+
+function upgradeCost(kind: UpgradeKey, level: number) {
+  const base = kind === "tapPower" ? 120 : kind === "comboKeeper" ? 160 : 180;
+  return Math.round(base * Math.pow(1.72, level));
+}
+
+const UPGRADE_DEFS: Record<
+  UpgradeKey,
+  { label: string; body: string; stat: string }
+> = {
+  tapPower: {
+    label: "Tap Power",
+    body: "+1 base roar per level",
+    stat: "Base",
+  },
+  comboKeeper: {
+    label: "Combo Keeper",
+    body: "+0.45s before combo decay",
+    stat: "Hold",
+  },
+  critChance: {
+    label: "Crit Chance",
+    body: "+3.5% CRIT chance per level",
+    stat: "Crit",
+  },
+};
 
 // Runner/campaign progress mapped to even stage segments so the runner
 // advances a visible chunk each stage (instead of crawling 0->3000 linearly).
@@ -3366,6 +3434,18 @@ export function RoarArena({
   const [shakeScore, setShakeScore] = useState(0);
   const [comboBonus, setComboBonus] = useState(0);
   const [combo, setCombo] = useState(1);
+  const [comboMultiplier, setComboMultiplier] = useState(1);
+  const [comboPulse, setComboPulse] = useState(0);
+  const [feverUntil, setFeverUntil] = useState(0);
+  const [lastCrit, setLastCrit] = useState<{ id: number; gain: number } | null>(
+    null,
+  );
+  const [bestComboMultiplier, setBestComboMultiplier] = useState(1);
+  const [sessionCoinsEarned, setSessionCoinsEarned] = useState(0);
+  const [upgrades, setUpgrades] = useState<UpgradeState>(DEFAULT_UPGRADES);
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(
+    null,
+  );
   const [teamPulse, setTeamPulse] = useState(0);
   const [rivalPulse, setRivalPulse] = useState(0);
   const [feed, setFeed] = useState<FeedEvent[]>([
@@ -3449,6 +3529,7 @@ export function RoarArena({
   const lastActionRef = useRef<{ type: "tap" | "shake"; at: number } | null>(
     null,
   );
+  const lastComboDecayRef = useRef(0);
   const cheerBufferRef = useRef<
     Record<
       string,
@@ -3628,7 +3709,6 @@ export function RoarArena({
   ]);
 
   const playerDisplayName = playerName.trim() || "Roari Fan";
-  const onboardingNameReady = draftPlayerName.trim().length >= 2;
   const countryChoices = useMemo(
     () => [selectedMatch.team1, selectedMatch.team2],
     [selectedMatch.team1, selectedMatch.team2],
@@ -3799,6 +3879,22 @@ export function RoarArena({
               : 0;
   const currentPersonalStage =
     PERSONAL_STAGE_STEPS[personalStandStage] ?? PERSONAL_STAGE_STEPS[0];
+  const comboDecayDelay =
+    BASE_COMBO_DECAY_DELAY_MS + upgrades.comboKeeper * 450;
+  const tapBase = Math.max(1, 1 + personalStandStage + upgrades.tapPower);
+  const critChance = Math.min(0.45, 0.1 + upgrades.critChance * 0.035);
+  const feverActive = feverUntil > nowMs;
+  const feverMultiplier = feverActive ? 3 : 1;
+  const nextBoardGoal =
+    COLLECTIVE_SCOREBOARD_GOALS[
+      Math.min(scoreboardIconCount, COLLECTIVE_SCOREBOARD_GOALS.length - 1)
+    ] ?? COLLECTIVE_SCOREBOARD_GOALS[0];
+  const sessionGoalText =
+    comboMultiplier < 3
+      ? `Reach ×3 combo`
+      : scoreboardIconCount < COLLECTIVE_SCOREBOARD_GOALS.length
+        ? `${selectedCountry} +${fmt.format(Math.max(0, nextBoardGoal - collectiveScore))} to next board icon`
+        : `${selectedCountry} legend run`;
   const personalCampaignProgress = campaignStageProgress(visibleAllyCheer);
   const lockedCampaignProgress = Math.max(
     runnerBestProgress,
@@ -4233,6 +4329,20 @@ export function RoarArena({
     return () => window.clearTimeout(timer);
   }, [comboBurst]);
 
+  useEffect(() => {
+    if (combo <= 1) return;
+    const lastAt = lastActionRef.current?.at ?? 0;
+    if (!lastAt || nowMs - lastAt < comboDecayDelay) return;
+    if (nowMs - lastComboDecayRef.current < comboDecayDelay) return;
+    const nextCombo = decayComboCount(combo);
+    if (nextCombo === combo) return;
+    lastComboDecayRef.current = nowMs;
+    const nextMultiplier = comboMultiplierFor(nextCombo);
+    setCombo(nextCombo);
+    setComboMultiplier(nextMultiplier);
+    setComboPulse((value) => value + 1);
+  }, [combo, comboDecayDelay, nowMs]);
+
   const addFloatingPop = useCallback(
     (text: string, tone: FloatingPop["tone"]) => {
       const id = Date.now() + Math.random();
@@ -4639,7 +4749,7 @@ export function RoarArena({
       });
       setCombo((value) =>
         Math.min(
-          15,
+          80,
           value + (item.rarity === "epic" ? 3 : item.rarity === "rare" ? 2 : 1),
         ),
       );
@@ -4667,13 +4777,28 @@ export function RoarArena({
       lastScoreDispatchRef.current = now;
       const last = lastActionRef.current;
       const paired = last && last.type !== type && now - last.at < 700;
-      const actionGain = 1;
+      const comboGain = paired ? 2 : 1;
       const nextCombo =
-        now - (last?.at ?? 0) < 900 ? Math.min(12, combo + 1) : 1;
+        now - (last?.at ?? 0) < comboDecayDelay
+          ? Math.min(80, combo + comboGain)
+          : 1;
+      const nextMultiplier = comboMultiplierFor(nextCombo);
+      const feverTriggered = (scoreBeat + 1) % 24 === 0;
+      const isFeverActive = feverTriggered || feverUntil > now;
+      const crit = Math.random() < critChance;
+      const actionGain = Math.max(
+        1,
+        Math.round(
+          tapBase *
+            nextMultiplier *
+            (crit ? 6 : 1) *
+            (isFeverActive ? 3 : 1),
+        ),
+      );
       playSound("tap");
 
-      if (type === "tap") setTapScore((value) => value + 1);
-      if (type === "shake") setShakeScore((value) => value + 1);
+      if (type === "tap") setTapScore((value) => value + actionGain);
+      if (type === "shake") setShakeScore((value) => value + actionGain);
       setDaily((value) => ({
         ...value,
         taps: value.taps + (type === "tap" ? 1 : 0),
@@ -4690,24 +4815,47 @@ export function RoarArena({
       };
       cheerBufferRef.current[cheerKey] = {
         ...pending,
-        taps: pending.taps + (type === "tap" ? 1 : 0),
-        shakes: pending.shakes + (type === "shake" ? 1 : 0),
+        taps: pending.taps + (type === "tap" ? actionGain : 0),
+        shakes: pending.shakes + (type === "shake" ? actionGain : 0),
       };
       setCoinBalance((value) => value + actionGain);
+      setSessionCoinsEarned((value) => value + actionGain);
       setImpactPower((value) => value + impactGain);
       setScoreBeat((value) => value + 1);
-      addFloatingPop(`+${fmt.format(impactGain)}`, paired ? "combo" : type);
+      if (crit) {
+        setLastCrit({ id: now, gain: actionGain });
+        addFloatingPop(`CRIT +${fmt.format(impactGain)}`, "drop");
+        playBurst(4);
+      } else if (isFeverActive) {
+        addFloatingPop(`FEVER +${fmt.format(impactGain)}`, "combo");
+      } else {
+        addFloatingPop(`+${fmt.format(impactGain)}`, paired ? "combo" : type);
+      }
       addCoinPop(actionGain);
       setCombo(nextCombo);
+      setComboMultiplier(nextMultiplier);
+      setBestComboMultiplier((value) => Math.max(value, nextMultiplier));
+      if (nextMultiplier !== comboMultiplier) {
+        setComboPulse((value) => value + 1);
+      }
+      if (feverTriggered) {
+        setFeverUntil(now + FEVER_DURATION_MS);
+        addFeed("milestone", "FEVER ×3", "All support actions triple for 5 seconds.");
+      }
       const nextScore = totalScore + actionGain;
       const shouldBurst =
         nextCombo === 6 ||
         nextCombo === 10 ||
+        nextCombo === 20 ||
+        nextCombo === 40 ||
+        nextCombo === 60 ||
+        crit ||
+        feverTriggered ||
         nextScore % 24 === 0 ||
         (paired && nextCombo >= 4 && nextScore % 12 === 0);
       if (shouldBurst) {
         playSound("combo");
-        triggerMascot("celebrate", 1050);
+        triggerMascot(crit || feverTriggered ? "celebrate" : "jump", 1050);
         setComboBurst((value) => value + 1);
       } else if (nextCombo >= 5) {
         triggerMascot("jump", 900);
@@ -4736,7 +4884,7 @@ export function RoarArena({
       });
       const nextRunnerProgress = campaignStageProgress(nextScore);
       setRunnerBestProgress((value) => Math.max(value, nextRunnerProgress));
-      setTeamPulse((value) => value + 1 + Math.floor(nextCombo / 4));
+      setTeamPulse((value) => value + actionGain + Math.floor(nextCombo / 4));
       maybeMilestone(nextScore);
       maybeDrop(nextScore);
       if (paired) {
@@ -4752,9 +4900,15 @@ export function RoarArena({
       addFeed,
       addFloatingPop,
       combo,
+      comboDecayDelay,
+      comboMultiplier,
+      critChance,
+      feverUntil,
       maybeDrop,
       maybeMilestone,
+      playBurst,
       playSound,
+      scoreBeat,
       selectedCountry,
       selectedGlobalCheer,
       selectedMatch.id,
@@ -4762,6 +4916,7 @@ export function RoarArena({
       showBetReveal,
       fmt,
       t,
+      tapBase,
       totalScore,
       triggerMascot,
     ],
@@ -4813,13 +4968,28 @@ export function RoarArena({
         setImpactPower(
           Number(window.localStorage.getItem("roar-impact") ?? 0),
         );
+        try {
+          setUpgrades({
+            ...DEFAULT_UPGRADES,
+            ...JSON.parse(
+              window.localStorage.getItem(UPGRADE_STORAGE_KEY) ?? "{}",
+            ),
+          });
+        } catch {
+          setUpgrades(DEFAULT_UPGRADES);
+        }
       } else {
         window.localStorage.setItem("roar-score-version", SCORE_VERSION);
         window.localStorage.setItem(WELCOME_COIN_KEY, "1");
         window.localStorage.setItem("roar-coins", String(WELCOME_COINS));
         window.localStorage.setItem("roar-impact", "0");
+        window.localStorage.setItem(
+          UPGRADE_STORAGE_KEY,
+          JSON.stringify(DEFAULT_UPGRADES),
+        );
         setCoinBalance(WELCOME_COINS);
         setImpactPower(0);
+        setUpgrades(DEFAULT_UPGRADES);
         addFeed(
           "milestone",
           "Welcome coins",
@@ -4901,6 +5071,11 @@ export function RoarArena({
     if (!storageReady) return;
     window.localStorage.setItem("roar-impact", String(impactPower));
   }, [impactPower, storageReady]);
+
+  useEffect(() => {
+    if (!storageReady) return;
+    window.localStorage.setItem(UPGRADE_STORAGE_KEY, JSON.stringify(upgrades));
+  }, [storageReady, upgrades]);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -5826,6 +6001,12 @@ export function RoarArena({
     setShakeScore(0);
     setComboBonus(0);
     setCombo(1);
+    setComboMultiplier(1);
+    setComboPulse((value) => value + 1);
+    setFeverUntil(0);
+    setLastCrit(null);
+    setBestComboMultiplier(1);
+    setSessionCoinsEarned(0);
     setImpactPower(0);
     setDrops([]);
     setShareText("");
@@ -5861,8 +6042,16 @@ export function RoarArena({
     setShakeScore(0);
     setComboBonus(0);
     setCombo(1);
+    setComboMultiplier(1);
+    setComboPulse((value) => value + 1);
+    setFeverUntil(0);
+    setLastCrit(null);
+    setBestComboMultiplier(1);
+    setSessionCoinsEarned(0);
     setCoinBalance(0);
     setImpactPower(0);
+    setUpgrades(DEFAULT_UPGRADES);
+    setSessionSummary(null);
     setBets([]);
     setDrops([]);
     setEarnedBadgeIds([]);
@@ -5881,6 +6070,45 @@ export function RoarArena({
       "Session reset",
       "Local test state cleared for today. Saved match records were kept.",
     );
+  };
+
+  const buyUpgrade = (kind: UpgradeKey) => {
+    const level = upgrades[kind];
+    const cost = upgradeCost(kind, level);
+    if (coinBalance < cost) {
+      showBetReveal({
+        title: "Need coins",
+        body: `${UPGRADE_DEFS[kind].label} costs ${fmt.format(cost)} coins.`,
+        tone: "blocked",
+      });
+      return;
+    }
+    setCoinBalance((value) => Math.max(0, value - cost));
+    setUpgrades((value) => ({ ...value, [kind]: value[kind] + 1 }));
+    addFeed(
+      "milestone",
+      `${UPGRADE_DEFS[kind].label} Lv.${level + 1}`,
+      UPGRADE_DEFS[kind].body,
+    );
+    showBetReveal({
+      title: `${UPGRADE_DEFS[kind].label} upgraded`,
+      body: UPGRADE_DEFS[kind].body,
+      tone: "cheer",
+    });
+    addFloatingPop(`POWER +1`, "drop");
+    playSound("coin");
+  };
+
+  const finishSession = () => {
+    setSessionSummary({
+      id: Date.now(),
+      country: selectedCountry,
+      roar: totalScore,
+      bestMultiplier: bestComboMultiplier,
+      coinsEarned: sessionCoinsEarned,
+      boardIcons: scoreboardIconCount,
+    });
+    playSound("combo");
   };
 
   const generateShare = async () => {
@@ -6188,6 +6416,14 @@ export function RoarArena({
             onClose={() => setResultReveal(null)}
           />
         )}
+        {sessionSummary && (
+          <SessionSummaryOverlay
+            summary={sessionSummary}
+            fmt={fmt}
+            onClose={() => setSessionSummary(null)}
+            onShare={() => void generateShare()}
+          />
+        )}
         {boardTrophyReveal && (
           <div
             key={boardTrophyReveal.id}
@@ -6339,10 +6575,8 @@ export function RoarArena({
               <button
                 type="button"
                 className="onboarding-start"
-                disabled={!onboardingNameReady}
                 onClick={() => {
-                  if (!onboardingNameReady) return;
-                  setPlayerName(draftPlayerName.trim());
+                  setPlayerName(draftPlayerName.trim() || "Roari Fan");
                   setOnboarded(true);
                   setCupTab("play");
                   playSound("whistle");
@@ -6740,6 +6974,15 @@ export function RoarArena({
                 <b>{t(currentPersonalStage.key)}</b>
               </div>
               <div
+                className={`combo-multiplier-pill ${comboPulse ? "combo-multiplier-pulse" : ""}`}
+                key={`combo-${comboPulse}-${comboMultiplier}`}
+                aria-label={`Combo multiplier ${comboMultiplier}`}
+              >
+                <span>COMBO</span>
+                <b>×{comboMultiplier.toFixed(1)}</b>
+                {feverActive ? <em>FEVER ×3</em> : <em>Base {tapBase}</em>}
+              </div>
+              <div
                 className="stage-runner-track"
                 aria-label={`${t("stage")} ${lockedCampaignProgress}%`}
               >
@@ -6756,6 +6999,11 @@ export function RoarArena({
                 <CoinIcon size={22} />
                 <b>{fmt.format(coinBalance)}</b>
               </div>
+              {lastCrit && (
+                <div className="crit-chip" key={lastCrit.id}>
+                  CRIT +{fmt.format(lastCrit.gain)}
+                </div>
+              )}
             </div>
             <MiniMascot
               pose={
@@ -6801,6 +7049,15 @@ export function RoarArena({
                   </span>
                 ))}
               </div>
+            </div>
+            <div className="session-goal-card">
+              <div>
+                <span>SESSION GOAL</span>
+                <b>{sessionGoalText}</b>
+              </div>
+              <button type="button" onClick={finishSession}>
+                End run
+              </button>
             </div>
           </div>
 
@@ -7356,6 +7613,38 @@ export function RoarArena({
                     bets.filter((bet) => bet.status === "won").length,
                   )}
                 />
+              </div>
+              <div className="upgrade-panel">
+                <div className="upgrade-panel-head">
+                  <div>
+                    <span>POWER LOOP</span>
+                    <b>Spend coins to make every roar louder.</b>
+                  </div>
+                  <CoinAmount value={coinBalance} />
+                </div>
+                <div className="upgrade-grid">
+                  {(Object.keys(UPGRADE_DEFS) as UpgradeKey[]).map((kind) => {
+                    const level = upgrades[kind];
+                    const cost = upgradeCost(kind, level);
+                    return (
+                      <button
+                        key={kind}
+                        type="button"
+                        className="upgrade-card"
+                        onClick={() => buyUpgrade(kind)}
+                        disabled={coinBalance < cost}
+                      >
+                        <span>{UPGRADE_DEFS[kind].stat}</span>
+                        <b>{UPGRADE_DEFS[kind].label}</b>
+                        <em>Lv.{level}</em>
+                        <small>{UPGRADE_DEFS[kind].body}</small>
+                        <strong>
+                          <CoinIcon size={15} /> {fmt.format(cost)}
+                        </strong>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div className="mt-5 rounded-[22px] bg-[#1c327c] p-4">
                 <div className="mb-3 text-lg font-black">
@@ -8827,6 +9116,59 @@ function BetRevealToast({
         <div className="mt-1 text-2xl font-black">{reveal.title}</div>
         <div className="mt-1 text-sm font-black text-white/72">
           {reveal.body}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionSummaryOverlay({
+  summary,
+  fmt,
+  onClose,
+  onShare,
+}: {
+  summary: SessionSummary;
+  fmt: Intl.NumberFormat;
+  onClose: () => void;
+  onShare: () => void;
+}) {
+  return (
+    <div className="session-summary-overlay">
+      <div className="session-summary-card">
+        <div className="session-summary-eyebrow">RUN COMPLETE</div>
+        <h2>{summary.country} got louder.</h2>
+        <p>
+          Loudness #{Math.max(1, summary.boardIcons + 1)} · +
+          {fmt.format(summary.roar)} roar · best combo ×
+          {summary.bestMultiplier.toFixed(1)} · coins +
+          {fmt.format(summary.coinsEarned)}
+        </p>
+        <div className="session-summary-stats">
+          <span>
+            <b>{fmt.format(summary.roar)}</b>
+            <em>roar</em>
+          </span>
+          <span>
+            <b>×{summary.bestMultiplier.toFixed(1)}</b>
+            <em>best combo</em>
+          </span>
+          <span>
+            <b>{fmt.format(summary.coinsEarned)}</b>
+            <em>coins earned</em>
+          </span>
+          <span>
+            <b>×{summary.boardIcons}</b>
+            <em>board icons</em>
+          </span>
+        </div>
+        <div className="session-summary-actions">
+          <button type="button" onClick={onShare}>
+            Share proof
+          </button>
+          <button type="button" onClick={onClose}>
+            Keep playing
+          </button>
         </div>
       </div>
     </div>
