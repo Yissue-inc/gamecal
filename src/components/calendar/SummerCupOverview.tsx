@@ -224,7 +224,7 @@ export function SummerCupOverview() {
                   return (
                     <Link
                       key={match.id}
-                      href={`/roar?match=${encodeURIComponent(match.id)}&source=summer_cup_live`}
+                      href={`/summer-cup/${encodeURIComponent(match.id)}`}
                       className="rounded-2xl border border-red-400/25 bg-black/30 p-3 transition hover:border-red-300/50 hover:bg-red-500/[0.1]"
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -435,7 +435,7 @@ export function SummerCupOverview() {
                     return (
                       <Link
                         key={match.id}
-                        href={`/roar?match=${encodeURIComponent(match.id)}&source=summer_cup_fixtures`}
+                        href={`/summer-cup/${encodeURIComponent(match.id)}`}
                         className="block rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-emerald-300/35 hover:bg-emerald-300/[0.06]"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -495,9 +495,10 @@ export function SummerCupOverview() {
                     const { team1, team2 } = matchTeams(match);
                     const goals = scoreGoals(match);
                     return (
-                      <div
+                      <Link
                         key={match.id}
-                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                        href={`/summer-cup/${encodeURIComponent(match.id)}`}
+                        className="block rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-emerald-300/30 hover:bg-emerald-300/[0.05]"
                       >
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black leading-none tracking-wide ${matchStatus(match).className}`}>
@@ -543,7 +544,7 @@ export function SummerCupOverview() {
                             ))}
                           </div>
                         )}
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
