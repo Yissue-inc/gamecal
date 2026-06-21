@@ -4120,6 +4120,180 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 18px rgba(56,189,248,.1);
 }
 
+.live-match-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  border-radius: 14px;
+  border: 1px solid rgba(125,211,252,.22);
+  background: linear-gradient(135deg, rgba(8,18,55,.72), rgba(4,10,35,.48));
+  padding: 6px 8px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+.live-match-scoreboard span {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(236,254,255,.86);
+  font-size: 10px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-match-scoreboard span:last-of-type {
+  text-align: right;
+}
+
+.live-match-scoreboard b {
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fde047, #38bdf8);
+  padding: 4px 8px;
+  color: #07111f;
+  font-size: 14px;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-match-scoreboard em {
+  grid-column: 1 / -1;
+  color: rgba(255,255,255,.54);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.goal-feed-row {
+  display: flex;
+  gap: 5px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.goal-feed-row span {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(250,204,21,.16);
+  padding: 4px 7px;
+  color: #fff8d6;
+  font-size: 9px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goal-reveal-banner {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, rgba(250,204,21,.28), transparent 34%),
+    rgba(3,7,25,.2);
+  animation: goalBannerShell 2.1s cubic-bezier(.16, 1, .3, 1) forwards;
+}
+
+.goal-reveal-card {
+  display: grid;
+  min-width: min(84vw, 430px);
+  justify-items: center;
+  gap: 5px;
+  border-radius: 28px;
+  border: 1px solid rgba(250,204,21,.58);
+  background:
+    radial-gradient(circle at top, rgba(250,204,21,.28), transparent 42%),
+    linear-gradient(135deg, rgba(7,17,31,.88), rgba(16,41,104,.78));
+  padding: 24px 22px;
+  text-align: center;
+  box-shadow: 0 28px 90px rgba(0,0,0,.5), 0 0 60px rgba(250,204,21,.22), inset 0 1px 0 rgba(255,255,255,.2);
+  animation: goalCardPop 2.1s cubic-bezier(.16, 1, .3, 1) forwards;
+}
+
+.goal-reveal-rival .goal-reveal-card {
+  border-color: rgba(251,113,133,.54);
+  background:
+    radial-gradient(circle at top, rgba(251,113,133,.24), transparent 42%),
+    linear-gradient(135deg, rgba(41,9,20,.9), rgba(30,41,96,.78));
+  box-shadow: 0 28px 90px rgba(0,0,0,.5), 0 0 60px rgba(251,113,133,.18), inset 0 1px 0 rgba(255,255,255,.16);
+}
+
+.goal-reveal-card span {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.goal-reveal-card strong {
+  color: #fde047;
+  font-size: clamp(38px, 13vw, 76px);
+  font-weight: 1000;
+  line-height: .92;
+  text-shadow: 0 4px 0 rgba(7,17,31,.8), 0 0 26px rgba(250,204,21,.42);
+}
+
+.goal-reveal-rival .goal-reveal-card strong {
+  color: #fecdd3;
+  text-shadow: 0 4px 0 rgba(41,9,20,.82), 0 0 26px rgba(251,113,133,.36);
+}
+
+.goal-reveal-card em {
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+  padding: 5px 11px;
+  color: #ecfeff;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 1000;
+}
+
+.goal-reveal-card p {
+  max-width: 30ch;
+  color: rgba(255,255,255,.76);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.28;
+}
+
+.prediction-live-state {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(125,211,252,.22);
+  background: linear-gradient(135deg, rgba(8,18,55,.64), rgba(4,10,35,.34));
+  padding: 10px 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+.prediction-live-state span {
+  color: rgba(125,211,252,.88);
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.prediction-live-state b {
+  color: #fff8d6;
+  font-size: 14px;
+  font-weight: 1000;
+}
+
+.prediction-live-state em {
+  color: rgba(255,255,255,.54);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 850;
+}
+
 .rival-cheer-track {
   position: relative;
   display: grid;
@@ -4249,6 +4423,35 @@
   }
 }
 
+@keyframes goalBannerShell {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes goalCardPop {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(.82) rotate(-2deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translateY(0) scale(1.06) rotate(1deg);
+  }
+  28% {
+    transform: translateY(0) scale(1) rotate(0);
+  }
+  76% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) scale(.96);
+  }
+}
+
 @media (max-width: 640px) {
   .rival-cheer-strip {
     margin-top: 5px;
@@ -4266,6 +4469,26 @@
   .live-score-chip {
     max-width: 52vw;
     padding-inline: 6px;
+    font-size: 8px;
+  }
+
+  .live-match-scoreboard {
+    gap: 4px;
+    padding: 5px 6px;
+  }
+
+  .live-match-scoreboard span {
+    font-size: 8px;
+  }
+
+  .live-match-scoreboard b {
+    padding: 3px 7px;
+    font-size: 12px;
+  }
+
+  .goal-feed-row span {
+    max-width: 33%;
+    padding: 3px 6px;
     font-size: 8px;
   }
 

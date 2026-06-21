@@ -65,7 +65,15 @@ type CupMatch = {
   team1: string;
   team2: string;
   ground?: string;
-  score?: { ft?: [number, number] };
+  score?: { ft?: [number, number]; ht?: [number, number] };
+  events?: MatchGoal[];
+};
+
+type MatchGoal = {
+  type?: string;
+  team?: string;
+  name?: string;
+  minute?: string | number;
 };
 
 type CheerAggregate = {
@@ -136,6 +144,15 @@ type BetReveal = {
   title: string;
   body: string;
   tone: "placed" | "won" | "lost" | "blocked" | "cheer";
+};
+
+type GoalReveal = {
+  id: number;
+  tone: "ally" | "rival";
+  country: string;
+  title: string;
+  body: string;
+  scoreLine: string;
 };
 
 type ResultReveal = {
@@ -2778,6 +2795,9 @@ function parseOpenFootball(data: unknown): CupMatch[] {
       team2: String(match.team2 ?? "Team B"),
       ground: typeof match.ground === "string" ? match.ground : undefined,
       score: match.score as CupMatch["score"],
+      events: Array.isArray(match.events)
+        ? (match.events as MatchGoal[])
+        : undefined,
     }))
     .filter((match) => match.team1 && match.team2);
 }
@@ -2788,6 +2808,31 @@ function outcomeFromScore(match: CupMatch): Pick | null {
   if (ft[0] > ft[1]) return "team1";
   if (ft[0] < ft[1]) return "team2";
   return "draw";
+}
+
+function teamIndexFor(match: CupMatch, country: string) {
+  return country === match.team1 ? 0 : country === match.team2 ? 1 : 0;
+}
+
+function goalMinuteLabel(goal: MatchGoal) {
+  if (goal.minute == null || goal.minute === "") return "";
+  const raw = String(goal.minute).replace(/'$/, "");
+  return `${raw}'`;
+}
+
+function goalEventsFor(match: CupMatch) {
+  return (match.events ?? [])
+    .filter((event) => event.type === "goal" && event.team)
+    .map((event, index) => ({
+      ...event,
+      id: `${event.team}-${event.minute ?? index}-${event.name ?? index}`,
+    }));
+}
+
+function latestGoalFor(match: CupMatch, country: string) {
+  return [...goalEventsFor(match)]
+    .reverse()
+    .find((goal) => goal.team === country);
 }
 
 function pickLabel(match: CupMatch, pick: Pick) {
@@ -3361,6 +3406,7 @@ export function RoarArena({
     (typeof ROAR_RANKS)[number] | null
   >(null);
   const [betReveal, setBetReveal] = useState<BetReveal | null>(null);
+  const [goalReveal, setGoalReveal] = useState<GoalReveal | null>(null);
   const [resultReveal, setResultReveal] = useState<ResultReveal | null>(null);
   const [earnedBadgeIds, setEarnedBadgeIds] = useState<string[]>([]);
   const [records, setRecords] = useState<PersonalRecord[]>([]);
@@ -3427,6 +3473,11 @@ export function RoarArena({
   const sourceRef = useRef(source);
   const sessionSyncRef = useRef("");
   const boardTrophyShownRef = useRef(false);
+  const liveScoreSnapshotRef = useRef<
+    Record<string, { home: number; away: number; phase: string }>
+  >({});
+  const liveResultShownRef = useRef(new Set<string>());
+  const livePhaseRef = useRef<Record<string, string>>({});
 
   const selectedMatch =
     matches.find((match) => match.id === selectedMatchId) ?? matches[0];
@@ -3590,12 +3641,21 @@ export function RoarArena({
       ? selectedMatch.team2
       : selectedMatch.team1;
   const realMatchScore = selectedMatch.score?.ft;
+  const selectedScoreIndex = teamIndexFor(selectedMatch, selectedCountry);
+  const opponentScoreIndex = selectedScoreIndex === 0 ? 1 : 0;
+  const selectedRealScore = realMatchScore?.[selectedScoreIndex] ?? 0;
+  const opponentRealScore = realMatchScore?.[opponentScoreIndex] ?? 0;
+  const realScoreLine = realMatchScore
+    ? `${realMatchScore[0]}-${realMatchScore[1]}`
+    : null;
   const realScoreSummary = realMatchScore
     ? `${selectedMatch.team1} ${realMatchScore[0]}-${realMatchScore[1]} ${selectedMatch.team2}`
     : null;
   const realScoreSyncedLabel = matchDataSyncedAt
     ? timeFmt.format(matchDataSyncedAt)
     : null;
+  const goalFeed = useMemo(() => goalEventsFor(selectedMatch), [selectedMatch]);
+  const livePhase = matchPhase(selectedMatch);
   const totalScore = tapScore + shakeScore;
   const matchCheerByCountry = useMemo(() => {
     const totals = new Map<string, CheerAggregate>();
@@ -3608,8 +3668,19 @@ export function RoarArena({
     matchCheerByCountry.get(selectedCountry)?.total ?? 0;
   const opponentGlobalCheer =
     matchCheerByCountry.get(opponentCountry)?.total ?? 0;
-  const visibleAllyCheer = Math.max(totalScore, selectedGlobalCheer);
-  const visibleRivalCheer = Math.max(opponentGlobalCheer, aiRivalCheer);
+  const realScoreMomentum = realMatchScore
+    ? Math.sign(selectedRealScore - opponentRealScore)
+    : 0;
+  const allyScoreMomentumBoost = realScoreMomentum > 0 ? 40 : 0;
+  const rivalScoreMomentumBoost = realScoreMomentum < 0 ? 40 : 0;
+  const visibleAllyCheer = Math.max(
+    totalScore + allyScoreMomentumBoost,
+    selectedGlobalCheer + allyScoreMomentumBoost,
+  );
+  const visibleRivalCheer = Math.max(
+    opponentGlobalCheer + rivalScoreMomentumBoost,
+    aiRivalCheer + rivalScoreMomentumBoost,
+  );
   const collectiveScore = Math.max(selectedGlobalCheer, totalScore);
   const scoreboardIconCount = COLLECTIVE_SCOREBOARD_GOALS.filter(
     (goal) => collectiveScore >= goal,
@@ -4183,6 +4254,227 @@ export function RoarArena({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!realMatchScore) return;
+
+    const phase = matchPhase(selectedMatch);
+    const key = selectedMatch.id;
+    const nextSnapshot = {
+      home: realMatchScore[0],
+      away: realMatchScore[1],
+      phase,
+    };
+    const previous = liveScoreSnapshotRef.current[key];
+
+    if (!previous) {
+      liveScoreSnapshotRef.current[key] = nextSnapshot;
+      return;
+    }
+
+    const homeDelta = Math.max(0, nextSnapshot.home - previous.home);
+    const awayDelta = Math.max(0, nextSnapshot.away - previous.away);
+    liveScoreSnapshotRef.current[key] = nextSnapshot;
+
+    if (homeDelta + awayDelta <= 0) return;
+
+    const supportedDelta =
+      selectedScoreIndex === 0 ? homeDelta : awayDelta;
+    const opponentDelta = selectedScoreIndex === 0 ? awayDelta : homeDelta;
+    const scoringCountry =
+      supportedDelta > 0
+        ? selectedCountry
+        : opponentDelta > 0
+          ? opponentCountry
+          : homeDelta > 0
+            ? selectedMatch.team1
+            : selectedMatch.team2;
+    const scoredForAlly = scoringCountry === selectedCountry;
+    const goal = latestGoalFor(selectedMatch, scoringCountry);
+    const minute = goal ? goalMinuteLabel(goal) : "";
+    const scorer = goal?.name ? ` ${goal.name}` : "";
+    const scoreLine = `${nextSnapshot.home}-${nextSnapshot.away}`;
+    const id = Date.now() + Math.random();
+
+    setGoalReveal({
+      id,
+      tone: scoredForAlly ? "ally" : "rival",
+      country: scoringCountry,
+      title: scoredForAlly
+        ? `GOAL! ${flagFor(scoringCountry)}`
+        : `${flagFor(scoringCountry)} Rival goal`,
+      body: scoredForAlly
+        ? `${minute}${scorer} · ${scoreLine} · +25 coins`
+        : `${scoreLine} · Rally now. Your crowd can swing momentum back.`,
+      scoreLine,
+    });
+    window.setTimeout(() => {
+      setGoalReveal((current) => (current?.id === id ? null : current));
+    }, 2100);
+
+    if (scoredForAlly) {
+      setTeamPulse((value) => value + 90);
+      setComboBonus((value) => value + 25);
+      setImpactPower((value) => value + 25);
+      setCoinBalance((value) => value + 25);
+      addCoinPop(25);
+      setComboBurst((value) => value + 1);
+      triggerMascot("celebrate", 1500);
+      playSound("cheer");
+      window.setTimeout(() => playSound("coin"), 220);
+      playBurst(5);
+      addFloatingPop("+25", "combo");
+      addFeed(
+        "milestone",
+        `GOAL! ${flagFor(scoringCountry)} ${scoringCountry}`,
+        `${minute}${scorer} ${scoreLine}. Your stand exploded and earned bonus coins.`,
+      );
+      showBetReveal({
+        title: `GOAL! ${flagFor(scoringCountry)}`,
+        body: `${scoreLine} · +25 coins for backing the moment.`,
+        tone: "cheer",
+      });
+      return;
+    }
+
+    setAiRivalCheer((value) => value + 80);
+    setRivalPulse((value) => value + 40);
+    triggerMascot("flag", 1200);
+    playSound("whistle");
+    playBurst(2);
+    addFeed(
+      "drop",
+      `${flagFor(scoringCountry)} Rival goal`,
+      `${scoreLine}. Push Tap and Shake to bring the stand back.`,
+    );
+    showBetReveal({
+      title: "Rival goal",
+      body: `${scoreLine} · Rally now with Tap and Shake.`,
+      tone: "blocked",
+    });
+  }, [
+    addCoinPop,
+    addFeed,
+    addFloatingPop,
+    opponentCountry,
+    playBurst,
+    playSound,
+    realMatchScore,
+    selectedCountry,
+    selectedMatch,
+    selectedScoreIndex,
+    showBetReveal,
+    triggerMascot,
+  ]);
+
+  useEffect(() => {
+    const key = selectedMatch.id;
+    const previousPhase = livePhaseRef.current[key];
+
+    if (!previousPhase) {
+      livePhaseRef.current[key] = livePhase;
+      return;
+    }
+    if (previousPhase === livePhase) return;
+
+    livePhaseRef.current[key] = livePhase;
+
+    if (livePhase === "live") {
+      addFeed(
+        "clutch",
+        "Kickoff synced",
+        `${selectedMatchTitle} is live. Back ${selectedCountry} with Tap and Shake.`,
+      );
+      showBetReveal({
+        title: "Kickoff synced",
+        body: "Live cheering is open. Every action feeds the stand.",
+        tone: "cheer",
+      });
+      triggerMascot("flag", 1300);
+      playSound("whistle");
+      playBurst(2);
+      return;
+    }
+
+    if (livePhase === "ended") {
+      addFeed(
+        "milestone",
+        "Full-time synced",
+        realScoreLine
+          ? `${selectedMatchTitle} finished ${realScoreLine}.`
+          : `${selectedMatchTitle} finished.`,
+      );
+      playSound("whistle");
+    }
+  }, [
+    addFeed,
+    livePhase,
+    playBurst,
+    playSound,
+    realScoreLine,
+    selectedCountry,
+    selectedMatch.id,
+    selectedMatchTitle,
+    showBetReveal,
+    triggerMascot,
+  ]);
+
+  useEffect(() => {
+    if (
+      !onboarded ||
+      totalScore <= 0 ||
+      !realMatchScore ||
+      livePhase !== "ended"
+    )
+      return;
+    const actualOutcome = outcomeFromScore(selectedMatch);
+    if (!actualOutcome || !realScoreLine) return;
+    const supportedPick = selectedScoreIndex === 0 ? "team1" : "team2";
+    const key = `${selectedMatch.id}:${selectedCountry}:${realScoreLine}`;
+    if (liveResultShownRef.current.has(key)) return;
+    liveResultShownRef.current.add(key);
+
+    const won = actualOutcome === supportedPick;
+    const draw = actualOutcome === "draw";
+    const fanCount = fmt.format(Math.max(1, visibleAllyCheer));
+    const title = won
+      ? `${flagFor(selectedCountry)} won ${realScoreLine}`
+      : draw
+        ? `Full-time ${realScoreLine}`
+        : `Full-time ${realScoreLine}`;
+    const body = won
+      ? `${selectedCountry} won ${realScoreLine} — you were one of ${fanCount} fans.`
+      : draw
+        ? `${selectedMatchTitle} finished ${realScoreLine} — your support stayed on the board.`
+        : `${selectedCountry} fell ${realScoreLine} — your crowd kept the stand alive.`;
+
+    setResultReveal({
+      id: `actual-${key}`,
+      tone: won ? "victory" : "defeat",
+      title,
+      body,
+      matchLabel: selectedMatchTitle,
+      scoreLine: realScoreLine,
+    });
+    triggerMascot(won ? "celebrate" : "flag", 1400);
+    playSound(won ? "cheer" : "whistle");
+    playBurst(won ? 4 : 2);
+  }, [
+    fmt,
+    livePhase,
+    onboarded,
+    playBurst,
+    playSound,
+    realMatchScore,
+    realScoreLine,
+    selectedCountry,
+    selectedMatch,
+    selectedMatchTitle,
+    selectedScoreIndex,
+    totalScore,
+    triggerMascot,
+    visibleAllyCheer,
+  ]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -5529,7 +5821,10 @@ export function RoarArena({
       "roar_share_clicked",
       retentionAnalyticsProps({ lifetime_support: lifetimeSupport }),
     );
-    const text = `${playerDisplayName} joined ROAR for ${selectedCountry} in ${selectedMatch.team1} vs ${selectedMatch.team2}: ${currentRoarRank.name} rank, ${fmt.format(lifetimeSupport)} lifetime support points, ${coinText(coinBalance)}, ${fmt.format(tapScore)} taps, ${fmt.format(shakeScore)} shakes, ${possession}% support share. Prediction ${predictionHome}-${predictionAway}.`;
+    const resultCopy = realScoreLine
+      ? ` Actual score ${realScoreLine}.`
+      : "";
+    const text = `${playerDisplayName} joined ROAR for ${selectedCountry} in ${selectedMatch.team1} vs ${selectedMatch.team2}:${resultCopy} ${currentRoarRank.name} rank, ${fmt.format(lifetimeSupport)} lifetime support points, ${coinText(coinBalance)}, ${fmt.format(tapScore)} taps, ${fmt.format(shakeScore)} shakes, ${possession}% support share. Prediction ${predictionHome}-${predictionAway}.`;
     setShareText(text);
     let shareFile: File | undefined;
     try {
@@ -5809,6 +6104,7 @@ export function RoarArena({
         )}
         {rankReveal && <RankReveal rank={rankReveal} t={t} />}
         {betReveal && <BetRevealToast reveal={betReveal} t={t} />}
+        {goalReveal && <GoalRevealBanner reveal={goalReveal} />}
         {resultReveal && (
           <ResultRevealOverlay
             reveal={resultReveal}
@@ -6073,6 +6369,36 @@ export function RoarArena({
                   {selectedMatch.date} · {selectedMatch.time ?? "TBD"} ·{" "}
                   {matchPhaseLabel(selectedMatch)}
                 </div>
+                {realMatchScore && (
+                  <div className="live-match-scoreboard" aria-label="Actual match score">
+                    <span>
+                      {flagFor(selectedMatch.team1)} {selectedMatch.team1}
+                    </span>
+                    <b>
+                      {realMatchScore[0]}-{realMatchScore[1]}
+                    </b>
+                    <span>
+                      {selectedMatch.team2} {flagFor(selectedMatch.team2)}
+                    </span>
+                    <em>
+                      {livePhase === "live"
+                        ? "Live sync"
+                        : livePhase === "ended"
+                          ? "Full-time"
+                          : "Score sync"}
+                      {realScoreSyncedLabel ? ` · ${realScoreSyncedLabel}` : ""}
+                    </em>
+                  </div>
+                )}
+                {goalFeed.length > 0 && (
+                  <div className="goal-feed-row" aria-label="Goal feed">
+                    {goalFeed.slice(-3).map((goal) => (
+                      <span key={goal.id}>
+                        ⚽ {goalMinuteLabel(goal)} {goal.name ?? goal.team}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 type="button"
@@ -6611,6 +6937,27 @@ export function RoarArena({
                       Keep cheering
                     </button>
                   </div>
+                </div>
+              )}
+
+              {realMatchScore && (
+                <div className="prediction-live-state">
+                  <span>
+                    {livePhase === "live"
+                      ? "Live score"
+                      : livePhase === "ended"
+                        ? "Final score"
+                        : "Synced score"}
+                  </span>
+                  <b>
+                    {selectedMatch.team1} {realMatchScore[0]}-
+                    {realMatchScore[1]} {selectedMatch.team2}
+                  </b>
+                  <em>
+                    {realScoreSyncedLabel
+                      ? `Checked ${realScoreSyncedLabel}`
+                      : "Checked from match data"}
+                  </em>
                 </div>
               )}
 
@@ -8441,6 +8788,19 @@ function BetRevealToast({
         <div className="mt-1 text-sm font-black text-white/72">
           {reveal.body}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GoalRevealBanner({ reveal }: { reveal: GoalReveal }) {
+  return (
+    <div className={`goal-reveal-banner goal-reveal-${reveal.tone}`}>
+      <div className="goal-reveal-card">
+        <span>{flagFor(reveal.country)}</span>
+        <strong>{reveal.title}</strong>
+        <em>{reveal.scoreLine}</em>
+        <p>{reveal.body}</p>
       </div>
     </div>
   );
