@@ -2187,6 +2187,19 @@ const PERSONAL_STAGE_STEPS = [
   { goal: 3000, label: "Board transfer", key: "boardTransfer" },
 ];
 
+// Runner/campaign progress mapped to even stage segments so the runner
+// advances a visible chunk each stage (instead of crawling 0->3000 linearly).
+function campaignStageProgress(cheer: number): number {
+  const goals = PERSONAL_STAGE_STEPS.map((step) => step.goal);
+  const last = goals.length - 1;
+  let seg = 0;
+  while (seg < last && cheer >= goals[seg + 1]) seg += 1;
+  const start = goals[seg];
+  const end = goals[Math.min(seg + 1, last)];
+  const intra = end > start ? Math.min(1, (cheer - start) / (end - start)) : 1;
+  return Math.min(100, Math.round(((seg + intra) / last) * 100));
+}
+
 const FALLBACK_MATCHES: CupMatch[] = [
   {
     id: "fallback-1",
@@ -3671,12 +3684,7 @@ export function RoarArena({
               : 0;
   const currentPersonalStage =
     PERSONAL_STAGE_STEPS[personalStandStage] ?? PERSONAL_STAGE_STEPS[0];
-  const personalCampaignGoal =
-    PERSONAL_STAGE_STEPS[PERSONAL_STAGE_STEPS.length - 1].goal;
-  const personalCampaignProgress = Math.min(
-    100,
-    Math.round((visibleAllyCheer / Math.max(1, personalCampaignGoal)) * 100),
-  );
+  const personalCampaignProgress = campaignStageProgress(visibleAllyCheer);
   const lockedCampaignProgress = Math.max(
     runnerBestProgress,
     personalCampaignProgress,
@@ -4354,10 +4362,7 @@ export function RoarArena({
           });
         }
       });
-      const nextRunnerProgress = Math.min(
-        100,
-        Math.round((nextScore / Math.max(1, personalCampaignGoal)) * 100),
-      );
+      const nextRunnerProgress = campaignStageProgress(nextScore);
       setRunnerBestProgress((value) => Math.max(value, nextRunnerProgress));
       setTeamPulse((value) => value + 1 + Math.floor(nextCombo / 4));
       setRivalPulse((value) => value + (Math.random() > 0.72 ? 2 : 0));
@@ -4378,7 +4383,6 @@ export function RoarArena({
       combo,
       maybeDrop,
       maybeMilestone,
-      personalCampaignGoal,
       playSound,
       selectedCountry,
       selectedGlobalCheer,
