@@ -5300,9 +5300,23 @@
   }
 
   .crowd-arena {
+    min-height: auto;
     max-height: calc(100svh - 166px);
+    background:
+      radial-gradient(circle at 50% 8%, rgba(255,255,255,.18), transparent 17%),
+      linear-gradient(180deg, rgba(18,42,103,.55), rgba(15,31,84,.42) 32%, rgba(14,83,48,.34) 64%, rgba(13,23,66,.66) 86%),
+      url("/mini-cup/assets/crowd-board-base.webp");
     overflow-x: clip;
     overflow-y: auto;
+  }
+
+  .personal-stand-panel {
+    margin-top: 18px;
+    min-height: clamp(150px, 30vw, 210px);
+  }
+
+  .personal-stand {
+    min-height: clamp(138px, 27vw, 190px);
   }
 
   .collective-board {
@@ -5341,5 +5355,25 @@
     min-height: 92px;
     padding-right: 96px;
     background-size: auto 104%;
+  }
+}
+
+@media (max-width: 420px) {
+  .crowd-arena {
+    max-height: calc(100svh - 158px);
+    padding-bottom: 10px;
+    background:
+      radial-gradient(circle at 50% 8%, rgba(255,255,255,.16), transparent 16%),
+      linear-gradient(180deg, rgba(18,42,103,.55), rgba(15,31,84,.42) 31%, rgba(14,83,48,.32) 60%, rgba(13,23,66,.68) 82%),
+      url("/mini-cup/assets/crowd-board-base.webp");
+  }
+
+  .personal-stand-panel {
+    margin-top: 16px;
+    min-height: clamp(144px, 28vw, 192px);
+  }
+
+  .personal-stand {
+    min-height: clamp(132px, 25vw, 176px);
   }
 }
