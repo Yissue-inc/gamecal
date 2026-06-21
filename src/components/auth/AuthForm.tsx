@@ -18,9 +18,10 @@ interface AuthFormProps {
   compact?: boolean
   nextPath?: string
   source?: string
+  sourceMeta?: Record<string, unknown>
 }
 
-export function AuthForm({ compact = false, nextPath, source }: AuthFormProps) {
+export function AuthForm({ compact = false, nextPath, source, sourceMeta }: AuthFormProps) {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,7 +39,12 @@ export function AuthForm({ compact = false, nextPath, source }: AuthFormProps) {
     setEmailLoading(true)
     setError(null)
     setMessage(null)
-    const meta = { method: 'email' as const, mode: isSignUp ? 'sign_up' as const : 'sign_in' as const, source: authSource }
+    const meta = {
+      ...sourceMeta,
+      method: 'email' as const,
+      mode: isSignUp ? 'sign_up' as const : 'sign_in' as const,
+      source: authSource,
+    }
     persistPendingAuthContext(meta)
     trackAuthStarted(meta)
     trackAuthSubmitted(meta)
@@ -60,7 +66,12 @@ export function AuthForm({ compact = false, nextPath, source }: AuthFormProps) {
     setOauthLoading(provider)
     setError(null)
     setMessage(null)
-    const meta = { method: provider, mode: 'sign_in' as const, source: authSource }
+    const meta = {
+      ...sourceMeta,
+      method: provider,
+      mode: 'sign_in' as const,
+      source: authSource,
+    }
     persistPendingAuthContext(meta)
     trackAuthStarted(meta)
     trackAuthSubmitted(meta)

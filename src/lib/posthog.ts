@@ -12,7 +12,11 @@ type AnalyticsProperties = Record<string, unknown>
 type FlatAnalyticsProperties = Record<string, string | number | boolean | null | undefined>
 type AuthMethod = 'google' | 'apple' | 'email'
 type AuthMode = 'sign_in' | 'sign_up'
-type AuthTrackingMeta = { method: AuthMethod; mode: AuthMode; source?: string }
+type AuthTrackingMeta = {
+  method: AuthMethod
+  mode: AuthMode
+  source?: string
+} & AnalyticsProperties
 
 declare global {
   interface Window {

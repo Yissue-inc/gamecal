@@ -1,6 +1,6 @@
 'use client'
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AuthForm } from '@/components/auth/AuthForm'
 
 interface AuthModalProps {
@@ -8,6 +8,7 @@ interface AuthModalProps {
   onOpenChange: (open: boolean) => void
   nextPath?: string
   source?: string
+  sourceMeta?: Record<string, unknown>
   title?: string
   description?: string
   bullets?: string[]
@@ -24,6 +25,7 @@ export function AuthModal({
   onOpenChange,
   nextPath,
   source,
+  sourceMeta,
   title,
   description,
   bullets = DEFAULT_BULLETS,
@@ -35,6 +37,9 @@ export function AuthModal({
           <DialogTitle className="text-center text-2xl font-bold tracking-tight">
             Gamer<span className="text-primary">Clock</span>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {description ?? title ?? 'Sign in to save your GamerClock progress.'}
+          </DialogDescription>
         </DialogHeader>
         <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm text-zinc-200">
           <p className="mb-2 font-semibold text-white">{title ?? 'Sign in free to unlock your gaming calendar.'}</p>
@@ -45,7 +50,7 @@ export function AuthModal({
             ))}
           </ul>
         </div>
-        <AuthForm compact nextPath={nextPath} source={source} />
+        <AuthForm compact nextPath={nextPath} source={source} sourceMeta={sourceMeta} />
       </DialogContent>
     </Dialog>
   )

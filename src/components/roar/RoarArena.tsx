@@ -3408,6 +3408,7 @@ export function RoarArena({
   const prefersReducedRef = useRef(false);
   const mascotTimerRef = useRef<number | null>(null);
   const trackedViewRef = useRef(new Set<string>());
+  const trackedMatchSelectionRef = useRef(new Set<string>());
   const predictionGatePreviewRef = useRef(new Set<string>());
   const deviceIdRef = useRef("");
   const sourceRef = useRef(source);
@@ -3805,6 +3806,25 @@ export function RoarArena({
       }),
     );
   }, [initialMatchId, retentionAnalyticsProps, selectedMatch?.id, source]);
+
+  useEffect(() => {
+    if (!selectedMatch?.id || !storageReady) return;
+    const key = `${selectedMatch.id}:${source || "direct"}`;
+    if (trackedMatchSelectionRef.current.has(key)) return;
+    trackedMatchSelectionRef.current.add(key);
+    trackEvent(
+      "roar_match_selected",
+      retentionAnalyticsProps({
+        selection_source: initialMatchId ? "deep_link" : "default_next_match",
+      }),
+    );
+  }, [
+    initialMatchId,
+    retentionAnalyticsProps,
+    selectedMatch?.id,
+    source,
+    storageReady,
+  ]);
 
   useEffect(() => {
     if (signedIn || cupTab !== "bets") return;
@@ -4974,6 +4994,14 @@ export function RoarArena({
     setDaily((value) => ({ ...value, bets: value.bets + 1 }));
     setBets((items) => [bet, ...items]);
     trackEvent(
+      "roar_prediction_pick",
+      retentionAnalyticsProps({
+        pick,
+        pick_label: label,
+        stake: cleanStake,
+      }),
+    );
+    trackEvent(
       "roar_prediction_locked",
       retentionAnalyticsProps({
         pick,
@@ -5733,6 +5761,7 @@ export function RoarArena({
           onOpenChange={setAuthOpen}
           nextPath={authReturnPath}
           source={authModalSource}
+          sourceMeta={retentionAnalyticsProps({ auth_intent: authIntent })}
           title={
             authIntent === "save_rank"
               ? "Sign in free to save your ROAR rank."
