@@ -6,9 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
+  Check,
   ChevronRight,
   Flame,
   Gamepad2,
+  Share2,
   Trophy,
 } from "lucide-react";
 import { flagFor } from "@/lib/flags";
@@ -120,6 +122,25 @@ export function MatchHub({ matchId }: { matchId: string }) {
   const status = match ? statusOf(match) : null;
   const groupRows = match?.group ? data?.standings[match.group] ?? [] : [];
   const score = match?.score?.ft;
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (!match) return;
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const scoreText = score ? `${score[0]}-${score[1]}` : "vs";
+    const text = `${flagFor(team1)} ${team1} ${scoreText} ${team2} ${flagFor(team2)} · Summer Cup 2026 — cheer your nation in ROAR`;
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: "Summer Cup 2026 · ROAR", text, url });
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // share cancelled / unavailable
+    }
+  };
 
   return (
     <div data-theme="stadium" className="min-h-screen bg-[#06130d] text-white">
@@ -207,6 +228,14 @@ export function MatchHub({ matchId }: { matchId: string }) {
                   <CalendarDays className="h-4 w-4" />
                   Add SC calendar
                 </a>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/10"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Share2 className="h-4 w-4" />}
+                  {copied ? "Copied" : "Share"}
+                </button>
               </div>
             </div>
 
