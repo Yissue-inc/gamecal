@@ -186,7 +186,7 @@ export function SummerCupOverview() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-[28px] border border-emerald-300/15 bg-black/30 shadow-[0_20px_80px_rgba(0,0,0,.35)] backdrop-blur">
           <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-400" />
-          <div className="border-b border-white/10 px-5 py-6 sm:px-7">
+          <div className="border-b border-white/10 bg-[linear-gradient(115deg,rgba(5,17,13,.94),rgba(5,17,13,.58)_52%,rgba(5,17,13,.88)),url('/mini-cup/assets/themes/hero-stadium.webp')] bg-cover bg-center px-5 py-6 sm:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-3xl">
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-emerald-100">
@@ -301,6 +301,44 @@ export function SummerCupOverview() {
               </div>
             )}
           </div>
+
+          {groups.length > 0 && (
+            <div className="border-b border-white/10 px-5 py-4 sm:px-7">
+              <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-amber-200">
+                <Trophy className="h-4 w-4" />
+                On track to advance
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {groups.map(([group, rows]) => (
+                  <div
+                    key={group}
+                    className="rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.05] p-3"
+                  >
+                    <div className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200/80">
+                      {group}
+                    </div>
+                    <div className="space-y-1.5">
+                      {rows.slice(0, 2).map((row, i) => (
+                        <div
+                          key={row.team}
+                          className="flex items-center gap-2 text-sm font-bold text-white"
+                        >
+                          <span className={`w-4 text-center font-mono text-[11px] ${i === 0 ? "text-amber-300" : "text-zinc-300"}`}>
+                            {i + 1}
+                          </span>
+                          <span className="text-base leading-none">{flagFor(row.team)}</span>
+                          <span className="truncate">{row.team}</span>
+                          <span className="ml-auto shrink-0 font-mono text-[11px] text-emerald-200">
+                            {row.points}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-4 p-5 sm:p-7 xl:grid-cols-[1.1fr_.9fr]">
             <section className="order-1 space-y-4">
