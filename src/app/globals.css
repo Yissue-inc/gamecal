@@ -5439,6 +5439,33 @@
   letter-spacing: .04em;
 }
 
+.cheer-integrity-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin: 0 0 10px;
+}
+
+.cheer-integrity-card span {
+  display: grid;
+  gap: 2px;
+  border-radius: 14px;
+  background: rgba(4,10,35,.56);
+  padding: 8px 9px;
+  color: rgba(255,255,255,.54);
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.cheer-integrity-card b {
+  color: #fde047;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .welcome-back-reveal,
 .clutch-time-banner,
 .round-reveal,

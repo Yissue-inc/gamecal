@@ -2203,6 +2203,8 @@ const CLUTCH_DURATION_MS = 10_000;
 const IDLE_SAVE_PROMPT_LEAD_MS = 900;
 const RETURN_BANK_MIN_IDLE_MS = 120_000;
 const RETURN_BANK_STORAGE_KEY = "roar-return-bank-v1";
+const FAIR_CHEER_ROUND_CAP = 300;
+const FAIR_CHEER_PAIR_BONUS = 2;
 const SPECTATOR_SETS = [
   ["set-a", 100],
   ["set-b", 80],
@@ -3469,6 +3471,8 @@ export function RoarArena({
   );
   const [bestComboMultiplier, setBestComboMultiplier] = useState(1);
   const [sessionCoinsEarned, setSessionCoinsEarned] = useState(0);
+  const [fairCheerSent, setFairCheerSent] = useState(0);
+  const [fairCheerRoundSent, setFairCheerRoundSent] = useState(0);
   const [upgrades, setUpgrades] = useState<UpgradeState>(DEFAULT_UPGRADES);
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(
     null,
@@ -3826,10 +3830,10 @@ export function RoarArena({
     opponentGlobalCheer + rivalScoreMomentumBoost,
     aiRivalCheer + rivalScoreMomentumBoost,
   );
-  const collectiveScore = Math.max(selectedGlobalCheer, totalScore);
+  const collectiveScore = Math.max(selectedGlobalCheer, fairCheerSent);
   const activeCheererEstimate = Math.max(
     1,
-    Math.ceil(Math.max(selectedGlobalCheer, totalScore) / 900),
+    Math.ceil(Math.max(selectedGlobalCheer, fairCheerSent) / 900),
   );
   const collectiveBoardGoals = useMemo(
     () => scaledCollectiveGoals(activeCheererEstimate),
@@ -3837,7 +3841,7 @@ export function RoarArena({
   );
   const collectiveContribution = Math.min(
     100,
-    (totalScore / Math.max(1, collectiveScore)) * 100,
+    (fairCheerSent / Math.max(1, collectiveScore)) * 100,
   );
   const scoreboardIconCount = PERSONAL_SCOREBOARD_GOALS.filter(
     (goal) => totalScore >= goal,
@@ -3964,11 +3968,11 @@ export function RoarArena({
   const comebackGap = visibleRivalCheer - visibleAllyCheer;
   const comebackActive = comebackGap > 80;
   const heatMultiplier = Math.min(
-    1.75,
-    1 + Math.max(0, heatDecay - 0.08) * Math.min(0.75, visibleAllyCheer / 5000),
+    1.35,
+    1 + Math.max(0, heatDecay - 0.08) * Math.min(0.35, visibleAllyCheer / 5000),
   );
   const clutchMultiplier = clutchActive ? 2 : 1;
-  const comebackMultiplier = comebackActive ? 1.35 : 1;
+  const comebackMultiplier = comebackActive && !clutchActive ? 1.35 : 1;
   const nextBoardGoal =
     PERSONAL_SCOREBOARD_GOALS[
       Math.min(scoreboardIconCount, PERSONAL_SCOREBOARD_GOALS.length - 1)
@@ -4483,9 +4487,10 @@ export function RoarArena({
         const parsed = JSON.parse(raw) as { at?: number; country?: string };
         const at = Number(parsed.at ?? 0);
         const idle = Date.now() - at;
+        const returnBankMinIdleMs = qaMode ? 3000 : RETURN_BANK_MIN_IDLE_MS;
         if (
           !at ||
-          idle < RETURN_BANK_MIN_IDLE_MS ||
+          idle < returnBankMinIdleMs ||
           returnBankHandledRef.current === at
         )
           return;
@@ -4521,7 +4526,31 @@ export function RoarArena({
       window.removeEventListener("focus", revealReturnBank);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [addCoinPop, playSound, selectedCountry, totalScore]);
+  }, [addCoinPop, playSound, qaMode, selectedCountry, totalScore]);
+
+  useEffect(() => {
+    if (!qaMode) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcomeBack") === "1") {
+      const amount = 77;
+      const reward = {
+        id: Date.now(),
+        amount,
+        idleMinutes: 2,
+        jackpot: false,
+      };
+      setWelcomeBackReward(reward);
+      setCoinBalance((value) => value + amount);
+      setComboBonus((value) => value + amount);
+      setImpactPower((value) => value + amount);
+      addCoinPop(amount);
+      window.setTimeout(() => setWelcomeBackReward(null), 2600);
+    }
+    if (params.get("cooling") === "1") {
+      setStreakSavePrompt(true);
+      window.setTimeout(() => setStreakSavePrompt(false), 2200);
+    }
+  }, [addCoinPop, qaMode]);
 
   const triggerMascot = useCallback(
     (pose: Exclude<MascotPose, "idle">, duration = 900) => {
@@ -4938,6 +4967,9 @@ export function RoarArena({
       const feverTriggered = (scoreBeat + 1) % 24 === 0;
       const isFeverActive = feverTriggered || feverUntil > now;
       const crit = Math.random() < critChance;
+      const fairBase = paired ? FAIR_CHEER_PAIR_BONUS : 1;
+      const fairRemaining = Math.max(0, FAIR_CHEER_ROUND_CAP - fairCheerRoundSent);
+      const fairContribution = Math.min(fairBase, fairRemaining);
       const actionGain = Math.max(
         1,
         Math.round(
@@ -4970,9 +5002,15 @@ export function RoarArena({
       };
       cheerBufferRef.current[cheerKey] = {
         ...pending,
-        taps: pending.taps + (type === "tap" ? actionGain : 0),
-        shakes: pending.shakes + (type === "shake" ? actionGain : 0),
+        taps: pending.taps + (type === "tap" ? fairContribution : 0),
+        shakes: pending.shakes + (type === "shake" ? fairContribution : 0),
       };
+      if (fairContribution > 0) {
+        setFairCheerSent((value) => value + fairContribution);
+        setFairCheerRoundSent((value) =>
+          Math.min(FAIR_CHEER_ROUND_CAP, value + fairContribution),
+        );
+      }
       setCoinBalance((value) => value + actionGain);
       setSessionCoinsEarned((value) => value + actionGain);
       setImpactPower((value) => value + impactGain);
@@ -5072,6 +5110,7 @@ export function RoarArena({
       clutchMultiplier,
       comebackActive,
       comebackMultiplier,
+      fairCheerRoundSent,
       feverUntil,
       heatMultiplier,
       maybeDrop,
@@ -5519,6 +5558,7 @@ export function RoarArena({
     });
     playSound("whistle");
     setRoundEndsAt(Date.now() + ROUND_DURATION_MS);
+    setFairCheerRoundSent(0);
     const timer = window.setTimeout(() => setRoundReveal(null), 1800);
     return () => window.clearTimeout(timer);
   }, [nowMs, playSound, roundMsLeft, visibleAllyCheer, visibleRivalCheer]);
@@ -6200,6 +6240,8 @@ export function RoarArena({
     setLastCrit(null);
     setBestComboMultiplier(1);
     setSessionCoinsEarned(0);
+    setFairCheerSent(0);
+    setFairCheerRoundSent(0);
     setWelcomeBackReward(null);
     setStreakSavePrompt(false);
     setRoundReveal(null);
@@ -6245,6 +6287,8 @@ export function RoarArena({
     setLastCrit(null);
     setBestComboMultiplier(1);
     setSessionCoinsEarned(0);
+    setFairCheerSent(0);
+    setFairCheerRoundSent(0);
     setWelcomeBackReward(null);
     setStreakSavePrompt(false);
     setRoundReveal(null);
@@ -6853,13 +6897,13 @@ export function RoarArena({
                     </span>
                     <span className="score-name">{selectedMatch.team1}</span>
                     <b className="score-num">
-                      {fmt.format(cheerTotalForCountry(selectedMatch.team1))}
+                      {compactFmt.format(cheerTotalForCountry(selectedMatch.team1))}
                     </b>
                   </span>
                   <em className="score-vs">VS</em>
                   <span className="score-team score-team-right">
                     <b className="score-num">
-                      {fmt.format(cheerTotalForCountry(selectedMatch.team2))}
+                      {compactFmt.format(cheerTotalForCountry(selectedMatch.team2))}
                     </b>
                     <span className="score-name">{selectedMatch.team2}</span>
                     <span className="score-flag">
@@ -7019,6 +7063,18 @@ export function RoarArena({
                   )}{" "}
                   · {collectiveContribution.toFixed(1)}% yours
                   {collectiveBoardAlmost ? " · ALMOST!" : ""}
+                </span>
+              </div>
+              <div className="cheer-integrity-card">
+                <span>
+                  Personal roar <b>{compactFmt.format(totalScore)}</b>
+                </span>
+                <span>
+                  Global sent{" "}
+                  <b>
+                    {compactFmt.format(fairCheerSent)} /{" "}
+                    {compactFmt.format(FAIR_CHEER_ROUND_CAP)} round cap
+                  </b>
                 </span>
               </div>
               <div className="scoreboard-frame">
