@@ -3830,6 +3830,13 @@ export function RoarArena({
     opponentGlobalCheer + rivalScoreMomentumBoost,
     aiRivalCheer + rivalScoreMomentumBoost,
   );
+  const fairRivalCheer = Math.min(
+    FAIR_CHEER_ROUND_CAP,
+    Math.max(
+      Math.min(opponentGlobalCheer, FAIR_CHEER_ROUND_CAP),
+      Math.round(Math.min(FAIR_CHEER_ROUND_CAP, aiRivalCheer) * 0.92),
+    ),
+  );
   const collectiveScore = Math.max(selectedGlobalCheer, fairCheerSent);
   const activeCheererEstimate = Math.max(
     1,
@@ -4183,21 +4190,29 @@ export function RoarArena({
 
   const cheerTotalForCountry = useCallback(
     (country: string) => {
-      const aggregateTotal = matchCheerByCountry.get(country)?.total ?? 0;
-      const localFallback =
-        country === selectedCountry
-          ? totalScore
-          : country === opponentCountry
-            ? aiRivalCheer
-            : 0;
-      return Math.max(aggregateTotal, localFallback);
+      if (country === selectedCountry)
+        return Math.min(
+          FAIR_CHEER_ROUND_CAP,
+          Math.max(
+            fairCheerSent,
+            Math.min(
+              matchCheerByCountry.get(country)?.total ?? 0,
+              FAIR_CHEER_ROUND_CAP,
+            ),
+          ),
+        );
+      if (country === opponentCountry) return fairRivalCheer;
+      return Math.min(
+        matchCheerByCountry.get(country)?.total ?? 0,
+        FAIR_CHEER_ROUND_CAP,
+      );
     },
     [
-      aiRivalCheer,
+      fairCheerSent,
+      fairRivalCheer,
       matchCheerByCountry,
       opponentCountry,
       selectedCountry,
-      totalScore,
     ],
   );
   const displayMatches = useMemo(() => {
@@ -7075,6 +7090,9 @@ export function RoarArena({
                     {compactFmt.format(fairCheerSent)} /{" "}
                     {compactFmt.format(FAIR_CHEER_ROUND_CAP)} round cap
                   </b>
+                </span>
+                <span>
+                  Rival fair <b>{compactFmt.format(fairRivalCheer)}</b>
                 </span>
               </div>
               <div className="scoreboard-frame">
