@@ -4068,6 +4068,80 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
 }
 
+.rival-live-scoreboard {
+  display: grid;
+  gap: 5px;
+  border-radius: 13px;
+  border: 1px solid rgba(125,211,252,.2);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(56,189,248,.16), transparent 38%),
+    linear-gradient(135deg, rgba(3,7,25,.7), rgba(8,18,55,.5));
+  padding: 7px 8px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+.rival-live-scoreboard > span {
+  color: rgba(191,219,254,.72);
+  font-size: 8px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.rival-live-scoreboard strong {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.rival-live-scoreboard em {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(236,254,255,.9);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 1000;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rival-live-scoreboard em:last-child {
+  text-align: right;
+}
+
+.rival-live-scoreboard b {
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fde047, #38bdf8);
+  padding: 4px 9px;
+  color: #07111f;
+  font-size: 14px;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.rival-goal-feed {
+  display: flex;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.rival-goal-feed i {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(250,204,21,.15);
+  padding: 3px 6px;
+  color: #fff8d6;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rival-cheer-strip-meta {
   display: flex;
   align-items: center;
@@ -4456,6 +4530,30 @@
   .rival-cheer-strip {
     margin-top: 5px;
     padding: 5px 7px;
+  }
+
+  .rival-live-scoreboard {
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .rival-live-scoreboard strong {
+    gap: 4px;
+  }
+
+  .rival-live-scoreboard em {
+    font-size: 8px;
+  }
+
+  .rival-live-scoreboard b {
+    padding: 3px 7px;
+    font-size: 12px;
+  }
+
+  .rival-goal-feed i {
+    max-width: 33%;
+    padding: 3px 5px;
+    font-size: 7px;
   }
 
   .rival-cheer-strip-meta {

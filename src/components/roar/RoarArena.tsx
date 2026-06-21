@@ -3648,9 +3648,6 @@ export function RoarArena({
   const realScoreLine = realMatchScore
     ? `${realMatchScore[0]}-${realMatchScore[1]}`
     : null;
-  const realScoreSummary = realMatchScore
-    ? `${selectedMatch.team1} ${realMatchScore[0]}-${realMatchScore[1]} ${selectedMatch.team2}`
-    : null;
   const realScoreSyncedLabel = matchDataSyncedAt
     ? timeFmt.format(matchDataSyncedAt)
     : null;
@@ -6427,19 +6424,39 @@ export function RoarArena({
             </div>
 
             <section className="rival-cheer-strip" aria-label={`${opponentCountry} rival pressure`}>
+              {realMatchScore && (
+                <div className="rival-live-scoreboard" aria-label="Actual match score">
+                  <span>
+                    Actual score
+                    {realScoreSyncedLabel ? ` · ${realScoreSyncedLabel}` : ""}
+                  </span>
+                  <strong>
+                    <em>
+                      {flagFor(selectedMatch.team1)} {selectedMatch.team1}
+                    </em>
+                    <b>
+                      {realMatchScore[0]}-{realMatchScore[1]}
+                    </b>
+                    <em>
+                      {selectedMatch.team2} {flagFor(selectedMatch.team2)}
+                    </em>
+                  </strong>
+                  {goalFeed.length > 0 && (
+                    <div className="rival-goal-feed" aria-label="Goal feed">
+                      {goalFeed.slice(-3).map((goal) => (
+                        <i key={goal.id}>
+                          ⚽ {goalMinuteLabel(goal)} {goal.name ?? goal.team}
+                        </i>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="rival-cheer-strip-meta">
                 <span>
                   {flagFor(opponentCountry)} {t("rivalTeam")}
                 </span>
-                <div className="rival-meta-right">
-                  {realScoreSummary && (
-                    <em className="live-score-chip">
-                      Score {realScoreSummary}
-                      {realScoreSyncedLabel ? ` · as of ${realScoreSyncedLabel}` : ""}
-                    </em>
-                  )}
-                  <b>{fmt.format(rivalTotal)}</b>
-                </div>
+                <b>{fmt.format(rivalTotal)}</b>
               </div>
               <div className="rival-cheer-track" aria-hidden="true">
                 <i style={{ width: `${Math.max(6, 100 - possession)}%` }} />
