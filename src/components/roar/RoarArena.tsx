@@ -3359,22 +3359,12 @@ export function RoarArena({
   const [boardSide, setBoardSide] = useState<BoardSide>("ally");
   const [runnerBestProgress, setRunnerBestProgress] = useState(0);
   const [locale, setLocale] = useState<LocaleCode>("en");
-  const [onboarded, setOnboarded] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.localStorage.getItem("roar-onboarded") === "1",
-  );
+  const [onboarded, setOnboarded] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [draftPlayerName, setDraftPlayerName] = useState("");
   const [mascotPose, setMascotPose] = useState<MascotPose>("idle");
   const [comboBurst, setComboBurst] = useState(0);
-  const [soundMuted, setSoundMuted] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const prefersReduced =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    const storedMuted = window.localStorage.getItem(SOUND_MUTED_KEY);
-    return storedMuted == null ? prefersReduced : storedMuted === "1";
-  });
+  const [soundMuted, setSoundMuted] = useState(false);
   const [soundUnlocked, setSoundUnlocked] = useState(false);
   const [qaMode, setQaMode] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
