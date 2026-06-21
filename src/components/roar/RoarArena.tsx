@@ -6787,7 +6787,7 @@ export function RoarArena({
             ))}
           </div>
 
-          <div className="min-h-[620px] bg-[#10236b] p-4 text-white sm:p-6 lg:grid lg:grid-cols-[1fr_360px] lg:gap-5">
+          <div className="min-h-[620px] bg-[#10236b] p-4 text-white sm:p-6">
             <div className={cupTab === "play" ? "block" : "hidden"}>
               <div className="play-focus-panel">
                 <div>
@@ -7404,7 +7404,7 @@ export function RoarArena({
         </div>
 
         <div className="hidden">
-          <header className="broadcast-hud mx-auto mb-4 flex max-w-7xl flex-col gap-4 p-3 md:flex-row md:items-center md:justify-between">
+          <header className="broadcast-hud mx-auto mb-4 flex max-w-[600px] flex-col gap-4 p-3 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#facc15,#fb5f49,#38bdf8)] text-stone-950 shadow-[0_18px_42px_rgba(250,204,21,.22)]">
                 <Trophy className="h-7 w-7" />
@@ -7448,9 +7448,9 @@ export function RoarArena({
             </div>
           </header>
 
-          <main className="mx-auto grid max-w-7xl gap-4 xl:grid-cols-[1fr_380px]">
+          <main className="mx-auto grid max-w-[600px] gap-4">
             <section className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+              <div className="grid gap-4">
                 <div className="game-card relative p-4 shadow-2xl">
                   <div className="mb-3 flex items-center justify-between">
                     <div>
@@ -7569,7 +7569,7 @@ export function RoarArena({
                 </div>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+              <div className="grid gap-4">
                 <div className="game-card p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <div className="text-sm font-black uppercase tracking-[0.14em] text-white/60">
@@ -7714,7 +7714,7 @@ export function RoarArena({
                 </div>
               </div>
 
-              <section className="grid gap-4 lg:grid-cols-[1fr_330px]">
+              <section className="grid gap-4">
                 <div className="game-card p-4">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-white/60">
@@ -7756,7 +7756,7 @@ export function RoarArena({
                       {displayMatches.length} matches
                     </span>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-[280px_1fr]">
+                  <div className="grid gap-3">
                     <div className="space-y-2">
                       <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
                         {displayMatches.slice(0, 24).map((match) => (
