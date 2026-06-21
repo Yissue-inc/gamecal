@@ -147,12 +147,20 @@ function WorldCupPulsePanel({ events }: { events: GameEvent[] }) {
             {nextMatch ? `Next: ${nextMatch.title}` : 'Scores, scorers, standings'}
           </div>
         </div>
-        <Link
-          href={nextMatch ? `/roar?match=${encodeURIComponent(nextMatch.id)}&source=next_up_pulse` : '/roar?source=next_up_pulse'}
-          className="shrink-0 rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-950"
-        >
-          ROAR
-        </Link>
+        <div className="flex shrink-0 gap-1.5">
+          <Link
+            href="/summer-cup"
+            className="rounded-full border border-emerald-300/35 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-100"
+          >
+            Board
+          </Link>
+          <Link
+            href={nextMatch ? `/roar?match=${encodeURIComponent(nextMatch.id)}&source=next_up_pulse` : '/roar?source=next_up_pulse'}
+            className="rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-950"
+          >
+            ROAR
+          </Link>
+        </div>
       </div>
 
       {recentResults.length > 0 && (

@@ -100,6 +100,12 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
                   Play ROAR
                 </Link>
               </Button>
+              <Button asChild size="sm" variant="outline" className="border-emerald-300/25 bg-black/25 text-emerald-100 hover:bg-emerald-300/10">
+                <Link href="/summer-cup">
+                  <Trophy className="mr-1.5 h-4 w-4" />
+                  Full board
+                </Link>
+              </Button>
               <Button asChild size="sm" variant="outline" className="border-white/20 bg-black/25 text-white hover:bg-white/10">
                 <a href="/api/feed/world-cup" target="_blank" rel="noopener noreferrer">
                   <CalendarDays className="mr-1.5 h-4 w-4" />
