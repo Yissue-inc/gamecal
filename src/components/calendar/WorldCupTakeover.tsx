@@ -2,9 +2,53 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Trophy, CalendarDays, Gamepad2, Flame, Medal } from 'lucide-react'
+import { Trophy, CalendarDays, Gamepad2, Flame, Medal, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { flagFor } from '@/lib/flags'
 import type { GameEvent } from '@/types'
+
+type LiveMatch = {
+  id: string
+  title: string
+  startAt: string
+  endAt?: string
+  group?: string
+  score?: { ft?: [number, number] }
+}
+
+function teamsOf(title: string): [string, string] {
+  const [a = 'Team A', b = 'Team B'] = title.split(' vs ')
+  return [a, b]
+}
+
+function useLiveMatches() {
+  const [live, setLive] = useState<LiveMatch[]>([])
+  useEffect(() => {
+    let cancelled = false
+    const load = () =>
+      fetch('/api/world-cup/matches?limit=200')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => {
+          if (cancelled || !payload?.matches) return
+          const now = Date.now()
+          setLive(
+            (payload.matches as LiveMatch[]).filter((m) => {
+              const start = new Date(m.startAt).getTime()
+              const end = new Date(m.endAt ?? m.startAt).getTime()
+              return now >= start && now <= end && !m.score?.ft
+            }),
+          )
+        })
+        .catch(() => undefined)
+    load()
+    const id = setInterval(load, 90_000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [])
+  return live
+}
 
 function nextWorldCupMatch(events: GameEvent[]): GameEvent | null {
   const now = Date.now()
@@ -41,26 +85,11 @@ function upcomingFixtures(events: GameEvent[]) {
     .slice(0, 5)
 }
 
-function flagFor(country: string) {
-  const codes: Record<string, string> = {
-    Argentina: '🇦🇷',
-    Brazil: '🇧🇷',
-    England: '🏴',
-    France: '🇫🇷',
-    Germany: '🇩🇪',
-    Japan: '🇯🇵',
-    Mexico: '🇲🇽',
-    Portugal: '🇵🇹',
-    Spain: '🇪🇸',
-    USA: '🇺🇸',
-  }
-  return codes[country] ?? '🏁'
-}
-
 export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
   const nextMatch = nextWorldCupMatch(events)
   const fixtures = upcomingFixtures(events)
   const [team1, team2] = extractTeams(nextMatch)
+  const liveMatches = useLiveMatches()
 
   return (
     <section
@@ -72,6 +101,36 @@ export function WorldCupTakeover({ events }: { events: GameEvent[] }) {
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" />
 
       <div className="relative mx-auto grid max-w-[1600px] gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-4 md:px-5 lg:grid-cols-[1.25fr_1fr]">
+        {liveMatches.length > 0 && (
+          <div className="-mb-1 flex items-center gap-2 overflow-x-auto pb-1 lg:col-span-2">
+            <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-red-200">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+              </span>
+              Live
+            </span>
+            {liveMatches.slice(0, 6).map((m) => {
+              const [a, b] = teamsOf(m.title)
+              return (
+                <Link
+                  key={m.id}
+                  href={`/roar?match=${encodeURIComponent(m.id)}&source=home_live`}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-red-400/30 bg-black/40 px-3 py-1.5 text-xs font-bold text-white transition hover:border-red-300/60"
+                >
+                  <span>{flagFor(a)}</span>
+                  <span className="max-w-[68px] truncate">{a}</span>
+                  <span className="rounded bg-white/10 px-1.5 font-mono text-red-100">
+                    {m.score?.ft ? `${m.score.ft[0]}-${m.score.ft[1]}` : 'LIVE'}
+                  </span>
+                  <span className="max-w-[68px] truncate">{b}</span>
+                  <span>{flagFor(b)}</span>
+                  <ChevronRight className="h-3 w-3 text-red-200" />
+                </Link>
+              )
+            })}
+          </div>
+        )}
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-emerald-300/40 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-100">
