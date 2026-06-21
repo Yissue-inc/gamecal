@@ -155,6 +155,12 @@ type GoalReveal = {
   scoreLine: string;
 };
 
+type BoardReveal = {
+  id: number;
+  title: string;
+  body: string;
+};
+
 type ResultReveal = {
   id: string;
   tone: "victory" | "defeat";
@@ -3427,7 +3433,8 @@ export function RoarArena({
   const [qaMode, setQaMode] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [boardTrophyReveal, setBoardTrophyReveal] = useState(0);
+  const [boardTrophyReveal, setBoardTrophyReveal] =
+    useState<BoardReveal | null>(null);
   const [authIntent, setAuthIntent] = useState<RoarAuthIntent>("save_rank");
   const [sessionLinked, setSessionLinked] = useState(false);
   const [scoreSaveStatus, setScoreSaveStatus] =
@@ -3472,7 +3479,7 @@ export function RoarArena({
   const deviceIdRef = useRef("");
   const sourceRef = useRef(source);
   const sessionSyncRef = useRef("");
-  const boardTrophyShownRef = useRef(false);
+  const lastScoreboardIconCountRef = useRef(0);
   const liveScoreSnapshotRef = useRef<
     Record<string, { home: number; away: number; phase: string }>
   >({});
@@ -3678,14 +3685,25 @@ export function RoarArena({
     matchCheerByCountry.get(selectedCountry)?.total ?? 0;
   const opponentGlobalCheer =
     matchCheerByCountry.get(opponentCountry)?.total ?? 0;
+  const idleMs = lastActionRef.current
+    ? Math.max(0, nowMs - lastActionRef.current.at)
+    : totalScore > 0
+      ? 20_000
+      : 0;
+  const heatDecay =
+    idleMs <= 20_000
+      ? 1
+      : Math.max(0.08, 1 - (idleMs - 20_000) / 45_000);
+  const activeSupportScore = Math.round(totalScore * heatDecay);
   const realScoreMomentum = realMatchScore
     ? Math.sign(selectedRealScore - opponentRealScore)
     : 0;
   const allyScoreMomentumBoost = realScoreMomentum > 0 ? 40 : 0;
   const rivalScoreMomentumBoost = realScoreMomentum < 0 ? 40 : 0;
   const visibleAllyCheer = Math.max(
-    totalScore + allyScoreMomentumBoost,
-    selectedGlobalCheer + allyScoreMomentumBoost,
+    activeSupportScore + allyScoreMomentumBoost,
+    Math.min(selectedGlobalCheer, activeSupportScore) +
+      allyScoreMomentumBoost,
   );
   const visibleRivalCheer = Math.max(
     opponentGlobalCheer + rivalScoreMomentumBoost,
@@ -3974,9 +3992,10 @@ export function RoarArena({
       })
     : { current: 1, goal: 1 };
   const shouldShowBoardBurst = comboBurst > 0;
+  const shouldShowImpactAvatar = comboBurst > 0;
   const shouldShowCrowdAccent =
     comboBurst > 0 &&
-    (comboBurst % 4 === 0 || (personalStandStage >= 5 && comboBurst % 3 === 0));
+    (comboBurst % 2 === 0 || personalStandStage >= 3);
 
   const cheerTotalForCountry = useCallback(
     (country: string) => {
@@ -4214,17 +4233,6 @@ export function RoarArena({
     return () => window.clearTimeout(timer);
   }, [comboBurst]);
 
-  useEffect(() => {
-    if (scoreboardIconCount < COLLECTIVE_SCOREBOARD_GOALS.length) return;
-    if (boardTrophyShownRef.current) return;
-    boardTrophyShownRef.current = true;
-    setBoardTrophyReveal(Date.now());
-    playSound("cheer");
-    playBurst(4);
-    const timer = window.setTimeout(() => setBoardTrophyReveal(0), 1900);
-    return () => window.clearTimeout(timer);
-  }, [playBurst, playSound, scoreboardIconCount]);
-
   const addFloatingPop = useCallback(
     (text: string, tone: FloatingPop["tone"]) => {
       const id = Date.now() + Math.random();
@@ -4264,6 +4272,30 @@ export function RoarArena({
     },
     [],
   );
+
+  useEffect(() => {
+    const previous = lastScoreboardIconCountRef.current;
+    if (scoreboardIconCount <= previous) return;
+    lastScoreboardIconCountRef.current = scoreboardIconCount;
+    const complete = scoreboardIconCount >= COLLECTIVE_SCOREBOARD_GOALS.length;
+    setBoardTrophyReveal({
+      id: Date.now(),
+      title: complete ? "BOARD COMPLETE" : `BOARD ICON ×${scoreboardIconCount}`,
+      body: `${flagFor(activeBoardCountry)} ${activeBoardCountry}`,
+    });
+    setComboBurst((value) => value + 1);
+    triggerMascot(complete ? "celebrate" : "flag", complete ? 1500 : 1100);
+    playSound("cheer");
+    playBurst(4);
+    const timer = window.setTimeout(() => setBoardTrophyReveal(null), 1900);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeBoardCountry,
+    playBurst,
+    playSound,
+    scoreboardIconCount,
+    triggerMascot,
+  ]);
 
   useEffect(() => {
     if (!realMatchScore) return;
@@ -4667,7 +4699,13 @@ export function RoarArena({
       addFloatingPop(`+${fmt.format(impactGain)}`, paired ? "combo" : type);
       addCoinPop(actionGain);
       setCombo(nextCombo);
-      if (nextCombo >= 10 && nextCombo % 10 === 0) {
+      const nextScore = totalScore + actionGain;
+      const shouldBurst =
+        nextCombo === 6 ||
+        nextCombo === 10 ||
+        nextScore % 24 === 0 ||
+        (paired && nextCombo >= 4 && nextScore % 12 === 0);
+      if (shouldBurst) {
         playSound("combo");
         triggerMascot("celebrate", 1050);
         setComboBurst((value) => value + 1);
@@ -4678,7 +4716,6 @@ export function RoarArena({
       }
       lastActionRef.current = { type, at: now };
 
-      const nextScore = totalScore + actionGain;
       const nextContribution = Math.min(
         100,
         (nextScore / Math.max(1, Math.max(selectedGlobalCheer, nextScore))) *
@@ -4952,8 +4989,8 @@ export function RoarArena({
       setAiRivalCheer(0);
       setRivalPulse(0);
       setBoardSide("ally");
-      boardTrophyShownRef.current = false;
-      setBoardTrophyReveal(0);
+      lastScoreboardIconCountRef.current = 0;
+      setBoardTrophyReveal(null);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [opponentCountry, selectedMatch.id]);
@@ -5129,23 +5166,42 @@ export function RoarArena({
     const timer = window.setInterval(() => {
       setAiRivalCheer((value) => {
         const seed = seededRivalCheer(selectedMatch.id, opponentCountry);
-        const tempo = Date.now() / 6200 + seed;
-        const leadSwing = Math.round(Math.sin(tempo) * 9);
+        const tempo = Date.now() / 3600 + seed;
+        const leadSwing = Math.round(Math.sin(tempo) * 10);
+        const recentlyActive =
+          lastActionRef.current && Date.now() - lastActionRef.current.at < 2200;
+        const pressureBoost = recentlyActive
+          ? 5 + Math.min(18, combo * 2)
+          : -Math.min(10, Math.floor(idleMs / 7000));
         const target =
-          totalScore <= 0 && opponentGlobalCheer <= 0
+          activeSupportScore <= 0 && opponentGlobalCheer <= 0
             ? seed
-            : Math.max(0, totalScore + opponentGlobalCheer + 7 + leadSwing);
+            : Math.max(
+                0,
+                Math.max(
+                  activeSupportScore + leadSwing + pressureBoost,
+                  Math.min(opponentGlobalCheer, activeSupportScore + 18),
+                ),
+              );
         const delta = target - value;
-        if (Math.abs(delta) <= 1) return Math.max(0, value + (Math.random() > 0.72 ? 1 : 0));
+        if (Math.abs(delta) <= 1)
+          return Math.max(0, value + (Math.random() > 0.55 ? 1 : -1));
         const step =
           delta > 0
-            ? Math.min(5, Math.max(1, Math.ceil(delta * 0.22)))
-            : -Math.min(4, Math.max(1, Math.ceil(Math.abs(delta) * 0.18)));
+            ? Math.min(12, Math.max(2, Math.ceil(delta * 0.34)))
+            : -Math.min(9, Math.max(1, Math.ceil(Math.abs(delta) * 0.24)));
         return Math.max(0, value + step);
       });
-    }, 1600);
+    }, 1050);
     return () => window.clearInterval(timer);
-  }, [opponentCountry, opponentGlobalCheer, selectedMatch.id, totalScore]);
+  }, [
+    activeSupportScore,
+    combo,
+    idleMs,
+    opponentCountry,
+    opponentGlobalCheer,
+    selectedMatch.id,
+  ]);
 
   useEffect(() => {
     const flushCheer = async () => {
@@ -5776,8 +5832,8 @@ export function RoarArena({
     setRunnerBestProgress(0);
     setScoreSaveStatus("idle");
     setSavedScoreInfo(null);
-    boardTrophyShownRef.current = false;
-    setBoardTrophyReveal(0);
+    lastScoreboardIconCountRef.current = 0;
+    setBoardTrophyReveal(null);
     milestoneRef.current.clear();
     dropThresholdRef.current.clear();
     contributionThresholdRef.current.clear();
@@ -6132,15 +6188,15 @@ export function RoarArena({
             onClose={() => setResultReveal(null)}
           />
         )}
-        {boardTrophyReveal > 0 && (
+        {boardTrophyReveal && (
           <div
-            key={boardTrophyReveal}
+            key={boardTrophyReveal.id}
             className="board-trophy-reveal"
             aria-hidden="true"
           >
             <div>
-              <strong>BOARD COMPLETE</strong>
-              <span>{flagFor(activeBoardCountry)} {activeBoardCountry}</span>
+              <strong>{boardTrophyReveal.title}</strong>
+              <span>{boardTrophyReveal.body}</span>
             </div>
           </div>
         )}
@@ -6569,9 +6625,9 @@ export function RoarArena({
                   }}
                 />
               )}
-              {shouldShowCrowdAccent &&
+              {shouldShowImpactAvatar &&
                 Array.from(
-                  { length: Math.min(2, 1 + (comboBurst % 2)) },
+                  { length: 2 + (comboBurst % 2) },
                   (_, index) => (
                     <Image
                       key={`impact-avatar-${comboBurst}-${index}`}
