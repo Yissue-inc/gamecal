@@ -29,6 +29,11 @@ const principles = [
 ]
 
 const signals = ['Fortnite', 'World of Warcraft', 'Pokemon GO', 'Genshin Impact', 'League of Legends', 'New Releases']
+const guideLinks = [
+  { href: '/guides/gaming-event-calendar', title: 'Gaming event calendar guide' },
+  { href: '/guides/weekly-reset-tracker', title: 'Weekly reset tracker guide' },
+  { href: '/guides/roar-game', title: 'ROAR game guide' },
+]
 
 export default function AboutPage() {
   return (
@@ -131,6 +136,26 @@ export default function AboutPage() {
               <span key={signal} className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300">
                 {signal}
               </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8 lg:px-10">
+        <div className="rounded-md border border-zinc-800 bg-zinc-950/70 p-6">
+          <h2 className="font-rajdhani text-3xl font-bold">Learn how to plan your gaming calendar</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+            Practical guides for tracking live events, weekly resets, releases, and ROAR match participation.
+          </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {guideLinks.map((guide) => (
+              <Link
+                key={guide.href}
+                href={guide.href}
+                className="rounded-md border border-zinc-800 bg-black/25 px-4 py-3 text-sm font-bold text-zinc-200 transition hover:border-emerald-300/50 hover:text-white"
+              >
+                {guide.title}
+              </Link>
             ))}
           </div>
         </div>

@@ -21,6 +21,10 @@ GamerClock is a gaming event calendar and lightweight engagement platform for pl
 - Home calendar: ${appUrl}/
 - Summer Cup 2026 board: ${appUrl}/summer-cup
 - ROAR playable arena: ${appUrl}/roar
+- Gaming calendar guides: ${appUrl}/guides
+- Gaming event calendar guide: ${appUrl}/guides/gaming-event-calendar
+- Weekly reset tracker guide: ${appUrl}/guides/weekly-reset-tracker
+- ROAR game guide: ${appUrl}/guides/roar-game
 - New game releases: ${appUrl}/new-releases
 - Game hubs: ${appUrl}/games/world-cup, ${appUrl}/games/fortnite, ${appUrl}/games/wow, ${appUrl}/games/pokemon-go, ${appUrl}/games/genshin, ${appUrl}/games/lol
 - About: ${appUrl}/about
