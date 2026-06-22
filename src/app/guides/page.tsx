@@ -9,12 +9,12 @@ import { getAppUrl } from '@/lib/app-url'
 export const metadata: Metadata = {
   title: 'Gaming Calendar Guides | GamerClock',
   description:
-    'Guides for tracking game events, weekly resets, releases, Summer Cup 2026 fixtures, and ROAR participation on GamerClock.',
+    'Guides for tracking game events, weekly resets, release dates, reminders, Summer Cup 2026 fixtures, and ROAR participation on GamerClock.',
   alternates: { canonical: '/guides' },
   openGraph: {
     title: 'Gaming Calendar Guides | GamerClock',
     description:
-      'Learn how to track game events, weekly resets, releases, and ROAR match participation with GamerClock.',
+      'Learn how to track game events, weekly resets, release dates, reminders, and ROAR match participation with GamerClock.',
     url: '/guides',
     images: ['/og-image.png'],
   },
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Gaming Calendar Guides | GamerClock',
     description:
-      'Learn how to track game events, weekly resets, releases, and ROAR match participation with GamerClock.',
+      'Learn how to track game events, weekly resets, release dates, reminders, and ROAR match participation with GamerClock.',
     images: ['/og-image.png'],
   },
 }
@@ -41,7 +41,12 @@ export default function GuidesPage() {
           url: `${appUrl}/guides`,
           isPartOf: { '@id': `${appUrl}/#website` },
           description:
-            'Guides for tracking gaming events, weekly resets, releases, Summer Cup 2026 fixtures, and ROAR participation.',
+            'Guides for tracking gaming events, weekly resets, release dates, reminders, Summer Cup 2026 fixtures, and ROAR participation.',
+          hasPart: GUIDES.map((guide) => ({
+            '@type': 'Article',
+            name: guide.title,
+            url: `${appUrl}/guides/${guide.slug}`,
+          })),
         }}
       />
       <header className="border-b border-zinc-800 px-6 py-4">
@@ -61,8 +66,8 @@ export default function GuidesPage() {
             Gaming Calendar Guides
           </h1>
           <p className="mt-5 text-lg leading-8 text-zinc-300">
-            Practical guides for tracking live game events, weekly resets, new releases, Summer Cup 2026
-            fixtures, and ROAR participation.
+            Practical guides for tracking live game events, weekly resets, release dates, reminders,
+            Summer Cup 2026 fixtures, and ROAR participation.
           </p>
         </div>
 

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getAppUrl } from '@/lib/app-url'
+import { GUIDES } from '@/lib/guides'
 
 export const dynamic = 'force-static'
 
 export function GET() {
   const appUrl = getAppUrl()
+  const guideList = GUIDES.map((guide) => `- ${guide.shortTitle}: ${appUrl}/guides/${guide.slug}`).join('\n')
   const body = `# GamerClock
 
 GamerClock is a gaming event calendar and lightweight engagement platform for players.
@@ -22,9 +24,7 @@ GamerClock is a gaming event calendar and lightweight engagement platform for pl
 - Summer Cup 2026 board: ${appUrl}/summer-cup
 - ROAR playable arena: ${appUrl}/roar
 - Gaming calendar guides: ${appUrl}/guides
-- Gaming event calendar guide: ${appUrl}/guides/gaming-event-calendar
-- Weekly reset tracker guide: ${appUrl}/guides/weekly-reset-tracker
-- ROAR game guide: ${appUrl}/guides/roar-game
+${guideList}
 - New game releases: ${appUrl}/new-releases
 - Game hubs: ${appUrl}/games/world-cup, ${appUrl}/games/fortnite, ${appUrl}/games/wow, ${appUrl}/games/pokemon-go, ${appUrl}/games/genshin, ${appUrl}/games/lol
 - About: ${appUrl}/about

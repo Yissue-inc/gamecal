@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       description: 'Gaming calendar guides from GamerClock.',
     }
   }
+  const ogImage = guide.ogImage ?? '/og-image.png'
 
   return {
     title: `${guide.title} | GamerClock`,
@@ -30,14 +31,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       title: guide.title,
       description: guide.description,
       url: `/guides/${guide.slug}`,
-      images: ['/og-image.png'],
+      images: [ogImage],
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
       title: guide.title,
       description: guide.description,
-      images: ['/og-image.png'],
+      images: [ogImage],
     },
   }
 }
@@ -48,6 +49,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
 
   const appUrl = getAppUrl()
   const url = `${appUrl}/guides/${guide.slug}`
+  const ogImage = guide.ogImage ?? '/og-image.png'
 
   return (
     <main className="min-h-screen bg-[#0f0f0f] text-white">
@@ -64,7 +66,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
             author: { '@id': `${appUrl}/#organization` },
             publisher: { '@id': `${appUrl}/#organization` },
             mainEntityOfPage: url,
-            image: `${appUrl}/og-image.png`,
+            image: `${appUrl}${ogImage}`,
           },
           {
             '@context': 'https://schema.org',
