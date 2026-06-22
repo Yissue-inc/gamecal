@@ -27,8 +27,22 @@ async function getGames(): Promise<Game[]> {
 export default async function HomePage() {
   const games = await getGames()
   return (
-    <Suspense fallback={null}>
-      <CalendarLayout games={games} />
-    </Suspense>
+    <>
+      <section className="sr-only" aria-label="GamerClock overview">
+        <h1>GamerClock gaming event calendar</h1>
+        <p>
+          GamerClock tracks live game events, weekly resets, limited-time rewards, esports fixtures,
+          new game releases, and Summer Cup 2026 ROAR matches in one calendar.
+        </p>
+        <p>
+          Players can follow Fortnite, World of Warcraft, Pokemon GO, Genshin Impact,
+          League of Legends, and Summer Cup 2026 schedules, then save reminders or play ROAR
+          for selected match fixtures.
+        </p>
+      </section>
+      <Suspense fallback={null}>
+        <CalendarLayout games={games} />
+      </Suspense>
+    </>
   )
 }

@@ -8,6 +8,7 @@ import { PostHogProvider } from '@/components/PostHogProvider'
 import { Toaster } from '@/components/ui/sonner'
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
 import { getAppUrl } from '@/lib/app-url'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const rajdhani = Rajdhani({
@@ -18,9 +19,29 @@ const rajdhani = Rajdhani({
 
 export const metadata: Metadata = {
   metadataBase: new URL(getAppUrl()),
-  title: 'GamerClock — Gaming Event Calendar | Never Miss a Reset',
+  title: {
+    default: 'GamerClock — Gaming Event Calendar | Never Miss a Reset',
+    template: '%s',
+  },
   description:
-    'Track Fortnite, WoW, Pokémon GO, Genshin, LoL events. Auto-sync to Google Calendar.',
+    'Track live game events, release dates, resets, esports fixtures, and Summer Cup 2026 ROAR matches. Save reminders and sync your gaming calendar.',
+  keywords: [
+    'gaming calendar',
+    'game event calendar',
+    'video game release calendar',
+    'Fortnite events',
+    'World of Warcraft reset',
+    'Pokemon GO events',
+    'Genshin Impact events',
+    'League of Legends events',
+    'Summer Cup 2026',
+    'ROAR game',
+  ],
+  alternates: {
+    canonical: '/',
+  },
+  applicationName: 'GamerClock',
+  category: 'Gaming',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -40,7 +61,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'GamerClock — Gaming Event Calendar',
-    description: 'Track Fortnite, WoW, Pokémon GO, Genshin, LoL events. Auto-sync to Google Calendar.',
+    description: 'Track live game events, release dates, resets, esports fixtures, and Summer Cup 2026 ROAR matches.',
+    url: '/',
+    siteName: 'GamerClock',
     images: [
       {
         url: '/og-image.png',
@@ -54,7 +77,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'GamerClock — Gaming Event Calendar',
-    description: 'Track Fortnite, WoW, Pokémon GO, Genshin, LoL events. Auto-sync to Google Calendar.',
+    description: 'Track live game events, release dates, resets, esports fixtures, and Summer Cup 2026 ROAR matches.',
     images: ['/og-image.png'],
   },
 }
@@ -64,9 +87,54 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const appUrl = getAppUrl()
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${appUrl}/#organization`,
+      name: 'GamerClock',
+      url: appUrl,
+      logo: `${appUrl}/icon-512.png`,
+      sameAs: ['https://gamerclock.com'],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      '@id': `${appUrl}/#website`,
+      name: 'GamerClock',
+      url: appUrl,
+      publisher: { '@id': `${appUrl}/#organization` },
+      inLanguage: 'en-US',
+      description:
+        'GamerClock is a gaming event calendar for live events, release dates, weekly resets, esports fixtures, and ROAR match participation.',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      '@id': `${appUrl}/#app`,
+      name: 'GamerClock',
+      url: appUrl,
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Web, iOS, Android',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description:
+        'A free web app for tracking gaming events, saving reminders, syncing calendars, and playing ROAR for Summer Cup 2026 fixtures.',
+      featureList: [
+        'Gaming event calendar',
+        'Game release tracking',
+        'Calendar reminders',
+        'Summer Cup 2026 fixtures',
+        'ROAR crowd battle game',
+        'Newsletter and push reminders',
+      ],
+    },
+  ]
+
   return (
     <html lang="en-US" className="dark">
       <body className={`${inter.className} ${rajdhani.variable} bg-[#0f0f0f] text-white`}>
+        <JsonLd data={structuredData} />
         <AnalyticsProvider>
           <PostHogProvider>
             <AuthProvider>
