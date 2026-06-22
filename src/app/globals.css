@@ -4407,6 +4407,9 @@
 .rival-live-scoreboard {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  direction: ltr;
   gap: 5px;
   border-radius: 13px;
   border: 1px solid rgba(125,211,252,.2);
@@ -4418,20 +4421,27 @@
 }
 
 .rival-live-scoreboard > span {
+  grid-column: 1 / 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow: hidden;
   color: rgba(191,219,254,.72);
   font-size: 8px;
   font-weight: 1000;
   letter-spacing: .14em;
   line-height: 1;
   text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rival-live-scoreboard strong {
+  grid-column: 1 / -1;
+  grid-row: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 6px;
-  padding-right: 54px;
 }
 
 .rival-live-scoreboard em {
@@ -4461,10 +4471,10 @@
 }
 
 .rival-live-scoreboard small {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.1);
@@ -4474,9 +4484,11 @@
   font-weight: 1000;
   letter-spacing: .08em;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .rival-goal-feed {
+  grid-column: 1 / -1;
   display: flex;
   gap: 4px;
   overflow: hidden;
@@ -4893,7 +4905,6 @@
 
   .rival-live-scoreboard strong {
     gap: 4px;
-    padding-right: 42px;
   }
 
   .rival-live-scoreboard em {
@@ -4906,7 +4917,6 @@
   }
 
   .rival-live-scoreboard small {
-    right: 6px;
     padding: 3px 5px;
     font-size: 7px;
   }
@@ -5421,49 +5431,6 @@
   font-weight: 900;
   animation: coinNumberPop 260ms ease-out both;
   box-shadow: 0 0 18px rgba(250,204,21,.15), inset 0 1px 0 rgba(255,255,255,.14);
-}
-
-.board-track-duo {
-  display: grid;
-  gap: 6px;
-  margin: 8px 0 10px;
-}
-
-.board-track-duo span {
-  border-radius: 999px;
-  background: rgba(2,8,28,.45);
-  padding: 7px 10px;
-  color: rgba(255,255,255,.74);
-  font-size: 10px;
-  font-weight: 1000;
-  letter-spacing: .04em;
-}
-
-.cheer-integrity-card {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 7px;
-  margin: 0 0 10px;
-}
-
-.cheer-integrity-card span {
-  display: grid;
-  gap: 2px;
-  border-radius: 14px;
-  background: rgba(4,10,35,.56);
-  padding: 8px 9px;
-  color: rgba(255,255,255,.54);
-  font-size: 9px;
-  font-weight: 1000;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.cheer-integrity-card b {
-  color: #fde047;
-  font-size: 12px;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .welcome-back-reveal,

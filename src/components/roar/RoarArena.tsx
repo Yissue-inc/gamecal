@@ -2272,11 +2272,6 @@ function upgradeCost(kind: UpgradeKey, level: number) {
   return Math.round(base * Math.pow(1.72, level));
 }
 
-function scaledCollectiveGoals(activeCheerers: number) {
-  const scale = Math.max(0.7, Math.min(2.4, Math.sqrt(activeCheerers)));
-  return COLLECTIVE_SCOREBOARD_GOALS.map((goal) => Math.round(goal * scale));
-}
-
 function variableReturnReward(idleMs: number) {
   const idleMinutes = Math.max(2, Math.floor(idleMs / 60_000));
   const roll = Math.random();
@@ -3837,19 +3832,6 @@ export function RoarArena({
       Math.round(Math.min(FAIR_CHEER_ROUND_CAP, aiRivalCheer) * 0.92),
     ),
   );
-  const collectiveScore = Math.max(selectedGlobalCheer, fairCheerSent);
-  const activeCheererEstimate = Math.max(
-    1,
-    Math.ceil(Math.max(selectedGlobalCheer, fairCheerSent) / 900),
-  );
-  const collectiveBoardGoals = useMemo(
-    () => scaledCollectiveGoals(activeCheererEstimate),
-    [activeCheererEstimate],
-  );
-  const collectiveContribution = Math.min(
-    100,
-    (fairCheerSent / Math.max(1, collectiveScore)) * 100,
-  );
   const scoreboardIconCount = PERSONAL_SCOREBOARD_GOALS.filter(
     (goal) => totalScore >= goal,
   ).length;
@@ -3903,31 +3885,6 @@ export function RoarArena({
     SCOREBOARD_CELL_COUNT,
     Math.round((rivalScoreboardFill / 100) * SCOREBOARD_CELL_COUNT),
   );
-  const collectiveBoardIconCount = collectiveBoardGoals.filter(
-    (goal) => collectiveScore >= goal,
-  ).length;
-  const collectiveBoardGoal =
-    collectiveBoardGoals[
-      Math.min(collectiveBoardIconCount, collectiveBoardGoals.length - 1)
-    ] ?? collectiveBoardGoals[0];
-  const collectiveBoardBase =
-    collectiveBoardIconCount > 0
-      ? collectiveBoardGoals[collectiveBoardIconCount - 1]
-      : 0;
-  const collectiveBoardFill =
-    collectiveBoardIconCount >= collectiveBoardGoals.length
-      ? 100
-      : Math.min(
-          100,
-          Math.round(
-            ((collectiveScore - collectiveBoardBase) /
-              Math.max(1, collectiveBoardGoal - collectiveBoardBase)) *
-              100,
-          ),
-        );
-  const boardAlmost = scoreboardFill >= 85 && scoreboardFill < 100;
-  const collectiveBoardAlmost =
-    collectiveBoardFill >= 85 && collectiveBoardFill < 100;
   const activeBoardCountry =
     boardSide === "ally" ? selectedCountry : opponentCountry;
   const activeBoardLitCount =
@@ -7063,37 +7020,6 @@ export function RoarArena({
                     🪧
                   </b>
                 </button>
-              </div>
-              <div className="board-track-duo">
-                <span>
-                  Personal board ×
-                  {Math.min(scoreboardIconCount, PERSONAL_SCOREBOARD_GOALS.length)}
-                  {boardAlmost ? " · ALMOST!" : ""}
-                </span>
-                <span>
-                  Country board ×
-                  {Math.min(
-                    collectiveBoardIconCount,
-                    COLLECTIVE_SCOREBOARD_GOALS.length,
-                  )}{" "}
-                  · {collectiveContribution.toFixed(1)}% yours
-                  {collectiveBoardAlmost ? " · ALMOST!" : ""}
-                </span>
-              </div>
-              <div className="cheer-integrity-card">
-                <span>
-                  Personal roar <b>{compactFmt.format(totalScore)}</b>
-                </span>
-                <span>
-                  Global sent{" "}
-                  <b>
-                    {compactFmt.format(fairCheerSent)} /{" "}
-                    {compactFmt.format(FAIR_CHEER_ROUND_CAP)} round cap
-                  </b>
-                </span>
-                <span>
-                  Rival fair <b>{compactFmt.format(fairRivalCheer)}</b>
-                </span>
               </div>
               <div className="scoreboard-frame">
                 <div className="scoreboard-grid" aria-hidden="true">
