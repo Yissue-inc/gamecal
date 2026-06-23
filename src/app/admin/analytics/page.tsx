@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { DailyReportTestButton } from './DailyReportTestButton'
 
 const GA4_MEASUREMENT_ID = 'G-KPBE1ZDTNZ'
+const GA4_PROPERTY_ID = '360961201'
 const GTM_CONTAINER_ID = 'GTM-M5L3BPDF'
 const POSTHOG_PROJECT_KEY = 'phc_zPfdxoyaNucxKMzeGE5JnDGpvqt655h7R4HYjfW5DM56'
 
@@ -11,14 +12,20 @@ const toolLinks = [
   {
     name: 'GA4 Reports',
     status: 'Connected',
-    href: 'https://analytics.google.com/analytics/web/',
-    detail: `Measurement ID ${GA4_MEASUREMENT_ID}`,
+    href: `https://analytics.google.com/analytics/web/#/p${GA4_PROPERTY_ID}/reports/intelligenthome`,
+    detail: `Property ${GA4_PROPERTY_ID} · Measurement ID ${GA4_MEASUREMENT_ID}`,
   },
   {
     name: 'GA4 Realtime',
     status: 'Connected',
-    href: 'https://analytics.google.com/analytics/web/#/realtime',
+    href: `https://analytics.google.com/analytics/web/#/p${GA4_PROPERTY_ID}/reports/realtime`,
     detail: 'Use this after opening gamerclock.com to confirm live users and events.',
+  },
+  {
+    name: 'GA4 Events',
+    status: 'Connected',
+    href: `https://analytics.google.com/analytics/web/#/p${GA4_PROPERTY_ID}/reports/events`,
+    detail: 'Use this property-specific link so ARTCAL EVENT data is not mixed into review sessions.',
   },
   {
     name: 'Google Tag Manager',
@@ -49,6 +56,8 @@ const toolLinks = [
 const trackedEvents = [
   'page_view',
   'auth_started',
+  'auth_submitted',
+  'auth_success',
   'auth_failed',
   'newsletter_subscribed',
   'newsletter_subscribe_failed',
@@ -87,6 +96,21 @@ const healthChecks = [
     label: 'Daily report',
     value: process.env.RESEND_API_KEY ? 'Email enabled' : 'Awaiting email key',
     detail: `Scheduled for 9:00 AM PDT daily to ${process.env.REPORT_RECIPIENT_EMAIL ?? 'ck@yissue.biz'}.`,
+  },
+]
+
+const domainTagChecks = [
+  {
+    domain: 'gamerclock.com',
+    property: GA4_PROPERTY_ID,
+    measurement: GA4_MEASUREMENT_ID,
+    tagManager: 'Direct gtag',
+  },
+  {
+    domain: 'artcalevent.com',
+    property: '380961201',
+    measurement: 'G-YZED1ZPSYJ',
+    tagManager: 'GTM-WZMW4677',
   },
 ]
 
@@ -170,6 +194,38 @@ export default function AdminAnalyticsPage() {
           </CardContent>
         </Card>
       </section>
+
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader>
+          <CardTitle>Domain Tag Separation</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {domainTagChecks.map((item) => (
+            <div key={item.domain} className="grid gap-2 rounded-lg border border-zinc-800 bg-black/25 p-4 md:grid-cols-4">
+              <div>
+                <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Domain</div>
+                <div className="mt-1 font-semibold text-white">{item.domain}</div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">GA4 property</div>
+                <div className="mt-1 font-mono text-sm text-zinc-200">{item.property}</div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Measurement ID</div>
+                <div className="mt-1 font-mono text-sm text-zinc-200">{item.measurement}</div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.18em] text-zinc-500">Install path</div>
+                <div className="mt-1 font-mono text-sm text-zinc-200">{item.tagManager}</div>
+              </div>
+            </div>
+          ))}
+          <p className="text-xs leading-5 text-zinc-500">
+            If ARTCAL page titles appear while reviewing GamerClock, confirm the GA URL includes property p{GA4_PROPERTY_ID}
+            and the live page loads {GA4_MEASUREMENT_ID}.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card className="border-zinc-800 bg-zinc-900">
         <CardHeader>

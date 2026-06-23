@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SummerCupOverview } from "@/components/calendar/SummerCupOverview";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getAppUrl } from "@/lib/app-url";
@@ -91,6 +92,39 @@ export default function SummerCupPage() {
         ]}
       />
       <SummerCupOverview />
+      <section className="bg-[#06130d] px-4 pb-12 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-3 border-t border-emerald-300/15 pt-6 md:grid-cols-3">
+          {[
+            {
+              href: "/guides/summer-cup-match-tracker",
+              title: "Summer Cup Match Tracker",
+              body: "How fixtures, results, groups, and ROAR momentum fit together.",
+            },
+            {
+              href: "/guides/roar-game",
+              title: "ROAR Game Guide",
+              body: "How the crowd battle works before, during, and after a match.",
+            },
+            {
+              href: "/guides/gaming-event-calendar",
+              title: "Gaming Event Calendar",
+              body: "How GamerClock connects live game events, reminders, and match schedules.",
+            },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-emerald-300/35 hover:bg-emerald-300/[0.08]"
+            >
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
+                Related guide
+              </div>
+              <h2 className="mt-2 text-lg font-black text-white">{item.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-emerald-50/65">{item.body}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </>
   );
 }

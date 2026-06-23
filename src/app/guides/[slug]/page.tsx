@@ -50,6 +50,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
   const appUrl = getAppUrl()
   const url = `${appUrl}/guides/${guide.slug}`
   const ogImage = guide.ogImage ?? '/og-image.png'
+  const relatedGuides = GUIDES.filter((item) => item.slug !== guide.slug).slice(0, 3)
 
   return (
     <main className="min-h-screen bg-[#0f0f0f] text-white">
@@ -179,6 +180,25 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
             </Link>
           </Button>
         </div>
+
+        <section className="mt-10">
+          <h2 className="font-rajdhani text-3xl font-bold">Related guides</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {relatedGuides.map((item) => (
+              <Link
+                key={item.slug}
+                href={`/guides/${item.slug}`}
+                className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-4 transition hover:border-emerald-300/45 hover:bg-zinc-900"
+              >
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-300">
+                  GamerClock Guide
+                </div>
+                <h3 className="mt-2 font-rajdhani text-xl font-bold leading-tight text-white">{item.shortTitle}</h3>
+                <p className="mt-2 line-clamp-3 text-sm leading-6 text-zinc-400">{item.description}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
       </article>
     </main>
   )
