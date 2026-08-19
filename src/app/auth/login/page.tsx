@@ -8,6 +8,11 @@ import { AuthForm } from '@/components/auth/AuthForm'
 function LoginContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+  // AuthForm already threads nextPath through to the OAuth callback, and the
+  // callback already honours ?next= — this page was the one link in the chain
+  // that dropped it, so a visitor sent here from elsewhere landed on the calendar
+  // instead of where they were going.
+  const next = searchParams.get('next') || undefined
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f0f0f] px-4">
