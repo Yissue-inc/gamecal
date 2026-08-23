@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Gamepad2 } from 'lucide-react'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { MiniGameFrame } from '@/components/minigames/MiniGameFrame'
@@ -39,7 +39,9 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
   const [started, setStarted] = useState(false)
   const [result, setResult] = useState<MiniGameResult | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
-  const sessionId = useMemo(() => `mg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`, [])
+  // Persistence is intentionally out of this first guest-play release. Keep
+  // the iframe URL SSR-stable so hydration never reloads the game mid-launch.
+  const sessionId = 'guest'
   const deviceIdRef = useRef<string | null>(null)
 
   const track = useCallback((name: string, properties: Record<string, unknown> = {}) => {
@@ -143,7 +145,13 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
     setAuthOpen(true)
   }, [track])
 
-  const frameSrc = `${game.entry}?embed=gamerclock&session=${encodeURIComponent(sessionId)}&v=${game.version}`
+  const frameQuery = new URLSearchParams({
+    ...(game.launchParams ?? {}),
+    embed: 'gamerclock',
+    session: sessionId,
+    v: game.version,
+  })
+  const frameSrc = `${game.entry}?${frameQuery.toString()}`
   const returnPath = `/play/${game.slug}${eventId ? `?eventId=${encodeURIComponent(eventId)}` : ''}`
 
   return (
@@ -172,12 +180,13 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
           <div className="h-[calc(100dvh-58px)] min-h-[600px] max-h-[1040px] sm:h-[calc(100dvh-114px)]">
             <MiniGameFrame key={frameKey} ref={frameRef} src={frameSrc} title={game.title} onLoad={handleFrameLoad} />
           </div>
-          {!bridgeReady ? <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#06182a] text-sm text-cyan-100">Preparing the harbor…</div> : null}
+          {!bridgeReady ? <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#06182a] text-sm text-cyan-100">Preparing your journey…</div> : null}
         </section>
         {result ? (
           <MiniGameResultPanel
             result={result}
             gameTitle={game.title}
+            scoreUnit={game.score.unit}
             isGuest={!loading && isGuest}
             onPlayAgain={handlePlayAgain}
             onSignIn={handleSignIn}
@@ -192,9 +201,9 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
         nextPath={returnPath}
         source="mini_game_result"
         sourceMeta={{ game_slug: game.slug, session_id: sessionId }}
-        title="Save your next fishing record"
-        description="Create a GamerClock account to save future mini-game scores and rewards."
-        bullets={['Keep future mini-game scores in one place.', 'Save calendar reminders for the games you follow.', 'Return to your GamerClock calendar anytime.']}
+        title={`Save your ${game.title} journey`}
+        description="Create a GamerClock account to save future mini-game progress and rewards."
+        bullets={['Keep future mini-game progress in one place.', 'Save calendar reminders for the games you follow.', 'Return to your GamerClock calendar anytime.']}
       />
     </div>
   )

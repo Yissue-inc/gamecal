@@ -1,0 +1,15 @@
+{
+  "slug": "light-warrior",
+  "title": "Warrior of Light",
+  "description": "A playable gospel journey: gather, build, meet Jesus, and cross the bridge of light.",
+  "version": "1.0.0",
+  "entry": "/mini-games/light-warrior/index.html",
+  "thumbnail": "/mini-games/_bible-shared/assets/pixel-gospel/family-garden.webp",
+  "orientation": "portrait",
+  "input": ["tap", "keyboard", "pointer"],
+  "supportsGuest": true,
+  "requiresAuthFor": ["save_score", "claim_reward"],
+  "score": { "primaryMetric": "journey_progress", "higherIsBetter": true, "unit": "chapters" },
+  "calendar": { "allowedGameSlugs": [], "eventScoped": false },
+  "analyticsPrefix": "minigame_light_warrior"
+}

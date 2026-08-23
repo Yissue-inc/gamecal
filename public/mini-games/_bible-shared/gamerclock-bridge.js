@@ -10,14 +10,6 @@
     window.parent.postMessage({ type: type, payload: payload || {} }, parentOrigin)
   }
 
-  function onContext(listener) {
-    contextListeners.push(listener)
-    if (context) listener(context)
-    return function () {
-      contextListeners = contextListeners.filter(function (item) { return item !== listener })
-    }
-  }
-
   window.GamerClockMiniGame = {
     ready: function (payload) { post('MINIGAME_READY', payload) },
     started: function (payload) { post('MINIGAME_STARTED', payload) },
@@ -25,7 +17,10 @@
     completed: function (payload) { post('MINIGAME_COMPLETED', payload) },
     error: function (payload) { post('MINIGAME_ERROR', payload) },
     ctaClicked: function (payload) { post('MINIGAME_CTA_CLICKED', payload) },
-    onContext: onContext,
+    onContext: function (listener) {
+      contextListeners.push(listener)
+      if (context) listener(context)
+    },
     getContext: function () { return context },
   }
 
@@ -34,11 +29,5 @@
     if (!event.data || event.data.type !== 'GAMECLOCK_CONTEXT') return
     context = event.data.payload || {}
     contextListeners.forEach(function (listener) { listener(context) })
-  })
-
-  // An iframe can finish loading before its React parent installs the message
-  // listener. A few low-cost ready pulses make the guest launch reliable.
-  ;[120, 500, 1200].forEach(function (delay) {
-    window.setTimeout(function () { post('MINIGAME_READY') }, delay)
   })
 })()

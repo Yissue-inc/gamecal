@@ -14,6 +14,7 @@ export type MiniGameResult = {
 type MiniGameResultPanelProps = {
   result: MiniGameResult
   gameTitle: string
+  scoreUnit: string
   isGuest: boolean
   onPlayAgain: () => void
   onSignIn: () => void
@@ -23,6 +24,7 @@ type MiniGameResultPanelProps = {
 export function MiniGameResultPanel({
   result,
   gameTitle,
+  scoreUnit,
   isGuest,
   onPlayAgain,
   onSignIn,
@@ -40,7 +42,7 @@ export function MiniGameResultPanel({
           <div>
             <p className="font-rajdhani text-xl font-bold text-white">{caughtName ? `${caughtName} caught!` : `${gameTitle} result`}</p>
             <p className="text-sm text-zinc-300">
-              {typeof result.score === 'number' ? `${result.score.toLocaleString()} pts` : 'Your fishing trip is recorded for this session.'}
+              {typeof result.score === 'number' ? `${result.score.toLocaleString()} ${scoreUnit}` : 'Your journey is recorded for this session.'}
               {isGuest ? ' · Sign in to save future scores and rewards.' : ''}
             </p>
           </div>
