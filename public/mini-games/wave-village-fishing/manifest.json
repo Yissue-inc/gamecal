@@ -1,0 +1,15 @@
+{
+  "slug": "wave-village-fishing",
+  "title": "Wave Village Fishing Log",
+  "description": "A pixel-art fishing trip with an aquarium to fill and care for.",
+  "version": "1.0.0",
+  "entry": "/mini-games/wave-village-fishing/index.html",
+  "thumbnail": "/mini-games/wave-village-fishing/assets/backgrounds/harbor-day.png",
+  "orientation": "responsive",
+  "input": ["tap", "keyboard", "pointer"],
+  "supportsGuest": true,
+  "requiresAuthFor": ["save_score", "claim_reward"],
+  "score": { "primaryMetric": "fish_score", "higherIsBetter": true, "unit": "pts" },
+  "calendar": { "allowedGameSlugs": [], "eventScoped": false },
+  "analyticsPrefix": "minigame_wave_village_fishing"
+}
