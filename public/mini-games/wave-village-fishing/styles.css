@@ -37,6 +37,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 .action-button:hover{filter:brightness(1.06)}
 @keyframes throb{50%{transform:translateX(-50%) scale(1.06)}
 }
+.skill-buttons button.red{background:#f45b50}.skill-buttons button.yellow{background:#ffe064;color:#173147}.skill-buttons button.blue{background:#55c8ee}.skill-buttons button.green{background:#65d596;color:#173147}
 .meter{position:absolute;z-index:8;top:24%;left:50%;transform:translateX(-50%);width:min(430px,62%);height:31px;overflow:hidden;border:4px solid #fff5d9;border-radius:6px;background:#11213a;box-shadow:3px 3px 0 var(--ink)}
 .meter div{height:100%;width:0;background:repeating-linear-gradient(90deg,#ffd74e 0 16px,#fb9a36 16px 21px);transition:width .08s}
 .meter span{position:absolute;inset:0;display:grid;place-items:center;color:white;font-weight:1000;font-size:14px;text-shadow:1px 1px var(--ink)}
@@ -161,6 +162,7 @@ html.aquarium-active .feed-tray{bottom:158px}
 html.aquarium-active .action-button{bottom:82px}
 html.aquarium-active .interaction-bar{bottom:14px}
 html.shop-active .interaction-bar{display:none}html.shop-active .action-button{left:auto;right:24px;bottom:24px;transform:none;min-width:156px;padding:10px 14px;font-size:13px}
+.skill-panel{position:absolute;z-index:12;left:50%;top:52%;transform:translate(-50%,-50%);width:min(520px,88%);padding:15px 18px 13px;border:4px solid #fff4d3;border-radius:12px;background:#102742f5;box-shadow:5px 5px 0 #071020;color:#fff7de;text-align:center}.skill-panel h2{margin:1px 0 4px;font-size:25px;line-height:1.1}.skill-panel>p:not(.skill-kicker){min-height:22px;margin:0 0 10px;color:#d1f1f0;font-weight:800;font-size:14px}.skill-kicker{margin:0;color:#ffd96e;font-size:10px;font-weight:1000;letter-spacing:.14em}.skill-stage{display:grid;min-height:92px;place-items:center;gap:8px}.skill-buttons{display:grid;width:100%;grid-template-columns:repeat(3,1fr);gap:8px}.skill-buttons button{min-height:48px;border:3px solid #fff6d9;border-radius:8px;background:#214b63;color:#fff8df;font-weight:1000;font-size:22px;box-shadow:2px 2px 0 #071020}.skill-buttons button:active{transform:translate(2px,2px);box-shadow:none}.skill-beads{display:flex;justify-content:center;gap:9px}.skill-bead{width:38px;height:38px;border:3px solid #fff6d9;border-radius:50%;box-shadow:2px 2px 0 #071020}.skill-bead.red{background:#f45b50}.skill-bead.yellow{background:#ffe064}.skill-bead.blue{background:#55c8ee}.skill-bead.green{background:#65d596}.skill-grid{display:grid;width:min(280px,100%);grid-template-columns:repeat(3,1fr);gap:7px}.skill-grid button{min-height:47px;border:3px solid #fff6d9;border-radius:8px;background:#1b4059;color:#b9deea;font-size:22px}.skill-grid button.target{background:#ffdd64;color:#173147;box-shadow:0 0 0 3px #f37f41}.skill-wave-count{font-size:44px;letter-spacing:5px;line-height:1}.skill-timer{height:12px;overflow:hidden;border:2px solid #fff4d3;border-radius:8px;background:#1a334d}.skill-timer i{display:block;width:100%;height:100%;background:linear-gradient(90deg,#62d6d0,#ffe168,#f57d48);transform-origin:left;transition:transform .08s linear}
 @media(max-width:620px){
   html.portrait-scene .location-card{top:128px;bottom:auto;max-width:calc(100% - 20px)}
   html.portrait-scene .notice{top:30%;max-width:92%;white-space:normal;text-align:center}
@@ -175,4 +177,5 @@ html.shop-active .interaction-bar{display:none}html.shop-active .action-button{l
   html.portrait-scene.shop-active .action-button{right:10px;bottom:116px;min-width:105px;padding:8px 9px;font-size:11px}
   html.portrait-scene.shop-active .shop-window{top:44%;max-height:50dvh}
   html.portrait-scene.shop-active .shop-dialogue{bottom:18px;width:calc(100% - 20px)}
+  .skill-panel{top:52%;width:calc(100% - 34px);padding:13px 12px}.skill-panel h2{font-size:23px}.skill-panel>p:not(.skill-kicker){font-size:13px}.skill-stage{min-height:88px}.skill-buttons button{min-height:45px;font-size:20px}.skill-bead{width:34px;height:34px}
 }
