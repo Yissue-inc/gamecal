@@ -30,4 +30,8 @@
     context = event.data.payload || {}
     contextListeners.forEach(function (listener) { listener(context) })
   })
+
+  ;[120, 500, 1200].forEach(function (delay) {
+    window.setTimeout(function () { post('MINIGAME_READY') }, delay)
+  })
 })()
