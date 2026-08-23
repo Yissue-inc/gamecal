@@ -101,7 +101,9 @@
   aquariumThemes.forEach(theme=>{theme.img=loadImage(theme.src)});
   npcDefs.forEach(n=>{const stem=n.src.split('/').pop().replace('.png','');n.img=frameSet('npc',stem,3)});
   rods.forEach((r,index)=>{r.img=loadImage(`${A}frames/rods/rod-tier-sheet-${index}.png`);r.previewIndex=index});
-  const loadImages=Object.values(images).concat(players.flatMap(v=>[v.directionImg,v.portraitImg]),fish.flatMap(v=>v.img),randomBoxes.map(v=>v.img),aquariumThemes.map(v=>v.img),npcDefs.flatMap(v=>v.img),rods.map(v=>v.img),rodSelectionPreview);
+  // 첫 화면은 항구·캐릭터·낚싯대만 먼저 준비한다. 수족관/도감의 대형 어셋은 같은 Image 객체에서
+  // 백그라운드로 내려받으므로, 모바일 사용자가 100MB가 넘는 모든 그림을 기다리지 않아도 된다.
+  const loadImages=[images.harbor,images.harborPortrait,images.rod,images.fishingRig].concat(players.flatMap(v=>[v.directionImg,v.portraitImg]),rods.map(v=>v.img),[rodSelectionPreview]);
   let selectedPlayer=players[0],selectedRod=rods[0],selectedTheme=starterTheme,coins=100,ownedThemes=[],ownedRods=['wood'],shopTab='themes',mode='loading',last=0,now=0,player={x:490,y:420,targetX:490,targetY:420,direction:0},keys={},caught=[],inventory=[],starterBaitClaimed=false,feeding=null,pendingLoot=null,resultDestination='aquarium',lastHungerSave=0,timeAttack={running:false,turnActive:false,current:0,players:[],originalPlayer:null,endsAt:0},fishing={fish:null,item:null,box:null,bait:null,biteAt:0,biteEnd:0,reel:0,need:0,deadline:0,aimStart:0,aimTarget:0,aimWidth:0,aimValue:0};
   const STORE='pixelSeaFishing.v2';
   function themeUnlocked(theme){return ownedThemes.includes(theme.id)}
