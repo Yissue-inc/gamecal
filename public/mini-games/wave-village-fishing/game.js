@@ -297,4 +297,50 @@
     baits.forEach(({entry,index,item})=>{const b=document.createElement('button');b.type='button';b.className=`bait-choice tier-${item.bait}`;b.innerHTML=`${itemName(item)}<small>${baitTierName(item.bait)} ${ui('미끼','bait')} · ${baitChanceLabel(item.bait)}</small>`;b.onclick=()=>{inventory.splice(index,1);save();updateHud();el.baitOverlay.classList.add('hidden');castLine(item)};el.baitChoices.append(b)});
     el.baitOverlay.classList.remove('hidden');
   }
+  // Coin results are a hidden catch type. The index matches the five-column reward sprite sheet.
+  const coinRewardSheet=loadImage(`${A}rewards/coin-reward-sheet-v1.png`);ensureImage(coinRewardSheet);
+  const coinRewards=[
+    {amount:50,label:'동전 주머니',enLabel:'Coin Pouch',index:0,weight:52},
+    {amount:100,label:'반짝 상자',enLabel:'Sparkle Crate',index:1,weight:27},
+    {amount:250,label:'유리병 저금통',enLabel:'Coin Bottle',index:2,weight:13},
+    {amount:500,label:'보물 상자',enLabel:'Treasure Chest',index:3,weight:6},
+    {amount:1000,label:'잭팟 보물 상자',enLabel:'Jackpot Treasure Chest',index:4,weight:2,jackpot:true}
+  ];
+  function chooseCoinReward(){const total=coinRewards.reduce((sum,reward)=>sum+reward.weight,0);let roll=Math.random()*total;return coinRewards.find(reward=>(roll-=reward.weight)<=0)||coinRewards[0]}
+  function chooseReward(bait){
+    if(!bait){const roll=Math.random();return roll<.56?{fish:chooseNoBaitFish()}:roll<.76?{coin:chooseCoinReward()}:{item:randomItem()}}
+    const tier=bait.bait,boxChance=[0,.015,.026,.04][tier]||.015,fishChance=[0,.88,.93,.97][tier]||.88;
+    if(!timeAttack.running&&Math.random()<boxChance)return{box:chooseRandomBox()};
+    if(Math.random()<fishChance)return{fish:chooseWeighted(tier)};
+    return Math.random()<([0,.45,.50,.60][tier]||.45)?{coin:chooseCoinReward()}:{item:randomItem()};
+  }
+  function drawCoinReward(target,reward){
+    const sheet=ensureImage(coinRewardSheet);if(!sheet?.complete||!sheet.naturalWidth)return;
+    const sw=sheet.naturalWidth/5,sh=sheet.naturalHeight,sx=reward.index*sw,ratio=Math.min(196/sw,130/sh),w=sw*ratio,h=sh*ratio;
+    target.save();target.imageSmoothingEnabled=false;target.drawImage(sheet,sx,0,sw,sh,110-w/2,70-h/2,w,h);target.restore();
+  }
+  function bite(){
+    mode='bite';const reward=chooseReward(fishing.bait);fishing.fish=reward.fish||null;fishing.item=reward.item||null;fishing.box=reward.box||null;fishing.coin=reward.coin||null;fishing.biteEnd=now+3000;
+    el.notice.textContent=ui('입질이다! 무엇이 걸렸을까요?','A bite! What could it be?');el.notice.classList.remove('hidden');el.action.className='action-button bite';el.action.textContent=ui('SPACE · 지금 낚아채기!','SPACE · Hook it now!');el.bar.innerHTML=ui('입질 유지 중! 3초 안에 버튼이나 Space를 한 번 누르세요.','Keep the bite! Press once within 3 seconds.');audio('bite');
+  }
+  function stopAim(){
+    if(mode!=='aim')return;if(now<fishing.aimLockUntil){setNotice(ui('바늘이 출발할 때까지 잠시만 기다려요!','Wait for the marker to start!'));return}
+    const hit=Math.abs(fishing.aimValue-fishing.aimTarget)<=fishing.aimWidth/2;if(!hit)return fail('range');
+    if(fishing.box)catchBox();else if(fishing.item)catchLoot();else if(fishing.coin)catchCoins(fishing.coin);else catchFish();
+  }
+  function timeAttackCatch(reward){
+    const runner=activeRunner();if(!runner||!timeAttack.turnActive)return;
+    const coin=reward.coin,thing=reward.fish||reward.item,points=coin?coin.amount:reward.fish?(thing.score||0):Math.round((thing.score||0)*.45);
+    if(reward.fish)runner.fish++;else if(reward.item?.kind==='feed')runner.baits.push({name:thing.name,bait:thing.bait});
+    runner.score+=points;runner.rewards.push({name:coin?`${coin.amount} coins`:thing.name,grade:coin?'COIN':thing.grade,points,kind:coin?'coin':reward.fish?'fish':reward.item?.kind==='feed'?'bait':'decor'});
+    mode='harbor';el.meter.classList.remove('aim');el.meter.classList.add('hidden');el.action.className='action-button hidden';updateTimeAttackHud();setNotice(`${coin?coin.amount+' coins':thing.name} +${points} pts!`);audio('catch');setTimeout(()=>{if(timeAttack.running&&timeAttack.turnActive)castTimeAttackLine()},520);
+  }
+  function catchCoins(reward){
+    if(timeAttack.running&&timeAttack.turnActive){timeAttackCatch({coin:reward});return}
+    coins+=reward.amount;save();updateHud();mode='harbor';el.meter.classList.remove('aim');el.meter.classList.add('hidden');el.action.className='action-button hidden';resetResultActions();
+    const rctx=el.resultCanvas.getContext('2d');rctx.clearRect(0,0,220,140);drawCoinReward(rctx,reward);el.resultCanvas.classList.remove('coin-reward-pop');void el.resultCanvas.offsetWidth;el.resultCanvas.classList.add('coin-reward-pop');
+    el.resultEye.textContent=reward.jackpot?ui('대박 잭팟!','JACKPOT!'):ui('바다 속 코인!','COINS FOUND!');el.resultTitle.textContent=ui(`${reward.amount.toLocaleString()} 코인을 건졌다!`,`You reeled in ${reward.amount.toLocaleString()} coins!`);
+    el.resultCopy.textContent=reward.jackpot?ui('전설의 잭팟 보물 상자예요! 수족관과 미끼를 마음껏 준비해 보세요.','A legendary jackpot chest! Stock up on aquariums and bait.'):ui(`${reward.label}가 낚싯줄에 걸렸어요. 상점과 수족관 구매에 쓸 수 있어요.`,`${reward.enLabel} was caught on your line. Spend it in the shop or on aquariums.`);
+    el.result.classList.remove('hidden');setNotice(ui(`${reward.amount.toLocaleString()}코인을 획득했어요!`,`You earned ${reward.amount.toLocaleString()} coins!`));audio('catch');
+  }
 })();
