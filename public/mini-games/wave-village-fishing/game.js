@@ -448,4 +448,49 @@
   function fail(reason='time'){if(!['bite','reel','skill','aim'].includes(mode))return;const rush=timeAttack.running&&timeAttack.turnActive,failedRun=fishing.runId;clearTimeout(failureReturnTimer);mode='failure';fishing.failureReason=reason;el.skillPanel.classList.add('hidden');el.notice.classList.add('hidden');el.meter.classList.remove('aim');el.meter.classList.add('hidden');if(rush){el.action.className='action-button hidden';el.bar.innerHTML=ui('놓쳤어요! 다음 입질을 빠르게 노려보세요.','Escaped! Quickly try for the next bite.');failureReturnTimer=setTimeout(()=>{if(mode==='failure'&&fishing.runId===failedRun)castTimeAttackLine()},900)}else{el.action.className='action-button';el.action.textContent=ui('같은 자리에서 다시 낚시','Try Fishing Again');returnPierButton.textContent=ui('부두로 돌아가기','Back to Pier');returnPierButton.classList.remove('hidden');const reasonCopy=reason==='skill'?ui('<b>미니 도전 실패!</b> 물고기가 틈을 타 도망갔어요.','<b>Mini challenge failed!</b> The fish slipped away.'):reason==='range'?ui('<b>아쉽다!</b> 흰 막대가 노란 칸 밖에서 멈췄어요.','<b>So close!</b> The white marker stopped outside the yellow zone.'):reason==='bite'?ui('<b>입질이 끝났어요!</b> 다음에는 입질 알림이 뜨면 바로 한 번 누르세요.','<b>The bite ended!</b> Press once as soon as the bite alert appears.'):ui('<b>릴 시간이 끝났어요!</b> 다음에는 릴 버튼을 더 빠르게 눌러보세요.','<b>The reel timer ended!</b> Tap the reel button faster next time.');el.bar.innerHTML=`${reasonCopy}<br><small>${ui('아래 “다시 낚시”는 미끼를 고른 뒤 바로 재도전합니다.','“Try Fishing Again” lets you choose bait and retry right here.')}</small>`}audio('fail')}
   function action(){if(['bite','reel','aim'].includes(mode)&&phaseTime()<fishing.inputLockUntil)return;if(timeAttack.running&&timeAttack.turnActive&&mode==='harbor'){castTimeAttackLine();return}if(mode==='harbor')startFishing();else if(mode==='waiting'||mode==='bite'||mode==='reel')reel();else if(mode==='aim')stopAim();else if(mode==='failure')retryFishing();else if(mode==='skill')setNotice(ui('가운데 미니게임 버튼을 눌러 도전하세요!','Tap the mini-game buttons in the center!'));else if(mode==='aquarium'){mode='harbor';feeding=null;el.feedTray.classList.add('hidden');el.themeButton.classList.add('hidden');el.sellButton.classList.add('hidden');setNotice(ui('항구로 돌아왔어요.','Back at the harbor.'))}else if(mode==='shop')leaveShop()}
   function renderDifficultySetup(){const choices=$('#difficultyChoices');choices.querySelectorAll('button').forEach(button=>button.classList.toggle('selected',button.dataset.difficulty===selectedDifficulty));$('#difficultyTitle').textContent=ui('게임 난이도','Game Difficulty');$('#difficultyHint').textContent=ui('어려울수록 더 많이 감고, 노란 칸이 좁아져요. 대신 코인을 더 많이 받아요!','Harder play needs more reeling and a smaller yellow zone, but pays more coins!');choices.querySelector('[data-difficulty="easy"] small').textContent=ui('릴 2번 적게 · 넓은 노란 칸 · 50~250 코인','2 fewer reels · wide yellow zone · 50–250 coins');choices.querySelector('[data-difficulty="medium"] small').textContent=ui('기본 릴 · 보통 노란 칸 · 50~1,000 코인','standard reels · normal yellow zone · 50–1,000 coins');choices.querySelector('[data-difficulty="hard"] small').textContent=ui('릴 2번 더 · 좁고 빠른 칸 · 100~2,000 코인','2 more reels · narrow, faster zone · 100–2,000 coins');$('#startAdventure').innerHTML=ui('이 난이도로 출항 <span>→</span>','Sail with this Difficulty <span>→</span>')}
+  // Aquarium motion is intentionally continuous: pixel art stays sharp while each fish glides on a seeded path.
+  function aquariumSwim(entry,index,portrait,f){
+    const seed=(entry.seed||index*127)+index*97,t=now/1000,centerX=portrait?360:480,span=portrait?235:320;
+    const speed=.19+(seed%5)*.025,phase=t*speed+seed*.006;
+    const rows=portrait?[465,555,655,760,860,945]:[145,178,215,252,285,320];
+    let x=centerX,y=rows[index%rows.length],dx=1,tilt=0;
+    if(f?.motion==='orca'){const p=t*.32+seed*.004;x=centerX+Math.sin(p)*span;y=(portrait?520:168)+Math.sin(p*1.7)*30;dx=Math.cos(p);tilt=Math.sin(p*1.7)*.035}
+    else if(f?.motion==='angler'){const p=t*.23+seed*.007;x=centerX+Math.sin(p)*(portrait?150:205);y=(portrait?655:250)+Math.sin(p*1.8)*23;dx=Math.cos(p);tilt=Math.sin(p*1.8)*.025}
+    else if(f?.motion==='mosasaurus'){const p=t*.39+seed*.005;x=centerX+Math.sin(p)*span;y=(portrait?820:305)+Math.sin(p*2)*38;dx=Math.cos(p);tilt=Math.sin(p*2)*.04}
+    else if(f?.motion==='leviathan'){const p=t*.25+seed*.005;x=centerX+Math.cos(p)*(portrait?210:290);y=(portrait?620:225)+Math.sin(p*1.55)*(portrait?70:52);dx=-Math.sin(p);tilt=Math.cos(p*1.55)*.05}
+    else if(f?.motion==='ankyloshark'){const p=t*.31+seed*.004;x=centerX+Math.sin(p)*(portrait?220:300);y=(portrait?900:300)+Math.sin(p*1.9)*27;dx=Math.cos(p);tilt=Math.sin(p*1.9)*.025}
+    else if(f?.motion==='tricerafin'){const p=t*.35+seed*.006;x=centerX+Math.sin(p*1.2)*(portrait?180:240);y=(portrait?720:255)+Math.cos(p*1.8)*(portrait?74:48);dx=Math.cos(p*1.2);tilt=-Math.sin(p*1.8)*.04}
+    else if(f?.motion==='raydrake'){const p=t*.28+seed*.006;x=centerX+Math.sin(p)*span;y=(portrait?380:132)+Math.sin(p*2.4)*30;dx=Math.cos(p);tilt=Math.cos(p*2.4)*.035}
+    else if(f?.motion==='ichthyosaur'){const p=t*.52+seed*.005;x=centerX+Math.sin(p)*span;y=(portrait?805:292)+Math.sin(p*3.1)*42;dx=Math.cos(p);tilt=Math.cos(p*3.1)*.04}
+    else {const p=phase;const run=portrait?245:320;x=centerX+Math.sin(p)*run;y+=Math.sin(p*2.15+index)*((portrait?14:10)+(seed%3)*3);dx=Math.cos(p);tilt=Math.cos(p*2.15+index)*.028}
+    return {x,y,flip:dx<0,tilt};
+  }
+  function drawAquariumBubbles(portrait,foreground=false){
+    const {w,h}=world(),count=portrait?20:16,top=portrait?260:60,bottom=h-(portrait?130:45),travel=bottom-top;
+    ctx.save();ctx.lineWidth=portrait?2:1.5;ctx.strokeStyle=foreground?'#d9f9ffcc':'#c8f6ff91';ctx.fillStyle=foreground?'#f0ffff8a':'#e0fbff52';
+    for(let i=0;i<count;i++){
+      const seed=i*73+(foreground?41:0),speed=18+(seed%7)*5,progress=((now/1000*speed+seed*3.7)%travel),x=(portrait?96:108)+(seed%(portrait?530:720))+Math.sin(now/880+seed)*((seed%3)+2),y=bottom-progress;
+      const r=(portrait?3.2:2.3)+(seed%4)*.75;
+      ctx.globalAlpha=.33+(seed%5)*.09;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.globalAlpha=.72;ctx.fillRect(Math.round(x-r*.25),Math.round(y-r*.52),Math.max(1,Math.round(r*.38)),Math.max(1,Math.round(r*.38)));
+      if(seed%3===0){ctx.globalAlpha=.25;ctx.fillRect(Math.round(x+r*1.7),Math.round(y+r*1.5),1,1)}
+    }
+    ctx.restore();
+  }
+  function drawSwimmingFish(entry,index,portrait){
+    const f=fish.find(q=>q.id===entry.id);if(!f)return;const pos=aquariumSwim(entry,index,portrait,f),scale=(f.aquaScale??Math.min(1.18,f.scale))*(portrait?.56:.43);
+    ctx.save();ctx.translate(pos.x,pos.y);ctx.rotate(pos.tilt);drawFish(f,0,0,scale,0,pos.flip);ctx.restore();
+    drawFullness(pos.x,pos.y+(portrait?61:43),entry.fullness??100,portrait);
+  }
+  function drawAquarium(){
+    const portrait=scene.portrait,decoSlots=portrait?[[165,970],[555,970],[190,810],[535,810],[355,1040],[170,665],[550,670],[355,870],[245,1060],[475,1060]]:[[185,280],[750,280],[210,215],[720,210],[465,295],[165,150],[780,150],[470,175],[310,290],[620,290]];
+    el.location.classList.remove('hidden');backgroundCover(selectedTheme.img);ctx.fillStyle=selectedTheme.tint;ctx.fillRect(0,0,world().w,world().h);
+    drawAquariumBubbles(portrait);inventory.filter(v=>aquariumItems.find(i=>i.id===v.id)?.kind==='deco').forEach((entry,i)=>{const item=aquariumItems.find(q=>q.id===entry.id),slot=decoSlots[i%decoSlots.length];if(item)drawLoot(ctx,item,slot[0],slot[1],portrait?.72:.52)});
+    const meal=portrait?{x:360,y:685}:{x:480,y:245};caught.map((entry,index)=>({entry,index,pos:aquariumSwim(entry,index,portrait,fish.find(q=>q.id===entry.id))})).sort((a,b)=>a.pos.y-b.pos.y).forEach(({entry,index})=>{
+      const f=fish.find(q=>q.id===entry.id);if(!f)return;if(feeding?.seed===entry.seed){const base=aquariumSwim(entry,index,portrait,f),p=Math.min(1,(now-feeding.start)/feeding.duration),go=Math.min(1,p/.48),x=base.x+(meal.x-base.x)*go,y=base.y+(meal.y-base.y)*go;ctx.save();ctx.translate(x,y);ctx.rotate(base.tilt);drawFish(f,0,0,(f.aquaScale??Math.min(1.18,f.scale))*(portrait?.56:.43),0,x>meal.x);ctx.restore();drawFullness(x,y+(portrait?61:43),entry.fullness??100,portrait);if(p>=1)finishFeeding()}else drawSwimmingFish(entry,index,portrait)});
+    drawAquariumBubbles(portrait,true);if(feeding){const p=Math.min(1,(now-feeding.start)/feeding.duration);if(p<.24)drawLoot(ctx,feeding.item,meal.x,meal.y-(.24-p)*420,portrait?.48:.34);else drawFeedEffect(meal.x,meal.y,p,portrait);if(p>.32)text(p<.7?ui('냠!','Yum!'):ui('포만감 UP!','FULLNESS UP!'),meal.x,meal.y-(portrait?78:54),portrait?17:13,'#fff5d9')}
+    const titleY=170,subY=198,statY=222,textX=480,avg=caught.length?Math.round(caught.reduce((sum,v)=>sum+(v.fullness??100),0)/caught.length):0,decoCount=inventory.filter(v=>aquariumItems.find(i=>i.id===v.id)?.kind==='deco').length;
+    if(!portrait){text(`T${selectedTheme.tier} · ${themeName(selectedTheme)}`,textX,titleY,20,'#fff5d9');text(caught.length?ui(`물고기 ${caught.length}마리 · 평균 포만감 ${avg}%`,`Fish ${caught.length} · Average fullness ${avg}%`):ui('아직 전시된 물고기가 없어요. 항구 낚시터에서 첫 물고기를 만나보세요!','No fish are on display yet. Meet your first one at the harbor fishing spot!'),textX,subY,12,'#e8fbff');text(ui(`장식 ${decoCount}개 · 포만감은 시간이 지나면 줄어요`,`Decor ${decoCount} · Fullness drops over time.`),textX,statY,11,'#fff1a8')}
+    el.location.innerHTML=ui(`<strong>T${selectedTheme.tier} ${themeName(selectedTheme)}</strong><span>물고기가 천천히 유영하고 있어요</span>`,`<strong>T${selectedTheme.tier} ${themeName(selectedTheme)}</strong><span>Your fish are gliding through the water.</span>`);el.bar.innerHTML=ui('포만감이 낮은 물고기부터 먹이를 향해 헤엄쳐 와요.','Fish with lower fullness swim to food first.');el.action.className='action-button';el.action.textContent=ui('← 항구로 돌아가기','← Back to Harbor')
+  }
 })();
