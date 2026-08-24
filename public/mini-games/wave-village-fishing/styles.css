@@ -180,3 +180,20 @@ html.shop-active .interaction-bar{display:none}html.shop-active .action-button{l
   html.portrait-scene.shop-active .shop-dialogue{bottom:18px;width:calc(100% - 20px)}
   .skill-panel{top:52%;width:calc(100% - 34px);padding:13px 12px}.skill-panel h2{font-size:23px}.skill-panel>p:not(.skill-kicker){font-size:13px}.skill-stage{min-height:88px}.skill-buttons button{min-height:45px;font-size:20px}.skill-bead{width:34px;height:34px}
 }
+
+/* Keep every start-screen control visible on short portrait phones. */
+@media(max-width:620px) and (max-height:860px){
+  .overlay{padding:8px}
+  .intro-panel{max-height:calc(100dvh - 16px);padding:10px}
+  .intro-panel .eyebrow{font-size:8px}
+  .intro-panel h1{margin:2px 0 4px;font-size:27px}
+  .intro-panel .lead{margin:0 0 5px;font-size:12px;line-height:1.24}
+  .intro-panel .selection-block{margin-top:6px}
+  .intro-panel .selection-block h2{margin:0 0 5px;font-size:13px}
+  .intro-panel .selection-grid.players .selection{min-height:113px;font-size:12px}
+  .intro-panel .selection-grid.players .player-portrait{height:87px}
+  .intro-panel .selection-grid.rods .selection{min-height:51px}
+  .intro-panel .selection-grid.rods .selection canvas{height:29px}
+  .intro-panel .primary,.intro-panel .secondary{margin-top:8px;padding:8px 12px;font-size:14px}
+  .intro-panel .tip{margin-top:5px;font-size:8px}
+}
