@@ -129,7 +129,11 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
   }, [started, track])
 
   const handleFrameLoad = useCallback(() => {
-    setBridgeReady(false)
+    // An iframe load is the minimum safe readiness signal. The bridge message is
+    // still used for analytics/context, but it can arrive before React attaches
+    // its listener on a slow mobile launch. Never leave a fully loaded game
+    // hidden behind the parent shell's loading veil in that race.
+    setBridgeReady(true)
     setStarted(false)
   }, [])
 
