@@ -343,4 +343,62 @@
     el.resultCopy.textContent=reward.jackpot?ui('전설의 잭팟 보물 상자예요! 수족관과 미끼를 마음껏 준비해 보세요.','A legendary jackpot chest! Stock up on aquariums and bait.'):ui(`${reward.label}가 낚싯줄에 걸렸어요. 상점과 수족관 구매에 쓸 수 있어요.`,`${reward.enLabel} was caught on your line. Spend it in the shop or on aquariums.`);
     el.result.classList.remove('hidden');setNotice(ui(`${reward.amount.toLocaleString()}코인을 획득했어요!`,`You earned ${reward.amount.toLocaleString()} coins!`));audio('catch');
   }
+  // Expanded sea challenges: the fish tier selects a short, readable challenge family.
+  function skillTitle(type){return {memory:ui('구슬 기억하기','Bead Memory'),bubble:ui('거품 톡톡!','Bubble Pop'),current:ui('물살 읽기','Read the Current'),net:ui('그물 피하기','Safe Net'),count:ui('파도 세기','Count the Waves'),shell:ui('조개 찾기','Find the Shell'),sonar:ui('소나 신호','Sonar Signal'),knot:ui('매듭 세기','Count the Knots'),depth:ui('깊이 읽기','Read the Depth'),compass:ui('나침반 기억','Compass Memory'),tide:ui('조류 짝맞추기','Tide Match'),lantern:ui('등불 찾기','Find the Lantern'),star:ui('별빛 찾기','Find the Star'),lure:ui('미끼 짝맞추기','Lure Match'),scales:ui('무게 비교','Weight Match')}[type]||ui('바다 도전','Sea Challenge')}
+  function skillInstruction(type){return {memory:ui('잠깐 보인 색 구슬 순서를 그대로 누르세요.','Remember the bead colors, then tap that order.'),bubble:ui('빛나는 거품만 빠르게 터뜨리세요!','Pop only the glowing bubbles!'),current:ui('화살표와 같은 방향을 골라 물살을 따라가요.','Choose the matching arrow to follow the current.'),net:ui('물고기 쪽 그물만 골라 안전하게 끌어올려요.','Choose the fish net and avoid the rocky nets.'),count:ui('잠깐 보이는 파도 수를 기억해 알맞은 숫자를 고르세요.','Remember the waves, then choose the right number.'),shell:ui('위에 보인 조개와 똑같은 것을 고르세요.','Choose the shell shown above.'),sonar:ui('울린 소나 신호와 같은 칸을 누르세요.','Tap the lane with the matching sonar ping.'),knot:ui('밧줄 매듭 수를 세고 같은 숫자를 고르세요.','Count the rope knots, then choose that number.'),depth:ui('잠깐 보인 깊이 표시와 같은 숫자를 고르세요.','Match the depth marker you just saw.'),compass:ui('나침반 화살표 순서를 기억해서 다시 누르세요.','Remember the compass-arrow sequence.'),tide:ui('물살 모양과 같은 표식을 고르세요.','Match the current symbol.'),lantern:ui('빛나는 등불을 빠르게 찾으세요.','Find the glowing lantern quickly.'),star:ui('반짝이는 별빛 한 개를 찾아 누르세요.','Tap the one sparkling star.'),lure:ui('물고기가 찾는 미끼와 같은 것을 고르세요.','Match the bait the fish is looking for.'),scales:ui('더 무거운 쪽의 물고기를 고르세요.','Choose the heavier side.' )}[type]||ui('알맞은 선택을 하세요.','Make the matching choice.')}
+  function skillDifficulty(fish){const score=fish?.score||100;if(score>=1200)return{tier:'legend',goal:5,time:7600};if(score>=600)return{tier:'hard',goal:4,time:8800};if(score>=250)return{tier:'medium',goal:3,time:9900};return{tier:'easy',goal:2,time:10800}}
+  function rollSkillRound(){
+    const type=fishing.skill;
+    if(type==='bubble'||type==='star')fishing.skillTarget=Math.floor(Math.random()*9);
+    else if(type==='net')fishing.skillTarget=Math.floor(Math.random()*6);
+    else if(['current','shell','tide','lantern','lure'].includes(type))fishing.skillTarget=Math.floor(Math.random()*4);
+    else if(type==='sonar')fishing.skillTarget=Math.floor(Math.random()*3);
+    else if(type==='knot'){fishing.skillCount=1+Math.floor(Math.random()*4);fishing.skillTarget=fishing.skillCount}
+    else if(type==='depth'){fishing.skillTarget=Math.floor(Math.random()*4);fishing.skillCount=[10,20,30,40][fishing.skillTarget]}
+    else if(type==='scales'){let left=1+Math.floor(Math.random()*4),right=1+Math.floor(Math.random()*4);if(left===right)right=right===4?1:right+1;fishing.skillLeft=left;fishing.skillRight=right;fishing.skillTarget=left>right?0:1}
+  }
+  function nextSkillRound(){fishing.skillStep++;if(fishing.skillStep>=fishing.skillGoal)return completeSkill();rollSkillRound();renderSkill()}
+  function skillCue(text,className='skill-cue-card'){const cue=document.createElement('div');cue.className=className;cue.textContent=text;return cue}
+  function skillButtons(values,onPick,className='skill-buttons'){const wrap=document.createElement('div');wrap.className=className;values.forEach((value,index)=>{const b=document.createElement('button');b.type='button';b.className=value?.color||'';b.textContent=value.label??value;b.setAttribute('aria-label',value?.ariaLabel||b.textContent);b.onclick=()=>onPick(value,index);wrap.append(b)});return wrap}
+  function renderSkill(){
+    const type=fishing.skill,stage=el.skillStage;stage.replaceChildren();el.skillKicker.textContent=ui('바다 미니 도전','SEA MINI CHALLENGE');el.skillTitle.textContent=skillTitle(type);el.skillInstruction.textContent=skillInstruction(type);
+    const choice=(values,onPick,className='skill-buttons')=>stage.append(skillButtons(values,onPick,className));
+    const arrows=['↑','→','↓','←'],shells=['🐚','🪸','🦪','🐌'],tides=['🌊','🫧','🌀','💨'],lures=['🪱','🦐','🦑','✨'];
+    if(type==='memory'||type==='compass'){
+      const labels=type==='memory'?['●','●','●','●']:arrows;
+      if(fishing.skillStep===-1){const row=document.createElement('div');row.className=type==='memory'?'skill-beads':'skill-symbol-row';fishing.skillPattern.forEach(value=>{const token=document.createElement('i');token.textContent=labels[value];if(type==='memory')token.className=`skill-bead ${['red','yellow','blue','green'][value]}`;row.append(token)});stage.append(row);return}
+      choice(labels.map((label,index)=>type==='memory'?{label,color:['red','yellow','blue','green'][index],index}:{label,index}),value=>{if(value.index!==fishing.skillPattern[fishing.skillStep])return skillFail();fishing.skillStep++;if(fishing.skillStep>=fishing.skillPattern.length)completeSkill()})
+    }else if(type==='bubble'||type==='star'||type==='net'){
+      const grid=document.createElement('div');grid.className='skill-grid';const length=type==='net'?6:9;for(let i=0;i<length;i++){const b=document.createElement('button');b.type='button';const target=i===fishing.skillTarget;b.className=target?'target':'';b.textContent=type==='net'?(target?'🐟':'🪨'):type==='star'?(target?'✦':'·'):(target?'●':'○');b.onclick=()=>target?nextSkillRound():skillFail();grid.append(b)}stage.append(grid)
+    }else if(type==='current'){
+      stage.append(skillCue(arrows[fishing.skillTarget],'skill-arrow-cue'));choice(arrows,value=>value===arrows[fishing.skillTarget]?nextSkillRound():skillFail())
+    }else if(type==='count'){
+      if(fishing.skillStep===-1){stage.append(skillCue('〰'.repeat(fishing.skillCount),'skill-wave-count'));return}choice([2,3,4,5],value=>value===fishing.skillCount?completeSkill():skillFail())
+    }else if(type==='shell'||type==='tide'||type==='lure'){
+      const symbols=type==='shell'?shells:type==='tide'?tides:lures;stage.append(skillCue(symbols[fishing.skillTarget]));choice(symbols,value=>value===symbols[fishing.skillTarget]?nextSkillRound():skillFail())
+    }else if(type==='sonar'){
+      const pings=['·','◉','◎'];stage.append(skillCue(pings[fishing.skillTarget],'skill-sonar-cue'));choice(pings,value=>value===pings[fishing.skillTarget]?nextSkillRound():skillFail())
+    }else if(type==='knot'){
+      stage.append(skillCue('🪢 '.repeat(fishing.skillCount)));choice([1,2,3,4],value=>value===fishing.skillCount?nextSkillRound():skillFail())
+    }else if(type==='depth'){
+      if(fishing.skillStep===-1){stage.append(skillCue(`${fishing.skillCount}m`,'skill-depth-cue'));return}choice([10,20,30,40].map(value=>`${value}m`),value=>value===`${fishing.skillCount}m`?completeSkill():skillFail())
+    }else if(type==='lantern'){
+      const grid=document.createElement('div');grid.className='skill-lanterns';for(let i=0;i<4;i++){const b=document.createElement('button');b.type='button';const target=i===fishing.skillTarget;b.className=target?'target':'';b.textContent='🏮';b.onclick=()=>target?nextSkillRound():skillFail();grid.append(b)}stage.append(grid)
+    }else if(type==='scales'){
+      stage.append(skillCue(`🐟 ${'●'.repeat(fishing.skillLeft)}  ⚖️  ${'●'.repeat(fishing.skillRight)} 🐟`,'skill-scale-cue'));choice([ui('왼쪽','Left'),ui('오른쪽','Right')],(value,index)=>index===fishing.skillTarget?nextSkillRound():skillFail())
+    }
+    if(timeAttack.running&&timeAttack.turnActive)el.skillInstruction.textContent+=ui(' 타임 어택이라 시간이 짧아요!',' Time Attack gives you less time!')
+  }
+  function beginSkill(){
+    const rush=timeAttack.running&&timeAttack.turnActive,profile=skillDifficulty(fishing.fish),pools={easy:['bubble','current','count','shell'],medium:['memory','net','sonar','knot','depth'],hard:['compass','tide','lantern','star','lure'],legend:['compass','sonar','lantern','star','lure','scales']};
+    const type=pools[profile.tier][Math.floor(Math.random()*pools[profile.tier].length)],isSequence=type==='memory'||type==='compass',isReveal=type==='count'||type==='depth';
+    mode='skill';fishing.skill=type;fishing.skillStep=0;fishing.skillGoal=Math.max(1,profile.goal-(rush?1:0));fishing.skillTotal=Math.round(profile.time*(rush?.68:1));fishing.skillDeadline=now+fishing.skillTotal;fishing.skillShowUntil=0;
+    fishing.skillPattern=isSequence?Array.from({length:Math.max(2,Math.min(5,profile.goal-(rush?1:0)))},()=>Math.floor(Math.random()*4)):[];
+    if(isSequence){fishing.skillStep=-1;fishing.skillShowUntil=now+(rush?1050:1450)+fishing.skillPattern.length*260}
+    if(type==='count'){fishing.skillCount=2+Math.floor(Math.random()*4);fishing.skillStep=-1;fishing.skillShowUntil=now+(rush?900:1450)}
+    if(type==='depth'){fishing.skillTarget=Math.floor(Math.random()*4);fishing.skillCount=[10,20,30,40][fishing.skillTarget];fishing.skillStep=-1;fishing.skillShowUntil=now+(rush?900:1350)}
+    if(!isSequence&&!isReveal)rollSkillRound();
+    el.meter.classList.add('hidden');el.action.className='action-button hidden';el.skillPanel.classList.remove('hidden');el.bar.innerHTML=ui('물고기가 힘을 써요! <b>바다 미니 도전</b>을 성공하고 마지막으로 끌어올리세요.','The catch is fighting! Clear the <b>sea mini challenge</b>, then land the final timing.');renderSkill()
+  }
+  function updateSkill(){if(mode!=='skill')return;const remaining=Math.max(0,fishing.skillDeadline-now),total=fishing.skillTotal||9000;el.skillTimerFill.style.transform=`scaleX(${Math.max(.02,Math.min(1,remaining/total))})`;if(fishing.skillStep===-1&&now>=fishing.skillShowUntil){fishing.skillStep=0;fishing.skillDeadline=now+total;renderSkill();return}if(now>=fishing.skillDeadline)skillFail()}
 })();
