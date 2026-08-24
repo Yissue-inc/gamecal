@@ -359,10 +359,12 @@
   }
   function nextSkillRound(){fishing.skillStep++;if(fishing.skillStep>=fishing.skillGoal)return completeSkill();rollSkillRound();renderSkill()}
   function skillCue(text,className='skill-cue-card'){const cue=document.createElement('div');cue.className=className;cue.textContent=text;return cue}
+  const skillSpriteNames={memory:'memory',bubble:'bubble',current:'current',net:'net',count:'count',shell:'shell',sonar:'sonar',knot:'knot',depth:'depth',compass:'compass',tide:'tide',lantern:'lantern',star:'star',lure:'lure',scales:'scales'};
+  function skillVisual(type){const badge=document.createElement('span');badge.className=`skill-asset skill-${skillSpriteNames[type]||'bubble'}`;badge.setAttribute('role','img');badge.setAttribute('aria-label',skillTitle(type));return badge}
   function skillButtons(values,onPick,className='skill-buttons'){const wrap=document.createElement('div');wrap.className=className;values.forEach((value,index)=>{const b=document.createElement('button');b.type='button';b.className=value?.color||'';b.textContent=value.label??value;b.setAttribute('aria-label',value?.ariaLabel||b.textContent);b.onclick=()=>onPick(value,index);wrap.append(b)});return wrap}
   function renderSkill(){
     const type=fishing.skill,stage=el.skillStage;stage.replaceChildren();el.skillKicker.textContent=ui('바다 미니 도전','SEA MINI CHALLENGE');el.skillTitle.textContent=skillTitle(type);el.skillInstruction.textContent=skillInstruction(type);
-    const choice=(values,onPick,className='skill-buttons')=>stage.append(skillButtons(values,onPick,className));
+    const choice=(values,onPick,className='skill-buttons')=>stage.append(skillButtons(values,onPick,className));stage.append(skillVisual(type));
     const arrows=['↑','→','↓','←'],shells=['🐚','🪸','🦪','🐌'],tides=['🌊','🫧','🌀','💨'],lures=['🪱','🦐','🦑','✨'];
     if(type==='memory'||type==='compass'){
       const labels=type==='memory'?['●','●','●','●']:arrows;

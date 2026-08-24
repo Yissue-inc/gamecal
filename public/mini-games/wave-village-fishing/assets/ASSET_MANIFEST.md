@@ -27,6 +27,7 @@
 | Harbor NPC | `npc/npc-harbor-boy.png` | 3 | idle · rod-tug · celebration |
 | Harbor NPC | `npc/npc-harbor-girl.png` | 3 | idle · rod-tug · celebration |
 | Rod inventory | `ui/rod-tier-sheet.png` | 5 | wood · stone · bronze · silver · gold; order is left to right. |
+| Mini challenge UI | `ui/minigame-challenge-icons-v1.webp` | 15 | memory · bubble · current · net · waves · shell · sonar · knot · depth · compass · tide · lantern · star · lure · scales. Transparent 5×3 pixel-art sprite sheet. |
 | Catch | `fish/01-bubblefin.png` | 3 | swim · bob · jump. Common. |
 | Catch | `fish/02-sunstripe.png` | 3 | swim · bob · jump. Uncommon. |
 | Catch | `fish/03-moonpot.png` | 3 | swim · bob · jump. First deliberately huge, fantastical catch. |
