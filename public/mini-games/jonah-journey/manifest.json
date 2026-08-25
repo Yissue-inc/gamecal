@@ -2,7 +2,7 @@
   "slug": "jonah-journey",
   "title": "Jonah’s Returning Journey",
   "description": "Walk with Jonah from the harbor and storm into the giant fish and back toward God.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "entry": "/mini-games/jonah-journey/index.html",
   "thumbnail": "/mini-games/_bible-shared/assets/jonah/fish-cinematic-v1.png",
   "orientation": "portrait",
