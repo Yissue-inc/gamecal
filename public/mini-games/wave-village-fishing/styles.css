@@ -188,6 +188,14 @@ html.shop-active .interaction-bar{display:none}html.shop-active .action-button{l
   .skill-panel{top:52%;width:calc(100% - 34px);padding:13px 12px}.skill-panel h2{font-size:23px}.skill-panel>p:not(.skill-kicker){font-size:13px}.skill-stage{min-height:88px}.skill-buttons button{min-height:45px;font-size:20px}.skill-bead{width:34px;height:34px}
 }
 
+/* The cart explains the outcome automatically: what you have, what is in the cart, and what happens on payment. */
+.shop-choice.unaffordable{filter:none;opacity:1}.shop-cart-balance{display:grid;gap:5px;margin:8px 0 0;padding:10px 12px;border:3px solid #70d6d5;border-radius:9px;background:#0a2941;color:#e9fff8;text-align:center;font-weight:1000;line-height:1.3}.shop-cart-balance small{font-size:12px;color:#c4eef0}.shop-cart-balance small b{color:#ffe174;font-size:15px}.shop-cart-balance strong{display:block;color:#fff8db;font-size:16px}.shop-cart-balance strong b{color:#ffe174;font-size:22px}.shop-cart-balance span{font-size:11px;color:#c5e9ee}.shop-cart-balance.short{border-color:#ff9a67;background:#4a2631}.shop-cart-balance.short strong,.shop-cart-balance.short strong b{color:#ffdb9a}.shop-cart-balance.shake{animation:cart-short-shake .38s steps(2,end)}@keyframes cart-short-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+@media(max-width:620px){.shop-cart-balance{margin-top:7px;padding:9px 10px}.shop-cart-balance small{font-size:13px}.shop-cart-balance strong{font-size:17px}.shop-cart-balance strong b{font-size:24px}.shop-cart-balance span{font-size:12px}}
+
+/* The cart must stay centered even when the product list itself is scrolled. */
+.shop-window .shop-cart{position:fixed;z-index:50;top:50%;right:auto;bottom:auto;left:50%;width:min(610px,calc(100vw - 30px));max-height:calc(100dvh - 36px);transform:translate(-50%,-50%);overflow:auto}
+@media(max-width:620px){.shop-window .shop-cart{width:calc(100vw - 20px);max-height:calc(100dvh - 22px);padding:22px 12px 12px}}
+
 /* Give the coin reward sheet a short, readable jackpot pop without blurring the pixels. */
 #resultFishCanvas.coin-reward-pop{animation:coin-reward-pop .72s steps(3,end)}
 @keyframes coin-reward-pop{0%{transform:scale(.7) rotate(-3deg);filter:brightness(.8)}45%{transform:scale(1.13) rotate(2deg);filter:brightness(1.42) drop-shadow(0 0 8px #ffe36b)}100%{transform:scale(1) rotate(0);filter:brightness(1)}}
