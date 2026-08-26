@@ -4586,7 +4586,11 @@ function codexMeet(kind, key){
 function codexCount(kind){
   const list = kind==='place'? CODEX_PLACES : CODEX_CHARS;
   const bag = (G.codex && (kind==='place'? G.codex.places : G.codex.chars)) || {};
-  return [Object.keys(bag).length, list.length];
+  /* 도감 목록에 있는 것만 센다. 그냥 bag 을 세면 목록 밖 인물(상인·마을 사람 등)까지
+     들어가 "40 / 39" 같은 숫자가 나온다 — 화면에서는 고장으로 읽힌다. */
+  let got=0;
+  for(const r of list) if(bag[r[0]]) got++;
+  return [got, list.length];
 }
 
 /* ---------- 도감 화면 ---------- */
@@ -5539,6 +5543,20 @@ ch12_flatterer_map:[
     '\u2026Ah. Well. I only meant\u2026'),
   nr('그가 돌아서자 흰옷 아래로 그물이 끌려 나왔다.',
      'As he turned, a net dragged out from under the shining robe.')
+],
+ch11_byends:[
+  d('byends','부에인','Mr. By-ends','저도 천성으로 갑니다! 아주 좋은 집안 출신이죠. 외가 쪽이 아첨 씨 댁이고요.',
+    'I am for the City too! Very good family. My mother\u2019s side is the Flatterer line.'),
+  d('christian','크리스천','Christian','…같이 가려면 두 가지를 해야 해요. 사람들이 싫어할 때도 가고, 사슬을 차게 돼도 가고요.',
+    '\u2026To come with us you must do two things. Go when people hate it, and go even in chains.'),
+  d('byends','부에인','Mr. By-ends','아니 그건 좀. 저는 종교가 은빛 신을 신고 걸을 때만 함께 걷는 주의라서요.',
+    'Now, now. I only walk with religion when it goes in silver slippers.'),
+  d('christian','크리스천','Christian','그럼 우리랑은 못 가요. 그건 형편 좋을 때만 가는 길이잖아요.',
+    'Then you cannot come. That is a road you only walk when it suits you.'),
+  nr('부에인은 웃으며 뒤에 처졌다. 곧 비슷한 차림의 세 사람이 그와 나란히 걸었다.',
+     'By-ends fell back, smiling. Soon three men dressed like him walked beside him.'),
+  ac((G)=>{ G.player.faith=Math.min(G.player.maxfaith,G.player.faith+10);
+            G.toast(LANG==='ko'?'조건 없이 가기로 했다 (+10)':'You chose to go without terms (+10)', '#5ec8f0'); })
 ],
 ch4_seedroom:[
   nr('맨 끝 방은 흙냄새가 났다. 항아리 하나와, 손톱보다 작은 씨앗 한 줌.',
@@ -6631,6 +6649,8 @@ function buildCh11a(){
   A.push(new Prop(T(30), T(17)-26, 'sign', {interact:'sign_bypath', hint:'푯말 읽기'}));
   A.push(new NPC(T(24), T(17)-26, 'hopeful', {name:'소망', face:1, tag:'hopeful'}));
   A.push(new NPC(T(112), T(9)-26, 'demas', {name:'데마', dialog:'demas', face:-1, once:true, tag:'demas'}));
+  /* ── 원작 인물 ── 부에인. 허영의 시장을 나온 직후 붙어 온다. */
+  A.push(new NPC(T(46), T(17)-26, 'byends', {name:'부에인', dialog:'ch11_byends', face:-1, once:true, tag:'byends'}));
   [60,88,116].forEach(tx=> A.push(new Imp(T(tx), T(15))));
   A.push(new Trigger(T(14),0,T(5),T(22), ()=>G.say('ch11_bypath'), {once:true}));
   A.push(new Trigger(T(154),T(4),T(6),T(18), ()=>G.nextScene()));
@@ -7006,6 +7026,12 @@ const G = {
     // 이 장의 장소를 도감에 기록
     CODEX_PLACES.filter(r=>r[3]===ci+1).forEach(r=> codexMeet('place', r[0]));
     codexMeet('char','christian');
+    /* 대사 없는 인물도 도감에 남긴다 — 벨세불의 궁수처럼 '말은 안 하지만 만난' 상대가 있다.
+       도감이 대사만 보고 판정하면 실제로 마주친 인물이 영영 잠긴 채로 남는다. */
+    for(const a of this.actors){
+      if(a.charKey) codexMeet('char', a.charKey);
+      else if(a instanceof Archer) codexMeet('char', 'archer');
+    }
     this.idleT=0;
     Audio2.play(def.music || ch.music || 'journey');
     this.state=ST.PLAY;
@@ -7179,6 +7205,7 @@ const G = {
     this.boss = kind==='apollyon'? new Apollyon(bx, 0) : new GiantDespair(bx, 0);
     this.boss.y = gy - this.boss.h;
     this.boss.state='intro'; this.boss.stateT=0;
+    codexMeet('char', kind==='apollyon'? 'apollyon' : 'despair');   // 보스 대사는 전부 나레이션이라 따로 남긴다
     this.actors.push(this.boss);
     Audio2.play('boss'); Audio2.sfx('roar');
     this.cam.addShake(10);
