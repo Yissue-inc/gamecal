@@ -492,6 +492,37 @@ const TXT = {
   t_musicOff:     ['음악 끔',                'Music off'],
   t_interpHint:   ['네 개의 방에서 그림을 본다', 'See the pictures in the four rooms'],
   t_toInterp:     ['해석자의 집으로 — 오른쪽 끝까지', 'To the Interpreter’s House — keep going right'],
+  t_saved:        ['저장했다',                'Progress saved'],
+  t_revive:       ['다시 일어섰다 — 여기서 계속','You got back up — keep going'],
+  saveNow:        ['지금 저장하기',            'Save now'],
+  codexChars:     ['인물',                    'People'],
+  codexPlaces:    ['장소',                    'Places'],
+  /* --- 미니게임 --- */
+  mgWin:          ['해냈다',                  'Well done'],
+  mgLose:         ['다시 해 보자',            'Try again'],
+  mgGo:           ['확인 키로 돌아가기',      'Press Confirm to return'],
+  mgScore:        ['점수',                    'Score'],
+  mgLadder:       ['자라는 순서',             'Growth'],
+  mgSeedTitle:    ['씨앗의 정원',             'The Seed Garden'],
+  mgSeedHow:      ['← → 자리 잡고 · Space 떨어뜨리기 · 같은 것끼리 만나면 자란다',
+                   '← → aim · Space drop · same seeds merge and grow'],
+  mgSeedWin:      ['생명나무 열매를 얻었다. 겨자씨만 한 믿음이 이렇게 자란다. ({0}점)',
+                   'You grew the Tree of Life fruit. Faith the size of a mustard seed grows like this. ({0} pts)'],
+  mgSeedOver:     ['항아리가 넘쳤다. 조급하면 자라기 전에 쌓이기만 한다. ({0}점)',
+                   'The jar overflowed. Rush it, and it piles up instead of growing. ({0} pts)'],
+  mgSeedQuit:     ['정원을 나왔다.',           'You left the garden.'],
+  mgRunTitle:     ['좁은 길 달리기',           'The Narrow Run'],
+  mgRunHow:       ['↑ ↓ 로 길을 고른다 · 초록은 늘고 붉은 것은 줄어든다',
+                   '↑ ↓ choose a path · green adds, red takes away'],
+  mgRunWin:       ['골짜기를 빠져나왔다. {0}명이 함께 끝까지 왔다.',
+                   'You crossed the valley. {0} pilgrims made it with you.'],
+  mgRunLose:      ['무리를 다 잃었다. 어둠 속에선 고르는 손이 곧 목숨이다.',
+                   'You lost everyone. In the dark, every choice is a life.'],
+  mgRunQuit:      ['골짜기에서 물러섰다.',     'You backed out of the valley.'],
+  mgCrowd:        ['순례자',                  'Pilgrims'],
+  mgReplay:       ['미니게임',                'Minigames'],
+  mgPick:         ['어느 것을 다시 할까',      'Which one again?'],
+  codexMenu:      ['도감',                    'Codex'],
   // 목표
   objTitle:       ['목표',                   'GOAL'],
   obj0:  ['도시를 빠져나가 동쪽으로',        'Get out of the city, head east'],
@@ -1436,16 +1467,16 @@ ICON.skull = ()=>px([
 const THEMES = {
   ash:      {windows:true, windowColor:'rgba(255,150,50,0.8)', base:'#4a4038', lit:'#5e5248', dark:'#2e2822', top:'#6a5a44', topLit:'#7f6c50', bg1:'#2a1a1a', bg2:'#4a2820', sky:['#2a1218','#6a2c20','#c05a2a'], amb:'#ff8040', ambA:0.10},
   swamp:    {base:'#3a4034', lit:'#4a5442', dark:'#232a20', top:'#4f5a3a', topLit:'#63704a', bg1:'#1e2a22', bg2:'#33463a', sky:['#243026','#3d5040','#6d8060'], amb:'#4a7a50', ambA:0.12},
-  hill:     {base:'#6a5a44', lit:'#806e52', dark:'#463a2a', top:'#5a8a44', topLit:'#72a856', bg1:'#8ab0c8', bg2:'#6a90b0', sky:['#8fc4e8','#b8dcf0','#e8f4fb'], amb:'#ffe0a0', ambA:0.05},
-  gate:     {base:'#5e5a52', lit:'#767066', dark:'#3c3830', top:'#6e6a60', topLit:'#8a8478', bg1:'#7a86a0', bg2:'#5a6880', sky:['#4a5a80','#7a8ab0','#c8d4e8'], amb:'#e0e8ff', ambA:0.06},
+  hill:     {base:'#7a6544', lit:'#94794f', dark:'#4e3f28', top:'#6f8a46', topLit:'#88a45c', bg1:'#9aa88e', bg2:'#7a8a78', sky:['#a8bcc0','#cdd0b8','#eee6cc'], amb:'#ffe0a0', ambA:0.06},
+  gate:     {base:'#6b6252', lit:'#867a66', dark:'#443d31', top:'#7c7361', topLit:'#9a9080', bg1:'#89897e', bg2:'#666a64', sky:['#5a5c58','#8d8a7c','#d2cbb2'], amb:'#f0e6c8', ambA:0.06},
   cross:    {base:'#5a5244', lit:'#726852', dark:'#3a3428', top:'#6a7a4a', topLit:'#82965c', bg1:'#c8a878', bg2:'#e8c898', sky:['#5a3a6a','#c07050','#ffd090'], amb:'#ffd090', ambA:0.10},
-  mountain: {base:'#6e6862', lit:'#8a847c', dark:'#484440', top:'#7e7870', topLit:'#9a948c', bg1:'#8898b0', bg2:'#6a7a95', sky:['#6a86b8','#9ab4d8','#dfeaf6'], amb:'#dfeaf6', ambA:0.05},
+  mountain: {base:'#75695c', lit:'#928374', dark:'#4c443c', top:'#847668', topLit:'#a19181', bg1:'#8d8f8a', bg2:'#6e716f', sky:['#7d8792','#a6a89e','#ded6bd'], amb:'#e8dcbc', ambA:0.05},
   palace:   {windows:true, torch:true, windowColor:'rgba(255,180,70,0.9)', base:'#8a8478', lit:'#a89e90', dark:'#5e594e', top:'#c8bca0', topLit:'#e0d4b8', bg1:'#d8c8a8', bg2:'#b8a888', sky:['#5a4a80','#c88a70','#ffd8a0'], amb:'#ffd8a0', ambA:0.10},
   valley:   {base:'#4a4450', lit:'#5e5766', dark:'#2e2a34', top:'#54506a', topLit:'#6a6482', bg1:'#3a3448', bg2:'#584c68', sky:['#241e30','#4a3a58','#7a5a70'], amb:'#8060a0', ambA:0.12},
   dark:     {base:'#22202a', lit:'#302d3a', dark:'#14131a', top:'#2a2734', topLit:'#3a3648', bg1:'#0e0d14', bg2:'#1a1824', sky:['#06060a','#0e0d16','#1a1824'], amb:'#000010', ambA:0.20},
   fair:     {windows:true, windowColor:'rgba(255,190,90,0.7)', base:'#6a5a4a', lit:'#867060', dark:'#443830', top:'#8a7060', topLit:'#a88878', bg1:'#8a4a6a', bg2:'#c8785a', sky:['#4a2a50','#a04a60','#e8a050'], amb:'#ff90c0', ambA:0.10},
   castle:   {windows:true, windowColor:'rgba(140,170,230,0.45)', base:'#3e3a44', lit:'#524d58', dark:'#26232c', top:'#484350', topLit:'#5c5668', bg1:'#1e1c26', bg2:'#2e2b38', sky:['#141220','#26222e','#3a3444'], amb:'#403050', ambA:0.16},
-  delect:   {base:'#5a6a48', lit:'#72855c', dark:'#3a4630', top:'#6aa050', topLit:'#84be66', bg1:'#a8d0e0', bg2:'#88b8d0', sky:['#7ec0e8','#b0dcf0','#eaf6fc'], amb:'#fff0c0', ambA:0.04},
+  delect:   {base:'#636b46', lit:'#7d855a', dark:'#40462d', top:'#77a050', topLit:'#93b968', bg1:'#a9bda6', bg2:'#8a9e8c', sky:['#9ec2c4','#c4d2b6','#f0eed4'], amb:'#fff0c0', ambA:0.04},
   beulah:   {base:'#7a6a52', lit:'#9a8668', dark:'#524634', top:'#8ab058', topLit:'#a4c870', bg1:'#f0c890', bg2:'#f8dcae', sky:['#e8a060','#f8c88a','#fff0c8'], amb:'#ffd890', ambA:0.10},
   celestial:{base:'#c8bc98', lit:'#e2d6b0', dark:'#9a9070', top:'#e8dcae', topLit:'#fff4cc', bg1:'#ffe9a8', bg2:'#fff6d8', sky:['#ffd06a','#ffeaa8','#fffbe8'], amb:'#fff0b0', ambA:0.14}
 };
@@ -1479,6 +1510,13 @@ function makeTileset(themeName){
     speckle(x3,shade(T.base,-72),5,TS,TS);
     x3.fillStyle='rgba(0,0,0,0.30)'; x3.fillRect(0,0,TS,TS);
     x3.fillStyle=shade(T.base,-54); x3.fillRect(0,0,TS,1);
+    if(T.windows){                       // 하프팀버 — 가로 들보와 세로 기둥
+      x3.fillStyle=shade(T.base,-44);
+      x3.fillRect(0, 1, TS, 1);
+      if(v===1) x3.fillRect(3, 0, 1, TS);
+      if(v===2) x3.fillRect(TS-4, 0, 1, TS);
+      if(v===3){ x3.fillRect(0, TS-3, TS, 1); x3.fillRect(TS>>1, 0, 1, TS); }
+    }
     // 창문·횃불 — 넷 중 하나만 (벽지처럼 반복되지 않게)
     if(T.windows && v===0){
       const wc = T.windowColor||'rgba(255,170,60,0.75)';
@@ -1487,8 +1525,16 @@ function makeTileset(themeName){
         x3.fillStyle=wc;        x3.fillRect(6,3,4,5);
         x3.fillStyle='rgba(255,240,190,0.85)'; x3.fillRect(7,4,2,3);
       } else {
-        x3.fillStyle=wc; x3.fillRect(5, 4, 5, 6);
-        x3.fillStyle='rgba(0,0,0,0.5)'; x3.fillRect(5, 7, 5, 1); x3.fillRect(7, 4, 1, 6);
+        /* 중세식 아치창(랜싯) — 네모 격자창은 현대 아파트처럼 읽힌다.
+           위를 둥글게 깎고 가운데 문설주만 남긴다. */
+        x3.fillStyle=wc;
+        x3.fillRect(5, 5, 5, 6);
+        x3.fillRect(6, 3, 3, 2);
+        x3.fillRect(7, 2, 1, 1);
+        x3.fillStyle='rgba(0,0,0,0.55)';
+        x3.fillRect(7, 3, 1, 8);            // 문설주
+        x3.fillStyle=shade(T.base,-40);     // 돌 인방(引枋)
+        x3.fillRect(4, 11, 7, 1);
       }
     }
     set.back.push(c3);
@@ -1596,12 +1642,51 @@ function makeBackdrop(themeName, kind){
     fx.lineTo(px_, hy);
   }
   fx.lineTo(W,H); fx.fill();
-  if(kind==='city'){         // 불타는 도시 스카이라인
-    for(let i=0;i<26;i++){
-      const bx=rndi(0,W-24), bw=rndi(14,30), bh=rndi(30,84);
-      fx.fillStyle=shade(T.bg2,-18); fx.fillRect(bx, H*0.62-bh, bw, bh+10);
-      fx.fillStyle='rgba(255,170,60,0.55)';
-      for(let w2=0;w2<4;w2++) if(rnd()<0.5) fx.fillRect(bx+3+w2*5, H*0.62-bh+6+rndi(0,bh-16), 3, 4);
+  if(kind==='city'){         // 불타는 도시 — 성벽을 두른 중세 읍성
+    const gl=H*0.62;
+    // 급경사 지붕의 집들 (안쪽)
+    for(let i=0;i<30;i++){
+      const bx=rndi(0,W-26), bw=rndi(16,28), bh=rndi(16,44);
+      fx.fillStyle=shade(T.bg2,-14); fx.fillRect(bx, gl-bh, bw, bh+10);
+      fx.fillStyle=shade(T.bg2,-30);                       // 박공지붕
+      fx.beginPath(); fx.moveTo(bx-3, gl-bh); fx.lineTo(bx+bw/2, gl-bh-rndi(9,16)); fx.lineTo(bx+bw+3, gl-bh); fx.closePath(); fx.fill();
+      fx.fillStyle='rgba(255,170,60,0.55)';                // 창의 불빛
+      for(let w2=0;w2<2;w2++) if(rnd()<0.6) fx.fillRect(bx+4+w2*8, gl-bh+7+rndi(0,Math.max(2,bh-16)), 3, 4);
+    }
+    // 종탑 — 중세 도시의 표지
+    for(let i=0;i<4;i++){
+      const tx=rndi(40,W-40), th=rndi(58,86), tw=14;
+      fx.fillStyle=shade(T.bg2,-26); fx.fillRect(tx, gl-th, tw, th+10);
+      fx.beginPath(); fx.moveTo(tx-4, gl-th); fx.lineTo(tx+tw/2, gl-th-26); fx.lineTo(tx+tw+4, gl-th); fx.closePath(); fx.fill();
+      fx.fillStyle='rgba(255,190,90,0.5)'; fx.fillRect(tx+tw/2-2, gl-th+10, 4, 7);
+    }
+    // 성벽 + 총안(크레넬레이션) — 도시를 감싼다
+    const wy=gl-26;
+    fx.fillStyle=shade(T.bg2,-6); fx.fillRect(0, wy, W, 36);
+    fx.fillStyle=shade(T.bg2,-20);
+    for(let cx=0; cx<W; cx+=12) fx.fillRect(cx, wy-6, 7, 7);   // 총안
+    // 성문과 망루
+    for(let i=0;i<3;i++){
+      const gx=120+i*300+rndi(-30,30);
+      fx.fillStyle=shade(T.bg2,-2); fx.fillRect(gx-16, wy-22, 32, 58);
+      fx.fillStyle=shade(T.bg2,-22);
+      for(let cx=gx-16; cx<gx+16; cx+=10) fx.fillRect(cx, wy-28, 6, 7);
+      fx.fillStyle='#160e0c';                                   // 아치형 문
+      fx.beginPath(); fx.moveTo(gx-7, wy+36); fx.lineTo(gx-7, wy+10);
+      fx.quadraticCurveTo(gx, wy-1, gx+7, wy+10); fx.lineTo(gx+7, wy+36); fx.closePath(); fx.fill();
+    }
+  }
+  /* 바깥 장면에는 멀리 성채를 세운다 — 세계가 중세로 읽히게 하는 가장 싼 신호 */
+  if(kind==='keeps' || kind==='sun' || (kind==='mountains' && themeName==='mountain')){
+    for(let i=0;i<5;i++){
+      const kx=90+i*190+rndi(-40,40), kh=rndi(34,58), kw=rndi(26,40), gl=H*0.66;
+      fx.fillStyle=shade(T.bg2,-16); fx.fillRect(kx, gl-kh, kw, kh+8);
+      for(let cx=kx; cx<kx+kw; cx+=9) fx.fillRect(cx, gl-kh-5, 5, 6);        // 총안
+      // 모서리 탑 두 개
+      [-6, kw].forEach(ox=>{
+        fx.fillRect(kx+ox, gl-kh-12, 8, kh+20);
+        fx.beginPath(); fx.moveTo(kx+ox-3, gl-kh-12); fx.lineTo(kx+ox+4, gl-kh-24); fx.lineTo(kx+ox+11, gl-kh-12); fx.closePath(); fx.fill();
+      });
     }
   }
   if(kind==='mountains'){
@@ -1659,6 +1744,22 @@ function makeBackdrop(themeName, kind){
       // 깃발
       mx2.fillStyle='#e8d068'; mx2.fillRect(tx+tw/2-1, ty-48, 2, 9);
       mx2.fillRect(tx+tw/2+1, ty-48, 6, 4);
+    }
+  }
+  /* 중세의 손자국 — 초가집·돌담·나무 이정표. 시대를 배경이 말하게 한다. */
+  if(kind==='trees' || kind==='sun' || kind==='keeps' || themeName==='hill' || themeName==='gate' || themeName==='beulah'){
+    for(let i=0;i<9;i++){
+      const hx=i*220+rndi(-60,60), hy=H*0.82-rndi(0,10), hw=rndi(26,38), hh=rndi(14,20);
+      mx2.fillStyle=shade(T.bg1,-34); mx2.fillRect(hx, hy-hh, hw, hh);            // 흙벽
+      mx2.fillStyle=shade(T.bg1,-46);                                              // 초가지붕
+      mx2.beginPath(); mx2.moveTo(hx-5, hy-hh); mx2.lineTo(hx+hw/2, hy-hh-rndi(11,17)); mx2.lineTo(hx+hw+5, hy-hh); mx2.closePath(); mx2.fill();
+      mx2.fillStyle='rgba(255,200,120,0.32)'; mx2.fillRect(hx+hw/2-2, hy-hh+5, 4, 5);
+    }
+    // 낮은 돌담이 언덕을 가로지른다
+    let wy2=H*0.86;
+    for(let px_=0; px_<W; px_+=7){
+      wy2 += (rnd()-0.5)*3; wy2=clamp(wy2, H*0.80, H*0.90);
+      mx2.fillStyle=shade(T.bg1,-40); mx2.fillRect(px_, wy2, 7, rndi(3,5));
     }
   }
   layers.push({c:mid, speed:0.48, y:0});
@@ -2043,6 +2144,44 @@ const PEOPLE = {
   shepherd:    {build:'norm', skin:'#d8a070', hair:'#8a7a5a', beard:'#9a8a6a', robe:'#a8c88a', acc:'#7a9a60', boot:'#5a4a34',
                 prop:'crook', hat:'wide', hatColor:'#7a6a44', eyeType:'wide', mouth:'grin'},
 
+
+  /* ── 원작 보강 인물 ── (선한 이는 자세가 서 있고, 유혹하는 자는 웃으며 기울어 있다) */
+  watchful:    {build:'stout', skin:'#d8a878', hair:'#4a4a52', beard:'#6a6a72', robe:'#8a94a8', acc:'#5f6878', boot:'#4a4238',
+                prop:'spear', hat:'cap', hatColor:'#5f6878', eyeType:'wide', posture:'up', mouth:'grin', bracer:'#a8b0c0'},
+  simple:      {build:'child', skin:'#f0c8a0', hair:'#b89050', robe:'#9aa878', acc:'#6f7a52', boot:'#5a4a34',
+                hairStyle:'fringe', eyeType:'closed', mouth:'grin', posture:'hunch'},
+  sloth:       {build:'stout', skin:'#d0a880', hair:'#7a6a4a', robe:'#8a7a5a', acc:'#5f5340', boot:'#4a4030',
+                hairStyle:'short', eyeType:'closed', mouth:'open', posture:'hunch'},
+  presumption: {build:'norm', skin:'#dfb088', hair:'#c05a3a', robe:'#c07a3a', acc:'#8a5220', boot:'#5a3a22',
+                hairStyle:'spiky', eyeType:'narrow', brow:'raise', mouth:'grin', posture:'puff'},
+  formalist:   {build:'slim', skin:'#d8b8a0', hair:'#2a2a2a', robe:'#3f4f6a', acc:'#28344a', boot:'#22283a',
+                hairStyle:'short', hat:'cap', hatColor:'#28344a', prop:'scroll', eyeType:'narrow',
+                brow:'raise', mouth:'frown', posture:'puff', aura:'dark'},
+  hypocrisy:   {build:'slim', skin:'#d8b8a0', hair:'#2a2a2a', robe:'#6a4f3f', acc:'#4a352a', boot:'#33261e',
+                hairStyle:'short', hat:'hood', hatColor:'#4a352a', hoodShadow:true, prop:'mirror',
+                eyeType:'narrow', brow:'angry', mouth:'grin', posture:'lean', aura:'dark'},
+  mistrust:    {build:'slim', skin:'#c8a088', hair:'#3a3040', robe:'#5a5568', acc:'#3a3648', boot:'#2e2a38',
+                hairStyle:'short', eyeType:'wide', brow:'sad', mouth:'frown', posture:'hunch'},
+  talkative:   {build:'stout', skin:'#e0b490', hair:'#8a6a3a', robe:'#6ab0c8', acc:'#40808f', boot:'#4a4a3a',
+                hairStyle:'fringe', prop:'fan', eyeType:'wide', brow:'raise', mouth:'open', posture:'lean', aura:'dark'},
+  envy:        {build:'slim', skin:'#b8c090', hair:'#2a3a28', robe:'#4a6a3a', acc:'#2e4426', boot:'#22301c',
+                hairStyle:'spiky', eyeType:'narrow', eyeColor:'#9ad04a', brow:'angry', mouth:'teeth',
+                posture:'hunch', aura:'dark'},
+  superstition:{build:'slim', skin:'#c8a8b0', hair:'#4a2a4a', robe:'#6a3a7a', acc:'#452455', boot:'#2e1c38',
+                hairStyle:'long', hat:'hood', hatColor:'#452455', prop:'lamp', eyeType:'glow', eyeColor:'#c86ae0',
+                brow:'angry', mouth:'frown', posture:'lean', aura:'dark'},
+  pickthank:   {build:'child', skin:'#e0b890', hair:'#a07030', robe:'#c8a83c', acc:'#967c1c', boot:'#5a4a22',
+                hairStyle:'fringe', prop:'coin', eyeType:'narrow', brow:'raise', mouth:'grin', posture:'lean', aura:'greed'},
+  flatterer:   {build:'slim', skin:'#f0e0c0', hair:'#f0e8b8', robe:'#f4e8c0', acc:'#d8c890', boot:'#c8b880',
+                hairStyle:'long', halo:'#fff3b0', wings:'#f8f0d0', prop:'rope', eyeType:'narrow',
+                brow:'raise', mouth:'grin', posture:'lean', aura:'dark'},
+  atheist:     {build:'stout', skin:'#c0a088', hair:'#8a8a8a', beard:'#9a9a9a', robe:'#4a4a4a', acc:'#2e2e2e', boot:'#242424',
+                hairStyle:'short', hat:'wide', hatColor:'#2e2e2e', prop:'purse', eyeType:'narrow',
+                brow:'angry', mouth:'grin', posture:'puff', aura:'dark'},
+  diffidence:  {build:'huge', skin:'#a08878', hair:'#3a2a34', robe:'#4a3444', acc:'#2e1f2c', boot:'#241a22',
+                hairStyle:'long', prop:'keys', eyeType:'glow', eyeColor:'#e04a6a', brow:'angry',
+                mouth:'teeth', posture:'puff', aura:'dark'},
+
   /* ── 악(惡) ── */
   worldly:     {build:'stout', skin:'#d8b09a', hair:'#9a9a9a', mustache:'#a8a8a8', robe:'#5c3f7d', acc:'#3d2757', boot:'#2a1e3a',
                 hat:'top', hatColor:'#241a34', hatBand:'#8a2a3a', prop:'purse', eyeType:'narrow', eyeColor:'#7a3a2a',
@@ -2085,7 +2224,12 @@ const ALIGN = {
   worldly:'evil', obstinate:'evil', archer:'evil', hawker:'evil', judge:'evil',
   byends:'evil', demas:'evil',
   pliable:'weak', townsman:'neutral', ignorance:'weak', timorous:'weak',
-  wife:'neutral', child:'neutral'
+  wife:'neutral', child:'neutral',
+  // 원작 보강 인물
+  watchful:'good',
+  formalist:'evil', hypocrisy:'evil', talkative:'evil', envy:'evil', superstition:'evil',
+  pickthank:'evil', flatterer:'evil', atheist:'evil', diffidence:'evil',
+  simple:'weak', sloth:'weak', presumption:'weak', mistrust:'weak'
 };
 
 /* 1px 어두운 외곽선 — 어떤 배경 위에서도 인물이 또렷하게 보인다 */
@@ -4105,84 +4249,153 @@ const ChapterCard = {
   }
 };
 
-/* ---------- 여정 지도 (포켓몬식 월드맵) ---------- */
+/* ---------- 여정 지도 (오리건 트레일 방식) ----------
+   지나온 길 · 지금 여기 · 앞에 남은 장을 한 화면에 펼친다.
+   "어디까지 왔고 얼마나 남았는지"가 한눈에 보여야 한다. */
 const JourneyMap = {
-  active:false, t:0, scroll:0, onDone:null, target:0, from:0, animT:0,
+  active:false, t:0, scroll:0, onDone:null, target:0, from:0, animT:0, walkX:0,
+
   open(from, to, onDone){
     this.active=true; this.t=0; this.from=from; this.target=to;
-    this.animT=0; this.onDone=onDone;
+    this.animT=0; this.onDone=onDone; this.walkX=0;
     Audio2.play('journey');
   },
   update(){
     if(!this.active) return;
     this.t++;
-    if(this.t>40) this.animT=Math.min(1, this.animT + 0.02);
+    if(this.t>34) this.animT = Math.min(1, this.animT + 0.014);
     const pos = lerp(this.from, this.target, this.animT);
-    this.scroll = lerp(this.scroll, pos*72 - VW/2 + 60, 0.12);
-    if(this.animT>=1 && (this.t>140 || Input.pressed('interact')||Input.pressed('jump'))){
+    this.scroll = lerp(this.scroll, pos*86 - VW*0.42, 0.10);
+    if(this.animT>=1 && (this.t>170 || Input.pressed('interact')||Input.pressed('jump'))){
       this.active=false; const cb=this.onDone; this.onDone=null; if(cb) cb();
     }
   },
   draw(x,u){
     if(!this.active) return;
-    // 배경
+    /* 양피지 지도 바탕 */
     const g=x.createLinearGradient(0,0,0,VH);
-    g.addColorStop(0,'#1a2438'); g.addColorStop(1,'#38304a');
+    g.addColorStop(0,'#e6dcc0'); g.addColorStop(0.55,'#dbcfae'); g.addColorStop(1,'#c9bb96');
     x.fillStyle=g; x.fillRect(0,0,VW,VH);
-    RND=mulberry32(77);
-    for(let i=0;i<60;i++){ x.fillStyle=`rgba(255,255,255,${0.15+rnd()*0.4})`; x.fillRect(rndi(0,VW),rndi(0,VH*0.5),1,1); }
+    RND=mulberry32(4242);
+    for(let i=0;i<340;i++){ x.fillStyle=`rgba(120,96,58,${0.05+rnd()*0.10})`;
+      x.fillRect(rndi(0,VW),rndi(0,VH),rndi(1,3),rndi(1,3)); }
+    // 가장자리 그을림
+    const vg=x.createRadialGradient(VW/2,VH/2,VH*0.34,VW/2,VH/2,VH*0.95);
+    vg.addColorStop(0,'rgba(90,66,34,0)'); vg.addColorStop(1,'rgba(74,52,24,0.55)');
+    x.fillStyle=vg; x.fillRect(0,0,VW,VH);
     RND=mulberry32(20260825);
-    drawText(u, L('journeyTitle'), 15, VW/2, 14, '#e8dcae', 'center');
-    // 길
-    const baseY=VH/2+16;
-    x.fillStyle='#6a5a3a';
-    for(let i=0;i<CHAPTERS.length;i++){
-      const px_ = 60 + i*72 - this.scroll;
-      const py = baseY + Math.sin(i*0.9)*22;
-      if(i<CHAPTERS.length-1){
-        const nx=60+(i+1)*72-this.scroll, ny=baseY+Math.sin((i+1)*0.9)*22;
-        const steps=14;
-        for(let s=0;s<steps;s++){
-          const t=s/steps;
-          x.fillStyle= (i<this.target)? '#c9a227' : '#4a4460';
-          x.fillRect(Math.round(lerp(px_,nx,t)), Math.round(lerp(py,ny,t)), 2,2);
-        }
+
+    drawText(u, L('journeyTitle'), 14, VW/2, 12, '#5a4426', 'center', false);
+
+    const baseY = VH*0.52;
+    const cur = Math.round(lerp(this.from,this.target,this.animT));
+
+    /* 길 — 지나온 곳은 굵은 실선, 앞은 점선 */
+    for(let i=0;i<CHAPTERS.length-1;i++){
+      const ax = 46 + i*86 - this.scroll, ay = baseY + Math.sin(i*1.1)*24;
+      const bx = 46 + (i+1)*86 - this.scroll, by = baseY + Math.sin((i+1)*1.1)*24;
+      if(bx < -60 || ax > VW+60) continue;
+      const walked = i < cur;
+      const steps = 16;
+      for(let s2=0;s2<steps;s2++){
+        const t2=s2/steps;
+        if(!walked && s2%2) continue;              // 앞길은 점선
+        x.fillStyle = walked? '#6b5228' : 'rgba(107,82,40,0.34)';
+        x.fillRect(Math.round(lerp(ax,bx,t2)), Math.round(lerp(ay,by,t2)), walked?3:2, walked?3:2);
       }
     }
+
+    /* 장 표지 */
     for(let i=0;i<CHAPTERS.length;i++){
-      const px_ = 60 + i*72 - this.scroll;
-      const py = baseY + Math.sin(i*0.9)*22;
-      if(px_< -40 || px_>VW+40) continue;
-      const reached = i<=this.target;
-      const cur = Math.round(lerp(this.from,this.target,this.animT))===i;
-      x.fillStyle = reached? '#e8dcae':'#3a3448';
-      x.fillRect(px_-6, py-6, 12, 12);
-      x.fillStyle = reached? '#c9a227':'#282438';
-      x.fillRect(px_-4, py-4, 8, 8);
-      if(cur){
-        x.fillStyle='#fff6d0';
-        x.fillRect(px_-8+((this.t>>3)%2), py-8, 16, 1); x.fillRect(px_-8, py+7, 16, 1);
+      const px_ = 46 + i*86 - this.scroll;
+      const py = baseY + Math.sin(i*1.1)*24;
+      if(px_ < -50 || px_ > VW+50) continue;
+      const done = i < cur, here = i === cur;
+
+      // 말뚝 그림자
+      x.fillStyle='rgba(80,58,28,0.18)';
+      x.beginPath(); x.ellipse(px_, py+11, 13, 4, 0, 0, 7); x.fill();
+
+      if(done){                                   // 지나온 곳 — 채운 표지
+        x.fillStyle='#6b5228'; x.fillRect(px_-6, py-7, 12, 14);
+        x.fillStyle='#8a6a34'; x.fillRect(px_-5, py-6, 10, 12);
+        x.fillStyle='#e6dcc0'; x.fillRect(px_-2, py-3, 4, 6);
+      } else if(here){                            // 지금 여기 — 깃발
+        x.fillStyle='#5a4426'; x.fillRect(px_-1, py-18, 2, 25);
+        const w2 = 12 + Math.sin(this.t*0.10)*1.5;
+        x.fillStyle='#a8341f';
+        x.beginPath(); x.moveTo(px_+1, py-18); x.lineTo(px_+1+w2, py-14); x.lineTo(px_+1, py-9); x.fill();
+      } else {                                    // 남은 곳 — 빈 표지
+        x.strokeStyle='rgba(107,82,40,0.55)'; x.lineWidth=1.4;
+        x.strokeRect(px_-5.5, py-6.5, 11, 13);
       }
-      drawText(u, `${i+1}`, 10, px_, py-4, reached? '#3a2a10':'#6a6480', 'center');
-      if(reached) drawText(u, chShort(i), 10, px_, py+10, cur? '#ffe08a':'#8a84a0', 'center');
+
+      // 장 번호·이름
+      drawText(u, String(i+1), 9, px_, py+13, done? '#5a4426':'rgba(90,68,38,0.55)', 'center', false);
+      if(done || here){
+        drawText(u, chShort(i), 10, px_, py-30, here? '#8a2a18':'#6b5228', 'center', false);
+      }
     }
-    // 현재 장 이름
-    const ti = Math.round(lerp(this.from,this.target,this.animT));
-    panel(x, 20, VH-52, VW-40, 40, {bg:'rgba(10,8,16,0.9)'});
-    drawText(u, chNum(ti), 11, 32, VH-47, '#c9a227');
-    drawText(u, chTitle(ti), 16, 32, VH-33, '#f4ecd8');
-    if(this.animT>=1) drawText(u, L('contKey'), 11, VW-32, VH-33, '#8a84a0', 'right');
+
+    /* 걸어가는 순례자 */
+    const wx = 46 + lerp(this.from,this.target,this.animT)*86 - this.scroll;
+    const wy = baseY + Math.sin(lerp(this.from,this.target,this.animT)*1.1)*24;
+    const moving = this.animT>0 && this.animT<1;
+    const S = G.player && !G.player.burden ? (G.player.armor && G.player.armor.plate? ART.chars.pcArmorNS : ART.chars.pcFree)
+                                           : ART.chars.pcBurden;
+    const f = moving? S.walk[(this.t>>3)%4] : S.idleA[(this.t>>4)%4];
+    x.drawImage(f.r, Math.round(wx-f.r.width/2), Math.round(wy-f.r.height+4));
+
+    /* 하단 카드 — 지금 장 / 남은 장 */
+    const bh = 46, by = VH-bh-8;
+    x.fillStyle='rgba(58,42,20,0.14)'; x.fillRect(14, by, VW-28, bh);
+    x.fillStyle='#f0e7cd'; x.fillRect(16, by, VW-32, bh-3);
+    x.fillStyle='#8a6a34'; x.fillRect(16, by, VW-32, 1); x.fillRect(16, by+bh-4, VW-32, 1);
+
+    drawText(u, chNum(cur), 10, 28, by+7, '#8a6a34', 'left', false);
+    drawText(u, chTitle(cur), 15, 28, by+19, '#2e2210', 'left', false);
+    const left = CHAPTERS.length-1-cur;
+    drawText(u, left>0 ? (LANG==='ko'? `남은 장 ${left}` : `${left} chapters left`)
+                       : (LANG==='ko'? '마지막 장' : 'Final chapter'),
+             11, VW-28, by+8, '#6b5228', 'right', false);
+    if(this.animT>=1) drawText(u, L('contKey'), 10, VW-28, by+26, '#8a6a34', 'right', false);
+
+    /* 진행 막대 */
+    const pw = VW-56, pxx = 28, pyy = by-9;
+    x.fillStyle='rgba(90,68,38,0.28)'; x.fillRect(pxx, pyy, pw, 3);
+    x.fillStyle='#8a2a18'; x.fillRect(pxx, pyy, Math.round(pw*(cur/(CHAPTERS.length-1))), 3);
   }
 };
 
 /* ---------- 일시정지 / 인벤토리 ---------- */
 const PauseMenu = {
   active:false, sel:0, tab:0,
-  get items(){ return [L('resume'), L('bag'), L('howToPlay'), L('language'), L('saveQuit')]; },
+  get items(){
+    const it=[L('resume'), L('bag'), L('codexMenu')];
+    if(this.minis().length) it.push(L('mgReplay'));
+    return it.concat([L('saveNow'), L('howToPlay'), L('language'), L('saveQuit')]);
+  },
+  minis(){
+    const f=(G.flags)||{}, out=[];
+    if(f.mini_seed) out.push(['seed', L('mgSeedTitle')]);
+    if(f.mini_run)  out.push(['run',  L('mgRunTitle')]);
+    return out;
+  },
   open(){ this.active=true; this.sel=0; this.tab=0; Audio2.sfx('select'); },
   close(){ this.active=false; },
   update(){
     if(!this.active) return;
+    if(this.tab===3){
+      const ms=this.minis();
+      if(Input.pressed('up'))   { this.msel=(this.msel+ms.length-1)%ms.length; Audio2.sfx('select'); }
+      if(Input.pressed('down')) { this.msel=(this.msel+1)%ms.length; Audio2.sfx('select'); }
+      if(Input.pressed('menu')||Input.pressed('attack')){ this.tab=0; Audio2.sfx('select'); return; }
+      if(Input.pressed('interact')||Input.pressed('jump')){
+        this.active=false; this.tab=0;
+        G.startMini(ms[this.msel][0], {});
+      }
+      return;
+    }
     if(this.tab!==0){
       if(Input.pressed('menu')||Input.pressed('attack')){ this.tab=0; Audio2.sfx('select'); }
       // 인벤토리에서 열쇠 사용
@@ -4197,11 +4410,15 @@ const PauseMenu = {
     if(Input.pressed('menu')){ this.close(); }
     if(Input.pressed('interact')||Input.pressed('jump')){
       Audio2.sfx('confirm');
-      if(this.sel===0) this.close();
-      else if(this.sel===1) this.tab=1;
-      else if(this.sel===2) this.tab=2;
-      else if(this.sel===3){ setLang(LANG==='ko'?'en':'ko'); if(typeof updateHintBar==='function') updateHintBar(); }
-      else if(this.sel===4){ G.saveGame(); GCBridge.quit(); this.close(); G.gotoTitle(); }
+      const pick=this.items[this.sel];
+      if(pick===L('resume')) this.close();
+      else if(pick===L('bag')) this.tab=1;
+      else if(pick===L('codexMenu')){ this.close(); Codex.open(); }
+      else if(pick===L('mgReplay')){ this.tab=3; this.msel=0; }
+      else if(pick===L('saveNow')){ G.autoSave('manual'); this.close(); }
+      else if(pick===L('howToPlay')) this.tab=2;
+      else if(pick===L('language')){ setLang(LANG==='ko'?'en':'ko'); if(typeof updateHintBar==='function') updateHintBar(); }
+      else if(pick===L('saveQuit')){ G.saveGame(); GCBridge.quit(); this.close(); G.gotoTitle(); }
     }
   },
   draw(x,u){
@@ -4210,11 +4427,13 @@ const PauseMenu = {
     // UI 레이어는 게임 캔버스 위에 있으므로 여기서도 덮어야 한다
     u.fillStyle='rgba(6,5,12,0.55)'; u.fillRect(-2,-2,VW+4,VH+4);
     if(this.tab===0){
-      panel(x, VW/2-92, VH/2-78, 184, 158);
-      drawText(u, L('paused'), 18, VW/2, VH/2-70, '#e8dcae', 'center');
-      this.items.forEach((it,i)=>{
-        const yy=VH/2-38+i*24;
-        if(i===this.sel){ x.fillStyle='rgba(255,224,138,0.14)'; x.fillRect(VW/2-80, yy-3, 160, 21);
+      const its=this.items, rowH = its.length>7? 20 : 23;
+      const ph = 44 + its.length*rowH + 12, pt = Math.round(VH/2 - ph/2);
+      panel(x, VW/2-96, pt, 192, ph);
+      drawText(u, L('paused'), 18, VW/2, pt+8, '#e8dcae', 'center');
+      its.forEach((it,i)=>{
+        const yy=pt+38+i*rowH;
+        if(i===this.sel){ x.fillStyle='rgba(255,224,138,0.14)'; x.fillRect(VW/2-80, yy-3, 160, rowH-2);
           x.fillStyle='#ffe08a'; x.fillRect(VW/2-74, yy+5, 5,5); }
         drawText(u, it, 13, VW/2-62, yy, i===this.sel?'#ffe08a':'#b8b2c8');
       });
@@ -4243,6 +4462,19 @@ const PauseMenu = {
         drawText(u, r[2], 11, 150, yy+1, r[3]?'#a8a0c0':'#5a5470');
       });
       drawText(u, p.items.key? L('useKey') : L('close'), 11, VW/2, VH-38, '#8a84a0', 'center');
+    } else if(this.tab===3){
+      const ms=this.minis();
+      panel(x, VW/2-104, VH/2-56, 208, 112);
+      drawText(u, L('mgPick'), 15, VW/2, VH/2-48, '#e8dcae', 'center');
+      ms.forEach(([k,nm],i)=>{
+        const yy=VH/2-18+i*24;
+        if(i===this.msel){ x.fillStyle='rgba(255,224,138,0.14)'; x.fillRect(VW/2-88, yy-3, 176, 22);
+          x.fillStyle='#ffe08a'; x.fillRect(VW/2-82, yy+5, 5,5); }
+        drawText(u, nm, 13, VW/2-70, yy, i===this.msel?'#ffe08a':'#b8b2c8');
+        const r=(G.miniResults||{})[k];
+        if(r) drawText(u, (r.win?'★ ':'')+(L('mgScore')+' '+(r.score||0)), 10, VW/2+86, yy+2, '#8a84a0','right');
+      });
+      drawText(u, L('close'), 10, VW/2, VH/2+40, '#8a84a0', 'center');
     } else {
       panel(x, 40, 30, VW-80, VH-64);
       drawText(u, L('controls'), 16, VW/2, 38, '#e8dcae', 'center');
@@ -4259,6 +4491,699 @@ const PauseMenu = {
         drawText(u, k[1], 12, 190, yy, '#c8c2d8');
       });
       drawText(u, L('close'), 11, VW/2, VH-42, '#8a84a0','center');
+    }
+  }
+};
+
+</script>
+<script>
+/* ===== js/44_journey.js ===== */
+/* ============================================================
+   44_journey.js — 여정 지도 (오리건 트레일 방식) + 도감
+   지도: 지나온 길 · 지금 위치 · 앞에 남은 장을 한 화면에 펼친다
+   도감: 만난 인물·장소는 빛나고, 못 만난 것은 잠긴 실루엣으로 남는다
+   ============================================================ */
+'use strict';
+
+/* ---------- 도감 데이터 ---------- */
+/* 원작 전체를 싣는다. 게임에서 만나면 unlock 된다. */
+const CODEX_CHARS = [
+  // key,          한글,     English,           장  선/악
+  ['christian',    '크리스천','Christian',        1, 'hero'],
+  ['evangelist',   '전도자',  'Evangelist',       1, 'good'],
+  ['wife',         '어머니',  'Mother',           0, 'neutral'],
+  ['obstinate',    '고집',    'Obstinate',        1, 'evil'],
+  ['pliable',      '유순',    'Pliable',          1, 'weak'],
+  ['help',         '도움',    'Help',             2, 'good'],
+  ['worldly',      '세속 현자','Mr. Worldly Wise', 3, 'evil'],
+  ['goodwill',     '선의',    'Goodwill',         4, 'good'],
+  ['archer',       '벨세불의 궁수','Beelzebub’s Archer',4,'evil'],
+  ['interpreter',  '해석자',  'Interpreter',      4, 'good'],
+  ['shining',      '빛나는 이','Shining One',     5, 'good'],
+  ['simple',       '단순',    'Simple',           6, 'weak'],
+  ['sloth',        '나태',    'Sloth',            6, 'weak'],
+  ['presumption',  '추정',    'Presumption',      6, 'weak'],
+  ['formalist',    '형식주의자','Formalist',       6, 'evil'],
+  ['hypocrisy',    '위선자',  'Hypocrisy',        6, 'evil'],
+  ['timorous',     '소심',    'Timorous',         6, 'weak'],
+  ['mistrust',     '불신',    'Mistrust',         6, 'weak'],
+  ['watchful',     '경계(문지기)','Watchful',      7, 'good'],
+  ['discretion',   '조심',    'Discretion',       7, 'good'],
+  ['prudence',     '신중',    'Prudence',         7, 'good'],
+  ['piety',        '경건',    'Piety',            7, 'good'],
+  ['charity',      '자비',    'Charity',          7, 'good'],
+  ['apollyon',     '아볼루온','Apollyon',         8, 'boss'],
+  ['faithful',     '신실',    'Faithful',        10, 'good'],
+  ['talkative',    '수다쟁이','Talkative',       10, 'evil'],
+  ['judge',        '재판장 증오','Judge Hate-good',10,'evil'],
+  ['envy',         '시기',    'Envy',            10, 'evil'],
+  ['superstition', '미신',    'Superstition',    10, 'evil'],
+  ['pickthank',    '아첨',    'Pickthank',       10, 'evil'],
+  ['hopeful',      '소망',    'Hopeful',         10, 'good'],
+  ['byends',       '실리',    'By-ends',         11, 'evil'],
+  ['demas',        '데마',    'Demas',           11, 'evil'],
+  ['despair',      '절망 거인','Giant Despair',   11, 'boss'],
+  ['diffidence',   '불신(거인의 아내)','Diffidence',11,'evil'],
+  ['shepherd',     '목자',    'Shepherds',       12, 'good'],
+  ['ignorance',    '무지',    'Ignorance',       12, 'weak'],
+  ['flatterer',    '아첨꾼',  'Flatterer',       12, 'evil'],
+  ['atheist',      '무신론자','Atheist',         12, 'evil']
+];
+
+const CODEX_PLACES = [
+  ['city-of-destruction','멸망의 도시','City of Doom',1],
+  ['slough-of-despond',  '낙담의 늪',  'Slough of Despond',2],
+  ['village-of-morality','도덕 마을',  'Village of Morality',3],
+  ['mount-sinai',        '시내산',     'Mount Sinai',3],
+  ['wicket-gate',        '좁은 문',    'The Small Gate',4],
+  ['interpreters-house', '해석자의 집','Interpreter’s House',4],
+  ['the-cross',          '십자가 언덕','The Cross',5],
+  ['hill-difficulty',    '곤고산',     'Hill Difficulty',6],
+  ['arbor',              '정자',       'The Arbor',6],
+  ['palace-beautiful',   '아름다운 궁전','Palace Beautiful',7],
+  ['valley-humiliation', '겸손의 골짜기','Valley of Humbling',8],
+  ['valley-shadow',      '죽음의 그늘','Valley of the Shadow',9],
+  ['vanity-fair',        '허영의 시장','Vanity Fair',10],
+  ['hill-lucre',         '은광 언덕',  'Hill Lucre',11],
+  ['bypath-meadow',      '곁길 초원',  'By-Path Meadow',11],
+  ['doubting-castle',    '의심의 성',  'Doubting Castle',11],
+  ['delectable-mountains','기쁨의 산', 'Delight Hills',12],
+  ['enchanted-ground',   '마법에 걸린 땅','Enchanted Ground',12],
+  ['beulah',             '뷸라 땅',    'Beulah',12],
+  ['celestial-city',     '천성',       'The Golden City',12]
+];
+
+/* ---------- 해금 ---------- */
+function codexMeet(kind, key){
+  if(!G.codex) G.codex = {chars:{}, places:{}};
+  const bag = kind==='place'? G.codex.places : G.codex.chars;
+  if(bag[key]) return;
+  bag[key] = 1;
+  const list = kind==='place'? CODEX_PLACES : CODEX_CHARS;
+  const row = list.find(r=>r[0]===key);
+  if(row) G.toast((LANG==='ko'? '도감 기록: ':'Codex: ') + (LANG==='ko'? row[1]:row[2]), '#cfe8ff');
+}
+function codexCount(kind){
+  const list = kind==='place'? CODEX_PLACES : CODEX_CHARS;
+  const bag = (G.codex && (kind==='place'? G.codex.places : G.codex.chars)) || {};
+  return [Object.keys(bag).length, list.length];
+}
+
+/* ---------- 도감 화면 ---------- */
+const Codex = {
+  active:false, tab:0, sel:0, scroll:0,
+  open(){ this.active=true; this.tab=0; this.sel=0; this.scroll=0; Audio2.sfx('select'); },
+  close(){ this.active=false; },
+  list(){ return this.tab===0? CODEX_CHARS : CODEX_PLACES; },
+  unlocked(key){
+    const bag = this.tab===0? (G.codex&&G.codex.chars) : (G.codex&&G.codex.places);
+    return !!(bag && bag[key]);
+  },
+  update(){
+    if(!this.active) return;
+    const L2 = this.list();
+    if(Input.pressed('left')||Input.pressed('right')){ this.tab=1-this.tab; this.sel=0; this.scroll=0; Audio2.sfx('select'); }
+    if(Input.pressed('up')){ this.sel=(this.sel+L2.length-1)%L2.length; Audio2.sfx('select'); }
+    if(Input.pressed('down')){ this.sel=(this.sel+1)%L2.length; Audio2.sfx('select'); }
+    if(Input.pressed('menu')||Input.pressed('attack')){ this.close(); }
+    const rows = 9;
+    if(this.sel < this.scroll) this.scroll = this.sel;
+    if(this.sel >= this.scroll+rows) this.scroll = this.sel-rows+1;
+  },
+  draw(x,u){
+    if(!this.active) return;
+    x.fillStyle='#0b0912'; x.fillRect(0,0,VW,VH);
+    u.fillStyle='rgba(11,9,18,0.9)'; u.fillRect(-2,-2,VW+4,VH+4);
+
+    const L2 = this.list(), rows = 9;
+    // 탭
+    [[L('codexChars'),0],[L('codexPlaces'),1]].forEach(([t,i])=>{
+      const tx = 16 + i*104;
+      const on = this.tab===i;
+      x.fillStyle = on? '#c9a227' : '#2a2436';
+      x.fillRect(tx, 12, 96, 20);
+      drawText(u, t, 12, tx+48, 15, on? '#1a1408':'#8a84a0', 'center');
+    });
+    const [got,total] = codexCount(this.tab===0? 'char':'place');
+    drawText(u, `${got} / ${total}`, 11, VW-16, 16, '#8a84a0', 'right');
+
+    // 목록
+    for(let i=0;i<rows;i++){
+      const idx = this.scroll+i;
+      if(idx >= L2.length) break;
+      const row = L2[idx], key=row[0], nm = LANG==='ko'? row[1]:row[2], ch = row[3];
+      const open = this.unlocked(key);
+      const yy = 42 + i*20;
+      if(idx===this.sel){ x.fillStyle='rgba(201,162,39,0.16)'; x.fillRect(10, yy-2, 210, 19); }
+      // 잠금 표시
+      x.fillStyle = open? '#c9a227' : '#3a3448';
+      x.fillRect(14, yy+4, 7, 7);
+      drawText(u, open? nm : '— — — —', 12, 28, yy, open? '#f2ecdc':'#4e4860');
+      drawText(u, ch? `${ch}장` : '', 10, 214, yy+2, open? '#8a84a0':'#3a3448', 'right');
+    }
+    // 스크롤 표시
+    if(L2.length > rows){
+      const h = Math.max(14, VH*0.5*rows/L2.length);
+      const t = 42 + (VH*0.5-h) * (this.scroll/(L2.length-rows));
+      x.fillStyle='#2a2436'; x.fillRect(224, 42, 3, VH*0.5);
+      x.fillStyle='#c9a227'; x.fillRect(224, t, 3, h);
+    }
+
+    // 오른쪽 상세
+    const row = L2[this.sel];
+    const key=row[0], nm = LANG==='ko'? row[1]:row[2];
+    const open = this.unlocked(key);
+    const px = 240, pw = VW-px-14;
+    x.fillStyle='#16121f'; x.fillRect(px, 12, pw, VH-26);
+    x.fillStyle='#2e2742'; x.fillRect(px, 12, pw, 1); x.fillRect(px, VH-15, pw, 1);
+    x.fillRect(px, 12, 1, VH-27); x.fillRect(px+pw-1, 12, 1, VH-27);
+
+    if(open){
+      // 초상 (실물 일러스트가 있으면 그것)
+      if(this.tab===0){
+        const art = ART.chars[key];
+        if(art){
+          const img = BigPortrait.get(key, 108);
+          const w = Math.round(img.width*(108/img.height));
+          x.drawImage(img, px+pw/2-w/2, 26, w, 108);
+        } else {
+          drawText(u, '?', 40, px+pw/2, 60, '#3a3448', 'center');
+        }
+      } else {
+        // 장소 — 컷신 그림이 있으면 미리보기
+        drawText(u, '◈', 34, px+pw/2, 52, '#c9a227', 'center');
+      }
+      drawText(u, nm, 15, px+pw/2, 142, '#f2ecdc', 'center');
+      const desc = CODEX_DESC[key];
+      if(desc){
+        const lines = wrapText(u, LANG==='ko'? desc[0]:desc[1], 11, pw-24);
+        lines.slice(0,7).forEach((l,i)=> drawText(u, l, 11, px+12, 166+i*15, '#a8a0c0'));
+      }
+    } else {
+      drawText(u, '?', 44, px+pw/2, 56, '#2e2742', 'center');
+      drawText(u, LANG==='ko'? '아직 만나지 않았다':'Not met yet', 12, px+pw/2, 142, '#4e4860', 'center');
+      drawText(u, LANG==='ko'? `${row[3]}장에서 만난다`:`Found in Chapter ${row[3]}`, 11, px+pw/2, 164, '#3a3448', 'center');
+    }
+    drawText(u, LANG==='ko'? '← → 탭  ↑↓ 이동  [X] 닫기':'← → tab  ↑↓ move  [X] close',
+             10, VW/2, VH-12, '#6a6480', 'center');
+  }
+};
+
+/* 도감 설명 — 원작의 한 줄 */
+const CODEX_DESC = {
+  christian:['멸망의 도시를 떠나 천성으로 가는 소년. 등에 짐을 지고 있다.','A boy who leaves the City of Doom for the Golden City, a load on his back.'],
+  evangelist:['좁은 문을 가리켜 준 사람. 곁길로 샜을 때 다시 찾아온다.','The one who points to the small gate — and comes back when you stray.'],
+  wife:['크리스천의 어머니. 짐이 보이지 않는다.','Christian’s mother. She cannot see the load.'],
+  obstinate:['따라오라는 말에 화를 내고 돌아갔다.','Grew angry at the invitation and turned back.'],
+  pliable:['쉽게 따라왔고, 늪에서 쉽게 돌아갔다.','Came along easily, and left just as easily at the swamp.'],
+  help:['늪에서 손을 내밀어 끌어올린 사람.','The one who reached into the swamp and pulled him out.'],
+  worldly:['지름길을 파는 신사. 십자가를 싫어한다.','A gentleman who sells shortcuts. He hates the Cross.'],
+  goodwill:['좁은 문을 여는 문지기. 화살을 피해 안으로 잡아당긴다.','The gatekeeper. He yanks you in past the arrows.'],
+  archer:['벨세불의 성에서 문 앞을 향해 불화살을 쏜다.','From Beelzebub’s castle they shoot fire arrows at the gate.'],
+  interpreter:['등불을 들고 네 개의 환상을 보여 준다.','With a lamp he shows four visions.'],
+  shining:['옷과 표와 두루마리를 건네는 세 존재.','Three beings who give the robe, the mark, and the scroll.'],
+  simple:['쇠사슬에 묶인 채 자고 있다. 깨워도 다시 잔다.','Asleep in irons. Wakes, then sleeps again.'],
+  sloth:['같은 사슬에 묶여 있다. 조금만 더 자겠다고 한다.','In the same irons. Asks for a little more sleep.'],
+  presumption:['사슬을 보고도 자기는 괜찮다고 한다.','Sees the irons and says he is fine.'],
+  formalist:['담을 넘어 길에 들어왔다. 문을 거치지 않았다.','Climbed the wall onto the road. Never came through the gate.'],
+  hypocrisy:['형식주의자와 같은 말을 한다. 관습이 곧 법이라고.','Says what Formalist says — custom is law enough.'],
+  timorous:['어둠을 보고 되돌아 나온 사람.','Turned back at the sight of the dark.'],
+  mistrust:['사자를 보고 도망친 사람.','Fled at the sight of the lions.'],
+  watchful:['궁전의 문지기. 사자가 매여 있다고 알려 준다.','The porter. He tells you the lions are chained.'],
+  discretion:['궁전의 문을 여는 사람.','She opens the house to travelers.'],
+  prudence:['옛 고향이 그리울 때 무엇으로 이기냐고 묻는다.','Asks what you do when you miss home.'],
+  piety:['왜 순례자가 되었냐고 묻는다.','Asks why you set out.'],
+  charity:['가족은 왜 데려오지 않았냐고 묻는다.','Asks why you did not bring your family.'],
+  apollyon:['멸망의 도시의 왕이라 자칭하는 파괴자.','The Destroyer, who calls himself king of the City of Doom.'],
+  faithful:['같은 도시에서 온 동행. 허영의 시장에서 순교한다.','A companion from the same city. He is killed at Vanity Fair.'],
+  talkative:['말은 훌륭하나 삶이 따라오지 않는다.','His talk is fine. His life does not follow it.'],
+  judge:['허영의 시장의 재판장. 이름이 곧 판결이다.','The judge of Vanity Fair. His name is the verdict.'],
+  envy:['재판의 첫 증인.','The first witness at the trial.'],
+  superstition:['재판의 둘째 증인.','The second witness.'],
+  pickthank:['재판의 셋째 증인.','The third witness.'],
+  hopeful:['신실이 죽는 것을 보고 순례자가 되었다.','He became a pilgrim by watching Faithful die.'],
+  byends:['이익이 되는 쪽으로만 종교를 따른다.','Follows religion only when it pays.'],
+  demas:['은광으로 부르는 자. 그 언덕은 무너진다.','He calls you to the silver mine. That hill collapses.'],
+  despair:['의심의 성의 주인. 곤봉으로 순례자를 때린다.','Master of Doubting Castle. He beats pilgrims with a club.'],
+  diffidence:['거인의 아내. 차라리 죽으라고 권한다.','The giant’s wife. She advises them to end it.'],
+  shepherd:['기쁨의 산의 목자 넷 — 지식·경험·경계·성실.','Four shepherds — Knowledge, Experience, Watchful, Sincere.'],
+  ignorance:['샛길로 왔고, 착하게 살았으니 된다고 한다.','Came by a side path. Says being good is enough.'],
+  flatterer:['흰 옷을 입었으나 그물을 든 검은 형체.','White robe, black form — and a net.'],
+  atheist:['천성 같은 건 없다며 반대로 걸어간다.','Says there is no such city, and walks the other way.']
+};
+
+</script>
+<script>
+/* ===== js/50_minigames.js ===== */
+/* ============================================================
+   50_minigames.js — 곁들이 미니게임 2종
+     A) 씨앗의 정원 (SeedGarden) — 같은 열매끼리 합쳐 생명나무 열매까지 (수박게임 방식)
+        해석자의 집(4장)에서 "겨자씨 비유" 방으로 들어간다
+     B) 좁은 길 달리기 (NarrowRun) — 위·아래 갈림에서 골라 순례자 무리를 지켜 끝까지
+        사망의 음침한 골짜기(9장)에서 어둠을 가로지른다
+   두 게임 모두 G.state 를 건드리지 않고 Codex 처럼 위에 덮어 그린다.
+   끝나면 onDone(result) 로 본편에 보상을 돌려준다.
+   ============================================================ */
+'use strict';
+
+/* ---------- 공통 껍데기 ---------- */
+const MiniGame = {
+  active:false, kind:null, impl:null, onDone:null, outro:0, result:null,
+  open(kind, onDone){
+    this.kind=kind; this.onDone=onDone||null; this.outro=0; this.result=null;
+    this.impl = (kind==='seed')? SeedGarden : NarrowRun;
+    this.impl.start();
+    this.active=true;
+    Audio2.sfx('confirm');
+  },
+  finish(res){
+    if(this.outro>0) return;
+    this.result=res; this.outro=1;
+    Audio2.sfx(res.win? 'glory':'deny');
+  },
+  update(){
+    if(!this.active) return;
+    if(this.outro>0){
+      this.outro++;
+      if(this.outro>150 || Input.pressed('interact') || Input.pressed('jump')){
+        this.active=false;
+        const cb=this.onDone, r=this.result;
+        this.onDone=null;
+        if(cb) cb(r);
+      }
+      return;
+    }
+    this.impl.update();
+  },
+  draw(x,u){
+    if(!this.active) return;
+    this.impl.draw(x,u);
+    // 결과 패널 — UI 캔버스에만 그린다(게임 캔버스가 위를 가리지 못한다)
+    if(this.outro>0){
+      const a=Math.min(1,this.outro/16);
+      u.fillStyle=`rgba(8,7,14,${0.76*a})`; u.fillRect(-2,-2,VW+4,VH+4);
+      const r=this.result, bw=250, bx=VW/2-bw/2, by=72, bh=118;
+      u.fillStyle='#d8d2c2'; u.fillRect(bx-3,by-3,bw+6,bh+6);
+      u.fillStyle='#f4f0e6'; u.fillRect(bx,by,bw,bh);
+      u.fillStyle='#bdb49c'; u.fillRect(bx+8,by+30,bw-16,1);
+      drawText(u, r.win? L('mgWin'):L('mgLose'), 17, VW/2, by+9, r.win?'#8a6a1e':'#7a3030','center',false);
+      const lines=wrapText(u, r.msg, 12, bw-24);
+      lines.slice(0,3).forEach((ln,i)=> drawText(u, ln, 12, VW/2, by+40+i*17, '#2a2418','center',false));
+      drawText(u, L('mgGo'), 10, VW/2, by+bh-16, '#8a8270','center',false);
+    }
+  }
+};
+
+/* ============================================================
+   A) 씨앗의 정원 — 같은 씨앗 둘이 만나면 한 단계 자란다
+   ============================================================ */
+const SEEDS = [
+  // r,  한글,        English,        색,        테두리
+  [ 8, '겨자씨',  'Mustard Seed', '#b89a63', '#7d6338'],
+  [12, '보리알',  'Barley',       '#d9c07a', '#9d8546'],
+  [17, '무화과',  'Fig',          '#8e6a8c', '#5c4058'],
+  [23, '석류',    'Pomegranate',  '#c04a45', '#7c2b28'],
+  [30, '포도',    'Grapes',       '#7a5aa8', '#4b356b'],
+  [38, '감람',    'Olive',        '#6f8f52', '#445b31'],
+  [47, '생명나무 열매','Tree of Life','#f2e3a6','#c9a227']
+];
+
+const SeedGarden = {
+  L:0, R:0, T:0, B:0,
+  balls:[], nextT:0, dropX:0, cool:0, score:0, over:0, best:0, seed:0, spawned:0,
+  start(){
+    this.L=140; this.R=340; this.T=46; this.B=VH-12;
+    this.balls=[]; this.score=0; this.over=0; this.cool=0; this.best=0; this.spawned=0; this.warn=false;
+    this.seed=1337; this.dropX=(this.L+this.R)/2;
+    this.nextT=this.roll();
+  },
+  rnd(){ this.seed=(this.seed*1664525+1013904223)>>>0; return this.seed/4294967296; },
+  roll(){ const r=this.rnd(); return r<0.46?0 : r<0.80?1 : 2; },
+  update(){
+    if(this.cool>0) this.cool--;
+    const spd = 2.4;
+    if(Input.down('left'))  this.dropX-=spd;
+    if(Input.down('right')) this.dropX+=spd;
+    const rr = SEEDS[this.nextT][0];
+    this.dropX = clamp(this.dropX, this.L+rr+1, this.R-rr-1);
+    if(this.cool<=0 && (Input.pressed('jump')||Input.pressed('attack')||Input.pressed('interact'))){
+      this.balls.push({x:this.dropX, y:this.T+8, vx:0, vy:0, t:this.nextT, r:rr, born:0, pop:0});
+      this.spawned++;
+      this.nextT=this.roll(); this.cool=16;
+      Audio2.sfx('coin');
+    }
+    if(Input.pressed('menu')) MiniGame.finish({win:false, msg:L('mgSeedQuit'), score:this.score});
+
+    this.physics();
+    this.merge();
+
+    /* 넘침 판정.
+       ⚠ 처음엔 "멈춰 있고(vy<0.9) 선을 넘은 씨앗"만 셌다. 그런데 항아리가 꽉 차면
+       씨앗들이 서로 밀며 계속 떨리기 때문에 vy 가 절대 가라앉지 않는다 —
+       실측: 572개가 쌓이도록 판정이 한 번도 안 걸렸다(소크 테스트가 잡음).
+       그래서 속도는 보지 않고, '떨어뜨린 지 오래된 씨앗이 선 위에 있는 상태'가
+       얼마나 지속되는지만 센다. 갓 떨어뜨린 것(born<40)은 지나가는 중이라 뺀다. */
+    /* 경고선(T)과 실제 판정선(T-18)을 나눈다 — 선에 닿자마자 지는 게 아니라
+       "선을 넘은 채로 버티면" 진다. 아이가 회복할 여지를 준다. */
+    let spill=false, warn=false;
+    for(const b of this.balls){
+      if(b.born<=40) continue;
+      if(b.y-b.r < this.T-18){ spill=true; }
+      else if(b.y-b.r < this.T+2){ warn=true; }
+    }
+    this.warn = spill || warn;
+    if(this.balls.length > 90) spill=true;          // 어떤 경우에도 무한히 쌓이지 않게
+    if(spill){ this.over++; if(this.over>90) MiniGame.finish({win:false, msg:L('mgSeedOver',this.score), score:this.score}); }
+    else this.over=Math.max(0,this.over-3);
+  },
+  physics(){
+    const bs=this.balls;
+    for(const b of bs){
+      b.born++; if(b.pop>0) b.pop--;
+      b.vy += 0.34; b.vx *= 0.992;
+      b.x += b.vx; b.y += b.vy;
+      if(b.x-b.r < this.L){ b.x=this.L+b.r; b.vx=Math.abs(b.vx)*0.32; }
+      if(b.x+b.r > this.R){ b.x=this.R-b.r; b.vx=-Math.abs(b.vx)*0.32; }
+      if(b.y+b.r > this.B){ b.y=this.B-b.r; b.vy=-Math.abs(b.vy)*0.16; b.vx*=0.88; if(Math.abs(b.vy)<0.4) b.vy=0; }
+    }
+    // 위치 보정 — 여러 번 돌려야 쌓임이 안정된다
+    for(let it=0; it<6; it++){
+      for(let i=0;i<bs.length;i++) for(let j=i+1;j<bs.length;j++){
+        const a=bs[i], c=bs[j];
+        let dx=c.x-a.x, dy=c.y-a.y;
+        let d=Math.hypot(dx,dy), min=a.r+c.r;
+        if(d<0.0001){ dx=(i%2?1:-1)*0.5; dy=-0.5; d=0.7071; }
+        if(d>=min) continue;
+        const ov=(min-d)/d*0.5;
+        const px=dx*ov, py=dy*ov;
+        a.x-=px; a.y-=py; c.x+=px; c.y+=py;
+        // 반발은 아주 약하게 — 굴러 자리 잡는 느낌
+        const nx=dx/d, ny=dy/d;
+        const rel=(c.vx-a.vx)*nx + (c.vy-a.vy)*ny;
+        if(rel<0){ const k=rel*0.42; a.vx+=nx*k; a.vy+=ny*k; c.vx-=nx*k; c.vy-=ny*k; }
+      }
+      for(const b of bs){
+        if(b.x-b.r<this.L) b.x=this.L+b.r;
+        if(b.x+b.r>this.R) b.x=this.R-b.r;
+        if(b.y+b.r>this.B) b.y=this.B-b.r;
+      }
+    }
+  },
+  merge(){
+    const bs=this.balls;
+    for(let i=0;i<bs.length;i++){
+      for(let j=i+1;j<bs.length;j++){
+        const a=bs[i], c=bs[j];
+        if(a.t!==c.t || a.dead || c.dead) continue;
+        if(Math.hypot(c.x-a.x, c.y-a.y) > a.r+c.r-1.5) continue;
+        const nt=a.t+1;
+        a.dead=true; c.dead=true;
+        const mx=(a.x+c.x)/2, my=(a.y+c.y)/2;
+        this.score += (a.t+1)*(a.t+1)*5;
+        this.best = Math.max(this.best, nt);
+        const col=SEEDS[Math.min(nt,SEEDS.length-1)][3];
+        G.particles.burst(mx,my, 9, {color:col, spd:1.5, life:20, size:2, glow:true});
+        if(nt >= SEEDS.length-1){
+          // 생명나무 열매 — 목표 달성
+          G.particles.burst(mx,my, 26, {color:'#f2e3a6', spd:2.4, life:34, size:3, glow:true});
+          this.balls = bs.filter(b=>!b.dead);
+          MiniGame.finish({win:true, msg:L('mgSeedWin',this.score), score:this.score, top:nt});
+          return;
+        }
+        bs.push({x:mx, y:my, vx:(this.rnd()-0.5)*0.6, vy:-1.1, t:nt, r:SEEDS[nt][0], born:40, pop:10});
+        Audio2.sfx(nt>=5?'levelup':'exp');
+        break;
+      }
+    }
+    this.balls = this.balls.filter(b=>!b.dead);
+  },
+  drawSeed(x, b){
+    const s=SEEDS[b.t], r=b.r*(b.pop>0? 1+b.pop*0.02 : 1);
+    x.beginPath(); x.arc(b.x, b.y, r, 0, Math.PI*2);
+    x.fillStyle=s[3]; x.fill();
+    x.lineWidth=1.5; x.strokeStyle=s[4]; x.stroke();
+    // 열매마다 다른 표식 — 색만으로는 무엇인지 안 읽힌다
+    x.fillStyle=hexA(s[4],0.75);
+    if(b.t===2){ x.fillRect(b.x-1, b.y-r-2, 2, 4); }                       // 무화과 꼭지
+    else if(b.t===3){                                                       // 석류 왕관
+      for(let k=-1;k<=1;k++) x.fillRect(b.x+k*3-1, b.y-r-2, 2, 4);
+    } else if(b.t===4){                                                     // 포도 알갱이
+      const pts=[[0,-0.36],[-0.36,-0.05],[0.36,-0.05],[-0.2,0.34],[0.2,0.34]];
+      for(const [dx,dy] of pts){ x.beginPath(); x.arc(b.x+dx*r, b.y+dy*r, r*0.27, 0, Math.PI*2); x.fill(); }
+    } else if(b.t===5){                                                     // 감람 이파리
+      x.beginPath(); x.ellipse(b.x+r*0.5, b.y-r*0.7, r*0.34, r*0.15, -0.7, 0, Math.PI*2); x.fill();
+    }
+    // 광택
+    x.beginPath(); x.arc(b.x-r*0.32, b.y-r*0.34, r*0.28, 0, Math.PI*2);
+    x.fillStyle=hexA('#ffffff',0.30); x.fill();
+    if(b.t===SEEDS.length-1){
+      // 생명나무 열매 — 빛살
+      x.save(); x.globalCompositeOperation='lighter';
+      for(let k=0;k<8;k++){ const a2=k*Math.PI/4 + b.born*0.01;
+        x.fillStyle=hexA('#f2e3a6',0.30);
+        x.fillRect(b.x+Math.cos(a2)*(r+3)-1, b.y+Math.sin(a2)*(r+3)-1, 3, 3); }
+      x.restore();
+      x.beginPath(); x.arc(b.x,b.y,r+2,0,Math.PI*2);
+      x.strokeStyle=hexA('#f2e3a6',0.55); x.lineWidth=2; x.stroke();
+    }
+  },
+  draw(x,u){
+    // 배경 — 해석자의 집 안뜰
+    const g=x.createLinearGradient(0,0,0,VH);
+    g.addColorStop(0,'#2a2233'); g.addColorStop(1,'#171220');
+    x.fillStyle=g; x.fillRect(0,0,VW,VH);
+    for(let i=0;i<6;i++){ x.fillStyle=hexA('#c9a227',0.05); x.fillRect(0, 30+i*38, VW, 1); }
+
+    // 항아리
+    x.fillStyle='#3a2f26'; x.fillRect(this.L-8, this.T-2, this.R-this.L+16, this.B-this.T+10);
+    x.fillStyle='#241c18'; x.fillRect(this.L-3, this.T+2, this.R-this.L+6, this.B-this.T+3);
+    x.fillStyle='#4a3b2e'; x.fillRect(this.L-10, this.B+6, this.R-this.L+20, 6);
+    // 넘침선
+    x.fillStyle = this.over>0? hexA('#c04a45', 0.4+0.4*Math.sin(this.over*0.25))
+                : this.warn? hexA('#e0a040',0.5) : hexA('#c9a227',0.22);
+    x.fillRect(this.L-3, this.T, this.R-this.L+6, 1);
+    if(this.over>0){   // 진짜 판정선
+      x.fillStyle=hexA('#c04a45',0.35); x.fillRect(this.L-3, this.T-18, this.R-this.L+6, 1);
+    }
+
+    for(const b of this.balls) this.drawSeed(x,b);
+
+    // 낙하 위치 표시선 + 다음 씨앗
+    const nr=SEEDS[this.nextT][0];
+    x.fillStyle=hexA('#f4ecd8',0.18); x.fillRect(Math.round(this.dropX), this.T+6, 1, this.B-this.T-6);
+    this.drawSeed(x, {x:this.dropX, y:this.T-8, r:nr, t:this.nextT, pop:0});
+
+    // ---- UI 레이어 ----
+    drawText(u, L('mgSeedTitle'), 15, 14, 12, '#f2e3a6');
+    drawText(u, L('mgScore')+' '+this.score, 13, 14, 34, '#f4ecd8');
+    drawText(u, L('mgSeedHow'), 10, 14, VH-16, '#9a92ad');
+
+    // 성장 사다리 — 지금까지 만든 데까지 밝게
+    drawText(u, L('mgLadder'), 10, VW-14, 12, '#8a84a0', 'right');
+    for(let i=0;i<SEEDS.length;i++){
+      const on = i<=this.best;
+      const yy = 30+i*22;
+      x.beginPath(); x.arc(VW-104, yy+7, Math.min(7,SEEDS[i][0]*0.16+3), 0, Math.PI*2);
+      x.fillStyle = on? SEEDS[i][3] : '#2e2742'; x.fill();
+      drawText(u, LANG==='ko'? SEEDS[i][1]:SEEDS[i][2], 10, VW-92, yy+1, on? '#f2ecdc':'#4e4860');
+    }
+  }
+};
+
+/* ============================================================
+   B) 좁은 길 달리기 — 갈림마다 골라 무리를 지킨다
+   ============================================================ */
+const NarrowRun = {
+  dist:0, goal:6800, lane:0, laneY:[100,190], y:100, crowd:8, over:0,
+  gates:[], walls:[], lamps:[], seed:0, shake:0, best:8, msgT:0, msg:'',
+  start(){
+    this.dist=0; this.lane=0; this.y=this.laneY[0]; this.crowd=8; this.over=0;
+    this.gates=[]; this.walls=[]; this.lamps=[];
+    this.seed = (NarrowRun.fixedSeed!=null? NarrowRun.fixedSeed : ((Date.now()>>>3)^0x5f2a1)>>>0) || 90210;
+    this.shake=0;
+    this.best=8; this.msgT=0; this.msg='';
+    let d=340;
+    while(d < this.goal-160){
+      if(this.rnd()<0.62){
+        // 갈림 — 위/아래 각각 값이 붙는다. 하나는 좋고 하나는 나쁘다.
+        const good=this.rnd()<0.5?0:1;
+        const prog=d/this.goal;
+        const gv=this.gv(true,prog), bv=this.gv(false,prog);
+        this.gates.push({d, v:[good===0?gv:bv, good===1?gv:bv], hit:false});
+        d += 210 + Math.floor(this.rnd()*90);
+      } else {
+        // 벽 — 부딪히면 무리가 깎인다. 한 쪽 차선만 막는다.
+        this.walls.push({d, lane:this.rnd()<0.5?0:1, cost:2+Math.floor(this.rnd()*4)+Math.floor((d/this.goal)*5), hit:false});
+        d += 170 + Math.floor(this.rnd()*80);
+      }
+    }
+    for(let i=0;i<Math.ceil(this.goal/130)+2;i++) this.lamps.push({d:i*130+60, l:this.rnd()<0.5?0:1});
+  },
+  rnd(){ this.seed=(this.seed*1103515245+12345)>>>0; return this.seed/4294967296; },
+  gv(good, prog){
+    const r=this.rnd(), k=1+Math.floor((prog||0)*4);      // 뒤로 갈수록 폭이 커진다
+    if(good) return r<0.45? {op:'+', n:(3+Math.floor(r*8))*k} : {op:'x', n:2};
+    return r<0.5? {op:'-', n:(2+Math.floor(r*7))*k} : {op:'/', n:2};
+  },
+  apply(v){
+    const before=this.crowd;
+    if(v.op==='+') this.crowd += v.n;
+    else if(v.op==='x') this.crowd *= v.n;
+    else if(v.op==='-') this.crowd -= v.n;
+    else this.crowd = Math.floor(this.crowd/v.n);
+    this.crowd = clamp(this.crowd, 0, 99);
+    const up = this.crowd>before;
+    this.msg = (up? '+':'') + (this.crowd-before); this.msgT=44;
+    Audio2.sfx(up? 'heal':'hurt');
+    if(!up){ this.shake=10; }
+    this.best=Math.max(this.best,this.crowd);
+    if(this.crowd<=0) MiniGame.finish({win:false, msg:L('mgRunLose'), score:0});
+  },
+  update(){
+    const speed = 3.0 + Math.min(2.2, this.dist/1400);
+    this.dist += speed;
+    if(this.msgT>0) this.msgT--;
+    if(this.shake>0) this.shake--;
+    if(Input.pressed('up'))   { if(this.lane!==0){ this.lane=0; Audio2.sfx('step'); } }
+    if(Input.pressed('down')) { if(this.lane!==1){ this.lane=1; Audio2.sfx('step'); } }
+    if(Input.pressed('menu')) MiniGame.finish({win:false, msg:L('mgRunQuit'), score:0});
+    this.y += (this.laneY[this.lane]-this.y)*0.22;
+
+    const px = 96;                          // 화면상 순례자 위치
+    const world = this.dist + px;           // 지금 순례자가 지난 거리
+    for(const g of this.gates){
+      if(!g.hit && world >= g.d){ g.hit=true; this.apply(g.v[this.lane]); }
+    }
+    for(const w of this.walls){
+      if(!w.hit && world >= w.d){
+        w.hit=true;
+        if(w.lane===this.lane){ this.crowd = Math.max(0, this.crowd - w.cost); this.msg='-'+w.cost; this.msgT=44; this.shake=12;
+          Audio2.sfx('hurt');
+          if(this.crowd<=0){ this.crowd=0; MiniGame.finish({win:false, msg:L('mgRunLose'), score:0}); return; } }
+      }
+    }
+    if(this.dist >= this.goal){
+      MiniGame.finish({win:true, msg:L('mgRunWin', this.crowd), score:this.crowd, crowd:this.crowd});
+    }
+  },
+  /* 선두는 본편의 크리스천 스프라이트를 그대로 쓴다 — 같은 사람이 뛰는 것으로 읽혀야 한다.
+     뒤따르는 무리는 실루엣으로 겹쳐 그려 수가 많다는 것만 전한다. */
+  drawPilgrim(x, px, py, lead, alpha, frame){
+    const set = ART.chars && (ART.chars.christianArmor || ART.chars.christian);
+    const img = set ? (set.walk[frame%4].r) : null;
+    x.globalAlpha=alpha;
+    if(img){
+      const s = lead? 1.35 : 1.0;
+      const w = img.width*s, h = img.height*s;
+      if(lead){ x.drawImage(img, Math.round(px-w/2), Math.round(py-h), Math.round(w), Math.round(h)); }
+      else {
+        // 뒤따르는 이들은 어둡게 찍어낸 실루엣
+        x.save();
+        x.drawImage(img, Math.round(px-w/2), Math.round(py-h), Math.round(w), Math.round(h));
+        x.globalCompositeOperation='source-atop';
+        x.fillStyle='#2c3350';
+        x.fillRect(Math.round(px-w/2), Math.round(py-h), Math.round(w), Math.round(h));
+        x.restore();
+      }
+    } else {
+      x.fillStyle='#5c76ad'; x.fillRect(px-3, py-14, 7, 14);
+    }
+    x.globalAlpha=1;
+  },
+  draw(x,u){
+    const sh = this.shake>0? (this.shake%2?1:-1)*2 : 0;
+    // 골짜기 — 어두운 협곡
+    const g=x.createLinearGradient(0,0,0,VH);
+    g.addColorStop(0,'#0a0a14'); g.addColorStop(0.5,'#161327'); g.addColorStop(1,'#080711');
+    x.fillStyle=g; x.fillRect(0,0,VW,VH);
+    // 양쪽 절벽 실루엣 (시차 스크롤)
+    for(let k=0;k<2;k++){
+      const sp = k? 0.45 : 0.22, base = k? 0 : 8;
+      x.fillStyle = k? '#0e0c18' : '#151228';
+      for(let i=-1;i<10;i++){
+        const bx = ((i*70) - (this.dist*sp)%70);
+        const hh = 26 + ((i*37)%23) + base;
+        x.fillRect(bx, 0, 70, hh);
+        x.fillRect(bx, VH-hh-4, 70, hh+4);
+      }
+    }
+    // 길 — 두 갈래. 고른 쪽을 확실히 밝게 해서 어디 있는지 헷갈리지 않게 한다.
+    for(let i=0;i<2;i++){
+      const on = i===this.lane, ly = this.laneY[i]+6+sh;
+      x.fillStyle = on? '#3b3357' : '#231e36';
+      x.fillRect(0, ly, VW, 26);
+      x.fillStyle = on? hexA('#c9a227',0.55) : hexA('#4a4266',0.45);
+      x.fillRect(0, ly, VW, 1); x.fillRect(0, ly+25, VW, 1);
+      // 바닥 눈금 (속도감)
+      for(let k=0;k<16;k++){
+        const bx = ((k*36) - this.dist%36);
+        x.fillStyle=hexA(on? '#9a8fc4':'#5a5080', on?0.3:0.16);
+        x.fillRect(bx, ly+19, 18, 1);
+      }
+    }
+    // 등불
+    for(const lp of this.lamps){
+      const sx = lp.d - this.dist;
+      if(sx<-20||sx>VW+20) continue;
+      const ly = this.laneY[lp.l]-4+sh;
+      x.fillStyle=hexA('#c9a227',0.16);
+      x.beginPath(); x.arc(sx, ly, 13, 0, Math.PI*2); x.fill();
+      x.fillStyle='#c9a227'; x.fillRect(sx-1, ly-2, 3, 4);
+    }
+    // 갈림 표지
+    for(const gt of this.gates){
+      const sx = gt.d - this.dist;
+      if(sx<-40||sx>VW+30) continue;
+      for(let i=0;i<2;i++){
+        const v=gt.v[i], good = (v.op==='+'||v.op==='x');
+        const gy = this.laneY[i]+sh;
+        x.fillStyle = gt.hit? '#2a2436' : (good? hexA('#3c6b46',0.9) : hexA('#6b2f2f',0.9));
+        x.fillRect(sx-13, gy-10, 30, 30);
+        x.fillStyle = gt.hit? '#3a3448' : (good? '#7fd39a' : '#e08a8a');
+        x.fillRect(sx-13, gy-10, 30, 2); x.fillRect(sx-13, gy+18, 30, 2);
+        drawText(u, (v.op==='x'?'×':v.op==='/'?'÷':v.op)+v.n, 15, sx+2, gy-3, gt.hit? '#4e4860' : (good?'#eaffe8':'#ffe0e0'),'center');
+      }
+    }
+    // 벽 — 어둠의 무리
+    for(const w of this.walls){
+      const sx = w.d - this.dist;
+      if(sx<-30||sx>VW+30) continue;
+      const wy = this.laneY[w.lane]+sh;
+      if(w.hit){ x.globalAlpha=0.25; }
+      x.fillStyle='#3a1c28'; x.fillRect(sx-9, wy-12, 20, 34);
+      x.fillStyle='#5e2b38'; x.fillRect(sx-9, wy-12, 20, 3);
+      x.fillStyle='#e05a5a'; x.fillRect(sx-4, wy-4, 3, 3); x.fillRect(sx+3, wy-4, 3, 3);
+      x.globalAlpha=1;
+      if(!w.hit) drawText(u, '-'+w.cost, 12, sx+1, wy+10, '#ffb0b0','center');
+    }
+    // 순례자 무리
+    const px=104, py=this.y+31+sh, fr=(this.dist>>2);
+    const n=Math.min(6, Math.max(1, Math.round(this.crowd/5)));
+    for(let i=n-1;i>=0;i--){
+      this.drawPilgrim(x, px-i*13, py+((i%2)?1:0), i===0, i===0?1:Math.max(0.3,0.62-i*0.07), fr+i);
+    }
+    // 결승선
+    const fx = this.goal - this.dist;
+    if(fx<VW+20){
+      for(let i=0;i<10;i++){ x.fillStyle=(i%2)?'#f4ecd8':'#2a2436'; x.fillRect(fx, 60+i*16, 8, 16); }
+      x.fillStyle='#c9a227'; x.fillRect(fx-2, 56, 2, 168);
+    }
+
+    // ---- UI ----
+    drawText(u, L('mgRunTitle'), 15, 14, 10, '#cfe8ff');
+    drawText(u, L('mgRunHow'), 10, 14, VH-14, '#9a92ad');
+    // 진행 막대
+    const pw=VW-28, pr=clamp(this.dist/this.goal,0,1);
+    u.fillStyle='rgba(20,17,34,0.85)'; u.fillRect(14, VH-24, pw, 8);
+    u.fillStyle='#c9a227'; u.fillRect(14, VH-24, pw*pr, 8);
+    u.fillStyle='#f4ecd8'; u.fillRect(14+pw*pr-1, VH-27, 2, 14);
+    u.fillStyle='rgba(12,10,22,0.7)'; u.fillRect(VW-104, 8, 92, 26);
+    u.strokeStyle=hexA(this.crowd>4?'#7fd39a':'#e08a8a',0.6); u.lineWidth=1; u.strokeRect(VW-104.5, 8.5, 92, 26);
+    drawText(u, L('mgCrowd'), 10, VW-96, 12, '#9a92ad');
+    drawText(u, ''+this.crowd, 16, VW-18, 12, this.crowd>4? '#7fd39a':'#e08a8a', 'right');
+    if(this.msgT>0){
+      const a=this.msgT/44;
+      drawText(u, this.msg, 16, px+18, py-34-(1-a)*10, hexA(this.msg[0]==='-'? '#e08a8a':'#7fd39a', a), 'center');
     }
   }
 };
@@ -4473,6 +5398,171 @@ ch4_interp:[
     'Come in. I’ll show you four pictures that will help you.'),
   nr('해석자가 등불을 들고 첫 번째 방 문을 열었다.',
      'The Interpreter picked up a lamp and opened the first door.')
+],
+/* ═══ 원작 보강 인물 대사 ═══ */
+ch6_three:[
+  nr('길가에 세 사람이 쇠사슬에 발이 묶인 채 늘어져 자고 있었다.',
+     'Three men lay asleep beside the road, irons on their feet.'),
+  d('simple','단순','Simple','괜찮아요. 아무 일도 안 일어나요. 여태 안 일어났잖아요.',
+    'It is fine. Nothing has happened. Nothing ever happens.'),
+  d('sloth','나태','Sloth','조금만… 조금만 더 잘게요…',
+    'Just a little… a little longer…'),
+  d('presumption','추정','Presumption','걱정을 왜 해? 다 알아서 잘 돼. 난 원래 운이 좋아.',
+    'Why worry? It works out. I have always been lucky.'),
+  d('christian','크리스천','Christian','쇠사슬이 발에 있어요! 제가 풀어 드릴게요!',
+    'There are chains on your feet! Let me get them off!'),
+  nr('셋은 눈을 뜨지도 않았다. 크리스천은 오래 서 있다가, 결국 혼자 올라갔다.',
+     'Not one of them opened their eyes. Christian stood a long while, then climbed on alone.'),
+  ac((G)=>{ G.player.doubt=Math.max(0,G.player.doubt-5); G.toast(LANG==='ko'?'깨우지 못한 사람도 있다':'Some cannot be woken', '#8a84a0'); })
+],
+ch6_formalist:[
+  nr('담을 훌쩍 뛰어넘어 두 사람이 길 위로 내려섰다. 문으로 들어온 것이 아니었다.',
+     'Two men vaulted the wall and landed on the road. They had not come through the gate.'),
+  d('formalist','형식주의자','Formalist','우리도 천성에 가요. 문을 꼭 거쳐야 한다는 법이 어디 있죠?',
+    'We are going to the City too. Who says you must go through the gate?'),
+  d('hypocrisy','위선자','Hypocrisy','다 도착하면 똑같아요. 길에서 어떻게 왔는지 누가 물어봐요?',
+    'We all arrive the same. Who asks how you got there?'),
+  d('christian','크리스천','Christian','저는 주인이 낸 길로 왔어요. 담을 넘은 건 그분이 부른 게 아니잖아요.',
+    'I came the way the Lord laid out. Climbing the wall is not being invited.'),
+  d('formalist','형식주의자','Formalist','고집 세네. 우린 편한 길로 갈게요.',
+    'Stubborn. We will take the easy way.'),
+  nr('둘은 곧 갈림길에서 각각 다른 샛길로 사라졌다. 하나는 위험이라는 곳으로, 하나는 멸망이라는 곳으로.',
+     'At the fork they each took a bypath — one called Danger, one called Destruction.'),
+  cho([
+    ['문으로 온 길 그대로 오른다','Keep to the road I came by','narrow', +2],
+    ['둘이 간 샛길을 흘깃 본다','Glance down their shortcuts','wide', -2]
+  ])
+],
+ch6_pair:[
+  nr('언덕 위에서 두 사람이 얼굴이 하얘진 채 뛰어 내려왔다.',
+     'Two men came running down the hill, white in the face.'),
+  d('timorous','소심','Timorous','사자예요! 길 한복판에 사자가 있어요!',
+    'Lions! There are lions right in the road!'),
+  d('mistrust','불신','Mistrust','우린 돌아가요. 죽으려고 가는 건 믿음이 아니에요.',
+    'We are going back. Walking into death is not faith.'),
+  d('christian','크리스천','Christian','뒤에는 멸망밖에 없어요. 앞이 무서워도 앞이 맞아요.',
+    'Behind us there is only destruction. Forward is frightening, but forward is right.')
+],
+ch7_watchful:[
+  d('watchful','경계','Watchful','거기 누구요! …아, 순례자군요. 밤에 이 길을 걷는 사람은 드물어요.',
+    'Who goes there! …Ah, a pilgrim. Few walk this road at night.'),
+  d('watchful','경계','Watchful','사자가 길에 있는 건 맞아요. 그런데 사슬에 묶여 있어요.',
+    'Yes, there are lions on the road. But they are chained.'),
+  d('watchful','경계','Watchful','길 한가운데로 오세요. 옆으로 새면 닿아요. 가운데면 안 닿아요.',
+    'Walk straight up the middle. Stray and they reach you. Keep centre and they cannot.'),
+  ac((G)=>{ G.flags.lionHint=true; G.toast(LANG==='ko'?'길 한가운데로 걸어라':'Walk down the middle', '#c9a227'); })
+],
+ch10_talkative:[
+  d('talkative','수다쟁이','Talkative','아! 순례자시군요! 저도 그 얘기 정말 좋아합니다. 은혜, 회개, 중생, 아주 잘 알죠.',
+    'Ah, a pilgrim! I love that subject. Grace, repentance, new birth — I know it all.'),
+  d('faithful','신실','Faithful','좋네요. 그럼 그게 형제님 삶에서는 어떻게 보이나요?',
+    'Good. So what does it look like in your life?'),
+  d('talkative','수다쟁이','Talkative','…삶이요? 아니, 그건 좀 사적인 질문 아닙니까?',
+    '…My life? That is rather a personal question.'),
+  d('faithful','신실','Faithful','말은 잎이고 삶은 열매예요. 잎만 있는 나무는 멀리서만 나무예요.',
+    'Talk is leaves; living is fruit. A tree with only leaves is a tree only from far away.'),
+  nr('수다쟁이는 화를 내며 사람들 속으로 사라졌다.',
+     'Talkative went off angry, into the crowd.'),
+  ac((G)=>{ G.player.faith=Math.min(G.player.maxfaith,G.player.faith+12);
+            G.toast(LANG==='ko'?'말과 삶을 가려 듣게 됐다 (+12)':'You learned to tell talk from life (+12)', '#5ec8f0'); })
+],
+ch10_witnesses:[
+  nr('재판이 열렸다. 증인 셋이 차례로 올라섰다.',
+     'The trial began. Three witnesses took the stand in turn.'),
+  d('envy','시기','Envy','저 자는 우리 관습을 업신여깁니다. 자기가 옳다고 생각해요.',
+    'This man despises our customs. He thinks himself right.'),
+  d('superstition','미신','Superstition','우리 예배가 헛되다고 했습니다. 신성모독입니다.',
+    'He said our worship is empty. That is blasphemy.'),
+  d('pickthank','아첨','Pickthank','재판장님을 욕했습니다. 귀족들도 욕했습니다. 제가 다 들었습니다.',
+    'He slandered your Honour. And the nobles too. I heard it all.'),
+  d('faithful','신실','Faithful','저는 아무 말도 지어내지 않았습니다. 다만 진실을 말했을 뿐입니다.',
+    'I invented nothing. I only told the truth.'),
+  d('judge','재판장 증오','Judge Hate-good','충분하다. 이 도시에서 진실은 죄다.',
+    'Enough. In this city, truth is the crime.')
+],
+ch11_diffidence:[
+  d('diffidence','불신','Diffidence','여보, 저것들 아직 살아 있어요. 왜 아직 살려 둬요?',
+    'Husband, they are still alive. Why are they still alive?'),
+  d('despair','절망 거인','Giant Despair','오늘은 팼다. 내일은 굶긴다.',
+    'Today I beat them. Tomorrow I starve them.'),
+  d('diffidence','불신','Diffidence','아니요. 스스로 끝내게 하세요. 그게 훨씬 확실해요.',
+    'No. Let them end it themselves. That is far surer.'),
+  nr('부부는 웃으며 문을 닫았다. 어둠 속에서 크리스천은 처음으로 자기 손을 내려다보았다.',
+     'They laughed and shut the door. In the dark, Christian looked down at his own hands for the first time.')
+],
+ch12_flatterer:[
+  nr('길이 두 갈래로 갈리는 곳에서, 흰옷을 입은 사람이 웃으며 기다리고 있었다.',
+     'Where the road forked, a man in shining white stood waiting, smiling.'),
+  d('flatterer','아첨꾼','Flatterer','천성으로 가시죠? 제가 안내하겠습니다. 두 분 같은 분들은 드물어요.',
+    'Bound for the City? Let me guide you. Men like you are rare.'),
+  d('hopeful','소망','Hopeful','좋은 분 같은데요. 우리를 알아봐 주잖아요.',
+    'He seems kind. He can see what we are.'),
+  d('christian','크리스천','Christian','…목자들이 준 지도를 아직 안 펴 봤어요.',
+    '…We never opened the map the Shepherds gave us.'),
+  cho([
+    ['지도를 먼저 펴 본다','Open the map first','map', +2],
+    ['안내를 따라간다','Follow the guide','net', -3]
+  ])
+],
+ch12_atheist:[
+  nr('반대편에서 한 사람이 크게 웃으며 걸어왔다. 순례자들과는 정반대 방향이었다.',
+     'A man came the other way, laughing loudly. He was walking away from the City.'),
+  d('atheist','무신론자','Atheist','천성? 하하! 이십 년을 찾아다녔소. 그런 도시는 없소.',
+    'The Celestial City? Ha! I searched twenty years. There is no such place.'),
+  d('christian','크리스천','Christian','우린 산 위에서 그 문을 봤어요. 두 눈으로요.',
+    'We saw its gate from the mountain. With our own eyes.'),
+  d('atheist','무신론자','Atheist','헛것을 본 거요. 나처럼 돌아서시오. 그게 어른의 일이오.',
+    'You saw nothing. Turn back like me. That is what grown men do.'),
+  d('hopeful','소망','Hopeful','…아저씨는 지도를 잃어버린 거예요. 우린 아직 갖고 있어요.',
+    '…You lost your map, sir. We still have ours.'),
+  ac((G)=>{ G.player.faith=Math.min(G.player.maxfaith,G.player.faith+10);
+            G.toast(LANG==='ko'?'본 것을 붙잡았다 (+10)':'You held to what you saw (+10)', '#5ec8f0'); })
+],
+ch6_formalist_wide:[
+  nr('샛길은 처음 몇 걸음만 편했다. 돌아왔을 땐 다리가 훨씬 무거웠다.',
+     'The bypath was easy for a few steps. Coming back, your legs were much heavier.'),
+  d('christian','크리스천','Christian','…보기만 했는데도 마음이 흔들렸어.',
+    '…I only looked, and it already pulled at me.')
+],
+ch12_flatterer_net:[
+  nr('길이 좁아지더니, 발밑에서 그물이 확 올라와 둘을 통째로 감쌌다. 흰옷은 벗겨지고 검은 몸이 드러났다.',
+     'The path narrowed, and a net snapped up around them both. The white robe fell away; underneath was black.'),
+  d('hopeful','소망','Hopeful','목자들이 준 지도… 안 봤어요. 우리 둘 다요.',
+    'The Shepherds\u2019 map… we never looked. Neither of us.'),
+  nr('빛나는 이가 채찍을 들고 와 그물을 끊었다. 아프게, 그러나 살려서.',
+     'A Shining One came with a whip and cut the net. It hurt — and it saved them.')
+],
+ch12_flatterer_map:[
+  nr('지도를 펴자, 그 갈림길 옆에 한 줄이 적혀 있었다 — "아첨하는 자를 조심하라."',
+     'You opened the map. Beside that very fork, one line: \u201cBeware the Flatterer.\u201d'),
+  d('flatterer','아첨꾼','Flatterer','…어, 그게, 저는 그냥…',
+    '\u2026Ah. Well. I only meant\u2026'),
+  nr('그가 돌아서자 흰옷 아래로 그물이 끌려 나왔다.',
+     'As he turned, a net dragged out from under the shining robe.')
+],
+ch4_seedroom:[
+  nr('맨 끝 방은 흙냄새가 났다. 항아리 하나와, 손톱보다 작은 씨앗 한 줌.',
+     'The last room smelled of earth. One clay jar, and a handful of seeds smaller than a fingernail.'),
+  d('interpreter','해석자','Interpreter','이 씨앗은 겨자씨야. 모든 씨앗 중에 제일 작지.',
+    'This is a mustard seed. The smallest of all seeds.'),
+  d('interpreter','해석자','Interpreter','같은 것끼리 만나면 자란다. 조급하게 쏟아부으면 자라기 전에 넘쳐. 떨어뜨려 봐.',
+    'Like meets like, and it grows. Pour them in too fast and the jar overflows before anything grows. Try it.')
+],
+ch4_seedroom_end:[
+  d('interpreter','해석자','Interpreter','기억해. 네 믿음도 저 씨앗만 하다. 작다고 없는 게 아니야.',
+    'Remember. Your faith is that size too. Small is not the same as nothing.')
+],
+ch9_run:[
+  nr('앞이 하나도 안 보인다. 그런데 뒤에서 발소리가 들렸다 — 골짜기에 갇힌 순례자들이었다.',
+     'You cannot see a thing. But there are footsteps behind you — pilgrims trapped in the valley.'),
+  d('timorous','겁먹은 순례자','Frightened Pilgrim','길이 둘로 갈려. 어느 쪽이 맞는지 아무도 몰라.',
+    'The path splits in two. Nobody knows which side is right.'),
+  d('christian','크리스천','Christian','같이 가요. 내가 앞장설게요.',
+    'Come with me. I will go first.')
+],
+ch9_run_end:[
+  nr('골짜기 끝. 어둠은 그대로였지만, 지나온 길은 이제 뒤에 있었다.',
+     'The end of the valley. The dark had not changed — but the road through it was behind you now.')
 ],
 ch4_room1:[
   nr('먼지투성이 방. 누가 빗자루로 쓸자 먼지가 확 일어나 숨이 막혔다. 그때 한 사람이 물을 뿌리니 먼지가 가라앉았다.',
@@ -5008,6 +6098,111 @@ function rebuildStory(){
 
 </script>
 <script>
+/* ===== js/62_prologue.js ===== */
+/* ============================================================
+   62_prologue.js — 서장 · 크리스천은 누구인가
+   게임을 시작하면 제일 먼저 나온다. 대형 초상 대화로 세계관에 입문시킨다.
+   혼잣말(who:'christian', name 없음) 과 대화(name 있음)를 섞는다.
+   ============================================================ */
+'use strict';
+
+const en = (who, side, name)=>({enter:{who, side, name}});
+const ex = (side)=>({exit:side});
+const bgOf = (id)=>({bg:id});
+
+/* d2: 대사 · m2: 혼잣말(이름 없이) · n2: 내레이션 */
+const d2 = (who,nKo,nEn,ko,enT)=>({_d:1, who, nKo, nEn, ko, en:enT});
+const m2 = (who,ko,enT)=>({_m:1, who, ko, en:enT});
+const n2 = (ko,enT)=>({_n:1, ko, en:enT});
+
+const PROLOGUE_RAW = [
+  bgOf('dream'),
+  n2('잉글랜드 어느 도시. 사람들은 그 도시를 "멸망의 도시"라 불렀다.\n왜 그렇게 불리는지 아무도 궁금해하지 않았다.',
+     'A city in England. People called it the City of Doom.\nNobody wondered why.'),
+
+  en('christian','left','크리스천'),
+  m2('christian','…또 이 꿈이다.','...This dream again.'),
+  m2('christian','불이 하늘에서 내려와 지붕을 태우고, 나는 발이 안 떨어져서 그냥 서 있는 꿈.',
+     'Fire falls from the sky, the roofs burn, and my feet will not move.'),
+  m2('christian','세 달째 같은 꿈을 꾼다.','Three months now. The same dream.'),
+
+  n2('소년의 이름은 크리스천. 열두 살. 아버지는 없고, 어머니와 동생 넷이 있다.\n낮에는 삼을 꼬아 밧줄을 만들고, 밤에는 다락에서 책을 읽는다.',
+     'The boy is called Christian. Twelve years old. No father; a mother and four younger children.\nHe twists hemp into rope by day and reads in the attic by night.'),
+
+  m2('christian','책은 아버지가 남긴 거야. 글자가 반쯤 지워져서 읽기 힘든데,\n한 줄만은 또렷하게 남아 있어.',
+     'The book was my father’s. Half the letters are worn away,\nbut one line is still clear.'),
+  m2('christian','"장차 올 진노를 피하라."','"Flee from the wrath to come."'),
+  m2('christian','피하라니… 어디로?','Flee... but where?'),
+
+  en('wife','right','어머니'),
+  d2('wife','어머니','Mother','또 촛불 켰니? 기름 아까운 줄 모르고.',
+     'Candle again? Do you know what oil costs?'),
+  d2('christian','크리스천','Christian','어머니. 이 책이 우리 도시가 불탄다고 해요.',
+     'Mother. This book says our city will burn.'),
+  d2('wife','어머니','Mother','책이 무슨 말을 하든 내일도 밧줄은 꼬아야 해.',
+     'Whatever the book says, there is rope to make tomorrow.'),
+  d2('christian','크리스천','Christian','…네.','...Yes.'),
+  m2('christian','어머니는 무섭지 않으신 걸까.\n아니면, 무서운 걸 아는데 어떻게 할 수가 없는 걸까.',
+     'Is she not afraid?\nOr does she know, and simply cannot do anything about it?'),
+  ex('right'),
+
+  n2('그날부터 크리스천은 등이 무거워지기 시작했다.',
+     'From that day, Christian’s back began to grow heavy.'),
+  m2('christian','처음엔 그냥 어깨가 결리는 줄 알았어.','At first I thought my shoulders were just sore.'),
+  m2('christian','그런데 자고 일어나도 그대로야. 웃어도 그대로고.\n오히려 웃을 때 더 무거워.',
+     'But it stays after sleep. It stays when I laugh.\nIt gets heavier when I laugh, actually.'),
+  m2('christian','거울을 봐도 아무것도 없어. 남들 눈엔 안 보이나 봐.',
+     'There is nothing in the mirror. Nobody else can see it.'),
+  m2('christian','근데 나는 알아. 이건 진짜야. 그리고 점점 커져.',
+     'But I know. It is real. And it keeps growing.'),
+
+  {choice:[
+    {t:'"이건 내 탓이야."', e:'"This is my own fault."', val:'blame', f:0},
+    {t:'"누가 좀 도와줬으면."', e:'"I wish someone would help."', val:'help', f:0},
+    {t:'"…나는 어떻게 되는 거지."', e:'"...What is going to happen to me?"', val:'fear', f:0}
+  ]},
+
+  n2('크리스천은 결국 거리로 나갔다. 등에 진 것을 지고, 손에 책을 들고,\n만나는 사람마다 붙잡고 물었다.',
+     'At last Christian went out into the street. The load on his back, the book in his hand,\nasking everyone he met.'),
+  m2('christian','"이 짐을 어떻게 벗나요?"','"How do I get this off?"'),
+  n2('아무도 대답하지 못했다. 대부분은 웃었고, 몇은 화를 냈고,\n한 사람은 의사를 불러 주겠다고 했다.',
+     'No one could answer. Most laughed. A few were angry.\nOne offered to send for a doctor.'),
+
+  m2('christian','그래서 나는 들판으로 나왔어.\n울 데가 필요했거든.',
+     'So I came out to the fields.\nI needed somewhere to cry.'),
+
+  n2('그리고 거기서, 한 사람을 만났다.',
+     'And there, he met someone.'),
+  {act:(G)=>{ Audio2.sfx('item'); }}
+];
+
+/* 선택지가 뒤에 남기는 것 — 이 아이가 어떤 아이인지 게임이 기억한다 */
+const PROLOGUE_TRAIT = {
+  blame: {ko:'스스로를 탓하는 아이', en:'A boy who blames himself',
+          note:{ko:'믿음 최대치 +4 · 기도 회복이 빠르다', en:'Max Faith +4 · prays faster'},
+          apply:(p)=>{ p.maxfaith += 4; p.faith = p.maxfaith; p.trait='blame'; }},
+  help:  {ko:'손을 내미는 아이', en:'A boy who reaches out',
+          note:{ko:'동행자가 더 자주 돕는다', en:'Companions help more often'},
+          apply:(p)=>{ p.trait='help'; }},
+  fear:  {ko:'두려움을 아는 아이', en:'A boy who knows fear',
+          note:{ko:'최대 체력 +6 · 피격 무적이 길다', en:'Max HP +6 · longer mercy after a hit'},
+          apply:(p)=>{ p.maxhp += 6; p.hp = p.maxhp; p.trait='fear'; }}
+};
+
+let PROLOGUE = [];
+function rebuildPrologue(){
+  const k = (LANG==='ko');
+  PROLOGUE = PROLOGUE_RAW.map(n=>{
+    if(n._n) return {who:null, name:'', text: k? n.ko : n.en};
+    if(n._m) return {who:n.who, name:'', text: k? n.ko : n.en};   // 혼잣말 — 이름 없음
+    if(n._d) return {who:n.who, name: k? n.nKo : n.nEn, text: k? n.ko : n.en};
+    if(n.choice) return {choice: n.choice.map(c=>({t: k? c.t : c.e, val:c.val, f:c.f}))};
+    return n;
+  });
+}
+
+</script>
+<script>
 /* ===== js/70_levels.js ===== */
 /* ============================================================
    70_levels.js — 레벨 빌더 + 제1~6장
@@ -5165,7 +6360,7 @@ function buildCh4(){
   for(let i=0;i<6;i++){ L.rect(112+i*26,3,2,7,'#'); }   // 방 칸막이 — 아래로 지나갈 수 있다
   L.back(0,14,244,3);
 
-  const world=new World(L.rows(),'gate','stars');
+  const world=new World(L.rows(),'gate','keeps');
   const A=[];
   [22,50,78].forEach((tx,i)=> A.push(new Archer(T(tx), T([7,6,7][i])-26, {hp:16})));
   [42,70,96].forEach(tx=> A.push(new Imp(T(tx), T(11))));
@@ -5176,6 +6371,18 @@ function buildCh4(){
   rooms.forEach(([id,tx,col])=>{
     A.push(new Prop(T(tx), T(13)-18, 'chest', {interact:id, once:true, hint:'환상을 본다', glow:true, glowColor:col}));
   });
+  // 다섯째 방 — 겨자씨 비유. 씨앗의 정원 미니게임으로 들어간다.
+  A.push(new Prop(T(230), T(13)-18, 'chest', {
+    hint:'겨자씨 방', glow:true, glowColor:'#b89a63', once:true,
+    run:()=> G.startMini('seed', {
+      intro:'ch4_seedroom',
+      rewardWin:()=>{ G.player.maxfaith += 10; G.player.faith = G.player.maxfaith;
+                      G.toast(LANG==='ko'?'믿음의 그릇이 커졌다 (+10)':'Your faith grew (+10)', '#c9a227'); },
+      rewardLose:()=>{ G.player.faith = Math.min(G.player.maxfaith, G.player.faith+15);
+                       G.toast(LANG==='ko'?'그래도 배운 것이 있다':'Still, you learned something', '#8a84a0'); },
+      after:()=> G.say('ch4_seedroom_end')
+    })
+  }));
   A.push(new Trigger(T(2),0,T(5),T(17), ()=>G.say('ch4_gate')));
   A.push(new Trigger(T(239),0,T(5),T(17), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(11)}, actors:A};
@@ -5252,6 +6459,16 @@ function buildCh6(){
   // 사자 — 사슬에 매여 있다
   A.push(new Prop(T(22), T(7)-26, 'lion', {back:true}));
   A.push(new Prop(T(46), T(7)-26, 'lion', {back:true}));
+  /* ── 원작 인물 ── 곤고산 초입: 단순·나태·추정이 쇠사슬을 찬 채 잔다 */
+  A.push(new NPC(T(9),  T(56)-26, 'simple',      {name:'단순',   face:1,  dialog:'ch6_three', once:true, tag:'three'}));
+  A.push(new NPC(T(12), T(56)-26, 'sloth',       {name:'나태',   face:1,  dialog:'ch6_three', once:true, tag:'three'}));
+  A.push(new NPC(T(15), T(56)-26, 'presumption', {name:'추정',   face:-1, dialog:'ch6_three', once:true, tag:'three'}));
+  /* 담을 넘어온 형식주의자·위선자 */
+  A.push(new NPC(T(24), T(48)-26, 'formalist',   {name:'형식주의자', face:1, dialog:'ch6_formalist', once:true, tag:'wallpair'}));
+  A.push(new NPC(T(28), T(48)-26, 'hypocrisy',   {name:'위선자',     face:1, dialog:'ch6_formalist', once:true, tag:'wallpair'}));
+  /* 사자를 보고 돌아 내려오는 소심·불신 */
+  A.push(new NPC(T(30), T(11)-26, 'timorous',    {name:'소심', face:-1, dialog:'ch6_pair', once:true, tag:'pair'}));
+  A.push(new NPC(T(38), T(11)-26, 'mistrust',    {name:'불신', face:-1, dialog:'ch6_pair', once:true, tag:'pair'}));
   A.push(new Trigger(T(3),T(50),T(9),T(6), ()=>G.say('ch6_open')));
   A.push(new Trigger(T(20),T(28),T(29),T(5), ()=>G.checkRoll(), {once:false}));
   A.push(new Trigger(T(26),T(2),T(18),T(5), ()=>G.say('ch6_lions'), {once:true}));
@@ -5287,6 +6504,7 @@ function buildCh7(){
   const world=new World(L.rows(),'palace','stars');
   const A=[];
   const gy=(tx)=>T(groundY(L,tx))-26;
+  A.push(new NPC(T(6), gy(6), 'watchful', {name:'경계', dialog:'ch7_watchful', face:1, once:true, tag:'watchful'}));
   A.push(new NPC(T(18), gy(18), 'discretion', {name:'조심', dialog:'ch7_open', face:1, tag:'discretion'}));
   A.push(new NPC(T(50), T(10)-26, 'piety', {name:'경건', dialog:'ch7_piety', face:-1, once:true}));
   A.push(new NPC(T(70), T(13)-26, 'prudence', {name:'신중', dialog:'ch7_prudence', face:-1, once:true}));
@@ -5345,6 +6563,17 @@ function buildCh9(){
   [46,72,96,126,152,182,196].forEach(tx=> A.push(new Shade(T(tx), T(9), {hp:16})));
   [56,110,168].forEach(tx=> A.push(new Wisp(T(tx), T(8))));
   A.push(new Trigger(T(60),0,T(6),T(20), ()=>G.say('ch9_whisper'), {once:true}));
+  // 골짜기 한복판 — 어둠을 가로지르는 좁은 길 달리기
+  A.push(new Trigger(T(112),0,T(4),T(20), ()=> G.startMini('run', {
+    intro:'ch9_run',
+    rewardWin:(r)=>{ const n=r.crowd||0;
+      G.player.maxhp += 1; G.player.hp = G.player.maxhp;
+      G.player.faith = Math.min(G.player.maxfaith, G.player.faith + Math.min(40, n*3));
+      G.toast(LANG==='ko'? `${n}명을 데리고 나왔다 · 하트 +1` : `${n} pilgrims came through · Heart +1`, '#7fd39a'); },
+    rewardLose:()=>{ G.player.doubt = Math.min(100, G.player.doubt+18);
+      G.toast(LANG==='ko'?'혼자 남았다 — 의심이 짙어진다':'You are alone — doubt deepens', '#c88aa0'); },
+    after:()=> G.say('ch9_run_end')
+  }), {once:true}));
   A.push(new Trigger(T(200),0,T(5),T(20), ()=>G.say('ch9_dawn'), {once:true}));
   A.push(new Trigger(T(225),0,T(5),T(20), ()=>G.nextScene()));
   return {world, spawn:{x:T(3), y:T(12)}, actors:A, dark:true, music:'darkness'};
@@ -5370,6 +6599,12 @@ function buildCh10(){
     A.push(new Trigger(T(tx)-14, T(9), T(34), T(4), (self)=>G.vanityTempt(what), {once:true}));
   });
   [56,84,108,150,178].forEach(tx=> A.push(new Imp(T(tx), T(11), {hp:16, touch:4})));
+  /* ── 원작 인물 ── 수다쟁이는 시장 초입에서 붙는다 */
+  A.push(new NPC(T(28), T(13)-26, 'talkative', {name:'수다쟁이', dialog:'ch10_talkative', face:-1, once:true, tag:'talkative'}));
+  /* 재판 증인 셋 — 재판장 앞에 미리 서 있다 */
+  A.push(new NPC(T(196), T(13)-26, 'envy',        {name:'시기', face:1, dialog:'ch10_witnesses', once:true, tag:'witness'}));
+  A.push(new NPC(T(200), T(13)-26, 'superstition',{name:'미신', face:1, dialog:'ch10_witnesses', once:true, tag:'witness'}));
+  A.push(new NPC(T(204), T(13)-26, 'pickthank',   {name:'아첨', face:1, dialog:'ch10_witnesses', once:true, tag:'witness'}));
   A.push(new Trigger(T(20),0,T(5),T(17), ()=>G.say('ch10_fair'), {once:true}));
   A.push(new Trigger(T(206),0,T(5),T(17), ()=>G.vanityTrial(), {once:true}));
   A.push(new Trigger(T(236),0,T(4),T(17), ()=>G.nextScene()));
@@ -5423,10 +6658,14 @@ function buildCh11b(){
   L.plat(138,8,6);
   L.back(0,18,180,4);
 
-  const world=new World(L.rows(),'castle','stars');
+  const world=new World(L.rows(),'castle','keeps');
   const A=[];
   A.push(new NPC(T(11), T(17)-26, 'hopeful', {name:'소망', face:1, tag:'hopeful'}));
   A.push(new Trigger(T(4),0,T(6),T(22), ()=>G.say('ch11_despair'), {once:true}));
+  /* ── 원작 인물 ── 절망 거인의 아내. 창살 **밖**에 서 있어 닿을 수 없다 —
+     그래서 대화는 감옥 안쪽 트리거로 건다(다가가면 밖에서 하는 말이 들린다). */
+  A.push(new NPC(T(34), T(17)-30, 'diffidence', {name:'불신', face:-1, tag:'diffidence'}));
+  A.push(new Trigger(T(22),T(3),T(6),T(14), ()=>G.say('ch11_diffidence'), {once:true}));
   A.push(new Prop(T(28), T(17)-48, 'sign', {tag:'celldoor', hidden:true}));
   A.push(new Trigger(T(24),T(3),T(6),T(14), ()=>G.tryCellDoor(), {once:false, needPress:true, hint:'감옥 문'}));
   [70,92].forEach(tx=> A.push(new Hound(T(tx), T(15), {hp:20})));
@@ -5451,6 +6690,8 @@ function buildCh12a(){
     A.push(new NPC(T(96+i*12), T(8)-26, 'shepherd', {name:'목자 '+nm, dialog: i===0?'ch12_shepherds':null, face:-1, once:true}));
   });
   A.push(new NPC(T(146), T(8)-26, 'ignorance', {name:'무지', dialog:'ignorance', face:-1, once:true}));
+  /* ── 원작 인물 ── 무신론자는 순례자들과 반대 방향으로 걸어온다 */
+  A.push(new NPC(T(120), T(8)-26, 'atheist', {name:'무신론자', dialog:'ch12_atheist', face:-1, once:true, tag:'atheist'}));
   [30,52,74].forEach(tx=> A.push(new Wisp(T(tx), T(10))));
   A.push(new Trigger(T(154),0,T(6),T(24), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(15)}, actors:A, music:'palace'};
@@ -5469,6 +6710,8 @@ function buildCh12b(){
   [26,50,72,96,120,142,164].forEach(tx=> A.push(new SleepVine(T(tx), T(13)-22)));
   [40,84,130].forEach(tx=> A.push(new Wisp(T(tx), T(8))));
   A.push(new Trigger(T(3),0,T(6),T(17), ()=>G.say('ch12_enchanted'), {once:true}));
+  /* ── 원작 인물 ── 아첨꾼. 흰옷을 입고 갈림길에서 기다린다. */
+  A.push(new NPC(T(96), T(13)-26, 'flatterer', {name:'아첨꾼', dialog:'ch12_flatterer', face:-1, once:true, tag:'flatterer'}));
   A.push(new Trigger(T(184),0,T(6),T(17), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(11)}, actors:A, music:'darkness', enchanted:true};
 }
@@ -5660,6 +6903,7 @@ const G = {
   toasts:[], dmgNums:[],
   player:null, world:null, actors:[], projectiles:[], pickups:[], companions:[],
   chapter:0, scene:0, sceneDef:null, boss:null,
+  codex:{chars:{}, places:{}},
   hintText:null, showStamina:false, flags:{},
   playTime:0, deaths:0, startedAt:0,
   fireWall:null, lightCanvas:null,
@@ -5677,6 +6921,8 @@ const G = {
   say(id, cb){
     const s=STORY[id];
     if(!s){ if(cb)cb(); return; }
+    // 대사에 나온 인물은 도감에 남는다
+    s.forEach(n=>{ if(n.who) codexMeet('char', n.who); });
     if(ChapterCard.active && ChapterCard.t<70){      // 장 제목이 뜨는 동안은 기다린다
       setTimeout(()=>this.say(id, cb), 700); return;
     }
@@ -5692,6 +6938,27 @@ const G = {
     if(this.dlg.active) return;
     this.toast(pick(WHISPERS), '#c88aa0');
     this.player.doubt = Math.min(100, this.player.doubt+4);
+  },
+
+
+  /* ---------- 미니게임 ---------- */
+  startMini(kind, opts){
+    opts=opts||{};
+    const go=()=>{
+      const ch0=CHAPTERS[this.chapter];
+      const prevBgm=(this.sceneDef&&this.sceneDef.music)||(ch0&&ch0.music)||'journey';
+      Audio2.play(kind==='seed'?'palace':'darkness');
+      MiniGame.open(kind, (res)=>{
+        if(prevBgm) Audio2.play(prevBgm);
+        this.miniResults = this.miniResults||{};
+        this.miniResults[kind] = res;
+        this.flags['mini_'+kind]=true;
+        if(res && res.win && opts.rewardWin) opts.rewardWin(res);
+        else if(opts.rewardLose) opts.rewardLose(res);
+        if(opts.after) opts.after(res);
+      });
+    };
+    if(opts.intro) this.say(opts.intro, go); else go();
   },
 
   /* ---------- 씬 로딩 ---------- */
@@ -5736,6 +7003,9 @@ const G = {
     this.cam.follow(this.player, this.world.pxw, this.world.pxh, true);
     if(this.scene===0){ ChapterCard.show(chNum(ci), chTitle(ci), chSub(ci)); GCBridge.chapter(ci); }
     this.objective = ci;
+    // 이 장의 장소를 도감에 기록
+    CODEX_PLACES.filter(r=>r[3]===ci+1).forEach(r=> codexMeet('place', r[0]));
+    codexMeet('char','christian');
     this.idleT=0;
     Audio2.play(def.music || ch.music || 'journey');
     this.state=ST.PLAY;
@@ -5744,16 +7014,38 @@ const G = {
   nextScene(){
     const ch=CHAPTERS[this.chapter];
     if(this.scene+1 < ch.scenes.length){
+      this.autoSave('scene');
       Fade.out(()=>{ this.loadChapter(this.chapter, this.scene+1); Fade.in(); });
     } else if(this.chapter+1 < CHAPTERS.length){
       const from=this.chapter, to=this.chapter+1;
-      this.saveGame();
+      this.autoSave('chapter');
       Fade.out(()=>{
         this.state=ST.MAP;
         JourneyMap.open(from, to, ()=>{ Fade.out(()=>{ this.loadChapter(to,0); Fade.in(); }); });
         Fade.in();
       });
     } else this.endGame();
+  },
+  /* 하트를 다 잃으면 그 자리에서 다시 일어난다 (장을 처음부터 하지 않는다) */
+  reviveInPlace(){
+    this.deaths++;
+    const p=this.player;
+    p.hp = Math.max(1, Math.ceil(p.maxhp * 0.5));
+    p.faith = Math.max(0, Math.floor(p.maxfaith * 0.4));
+    p.state = PSTATE.IDLE; p.deathT = 0; p.vx = 0; p.vy = 0;
+    p.invT = 150;                       // 일어난 직후엔 잠시 무적
+    p.sinking = 0; p.sleep = 0; p.doubt = Math.min(p.doubt, 40);
+    // 안전한 자리로 — 없으면 이번 씬 시작점
+    if(p.safeX !== undefined && !this.world.hitsSolid(p.safeX, p.safeY, p.w, p.h)){
+      p.x = p.safeX; p.y = p.safeY;
+    } else { p.x = p.spawnX; p.y = p.spawnY; }
+    // 보스전이면 보스도 숨을 고른다
+    if(this.boss && !this.boss.dead){ this.boss.state='idle'; this.boss.cool = 90; }
+    this.riverDepth = 0; this.fireWall = null;
+    this.cam.follow(p, this.world.pxw, this.world.pxh, true);
+    this.particles.burst(p.cx, p.cy, 26, {color:'#ffe9a8', spd:1.8, life:44, size:2, glow:true, grav:-0.02});
+    Audio2.sfx('heal');
+    this.toast(L('t_revive'), '#ffe08a');
   },
   respawn(){
     this.deaths++;
@@ -5770,6 +7062,27 @@ const G = {
       ChapterCard.active=false;
       Fade.in();
     });
+  },
+
+  /* 서장 — 크리스천이 누구인지부터 보여준다 */
+  playPrologue(){
+    rebuildPrologue();
+    Fade.out(()=>{
+      Fade.a = 1; Fade.target = 0;
+      Drama.start(PROLOGUE, (choice)=>{
+        this.pendingTrait = choice;
+        Fade.out(()=>{ this.loadChapter(0,0,false); this.applyTrait(); Fade.in(); });
+      });
+      Fade.in();
+    });
+  },
+  applyTrait(){
+    const t = this.pendingTrait;
+    if(!t || !PROLOGUE_TRAIT[t] || !this.player) return;
+    const tr = PROLOGUE_TRAIT[t];
+    tr.apply(this.player);
+    this.toast((LANG==='ko'? tr.ko : tr.en) + ' — ' + (LANG==='ko'? tr.note.ko : tr.note.en), '#cfe8ff');
+    this.pendingTrait = null;
   },
 
   /* ---------- 스토리 기믹 ---------- */
@@ -5963,22 +7276,42 @@ const G = {
     if(!this.player) return;
     const p=this.player;
     Save.write({chapter:this.chapter, scene:this.scene, playTime:this.playTime, deaths:this.deaths,
+      // 중간 저장 — 서 있던 자리와 진행 상태까지 그대로 되살린다
+      pos:{x:Math.round(p.x), y:Math.round(p.y)},
+      hp:Math.round(p.hp), faith:Math.round(p.faith),
+      flags:this.flags, codex:this.codex, trait:p.trait||null,
       p:{level:p.level,exp:p.exp,expNext:p.expNext,maxhp:p.maxhp,maxfaith:p.maxfaith,atk:p.atk,def:p.def,
          coins:p.coins,burden:p.burden,hasSword:p.hasSword,hasShield:p.hasShield,canDouble:p.canDouble,
          canDash:p.canDash,faithfulness:p.faithfulness,armor:p.armor,items:p.items},
       comp:this.companions.map(c=>c.key)});
+    this.lastSaveAt = this.tick;
   },
   loadGame(){
     const s=Save.read();
     if(!s) return false;
     this.playTime=s.playTime||0; this.deaths=s.deaths||0;
     this.companions=[];
-    this.loadChapter(s.chapter||0, 0, false);
+    this.flags = s.flags || {};
+    this.codex = s.codex || {chars:{}, places:{}};
+    this.loadChapter(s.chapter||0, s.scene||0, false);
+    this.flags = s.flags || {};          // loadChapter 가 초기화하므로 다시 얹는다
     Object.assign(this.player, s.p);
     this.player.armor=s.p.armor; this.player.items=s.p.items;
-    this.player.hp=this.player.maxhp; this.player.faith=this.player.maxfaith;
+    this.player.trait = s.trait || null;
+    // 저장된 자리로 되돌린다 (벽에 끼면 스폰으로)
+    if(s.pos && !this.world.hitsSolid(s.pos.x, s.pos.y, 12, 24)){
+      this.player.x = s.pos.x; this.player.y = s.pos.y;
+      this.cam.follow(this.player, this.world.pxw, this.world.pxh, true);
+    }
+    this.player.hp = clamp(s.hp || this.player.maxhp, 1, this.player.maxhp);
+    this.player.faith = clamp(s.faith===undefined? this.player.maxfaith : s.faith, 0, this.player.maxfaith);
     (s.comp||[]).forEach(k=> this.joinCompanion(k));
     return true;
+  },
+  /* 자동 저장 — 장 전환·상점·큰 사건 뒤에 조용히 부른다 */
+  autoSave(reason){
+    this.saveGame();
+    this.toast(L('t_saved'), '#8ae05a');
   },
   gotoTitle(){
     this.state=ST.TITLE; this.titleSel=0;
@@ -5989,6 +7322,9 @@ const G = {
   update(){
     this.tick=(this.tick||0)+1;
     if(Cinema.active){ Cinema.update(); this.particles.update(); return; }
+    if(Drama.active){ Drama.update(); return; }
+    if(MiniGame.active){ MiniGame.update(); this.particles.update(); return; }
+    if(Codex.active){ Codex.update(); return; }
     Staging.update();
     // 느린 화면 — 결정적인 순간을 늘려 준다
     if(Staging.slow>0 && (this.tick % 3)!==0){ this.cam.update(); return; }
@@ -5996,7 +7332,7 @@ const G = {
     ChapterCard.update();
     this.cam.update();
 
-    if(this.state===ST.TITLE){ this.updateTitle(); return; }
+    if(this.state===ST.TITLE){ if(Drama.active){ Drama.update(); return; } this.updateTitle(); return; }
     if(this.state===ST.MAP){ JourneyMap.update(); return; }
     if(this.state===ST.ENDING){ this.endT++; this.dlg.update(); this.particles.update(); return; }
     if(this.state!==ST.PLAY) return;
@@ -6007,7 +7343,7 @@ const G = {
     this.playTime++;
     this.dlg.update();
     if(this.freeze>0 && !this.burdenAnim){ this.freeze--; this.particles.update(); this.cam.update(); return; }
-    const locked = this.dlg.active || this.cutscene || Cinema.active || this.bossIntro>0 || (ChapterCard.active&&ChapterCard.t<40);
+    const locked = this.dlg.active || this.cutscene || Cinema.active || Drama.active || Codex.active || MiniGame.active || this.bossIntro>0 || (ChapterCard.active&&ChapterCard.t<40);
 
     const p=this.player;
 
@@ -6022,7 +7358,7 @@ const G = {
 
     // 플레이어
     p.update(this.world, !locked);
-    if(p.state===PSTATE.DEAD && p.deathT>90){ this.respawn(); return; }
+    if(p.state===PSTATE.DEAD && p.deathT>70){ this.reviveInPlace(); return; }
 
     // 보스 아레나 잠금
     if(this.flags.arenaLock && this.boss && !this.boss.dead){
@@ -6084,7 +7420,8 @@ const G = {
         this.hintText = target.hint || '대화';
         if(Input.pressed('interact')){
           target.done=true;
-          if(target.dialog) this.say(target.dialog);
+          if(target.opt && target.opt.run) target.opt.run(target);
+          else if(target.dialog) this.say(target.dialog);
           else if(target.interact) this.say(target.interact);
         }
       }
@@ -6241,9 +7578,12 @@ const G = {
       Audio2.sfx('confirm');
       const k=items[this.titleSel].k;
       if(k==='continue'){ GCBridge.started(); Fade.out(()=>{ if(!this.loadGame()) this.loadChapter(0,0,false); Fade.in(); }); }
-      else if(k==='new'){ Save.clear(); this.companions=[]; this.flags={}; this.playTime=0; this.deaths=0;
+      else if(k==='new'){
+        Save.clear(); this.companions=[]; this.flags={}; this.playTime=0; this.deaths=0;
+        this.codex = {chars:{}, places:{}};
         GCBridge.started();
-        Fade.out(()=>{ this.loadChapter(0,0,false); Fade.in(); }); }
+        this.playPrologue();
+      }
       else if(k==='how'){ PauseMenu.active=true; PauseMenu.tab=2; }
       else if(k==='lang'){ setLang(LANG==='ko'?'en':'ko'); updateHintBar(); }
     }
@@ -6251,7 +7591,7 @@ const G = {
 
   /* ---------- 그리기 ---------- */
   draw(x,u){
-    if(this.state===ST.TITLE){ this.drawTitle(x,u); Fade.draw(x,u); return; }
+    if(this.state===ST.TITLE){ this.drawTitle(x,u); if(Drama.active) Drama.draw(x,u); Fade.draw(x,u); return; }
     if(this.state===ST.MAP){ JourneyMap.draw(x,u); Fade.draw(x,u); return; }
     if(this.state===ST.ENDING){ this.drawEnding(x,u); Cinema.draw(x,u); Fade.draw(x,u); return; }
     if(!this.world) return;
@@ -6369,7 +7709,10 @@ const G = {
       }
     }
 
+    if(MiniGame.active){ MiniGame.draw(x,u); this.particles.draw(x,{ox:0,oy:0}); Fade.draw(x,u); return; }
     if(Cinema.active){ Cinema.draw(x,u); return; }
+    if(Drama.active){ Drama.draw(x,u); Fade.draw(x,u); return; }
+    if(Codex.active){ Codex.draw(x,u); return; }
     if(PauseMenu.active){ PauseMenu.draw(x,u); Fade.draw(x,u); return; }
     drawHUD(x,u);
     this.dlg.draw(x,u);
@@ -6440,6 +7783,7 @@ const G = {
     x.drawImage(S.walk[Math.floor(t/9)%4].r, Math.round(wx), VH-64);
     x.globalAlpha=1;
     if(PauseMenu.active){ PauseMenu.draw(x,u); return; }     // 메뉴가 열리면 타이틀 글자는 그리지 않는다
+    if(Drama.active) return;                                 // 서장 중에도 마찬가지
     drawText(u, L('gameTitle'), LANG==='ko'?34:28, VW/2, 108, '#f4ecd8','center');
     drawText(u, L('gameSub'), 13, VW/2, 148, '#c9a227','center');
     x.fillStyle='rgba(201,162,39,0.5)'; x.fillRect(VW/2-56, 166, 112, 1);
@@ -6505,6 +7849,33 @@ const POST = {
     }
   },
   ch3_rebuke:()=>{ G.actors.filter(a=>a.tag==='evang2').forEach(a=>a.hidden=true); },
+  /* 원작 보강 인물의 뒤처리 — 선택은 실제로 난이도를 바꾼다 */
+  ch6_formalist:(res)=>{
+    if(res==='wide'){
+      G.flags.tookGlance=true;
+      G.player.doubt=Math.min(100,G.player.doubt+10);
+      G.say('ch6_formalist_wide');
+    } else {
+      G.flags.keptRoad=true;
+      G.player.faith=Math.min(G.player.maxfaith,G.player.faith+14);
+      G.toast(LANG==='ko'?'길을 지켰다 (+14)':'You kept the road (+14)', '#5ec8f0');
+    }
+    G.actors.filter(a=>a.tag==='wallpair').forEach(a=>a.hidden=true);
+  },
+  ch12_flatterer:(res)=>{
+    if(res==='net'){
+      // 그물에 걸린다 — 진짜로 갇히고, 빠져나오려면 값을 치른다
+      G.flags.netted=true;
+      G.say('ch12_flatterer_net', ()=>{
+        G.player.hurt(2, G.player.cx+20);
+        G.player.doubt=Math.min(100,G.player.doubt+16);
+      });
+    } else {
+      G.player.faith=Math.min(G.player.maxfaith,G.player.faith+16);
+      G.say('ch12_flatterer_map');
+    }
+    G.actors.filter(a=>a.tag==='flatterer').forEach(a=>a.hidden=true);
+  },
   ch4_goodwill:()=>{ G.toast(L('t_toInterp'), '#ffe08a'); },
   ch4_interp:()=>{ G.toast(L('t_interpHint'), '#ffe08a'); },
   ch5_cross:()=>{},
@@ -6522,6 +7893,259 @@ const POST = {
   demas:(res)=>{ G.say(res==='dig'? 'demas_dig':'demas_pass'); },
   ch12_river:()=>{ G.toast(L('t_keepRight'), '#8ad0ff'); },
   ch12_end:()=>{}
+};
+
+</script>
+<script>
+/* ===== js/85_drama.js ===== */
+/* ============================================================
+   85_drama.js — 대형 초상 대화 (JRPG 이벤트 씬) + 인물별 목소리
+   양옆에 인물 반신을 크게 세우고 가운데 양피지 대화창을 띄운다.
+   ★ assets/portrait/<key>.webp 가 있으면 그 그림을 쓰고,
+     없으면 기존 픽셀 스프라이트를 크게 확대해 쓴다 (교체 준비 완료)
+   ============================================================ */
+'use strict';
+
+const BigPortrait = {
+  cache: {}, img: {}, tried: {},
+  load(key){
+    if(this.tried[key]) return;
+    this.tried[key] = true;
+    const im = new Image();
+    im.onload = ()=>{ this.img[key] = im; };
+    im.onerror = ()=>{};
+    im.src = `assets/portrait/${key}.webp`;
+  },
+  make(charKey, h){
+    const id = charKey + '@' + h;
+    if(this.cache[id]) return this.cache[id];
+    const S = ART.chars[charKey] || ART.chars.townsman;
+    const src = S.idle.r;
+    const cw = 26, ch = 26, sx = 4, sy = 0;      // 머리~허리
+    const scale = h / ch;
+    const c = makeCanvas(Math.round(cw*scale), Math.round(ch*scale));
+    const x = ctxOf(c);
+    x.imageSmoothingEnabled = false;
+    x.drawImage(src, sx, sy, cw, ch, 0, 0, c.width, c.height);
+    const g = x.createLinearGradient(0, c.height*0.62, 0, c.height);
+    g.addColorStop(0, 'rgba(7,6,12,0)'); g.addColorStop(1, 'rgba(7,6,12,0.92)');
+    x.fillStyle = g; x.fillRect(0, c.height*0.62, c.width, c.height*0.38);
+    this.cache[id] = c;
+    return c;
+  },
+  get(charKey, h){
+    this.load(charKey);
+    return this.img[charKey] || this.make(charKey, h);
+  }
+};
+
+const Drama = {
+  active:false, script:null, i:-1, onEnd:null,
+  text:'', shown:0, lines:[], name:'', holdT:0,
+  left:null, leftName:'', right:null, rightName:'', speaker:'',
+  choices:null, sel:0, fadeIn:0, bg:null, totalChars:0,
+
+  start(script, onEnd, opt){
+    this.active=true; this.script=script.slice(); this.i=-1;
+    this.onEnd=onEnd||null; this.choices=null; this.fadeIn=0;
+    this.left=null; this.right=null; this.leftName=''; this.rightName='';
+    this.bg = (opt && opt.bg) || null;
+    G.dialogueResult = null;
+    this.next();
+  },
+  next(){
+    this.i++;
+    if(this.i >= this.script.length){ this.finish(); return; }
+    const n = this.script[this.i];
+    if(n.act){ try{ n.act(G); }catch(e){} }
+    if(n.enter){
+      if(n.enter.side==='left'){ this.left=n.enter.who; this.leftName=n.enter.name||''; }
+      else { this.right=n.enter.who; this.rightName=n.enter.name||''; }
+      this.next(); return;
+    }
+    if(n.exit){ if(n.exit==='left') this.left=null; else this.right=null; this.next(); return; }
+    if(n.bg!==undefined){ this.bg = n.bg; this.next(); return; }
+    if(n.choice){
+      this.choices=n.choice; this.sel=0;
+      this.text=n.text||''; this.shown=this.text.length; this.relayout(); return;
+    }
+    if(n.text===undefined){ this.next(); return; }
+    this.speaker = n.who || '';
+    this.name = n.name || '';
+    this.text = n.text; this.shown = 0; this.holdT = 0;
+    this.relayout();
+  },
+  relayout(){ this.lines = wrapText(R.u, this.text, 13, VW-190); },
+  finish(){
+    this.active=false;
+    const cb=this.onEnd; this.onEnd=null;
+    if(cb) cb(G.dialogueResult);
+  },
+
+  update(){
+    if(!this.active) return;
+    if(this.fadeIn < 1) this.fadeIn = Math.min(1, this.fadeIn + 0.06);
+    if(this.choices){
+      if(Input.pressed('up')){ this.sel=(this.sel+this.choices.length-1)%this.choices.length; Audio2.sfx('select'); }
+      if(Input.pressed('down')){ this.sel=(this.sel+1)%this.choices.length; Audio2.sfx('select'); }
+      if(Input.pressed('interact')||Input.pressed('jump')||Input.pressed('attack')){
+        const ch=this.choices[this.sel];
+        Audio2.sfx('confirm');
+        G.dialogueResult = ch.val!==undefined? ch.val : this.sel;
+        if(ch.f) G.player.faithfulness += ch.f;
+        if(ch.act) ch.act(G);
+        this.choices=null; this.next();
+      }
+      return;
+    }
+    if(this.shown < this.text.length){
+      const fast = Input.down('interact')||Input.down('jump');
+      const before = Math.floor(this.shown);
+      this.shown = Math.min(this.text.length, this.shown + (fast? 4:0.9));
+      if(Math.floor(this.shown) > before && Math.floor(this.shown)%2===0) Voice.blip(this.speaker);
+    } else {
+      this.holdT++;
+      if((Input.pressed('interact')||Input.pressed('jump')||Input.pressed('attack')) && this.holdT>3) this.next();
+    }
+  },
+
+  draw(x,u){
+    if(!this.active) return;
+    const a = this.fadeIn;
+
+    /* 게임 캔버스 — 배경 장면만 */
+    if(this.bg && typeof SCENES!=='undefined' && SCENES[this.bg]){
+      const slot = Cinema.render(this.bg);
+      if(slot.drawn < 0 || (G.tick - slot.drawn) >= 4){
+        slot.x.setTransform(1,0,0,1,0,0); slot.x.clearRect(0,0,CW,CH);
+        try{ SCENES[this.bg].draw(slot.x, G.tick); }catch(e){}
+        slot.drawn = G.tick;
+      }
+      const src = Cinema.img[this.bg] || slot.c;
+      x.save(); x.imageSmoothingEnabled = true;
+      x.drawImage(src, 0, CH*0.06, CW, CH*0.72, 0, 0, VW, VH);
+      x.restore();
+    } else {
+      x.fillStyle='#0d0a16'; x.fillRect(0,0,VW,VH);
+    }
+
+    /* 이 아래는 전부 UI 캔버스에 그린다.
+       UI 캔버스가 게임 캔버스 위에 있으므로, 아래에 이미 그려진 글자(타이틀·HUD)를
+       여기서 한 번 덮고 그 위에 패널을 올려야 한다. */
+    u.save();
+    u.globalAlpha = 0.52*a; u.fillStyle='#0a0812'; u.fillRect(-2,-2,VW+4,VH+4); u.globalAlpha=1;
+    u.imageSmoothingEnabled = false;                 // 픽셀 초상은 또렷하게
+
+    const H = 168, baseY = VH - 2;
+    if(this.left){
+      const p = BigPortrait.get(this.left, H);
+      const w = Math.round(p.width * (H/p.height));
+      u.globalAlpha = a * (this.speaker===this.left? 1 : 0.55);
+      u.drawImage(p, -Math.round(w*0.22), baseY-H, w, H);
+      u.globalAlpha = 1;
+    }
+    if(this.right){
+      const p = BigPortrait.get(this.right, H);
+      const w = Math.round(p.width * (H/p.height));
+      u.save();
+      u.globalAlpha = a * (this.speaker===this.right? 1 : 0.55);
+      u.translate(VW + Math.round(w*0.22), baseY-H);
+      u.scale(-1,1);
+      u.drawImage(p, 0, 0, w, H);
+      u.restore();
+      u.globalAlpha = 1;
+    }
+    u.imageSmoothingEnabled = true;
+
+    /* 양피지 대화창 */
+    const bx = 76, bw = VW-152;
+    const bh = Math.max(64, this.lines.length*17 + (this.name? 40:24));
+    const by = VH - bh - 12;
+    u.globalAlpha = a;
+    u.fillStyle='rgba(0,0,0,0.5)';  u.fillRect(bx+3, by+3, bw, bh);
+    u.fillStyle='#d8d2c2';          u.fillRect(bx, by, bw, bh);
+    u.fillStyle='#f4f0e6';          u.fillRect(bx+2, by+2, bw-4, bh-4);
+    u.fillStyle='#bdb49c';
+    u.fillRect(bx+7, by+7, bw-14, 1); u.fillRect(bx+7, by+bh-8, bw-14, 1);
+    u.fillRect(bx+7, by+7, 1, bh-15); u.fillRect(bx+bw-8, by+7, 1, bh-15);
+    u.globalAlpha = 1;
+
+    /* 이름 · 본문 */
+    u.globalAlpha = a;
+    let ty = by + 12;
+    if(this.name){ drawText(u, this.name, 12, bx+22, ty, '#7a5f2e', 'left', false); ty += 19; }
+    let acc=0;
+    this.lines.forEach((line,i)=>{
+      const start=acc; acc+=line.length;
+      if(start >= this.shown) return;
+      const vis = line.slice(0, clamp(Math.floor(this.shown)-start, 0, line.length));
+      drawText(u, vis, 13, bx+22, ty + i*17, '#1e1810', 'left', false);
+    });
+    u.globalAlpha = 1;
+
+    /* 선택지 */
+    if(this.choices){
+      const cw = Math.max(...this.choices.map(c=>textWidth(u,c.t,13)))+40;
+      const chh = this.choices.length*20+12;
+      const cx0 = VW-cw-20, cy0 = by-chh-8;
+      u.fillStyle='rgba(0,0,0,0.5)'; u.fillRect(cx0+3, cy0+3, cw, chh);
+      u.fillStyle='#d8d2c2'; u.fillRect(cx0, cy0, cw, chh);
+      u.fillStyle='#f4f0e6'; u.fillRect(cx0+2, cy0+2, cw-4, chh-4);
+      this.choices.forEach((c,i)=>{
+        const yy = cy0+8+i*20;
+        if(i===this.sel){
+          u.fillStyle='rgba(150,116,44,0.20)'; u.fillRect(cx0+5, yy-2, cw-10, 18);
+          u.fillStyle='#8a6a2a'; u.fillRect(cx0+11, yy+5, 5,5);
+        }
+        drawText(u, c.t, 13, cx0+24, yy, i===this.sel? '#1e1810':'#6a6152', 'left', false);
+      });
+    } else if(this.shown >= this.text.length && Math.sin(this.holdT*0.16)>0){
+      u.fillStyle='#8a6a2a';
+      u.fillRect(bx+bw-24, by+bh-16, 6, 6); u.fillRect(bx+bw-23, by+bh-10, 4, 2);
+    }
+    u.restore();
+  }
+};
+
+/* ---------- 인물별 목소리 (합성) ----------
+   실제 성우 녹음은 나중에 얹는다. 지금은 인물마다 음색을 달리해
+   "누가 말하는지"를 귀로 구분하게 한다. (Undertale·동물의 숲 방식) */
+const Voice = {
+  profile: {
+    christian:  {base:420, type:'square',   spread:60, dur:0.045, vol:0.055},
+    evangelist: {base:210, type:'triangle', spread:26, dur:0.075, vol:0.060},
+    help:       {base:240, type:'square',   spread:30, dur:0.060, vol:0.055},
+    goodwill:   {base:260, type:'triangle', spread:30, dur:0.065, vol:0.055},
+    interpreter:{base:195, type:'sine',     spread:22, dur:0.085, vol:0.060},
+    shining:    {base:620, type:'sine',     spread:90, dur:0.090, vol:0.050},
+    faithful:   {base:380, type:'square',   spread:55, dur:0.048, vol:0.058},
+    hopeful:    {base:460, type:'triangle', spread:70, dur:0.048, vol:0.055},
+    wife:       {base:500, type:'triangle', spread:55, dur:0.050, vol:0.050},
+    child:      {base:660, type:'square',   spread:90, dur:0.038, vol:0.048},
+    worldly:    {base:170, type:'sawtooth', spread:20, dur:0.070, vol:0.055},
+    obstinate:  {base:185, type:'sawtooth', spread:24, dur:0.055, vol:0.058},
+    pliable:    {base:520, type:'square',   spread:80, dur:0.040, vol:0.050},
+    judge:      {base:140, type:'sawtooth', spread:16, dur:0.095, vol:0.062},
+    demas:      {base:300, type:'sawtooth', spread:40, dur:0.050, vol:0.055},
+    hawker:     {base:350, type:'sawtooth', spread:60, dur:0.042, vol:0.052},
+    timorous:   {base:480, type:'triangle', spread:90, dur:0.038, vol:0.046},
+    ignorance:  {base:400, type:'square',   spread:30, dur:0.055, vol:0.050},
+    shepherd:   {base:230, type:'triangle', spread:26, dur:0.070, vol:0.055},
+    discretion: {base:490, type:'triangle', spread:45, dur:0.052, vol:0.052},
+    prudence:   {base:450, type:'sine',     spread:40, dur:0.058, vol:0.052},
+    piety:      {base:530, type:'sine',     spread:48, dur:0.060, vol:0.050},
+    charity:    {base:430, type:'triangle', spread:50, dur:0.055, vol:0.054},
+    talkative:  {base:330, type:'square',   spread:110,dur:0.034, vol:0.052},
+    flatterer:  {base:290, type:'sine',     spread:18, dur:0.080, vol:0.052},
+    atheist:    {base:200, type:'sawtooth', spread:36, dur:0.060, vol:0.055},
+    _default:   {base:340, type:'square',   spread:45, dur:0.050, vol:0.050}
+  },
+  blip(who){
+    if(!Audio2.enabled || !Audio2.ctx) return;
+    const p = this.profile[who] || this.profile._default;
+    Audio2.tone({ freq: p.base + (Math.random()-0.5)*p.spread*2,
+                  type: p.type, dur: p.dur, vol: p.vol, atk: 0.004 });
+  }
 };
 
 </script>
