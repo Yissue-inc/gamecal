@@ -3911,6 +3911,48 @@ class Trigger extends Entity {
 
 /* ---------- 초상화 ---------- */
 const PORTRAITS = {};
+
+/*
+ * 외부 초상화 어셋은 코드 생성 초상 위에 얹는 선택적 레이어다.
+ * 이미지가 아직 없거나 로드에 실패하면 아래의 기존 픽셀 초상으로 즉시 폴백한다.
+ * 따라서 어셋을 한 장씩 추가해도 게임 시작·대화가 멈추지 않는다.
+ */
+const PORTRAIT_ASSET_MANIFEST = [
+  'christian-burden-neutral', 'christian-burden-fear', 'christian-burden-cry',
+  'christian-burden-resolve', 'christian-burden-despair', 'christian-burden-shame',
+  'christian-burden-strain', 'christian-robe-relief', 'christian-robe-joy',
+  'christian-armor-neutral', 'christian-armor-brave', 'christian-armor-hurt',
+  'christian-armor-grief', 'christian-armor-awe'
+];
+const PortraitAssets = {
+  img: {},
+  preload(){
+    PORTRAIT_ASSET_MANIFEST.forEach(id=>{
+      const im = new Image();
+      im.onload = ()=>{ this.img[id]=im; };
+      im.onerror = ()=>{};
+      im.src = `assets/portrait/${id}.webp`;
+    });
+  },
+  /* 챕터 진행으로 기본 표정을 자연스럽게 바꾼다. 개별 대사는 아래 폴백 초상을 계속 쓴다. */
+  hero(){
+    const p=G.player;
+    if(!p) return 'christian-burden-neutral';
+    if(p.armor && p.armor.plate){
+      if(G.chapter===9) return 'christian-armor-grief';
+      if(G.chapter>=11) return 'christian-armor-awe';
+      if(G.chapter===7 && G.boss) return p.hp<p.maxhp*0.45 ? 'christian-armor-hurt' : 'christian-armor-brave';
+      return 'christian-armor-neutral';
+    }
+    if(p.hasSword) return 'christian-armor-neutral';
+    if(!p.burden) return G.chapter===5 ? 'christian-robe-joy' : 'christian-robe-relief';
+    if(G.chapter===1) return 'christian-burden-despair';
+    if(G.chapter===2) return 'christian-burden-shame';
+    if(G.chapter===3) return 'christian-burden-resolve';
+    if(G.chapter===4) return 'christian-burden-strain';
+    return 'christian-burden-neutral';
+  }
+};
 function heroKey(){
   const p=G.player;
   if(!p) return 'christian';
@@ -3920,7 +3962,11 @@ function heroKey(){
   return 'christian';
 }
 function makePortrait(key){
-  if(key==='christian') key = heroKey();          // 주인공은 지금 모습 그대로
+  if(key==='christian'){
+    const external = PortraitAssets.img[PortraitAssets.hero()];
+    if(external) return external;
+    key = heroKey();                              // 이미지가 없으면 기존 초상으로
+  }
   if(PORTRAITS[key]) return PORTRAITS[key];
   const S = ART.chars[key];
   const src = S? S.idle.r : ART.chars.townsman.idle.r;
@@ -7961,8 +8007,11 @@ const BigPortrait = {
     return c;
   },
   get(charKey, h){
-    this.load(charKey);
-    return this.img[charKey] || this.make(charKey, h);
+    // 주인공은 진행 상태에 맞는 P0 표정 에셋을 큰 이벤트 초상에도 쓴다.
+    // 다른 인물은 파일이 없으면 원래 코드 생성 초상으로 그대로 돌아간다.
+    const externalKey = charKey==='christian' ? PortraitAssets.hero() : charKey;
+    this.load(externalKey);
+    return this.img[externalKey] || this.make(charKey, h);
   }
 };
 
@@ -9664,6 +9713,7 @@ function boot(){
   setTimeout(()=>{
     buildArt();
     Cinema.preload();
+    PortraitAssets.preload();
     Audio2.init();
     Input.init();
     fitCanvas();
