@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Gamepad2 } from 'lucide-react'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { MiniGameFrame } from '@/components/minigames/MiniGameFrame'
-import { MiniGameResultPanel, type MiniGameResult } from '@/components/minigames/MiniGameResultPanel'
+import { MiniGameResultPanel, type MiniGameResult, type MiniGameSaveState } from '@/components/minigames/MiniGameResultPanel'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import type { MiniGameManifest } from '@/lib/minigames'
@@ -39,9 +39,12 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
   const [started, setStarted] = useState(false)
   const [result, setResult] = useState<MiniGameResult | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
-  // Persistence is intentionally out of this first guest-play release. Keep
-  // the iframe URL SSR-stable so hydration never reloads the game mid-launch.
+  const [saveState, setSaveState] = useState<MiniGameSaveState>({ status: 'idle' })
+  // The iframe URL must stay SSR-stable so hydration never reloads the game
+  // mid-launch. The real session id is kept in a ref and used only by the APIs.
   const sessionId = 'guest'
+  const serverSessionRef = useRef<string | null>(null)
+  const pendingSaveRef = useRef<MiniGameResult | null>(null)
   const deviceIdRef = useRef<string | null>(null)
 
   const track = useCallback((name: string, properties: Record<string, unknown> = {}) => {
@@ -74,7 +77,82 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
   useEffect(() => {
     deviceIdRef.current = getDeviceId()
     track('opened')
-  }, [track])
+    let cancelled = false
+    // A session is created for guests too. A failure here must never block play.
+    void fetch('/api/minigames/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        miniGameSlug: game.slug,
+        eventId: eventId ?? null,
+        deviceId: deviceIdRef.current,
+        source: source ?? 'direct',
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.session?.id) return
+        serverSessionRef.current = data.session.id
+        track('session_started', { persisted: !!data.persisted, identity: data.identity ?? 'device' })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [eventId, game.slug, source, track])
+
+  const saveScore = useCallback(async (pending: MiniGameResult) => {
+    setSaveState({ status: 'saving' })
+    track('save_requested', { score: pending.score ?? null })
+    try {
+      const res = await fetch('/api/minigames/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: serverSessionRef.current,
+          miniGameSlug: game.slug,
+          eventId: eventId ?? null,
+          score: pending.score ?? 0,
+          rankLabel: pending.rankLabel ?? null,
+          durationMs: pending.durationMs ?? 0,
+          stats: pending.stats ?? {},
+        }),
+      })
+      const data = await res.json().catch(() => null)
+
+      if (res.status === 401 && data?.authRequired) {
+        pendingSaveRef.current = pending
+        setSaveState({ status: 'idle' })
+        track('auth_gate_hit')
+        setAuthOpen(true)
+        return
+      }
+      if (res.status === 503) {
+        setSaveState({ status: 'unavailable' })
+        return
+      }
+      if (!res.ok || !data?.score) {
+        setSaveState({ status: 'error', message: 'Could not save that run. Try again.' })
+        return
+      }
+      pendingSaveRef.current = null
+      setSaveState({
+        status: 'saved',
+        isPersonalBest: !!data.score.isPersonalBest,
+        best: Number(data.score.score ?? pending.score ?? 0),
+      })
+      track('score_saved', { score: data.score.score ?? null, personal_best: !!data.score.isPersonalBest })
+    } catch {
+      setSaveState({ status: 'error', message: 'Could not reach the server. Try again.' })
+    }
+  }, [eventId, game.slug, track])
+
+  // Signing in from the result panel finishes the save the guest already asked for.
+  useEffect(() => {
+    if (loading || isGuest || !user) return
+    const pending = pendingSaveRef.current
+    if (!pending) return
+    pendingSaveRef.current = null
+    void saveScore(pending)
+  }, [isGuest, loading, saveScore, user])
 
   useEffect(() => {
     sendContext()
@@ -107,11 +185,14 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
           score: typeof payload.score === 'number' ? payload.score : undefined,
           durationMs: typeof payload.durationMs === 'number' ? payload.durationMs : undefined,
           result: payload.result === 'win' || payload.result === 'lose' ? payload.result : 'complete',
+          rankLabel: typeof payload.rankLabel === 'string' ? payload.rankLabel : null,
           stats: payload.stats && typeof payload.stats === 'object' && !Array.isArray(payload.stats)
             ? payload.stats as Record<string, unknown>
             : undefined,
         }
         setResult(nextResult)
+        setSaveState({ status: 'idle' })
+        pendingSaveRef.current = nextResult
         track('completed', {
           score: nextResult.score ?? null,
           duration_ms: nextResult.durationMs ?? null,
@@ -139,6 +220,8 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
 
   const handlePlayAgain = useCallback(() => {
     setResult(null)
+    setSaveState({ status: 'idle' })
+    pendingSaveRef.current = null
     setStarted(false)
     setBridgeReady(false)
     setFrameKey((key) => key + 1)
@@ -146,9 +229,15 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
   }, [track])
 
   const handleSignIn = useCallback(() => {
-    track('auth_gate_opened')
+    track('auth_gate_hit')
     setAuthOpen(true)
   }, [track])
+
+  const handleSaveScore = useCallback(() => {
+    const pending = pendingSaveRef.current ?? result
+    if (!pending) return
+    void saveScore(pending)
+  }, [result, saveScore])
 
   const frameQuery = new URLSearchParams({
     ...(game.launchParams ?? {}),
@@ -193,9 +282,11 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
             gameTitle={game.title}
             scoreUnit={game.score.unit}
             isGuest={!loading && isGuest}
+            saveState={saveState}
             onPlayAgain={handlePlayAgain}
             onSignIn={handleSignIn}
-            onBackToCalendar={() => track('back_to_calendar')}
+            onSaveScore={handleSaveScore}
+            onBackToCalendar={() => track('calendar_return_clicked')}
           />
         ) : null}
       </main>

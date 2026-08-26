@@ -1,0 +1,15 @@
+{
+  "slug": "pilgrims-path",
+  "title": "The Pilgrim’s Path",
+  "description": "A playable Pilgrim’s Progress: carry the burden, lose it at the Cross, and cross the last river.",
+  "version": "1.0.0",
+  "entry": "/mini-games/pilgrims-path/index.html",
+  "thumbnail": "/mini-games/pilgrims-path/assets/cinematic/cross.webp",
+  "orientation": "responsive",
+  "input": ["tap", "keyboard", "pointer"],
+  "supportsGuest": true,
+  "requiresAuthFor": ["save_score", "claim_reward"],
+  "score": { "primaryMetric": "journey_progress", "higherIsBetter": true, "unit": "chapters" },
+  "calendar": { "allowedGameSlugs": [], "eventScoped": false },
+  "analyticsPrefix": "minigame_pilgrims_path"
+}
