@@ -241,15 +241,28 @@ const Save = {
 
 // ---------- 카메라 ----------
 class Camera {
-  constructor(){ this.x=0; this.y=0; this.tx=0; this.ty=0; this.shake=0; this.shakeT=0; this.bounds={w:VW,h:VH}; }
+  constructor(){
+    this.x=0; this.y=0; this.tx=0; this.ty=0; this.shake=0; this.shakeT=0; this.bounds={w:VW,h:VH};
+    this.zoom=1; this.zoomT=1;      // zoomT<1 이면 더 넓게 보인다 = 대상이 작아진다 = 압도된다
+  }
+  /* 줌을 반영한 실제 시야 크기 */
+  get viewW(){ return VW / this.zoom; }
+  get viewH(){ return VH / this.zoom; }
+  setZoom(z, instant){ this.zoomT = z; if(instant) this.zoom = z; }
   follow(t, lvw, lvh, instant){
-    this.tx = clamp(t.x + t.w/2 - VW/2, 0, Math.max(0, lvw - VW));
-    this.ty = clamp(t.y + t.h/2 - VH/2 - 12, 0, Math.max(0, lvh - VH));
+    const vw=this.viewW, vh=this.viewH;
+    this.tx = clamp(t.x + t.w/2 - vw/2, 0, Math.max(0, lvw - vw));
+    this.ty = clamp(t.y + t.h/2 - vh/2 - 12*this.zoom, 0, Math.max(0, lvh - vh));
     if(instant){ this.x=this.tx; this.y=this.ty; }
     else { this.x = lerp(this.x, this.tx, 0.14); this.y = lerp(this.y, this.ty, 0.10); }
   }
   addShake(n){ this.shake = Math.max(this.shake, n); }
-  update(){ if(this.shake>0){ this.shake *= 0.86; if(this.shake<0.15) this.shake=0; } this.shakeT++; }
+  update(){
+    if(this.shake>0){ this.shake *= 0.86; if(this.shake<0.15) this.shake=0; }
+    this.zoom = lerp(this.zoom, this.zoomT, 0.055);
+    if(Math.abs(this.zoom-this.zoomT)<0.002) this.zoom=this.zoomT;
+    this.shakeT++;
+  }
   get ox(){ return Math.round(this.x + (this.shake? (Math.sin(this.shakeT*2.3)*this.shake):0)); }
   get oy(){ return Math.round(this.y + (this.shake? (Math.cos(this.shakeT*3.1)*this.shake):0)); }
 }
@@ -3301,7 +3314,7 @@ class Cart extends Enemy {
 /* ---------------- 보스: 아볼루온 ---------------- */
 class Apollyon extends Entity {
   constructor(x,y){
-    super(x,y,60,76);
+    super(x,y,78,104);          // 플레이어(24px)의 4배 넘는 키 — 마주 서면 압도된다
     this.maxhp=210; this.hp=this.maxhp;
     this.lastPhase=0; this.smokeT=0;
     this.phase=0; this.name='아볼루온';
@@ -3434,19 +3447,20 @@ class Apollyon extends Entity {
   draw(x,cam){
     const set=ART.boss.apollyon[this.phaseIdx];
     const f=set[this.frame%set.length];
-    const img=this.facing<0? f.l : f.r;
-    const dx=Math.round(this.cx-img.width/2-cam.ox), dy=Math.round(this.y+this.h-img.height-cam.oy);
-    if(this.state==='charge' && this.stateT<26 && (this.stateT>>1)%2===0){
-      x.drawImage(tintCanvas(img,'#ff4020',1), dx, dy);
-    } else if(this.flash>0) x.drawImage(tintCanvas(img,'#ffffff',1),dx,dy);
-    else x.drawImage(img,dx,dy);
+    let img=this.facing<0? f.l : f.r;
+    const S=1.35;                                    // 스프라이트도 같이 키운다
+    const w=Math.round(img.width*S), h=Math.round(img.height*S);
+    const dx=Math.round(this.cx-w/2-cam.ox), dy=Math.round(this.y+this.h-h-cam.oy);
+    if(this.state==='charge' && this.stateT<26 && (this.stateT>>1)%2===0) img=tintCanvas(img,'#ff4020',1);
+    else if(this.flash>0) img=tintCanvas(img,'#ffffff',1);
+    x.drawImage(img, dx, dy, w, h);
   }
 }
 
 /* ---------------- 보스: 절망 거인 ---------------- */
 class GiantDespair extends Entity {
   constructor(x,y){
-    super(x,y,46,90);
+    super(x,y,58,118);          // 이름 그대로 거인이어야 한다
     this.maxhp=180; this.hp=this.maxhp;
     this.name='절망 거인';
     this.state='idle'; this.stateT=0; this.cool=70;
@@ -3526,9 +3540,12 @@ class GiantDespair extends Entity {
   draw(x,cam){
     const set=ART.boss.despair[this.phaseIdx];
     const f=set[this.frame%set.length];
-    const img=this.facing<0?f.l:f.r;
-    const dx=Math.round(this.cx-img.width/2-cam.ox), dy=Math.round(this.y+this.h-img.height-cam.oy);
-    x.drawImage(this.flash>0?tintCanvas(img,'#ffffff',1):img, dx, dy);
+    let img=this.facing<0?f.l:f.r;
+    const S=1.30;
+    const w=Math.round(img.width*S), h=Math.round(img.height*S);
+    const dx=Math.round(this.cx-w/2-cam.ox), dy=Math.round(this.y+this.h-h-cam.oy);
+    if(this.flash>0) img=tintCanvas(img,'#ffffff',1);
+    x.drawImage(img, dx, dy, w, h);
   }
 }
 class Rock extends Projectile {
@@ -5606,6 +5623,34 @@ class FireWall extends Entity {
   }
 }
 
+/* 게임 안에서 쓰는 시네마틱 연출 — 컷신을 띄우지 않고도 장면을 만든다.
+   레터박스 · 느린 화면 · 카메라 이동 · 줌을 한 번에 묶는다. */
+const Staging = {
+  bars:0, barsT:0, slow:0, focus:null, focusT:0,
+  /* opt: {bars, zoom, slow, focusOn, hold} */
+  begin(opt){
+    opt=opt||{};
+    this.barsT = opt.bars===false? 0 : 1;
+    if(opt.zoom!==undefined) G.cam.setZoom(opt.zoom);
+    this.slow = opt.slow||0;
+    this.focus = opt.focusOn||null;
+    this.focusT = opt.hold||0;
+  },
+  end(){ this.barsT=0; this.slow=0; this.focus=null; this.focusT=0; G.cam.setZoom(1); },
+  update(){
+    this.bars = lerp(this.bars, this.barsT, 0.12);
+    if(this.bars<0.01 && this.barsT===0) this.bars=0;
+    if(this.slow>0) this.slow--;
+    if(this.focusT>0){ this.focusT--; if(this.focusT===0) this.focus=null; }
+  },
+  get active(){ return this.bars>0.01; },
+  draw(x){
+    if(this.bars<=0.01) return;
+    const h = Math.round(24*this.bars);
+    x.fillStyle='#000'; x.fillRect(0,0,VW,h); x.fillRect(0,VH-h,VW,h);
+  }
+};
+
 /* ============================================================ */
 const G = {
   state:ST.BOOT,
@@ -5686,6 +5731,8 @@ const G = {
     this.companions = this.companions.filter(c=>c.alive!==false);
     this.companions.forEach(c=>{ c.x=this.player.x-20; c.y=this.player.y; c.trail=[]; });
 
+    Staging.end(); Staging.bars=0;
+    this.cam.setZoom(1, true);
     this.cam.follow(this.player, this.world.pxw, this.world.pxh, true);
     if(this.scene===0){ ChapterCard.show(chNum(ci), chTitle(ci), chSub(ci)); GCBridge.chapter(ci); }
     this.objective = ci;
@@ -5744,12 +5791,14 @@ const G = {
   },
   burdenFalls(){
     this.cutscene=true;
+    Staging.begin({bars:true, zoom:1.35, slow:110});   // 가까이 · 느리게
     Audio2.stop(); Audio2.sfx('burden');
     this.burdenAnim={t:0, x:this.player.cx, y:this.player.y+4, vx:1.4, vy:-1.2};
     this.cam.addShake(3);
     setTimeout(()=>{
       this.player.burden=false;
       this.freeze=0;
+      Staging.end();
       Audio2.play('cross');
       this.say('ch5_after');
     }, 2200);
@@ -5821,7 +5870,9 @@ const G = {
     Audio2.play('boss'); Audio2.sfx('roar');
     this.cam.addShake(10);
     this.hitStop(14);
-    this.bossIntro = 96;                      // 등장 동안 카메라가 보스를 비춘다
+    this.bossIntro = 130;                     // 등장 동안 카메라가 보스를 비춘다
+    this.cam.setZoom(0.62);                   // 뒤로 물러나 전신을 보여준다 — 크기가 실감난다
+    Staging.begin({bars:true, slow:40});
     // 위압 — 마주 선 것만으로 믿음이 깎인다
     this.player.faith = Math.max(0, this.player.faith - 6);
     this.particles.burst(this.boss.cx, this.boss.cy, 26, {color:'#2a1020', spd:2.6, life:44, size:4, shrink:true});
@@ -5830,7 +5881,10 @@ const G = {
   hitStop(n){ this.freeze = Math.max(this.freeze||0, n); },
   onBossDefeat(b){
     this.boss=null; this.flags.arenaLock=null;
+    this.cam.setZoom(1);
     this.hitStop(26); this.cam.addShake(9);
+    Staging.begin({bars:true, slow:90, zoom:0.9});
+    setTimeout(()=>Staging.end(), 2600);
     this.particles.burst(b.cx, b.cy, 60, {color:'#fff2c0', spd:3.4, life:70, size:3, glow:true, grav:-0.02, shrink:true});
     Audio2.sfx('glory');
     if(b instanceof Apollyon){ this.say('ch8_win', ()=>{ this.nextScene(); }); }
@@ -5935,6 +5989,9 @@ const G = {
   update(){
     this.tick=(this.tick||0)+1;
     if(Cinema.active){ Cinema.update(); this.particles.update(); return; }
+    Staging.update();
+    // 느린 화면 — 결정적인 순간을 늘려 준다
+    if(Staging.slow>0 && (this.tick % 3)!==0){ this.cam.update(); return; }
     Fade.update();
     ChapterCard.update();
     this.cam.update();
@@ -6107,6 +6164,9 @@ const G = {
       this.bossIntro--;
       const mid={x:(p.x+this.boss.cx)/2-20, y:this.boss.y, w:40, h:40};
       this.cam.follow(mid, this.world.pxw, this.world.pxh);
+      if(this.bossIntro===0){ this.cam.setZoom(0.82); Staging.barsT=0; }   // 싸울 만큼만 당긴다. 여전히 크다.
+    } else if(Staging.focus){
+      this.cam.follow(Staging.focus, this.world.pxw, this.world.pxh);
     } else if(this.dlg.active){
       // 대화창이 주인공을 가리지 않도록 시야를 위로 (빠르게 붙는다)
       const t={x:p.x, y:p.y-46, w:p.w, h:p.h};
@@ -6196,6 +6256,19 @@ const G = {
     if(this.state===ST.ENDING){ this.drawEnding(x,u); Cinema.draw(x,u); Fade.draw(x,u); return; }
     if(!this.world) return;
 
+    // 줌 — 1 미만이면 화면이 넓어져 상대가 압도적으로 커 보인다
+    const Z = this.cam.zoom;
+    const zoomed = Math.abs(Z-1) > 0.001;
+    if(zoomed){
+      x.save();
+      x.translate(VW/2, VH/2); x.scale(Z, Z); x.translate(-VW/2, -VH/2);
+      // 줌 아웃하면 화면 밖이 비므로 배경색으로 채운다
+      const th=THEMES[this.world.theme];
+      x.fillStyle = th? th.sky[0] : '#000';
+      const pad = (1/Z - 1) * VW / 2 + 8;
+      x.fillRect(-pad, -pad, VW+pad*2, VH+pad*2);
+    }
+
     this.world.draw(x, this.cam);
 
     // 뒤쪽 오브젝트
@@ -6225,6 +6298,10 @@ const G = {
     if(this.fireWall) this.fireWall.draw(x,this.cam);
     // 파티클
     this.particles.draw(x,this.cam);
+
+    if(zoomed) x.restore();     // 여기서부터는 화면 좌표 (HUD·연출)
+
+    Staging.draw(x);            // 레터박스
 
     // 진행 방향 안내 (오래 멈춰 있을 때만)
     if(this.idleT>200 && !this.boss){
@@ -6673,6 +6750,13 @@ dream: {
   ken: [[0.52,0.55,1.14],[0.48,0.46,1.0]],
   cap: ['어느 날 나는 이상한 꿈을 꾸었다.\n낡은 옷을 입은 소년이 자기 집을 등지고 서 있었다.',
         'One night I had a strange dream.\nA boy in worn clothes stood with his back to his house.'],
+  act: {
+    key:'right', steps:1,
+    prompt:['눌러서 도시를 등지고 걷는다','Turn your back on the city and walk'],
+    reject:[['아직 발이 떨어지지 않는다','Your feet will not move yet'],
+            ['뒤를 돌아봐도 달라지는 건 없다','Looking back changes nothing']],
+    doneCap:['소년은 도시를 등지고 첫 걸음을 뗐다.','The boy turned his back on the city and took the first step.']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#1b0f18'],[0.42,'#5e2318'],[0.72,'#a8481f'],[1,'#e08a3c']]);
     x.fillRect(0,0,CW,CH);
@@ -6714,6 +6798,12 @@ evangelist: {
   ken: [[0.42,0.5,1.0],[0.58,0.46,1.12]],
   cap: ['"그 빛에서 눈을 떼지 마. 계속 가면 문이 나와."',
         '"Don’t take your eyes off it. Keep going and you’ll find the gate."'],
+  act: {
+    key:'interact', steps:1, fx:'light',
+    prompt:['눌러서 저 빛을 본다','Look at that light'],
+    reject:[['전도자가 가리키는 쪽을 봐야 한다','You need to look where he is pointing']],
+    doneCap:['"…어렴풋이 보이는 것 같아요."','"...I think I see it."']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#0d1424'],[0.5,'#1d3350'],[0.82,'#4a6b86'],[1,'#8fb3c4']]);
     x.fillRect(0,0,CW,CH);
@@ -6781,8 +6871,16 @@ pliable: {
 /* 4. 도움의 손 */
 helphand: {
   ken: [[0.5,0.56,1.16],[0.5,0.48,1.02]],
-  cap: ['"손 줘!"\n한 사람이 손을 뻗어 단단한 땅으로 끌어올렸다.',
-        '"Give me your hand!"\nSomeone reached down and pulled him onto solid ground.'],
+  cap: ['"손 줘!"\n빛이 쏟아지는 곳에서 손 하나가 내려왔다.',
+        '"Give me your hand!"\nA hand came down out of the light.'],
+  act: {
+    key:'up', steps:1, fx:'light',
+    prompt:['눌러서 손을 잡는다','Take the hand'],
+    reject:[['혼자 힘으로는 못 나온다','You cannot get out on your own'],
+            ['버둥거릴수록 더 깊이 빠진다','Struggling only sinks you deeper'],
+            ['손을 뻗어야 한다','You have to reach up']],
+    doneCap:['크리스천은 손을 뻗었고, 그 손이 그를 끌어올렸다.','Christian reached up, and the hand pulled him out.']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#4a5f42'],[0.36,'#27341f'],[0.74,'#141d12'],[1,'#090f08']]);
     x.fillRect(0,0,CW,CH);
@@ -6888,6 +6986,14 @@ sinai: {
   ken: [[0.46,0.4,1.05],[0.52,0.56,1.22]],
   cap: ['"발이 안 떨어져… 저 산이 나를 덮치겠어!"',
         '"My feet won’t move... That mountain is going to fall on me!"'],
+  act: {
+    key:'left', steps:2,
+    prompt:['눌러서 물러난다','Back away'],
+    reject:[['앞으로 가면 산 밑이다','Forward is straight under the mountain'],
+            ['여기서 버틸 수는 없다','You cannot stand your ground here']],
+    stepCap:[['한 걸음. 바위가 바로 옆에 떨어진다.','One step. A boulder lands beside him.']],
+    doneCap:['크리스천은 왔던 길로 물러났다. 지름길은 지름길이 아니었다.','Christian backed away the way he came. The shortcut was no shortcut.']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#1a1420'],[0.4,'#3a2a2c'],[1,'#6b4530']]);
     x.fillRect(0,0,CW,CH);
@@ -6936,6 +7042,15 @@ wicket: {
   ken: [[0.42,0.5,1.08],[0.56,0.52,1.0]],
   cap: ['"맞더라도 두드려야 해!"\n문 위에 쓰여 있었다 — "두드려라. 그러면 열린다."',
         '"Even if I get hit — I have to knock!"\nAbove the gate: "Knock, and it will open."'],
+  act: {
+    key:'interact', steps:3, fx:'knock',
+    prompt:['눌러서 문을 두드린다','Knock on the gate'],
+    reject:[['화살을 피해도 문은 안 열린다','Dodging arrows will not open it'],
+            ['두드리라고 쓰여 있다','It says: knock']],
+    stepCap:[['한 번. 문 안쪽에서 아무 소리도 나지 않는다.','Once. No sound from inside.'],
+             ['두 번. 화살이 어깨를 스친다. 그래도 손을 멈추지 않는다.','Twice. An arrow grazes his shoulder. He does not stop.']],
+    doneCap:['세 번째. 안에서 빗장 풀리는 소리가 났다.','The third time — a latch slid open inside.']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#12182c'],[0.55,'#2a3350'],[1,'#5b6a86']]);
     x.fillRect(0,0,CW,CH);
@@ -7000,8 +7115,18 @@ wicket: {
 cross: {
   ken: [[0.5,0.62,1.24],[0.5,0.44,1.0]],
   hold: 1.5,
-  cap: ['끈이 툭 풀렸다.\n짐은 데굴데굴 굴러 무덤 안으로 떨어졌고, 다시는 보이지 않았다.',
-        'The strap came loose with a snap.\nThe load rolled down into the tomb — and was never seen again.'],
+  cap: ['언덕 위에 십자가가 서 있었다.\n짐은 아직 등에 있다.',
+        'A cross stood on the hilltop.\nThe load is still on his back.'],
+  act: {
+    key:'pray', steps:1, fx:'burden',
+    rejectKeys:['interact','jump','attack','skill','dash'],
+    prompt:['눌러서 기도한다','Pray'],
+    reject:[['끈을 잡아당겨 본다. 꿈쩍도 하지 않는다.','He pulls at the strap. It does not budge.'],
+            ['이로 끊어 보려 한다. 안 된다.','He tries to tear it. Nothing.'],
+            ['5장 동안 지고 온 짐이다. 손으로는 안 된다.','He has carried it for five chapters. Hands are not enough.'],
+            ['…내 힘으로 벗을 수 있는 짐이 아니었다.','...This was never a load he could take off himself.']],
+    doneCap:['크리스천은 십자가 앞에 무릎을 꿇었다. 그 순간 끈이 툭 풀렸다.','Christian knelt at the cross. In that moment the strap came loose.']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#2a1738'],[0.34,'#6b3550'],[0.62,'#c4703f'],[0.86,'#f0b45e'],[1,'#ffdca0']]);
     x.fillRect(0,0,CW,CH);
@@ -7049,6 +7174,14 @@ shining: {
   ken: [[0.5,0.5,1.0],[0.5,0.48,1.1]],
   cap: ['"이 옷을 입어. 이마에 이 표를 받아. 이 두루마리를 가져."',
         '"Put on these clothes. Take this mark. Take this scroll."'],
+  act: {
+    key:'interact', steps:3, fx:'light',
+    prompt:['눌러서 받는다','Receive'],
+    reject:[['받으려면 손을 내밀어야 한다','You have to hold out your hands']],
+    stepCap:[['첫째가 흰 옷을 입혀 주었다.','The first one clothed him in white.'],
+             ['둘째가 이마에 표를 찍어 주었다.','The second one set a mark on his forehead.']],
+    doneCap:['셋째가 두루마리를 건네며 말했다. "천성 문에서 이걸 보여 줘."','The third handed him a scroll. "Show this at the gate."']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#1c2340'],[0.5,'#3a4a72'],[1,'#8a9ec0']]);
     x.fillRect(0,0,CW,CH);
@@ -7245,6 +7378,15 @@ valley: {
   ken: [[0.5,0.5,1.16],[0.5,0.5,1.0]],
   cap: ['오른쪽은 깊은 구덩이, 왼쪽은 바닥 없는 늪.\n무언가가 귀에 대고 속삭였다.',
         'A deep pit on the right, a bottomless bog on the left.\nSomething whispered in his ear.'],
+  act: {
+    key:'pray', steps:3,
+    prompt:['눌러서 기도한다','Pray'],
+    reject:[['달아나도 속삭임은 따라온다','Running does not shake the whisper'],
+            ['칼로 벨 수 있는 것이 아니다','This is not something a sword can cut']],
+    stepCap:[['"네 왕은 너를 잊었어" — 아니다.','"Your King forgot you" — no.'],
+             ['"이 길은 처음부터 없었어" — 아니다.','"This road never existed" — no.']],
+    doneCap:['"이것도 네 생각이야" — 아니다. 이건 내 생각이 아니다.','"This one is your own thought too" — no. This is not mine.']
+  },
   draw(x,t){
     x.fillStyle='#05050a'; x.fillRect(0,0,CW,CH);
     // 등불
@@ -7296,8 +7438,15 @@ valley: {
 /* 11. 신실의 불수레 */
 chariot: {
   ken: [[0.5,0.66,1.14],[0.5,0.36,1.0]],
-  cap: ['군중 뒤로 불수레가 내려와 신실을 태우고 하늘로 올라갔다.\n신실이 먼저 도착한 것이다.',
-        'A chariot of fire came down, took Faithful up into the sky.\nFaithful had arrived first.'],
+  cap: ['신실은 갔다. 크리스천은 땅만 보고 있었다.\n군중이 흩어지는 소리가 들렸다.',
+        'Faithful was gone. Christian stared at the ground.\nThe crowd began to scatter.'],
+  act: {
+    key:'up', steps:1, fx:'light',
+    prompt:['눌러서 올려다본다','Look up'],
+    reject:[['땅만 보고 있으면 아무것도 못 본다','Staring at the ground shows you nothing'],
+            ['군중은 이미 흩어지고 있다','The crowd is already scattering']],
+    doneCap:['고개를 들자 불수레가 보였다. 신실은 먼저 도착한 것이다.','He looked up and saw the chariot. Faithful had arrived first.']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#150c1e'],[0.4,'#3a1a28'],[0.75,'#7a2c22'],[1,'#1a0e14']]);
     x.fillRect(0,0,CW,CH);
@@ -7349,8 +7498,23 @@ chariot: {
 /* 12. 약속의 열쇠 */
 key: {
   ken: [[0.5,0.56,1.26],[0.5,0.5,1.04]],
-  cap: ['"내 가방에 열쇠가 있어. 이 성의 어떤 자물쇠도 여는 열쇠가."\n"…그걸 처음부터 갖고 있었다고?"',
-        '"There’s a key in my bag. It opens every lock in this castle."\n"...You had it the whole time?"'],
+  cap: ['빛도 물도 빵도 없는 지하. 문은 잠겨 있다.\n소망이 물었다. "너, 뭔가 갖고 있지 않아?"',
+        'A cellar with no light, no water, no bread. The door is locked.\nHopeful asked, "Don\u2019t you have something?"'],
+  act: {
+    key:'menu', steps:1, fx:'light',
+    rejectKeys:['interact','jump','attack','pray'],
+    prompt:['눌러서 가방을 연다','Open your bag'],
+    reject:[['문을 밀어도 열리지 않는다','Pushing the door does nothing'],
+            ['기도했다. 그리고 무언가 떠올랐다.','He prayed. And something came to mind.'],
+            ['…가방. 가방을 열어 봐.','...The bag. Open the bag.']],
+    doneCap:['품에서 열쇠를 꺼냈다. 십자가에서 받은 것이었다.','He drew out the key. It was the one he was given at the Cross.']
+  },
+  after(G){                      // 컷신이 끝나면 진짜 가방이 열린다
+    if(G.player && G.player.items.key && G.flags.inPrison){
+      G.flags.keyHinted = true;
+      PauseMenu.active = true; PauseMenu.tab = 1;
+    }
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#06060c'],[0.6,'#0e0c16'],[1,'#151220']]);
     x.fillRect(0,0,CW,CH);
@@ -7388,8 +7552,15 @@ key: {
 celestial: {
   ken: [[0.5,0.62,1.0],[0.5,0.34,1.2]],
   hold: 2.0,
-  cap: ['문이 열렸다. 안에서 나팔 소리가 났다.\n"잘 왔다. 이제 함께 기뻐하자."',
-        'The gate opened. Trumpets sounded inside.\n"Well done. Come and share the joy."'],
+  cap: ['강을 건넜다. 금빛 문 앞에 섰다.\n문은 아직 닫혀 있다.',
+        'They crossed the river and stood before the golden gate.\nIt is still shut.'],
+  act: {
+    key:'interact', steps:1, fx:'light',
+    prompt:['눌러서 두루마리를 내민다','Hold out your scroll'],
+    reject:[['문은 두드려서 열리지 않는다','This gate does not open by knocking'],
+            ['가진 것을 내어놓아야 한다','You have to hold out what you were given']],
+    doneCap:['두루마리를 내밀자 문이 열렸다. 안에서 나팔 소리가 났다.','He held out the scroll. The gate opened, and trumpets sounded inside.']
+  },
   draw(x,t){
     x.fillStyle = grad(x,0,0,0,CH,[[0,'#ffd873'],[0.32,'#ffe9a8'],[0.66,'#fff5d2'],[1,'#fffaf0']]);
     x.fillRect(0,0,CW,CH);
@@ -7433,11 +7604,35 @@ celestial: {
 };
 
 /* ============================================================
-   재생기
+   재생기 — 컷신은 "보는 것"이 아니라 "하는 것"이다.
+   각 장면은 끝에서 특정 입력을 기다린다(act). 엉뚱한 걸 누르면 대답한다.
+   ★ 20초가 지나면 무조건 통과시킨다 — 아이를 컷신에 가두지 않는다.
    ============================================================ */
+
+/* 화면에 보여줄 키 이름. 터치 기기에서는 가상 패드 버튼 이름으로 바꾼다. */
+const KEYCAP = {
+  pray:     ['Q', '기도', 'Pray'],
+  interact: ['E', '확인', 'Talk'],
+  jump:     ['Space', '점프', 'Jump'],
+  attack:   ['X', '공격', 'Attack'],
+  up:       ['↑', '▲', '▲'],
+  down:     ['↓', '▼', '▼'],
+  left:     ['←', '◀', '◀'],
+  right:    ['→', '▶', '▶'],
+  menu:     ['I', '메뉴', 'Menu'],
+  skill:    ['V', '약속', 'Arrow']
+};
+function keycap(action){
+  const k = KEYCAP[action] || [action, action, action];
+  if(Input.touch) return LANG==='ko'? k[1] : k[2];
+  return k[0];
+}
+
 const Cinema = {
   active:false, id:null, t:0, dur:0, phase:'in', onDone:null,
   cache:{}, img:{}, shownChars:0, lines:[], skipHint:0,
+  act:null, actStep:0, actT:0, actDone:false, rejectIdx:0, rejectMsg:null, rejectT:0,
+  flash:0, capOverride:null,
 
   /* 실제 일러스트가 있으면 그걸 쓴다 */
   preload(){
@@ -7456,54 +7651,116 @@ const Cinema = {
     this.cache[id] = {c, x, drawn:-1};
     return this.cache[id];
   },
+  setCaption(text){
+    this.lines = text.split('\n');
+    this.totalChars = text.replace(/\n/g,'').length;
+    this.shownChars = 0;
+  },
 
   play(id, onDone){
     if(!SCENES[id]){ if(onDone) onDone(); return; }
     this.active=true; this.id=id; this.t=0; this.phase='in';
     this.onDone = onDone || null;
-    this.shownChars = 0; this.skipHint = 0;
+    this.skipHint = 0; this.fade = undefined; this.flash = 0;
     const sc = SCENES[id];
-    const capText = (LANG==='ko')? sc.cap[0] : sc.cap[1];
-    this.lines = capText.split('\n');
-    this.totalChars = capText.replace(/\n/g,'').length;
+    this.setCaption((LANG==='ko')? sc.cap[0] : sc.cap[1]);
     this.dur = 150 + this.totalChars*1.6 + (sc.hold? sc.hold*60 : 0);
+    // 액션 게이트
+    this.act = sc.act || null;
+    this.actStep = 0; this.actT = 0; this.actDone = !sc.act;
+    this.rejectIdx = 0; this.rejectMsg = null; this.rejectT = 0;
     Audio2.sfx('door');
   },
   finish(){
     this.active=false;
+    const sc = SCENES[this.id];
     const cb=this.onDone; this.onDone=null;
+    if(sc && sc.after){ try{ sc.after(G); }catch(e){} }
     if(cb) cb();
   },
+
+  /* 요구한 입력을 기다린다 */
+  updateAct(){
+    const a = this.act;
+    this.actT++;
+    if(this.rejectT>0) this.rejectT--;
+
+    // 요구한 입력
+    if(Input.pressed(a.key)){
+      this.actStep++;
+      this.flash = a.fx==='burden'? 1.0 : 0.55;
+      const steps = a.steps || 1;
+      if(a.stepCap && this.actStep < steps){
+        const cap = a.stepCap[Math.min(this.actStep-1, a.stepCap.length-1)];
+        this.setCaption(LANG==='ko'? cap[0] : cap[1]);
+        this.shownChars = this.totalChars;   // 단계 캡션은 바로 보여준다
+      }
+      if(a.onStep){ try{ a.onStep(this.actStep, G); }catch(e){} }
+      Audio2.sfx(a.fx==='burden'? 'burden' : a.fx==='light'? 'item' : a.fx==='knock'? 'door' : 'confirm');
+      if(this.actStep >= steps){
+        this.actDone = true;
+        this.actT = 0;
+        if(a.doneCap){
+          const c = a.doneCap;
+          this.setCaption(LANG==='ko'? c[0] : c[1]);
+        }
+      }
+      return;
+    }
+    // 엉뚱한 입력 — 대답해 준다
+    const rk = a.rejectKeys || ['interact','jump','attack'];
+    if(a.reject && rk.some(k=> k!==a.key && Input.pressed(k))){
+      const line = a.reject[Math.min(this.rejectIdx, a.reject.length-1)];
+      this.rejectMsg = LANG==='ko'? line[0] : line[1];
+      this.rejectT = 220;      // 아이가 읽을 시간 (약 3.7초)
+      this.rejectIdx++;
+      Audio2.sfx('deny');
+      return;
+    }
+    // 20초가 지나면 통과 — 아무도 갇히지 않는다
+    if(this.actT > 1200){ this.actDone = true; this.actT = 0; }
+  },
+
   update(){
     if(!this.active) return;
     this.t++;
     this.skipHint++;
-    if(this.shownChars < this.totalChars){
-      this.shownChars += (Input.down('interact')||Input.down('jump'))? 3.2 : 0.85;
-    }
-    const skip = Input.pressed('interact')||Input.pressed('jump')||Input.pressed('attack')||Input.pressed('menu');
-    if(skip && this.t>26){
-      if(this.shownChars < this.totalChars){ this.shownChars = this.totalChars; }
-      else { this.phase='out'; }
-    }
-    if(this.t > this.dur && this.shownChars>=this.totalChars) this.phase='out';
+    if(this.flash>0) this.flash = Math.max(0, this.flash-0.045);
+
     if(this.phase==='out'){
       this.fade = (this.fade===undefined? 0 : this.fade) + 0.055;
       if(this.fade>=1){ this.fade=undefined; this.finish(); }
+      return;
     }
+
+    // 캡션 타이핑
+    if(this.shownChars < this.totalChars){
+      this.shownChars += (Input.down('interact')||Input.down('jump'))? 3.2 : 0.85;
+      return;
+    }
+
+    // 액션 게이트 — 여기서는 스킵이 통하지 않는다
+    if(!this.actDone){ this.updateAct(); return; }
+
+    // 액션이 끝난 뒤 잠깐 여운
+    if(this.act && this.actT < 46){ this.actT++; return; }
+
+    const skip = Input.pressed('interact')||Input.pressed('jump')||Input.pressed('attack');
+    if((skip && this.t>26) || this.t > this.dur) this.phase='out';
   },
+
   draw(x,u){
     if(!this.active) return;
     const sc = SCENES[this.id];
     const t = this.t;
 
-    // 프레임 갱신 — 매 프레임 1280×720 을 다시 그리면 무거우므로 3프레임에 한 번
+    // 프레임 갱신 — 3프레임에 한 번
     const slot = this.render(this.id);
     if(slot.drawn < 0 || (t - slot.drawn) >= 3){
       slot.x.setTransform(1,0,0,1,0,0);
       slot.x.clearRect(0,0,CW,CH);
       try{ sc.draw(slot.x, t); }
-      catch(err){                                   // 한 장면이 깨져도 게임은 계속된다
+      catch(err){
         slot.x.fillStyle='#0d0a14'; slot.x.fillRect(0,0,CW,CH);
         if(!this.warned){ this.warned=true; console.error('cinema draw failed:', this.id, err); }
       }
@@ -7511,17 +7768,15 @@ const Cinema = {
     }
     const source = this.img[this.id] || slot.c;
 
-    // 켄번즈 — 시작/끝 사이를 부드럽게
+    // 켄번즈
     const p = clamp(this.t / Math.max(60, this.dur*0.9), 0, 1);
     const e = p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
     const k0 = sc.ken? sc.ken[0] : [0.5,0.5,1.06];
     const k1 = sc.ken? sc.ken[1] : [0.5,0.5,1.0];
     const cx = lerp(k0[0],k1[0],e), cy = lerp(k0[1],k1[1],e), z = lerp(k0[2],k1[2],e);
 
-    // letterbox 안쪽 영역
     const barH = 26;
     const viewH = VH - barH*2;
-    const sw = CW/z, sh = (CH/z) * (viewH/VH) * (VH/viewH);   // 비율 유지
     const srcW = CW/z, srcH = srcW * (viewH/VW);
     const sx = clamp(cx*CW - srcW/2, 0, Math.max(0,CW-srcW));
     const sy = clamp(cy*CH - srcH/2, 0, Math.max(0,CH-srcH));
@@ -7530,6 +7785,14 @@ const Cinema = {
     x.imageSmoothingEnabled = true;
     x.drawImage(source, sx, sy, srcW, srcH, 0, barH, VW, viewH);
     x.restore();
+
+    // 성공 섬광
+    if(this.flash>0){
+      x.globalCompositeOperation='lighter';
+      x.globalAlpha = this.flash*0.7;
+      x.fillStyle='#fff6d8'; x.fillRect(0, barH, VW, viewH);
+      x.globalAlpha=1; x.globalCompositeOperation='source-over';
+    }
 
     // 레터박스
     x.fillStyle='#000'; x.fillRect(0,0,VW,barH); x.fillRect(0,VH-barH,VW,barH);
@@ -7540,7 +7803,7 @@ const Cinema = {
     if(this.phase==='out') a = Math.max(a, this.fade||0);
     if(a>0){ x.globalAlpha=a; x.fillStyle='#000'; x.fillRect(0,0,VW,VH); x.globalAlpha=1; }
 
-    // 캡션 (고해상도 UI 레이어)
+    // 캡션
     if(t>20){
       const boxH = this.lines.length*17 + 16;
       const by = VH - barH - boxH - 8;
@@ -7555,9 +7818,47 @@ const Cinema = {
         drawText(u, vis, 13, 24, by+9+i*17, '#f2ecdc');
       });
       u.globalAlpha=1;
+
+      // ── 액션 프롬프트 ──
+      if(this.act && !this.actDone && this.shownChars>=this.totalChars){
+        const cap = keycap(this.act.key);
+        const label = LANG==='ko'? this.act.prompt[0] : this.act.prompt[1];
+        const text = `[${cap}] ${label}`;
+        const steps = this.act.steps || 1;
+        const w = textWidth(u, text, 13) + 34 + (steps>1? steps*11 : 0);
+        const px_ = VW/2 - w/2, py = by - 30;
+        const pulse = 0.62 + Math.sin(this.actT*0.09)*0.28;
+        // 시간이 지나면 더 또렷해진다
+        const urgency = clamp((this.actT-260)/300, 0, 1);
+        x.fillStyle=`rgba(20,16,10,${0.82+urgency*0.15})`; x.fillRect(px_, py, w, 24);
+        x.fillStyle=`rgba(201,162,39,${pulse+urgency*0.3})`;
+        x.fillRect(px_, py, w, 1); x.fillRect(px_, py+23, w, 1);
+        x.fillRect(px_, py, 1, 24); x.fillRect(px_+w-1, py, 1, 24);
+        u.globalAlpha = 0.8 + pulse*0.2;
+        drawText(u, text, 13, px_+16, py+4, '#ffe9a8');
+        u.globalAlpha = 1;
+        // 여러 번 눌러야 하면 남은 횟수를 점으로
+        if(steps>1){
+          for(let i=0;i<steps;i++){
+            x.fillStyle = i<this.actStep? '#ffe08a' : 'rgba(255,224,138,0.25)';
+            x.fillRect(px_+w-14-(steps-1-i)*11, py+9, 6, 6);
+          }
+        }
+      }
+      // ── 엉뚱한 입력에 대한 대답 ──
+      if(this.rejectT>0){
+        const msg = this.rejectMsg;
+        const w = textWidth(u, msg, 12) + 26;
+        const px_ = VW/2 - w/2, py = by - 58;
+        u.globalAlpha = clamp(this.rejectT/50, 0, 1);
+        x.globalAlpha = u.globalAlpha;
+        x.fillStyle='rgba(30,14,18,0.88)'; x.fillRect(px_, py, w, 20);
+        drawText(u, msg, 12, VW/2, py+3, '#e8a8a0', 'center');
+        u.globalAlpha=1; x.globalAlpha=1;
+      }
     }
-    // 건너뛰기 안내
-    if(this.skipHint>110){
+    // 건너뛰기 안내 — 액션 대기 중에는 숨긴다
+    if(this.skipHint>110 && this.actDone){
       u.globalAlpha = 0.45 + Math.sin(this.skipHint*0.06)*0.2;
       drawText(u, LANG==='ko'? '[Enter] 넘기기' : '[Enter] Skip', 10, VW-16, VH-barH-16, '#c9c2d8', 'right');
       u.globalAlpha=1;
