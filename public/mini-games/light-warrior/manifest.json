@@ -2,7 +2,7 @@
   "slug": "light-warrior",
   "title": "Warrior of Light",
   "description": "A playable gospel journey: gather, build, meet Jesus, and cross the bridge of light.",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "entry": "/mini-games/light-warrior/index.html",
   "thumbnail": "/mini-games/_bible-shared/assets/pixel-gospel/family-garden.webp",
   "orientation": "portrait",
