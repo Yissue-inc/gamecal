@@ -1457,6 +1457,16 @@ ls public/mini-games/_bible-shared/assets/ | grep -E '^index-.*\.(js|css|map)$' 
   | grep -vFf /tmp/used.txt        # ← 지울 목록. 눈으로 확인 후 삭제
 ```
 
+### 공유 브리지 보강 (모든 게임에 적용)
+
+`_shared/gamerclock-bridge.js` 의 READY 핸드셰이크를 고정 3회 펄스에서
+**컨텍스트가 올 때까지 400ms 간격 재시도**(최대 20초)로 바꿨다.
+
+부모 React 가 느리게 마운트되면 고정 펄스(120/500/1200ms)를 전부 놓치고,
+게임은 멀쩡히 돌아가는데 부모는 로딩 베일에 갇힌다 — §23 "Score never reaches parent"
+의 첫 번째 원인과 같은 뿌리다. 컨텍스트 수신 자체가 "부모가 듣고 있다"는 증거이므로
+그때 재시도를 멈춘다. 부모 없이 열린 페이지는 20초 뒤 알아서 멈춘다.
+
 ### 다음 (§22 Third PR)
 
 - 이벤트 상세/게임 허브 CTA

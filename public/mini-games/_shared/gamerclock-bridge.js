@@ -37,8 +37,15 @@
   })
 
   // An iframe can finish loading before its React parent installs the message
-  // listener. A few low-cost ready pulses make the guest launch reliable.
-  ;[120, 500, 1200].forEach(function (delay) {
-    window.setTimeout(function () { post('MINIGAME_READY') }, delay)
-  })
+  // listener. Fixed pulses lose that race on a slow mount, and the parent is
+  // then stuck on its loading veil over a game that is already running.
+  // Keep pulsing until context arrives — the parent only sends it once it is
+  // listening, so the arrival of context is the proof that the race is over.
+  var readyTimer = window.setInterval(function () {
+    if (context) { window.clearInterval(readyTimer); return }
+    post('MINIGAME_READY')
+  }, 400)
+  // Give up after 20s so a standalone/unparented page does not pulse forever.
+  window.setTimeout(function () { window.clearInterval(readyTimer) }, 20000)
+  post('MINIGAME_READY')
 })()
