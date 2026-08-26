@@ -29,7 +29,7 @@ export const MINI_GAMES: MiniGameManifest[] = [
     description: 'A playable Pilgrim’s Progress: carry the burden, lose it at the Cross, and cross the last river.',
     version: '1.1.0',
     entry: '/mini-games/pilgrims-path/index.html',
-    thumbnail: '/mini-games/pilgrims-path/assets/cinematic/cross.webp',
+    thumbnail: '/mini-games/assets/pilgrims-path-card-v1.webp',
     orientation: 'responsive',
     input: ['tap', 'keyboard', 'pointer'],
     supportsGuest: true,

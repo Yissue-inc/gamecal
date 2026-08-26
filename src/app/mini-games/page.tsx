@@ -9,6 +9,7 @@ import {
   Sparkles,
   Waves,
 } from 'lucide-react'
+import { MINI_GAMES } from '@/lib/minigames'
 
 export const metadata: Metadata = {
   title: 'Mini Games | GamerClock',
@@ -21,41 +22,49 @@ export const metadata: Metadata = {
   },
 }
 
-const games = [
-  {
-    title: 'Wave Village Fishing Log',
+const gameCardDetails = {
+  'wave-village-fishing': {
     eyebrow: 'COZY COLLECTION ADVENTURE',
-    description: 'Cast, reel in sea friends, build an aquarium, and uncover legendary catches.',
-    href: '/mini-games/wave-village-fishing/index.html',
     image: '/mini-games/assets/wave-village-fishing-card-v1.webp',
     imageAlt: 'Key art showing a fisher on a harbor pier above a glowing legendary fish',
     badge: 'NEW',
     accent: 'from-cyan-300 via-sky-400 to-blue-600',
     label: 'Play fishing adventure',
+    order: 1,
   },
-  {
-    title: 'Warrior of Light',
+  'light-warrior': {
     eyebrow: 'GENTLE QUEST',
-    description: 'A bright, playable journey of gathering, building, meeting friends, and crossing into light.',
-    href: '/mini-games/light-warrior/index.html?pixel=1&v=1.0.22',
     image: '/mini-games/assets/warrior-of-light-card-v1.webp',
     imageAlt: 'Key art showing a lantern-carrying adventurer in a golden village garden',
     badge: 'STORY MODE',
     accent: 'from-amber-200 via-orange-400 to-rose-500',
     label: 'Play Warrior of Light',
+    order: 2,
   },
-  {
-    title: 'Jonah’s Returning Journey',
+  'jonah-journey': {
     eyebrow: 'SEA STORY ADVENTURE',
-    description: 'Set sail through a stormy ocean, meet a giant fish, and find the way back.',
-    href: '/mini-games/jonah-journey/index.html?v=1.0.2',
     image: '/mini-games/assets/jonah-returning-journey-card-v1.webp',
     imageAlt: 'Key art showing a small sailboat beside a giant moonlit fish',
     badge: 'STORY MODE',
     accent: 'from-violet-300 via-indigo-500 to-cyan-500',
     label: 'Play Jonah’s Returning Journey',
+    order: 3,
   },
-]
+  'pilgrims-path': {
+    eyebrow: 'CHOICE-DRIVEN JOURNEY',
+    image: '/mini-games/assets/pilgrims-path-card-v1.webp',
+    imageAlt: 'Key art from The Pilgrim’s Path, showing the Cross in a cinematic pixel-art scene',
+    badge: 'NEW STORY',
+    accent: 'from-emerald-200 via-teal-400 to-sky-600',
+    label: 'Play The Pilgrim’s Path',
+    order: 4,
+  },
+} as const
+
+const games = MINI_GAMES
+  .map((game) => ({ ...game, card: gameCardDetails[game.slug as keyof typeof gameCardDetails] }))
+  .filter((game): game is typeof game & { card: (typeof gameCardDetails)[keyof typeof gameCardDetails] } => Boolean(game.card))
+  .sort((a, b) => a.card.order - b.card.order)
 
 export default function MiniGamesPage() {
   return (
@@ -110,7 +119,7 @@ export default function MiniGamesPage() {
               </a>
               <span className="inline-flex items-center gap-2 px-2 text-sm font-semibold text-slate-300">
                 <span className="size-2 rounded-full bg-emerald-300 shadow-[0_0_16px_#6ee7b7]" />
-                3 games available now
+                {games.length} games available now
               </span>
             </div>
           </div>
@@ -144,19 +153,19 @@ export default function MiniGamesPage() {
           {games.map((game, index) => (
             <article key={game.title} className="group relative overflow-hidden rounded-[26px] border border-white/10 bg-[#10192b] shadow-[0_22px_70px_rgba(0,0,0,.3)] transition duration-300 hover:-translate-y-1 hover:border-cyan-200/40 hover:shadow-[0_30px_88px_rgba(4,218,255,.14)]">
               <div className="relative aspect-[16/10] overflow-hidden">
-                <Image src={game.image} alt={game.imageAlt} fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover transition duration-700 group-hover:scale-110" />
-                <div className={`absolute inset-0 bg-gradient-to-t ${game.accent} opacity-55 mix-blend-overlay`} />
+                <Image src={game.card.image} alt={game.card.imageAlt} fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover transition duration-700 group-hover:scale-110" />
+                <div className={`absolute inset-0 bg-gradient-to-t ${game.card.accent} opacity-55 mix-blend-overlay`} />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#071021] via-transparent to-transparent" />
-                <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-slate-950/65 px-3 py-1.5 text-[10px] font-black tracking-[0.16em] text-white backdrop-blur">{game.badge}</span>
+                <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-slate-950/65 px-3 py-1.5 text-[10px] font-black tracking-[0.16em] text-white backdrop-blur">{game.card.badge}</span>
                 <span className="absolute bottom-4 left-4 text-4xl font-black tracking-tighter text-white/90">0{index + 1}</span>
               </div>
               <div className="p-5 sm:p-6">
-                <p className="text-[10px] font-black tracking-[0.17em] text-cyan-300">{game.eyebrow}</p>
+                <p className="text-[10px] font-black tracking-[0.17em] text-cyan-300">{game.card.eyebrow}</p>
                 <h3 className="mt-2 text-2xl font-black tracking-tight text-white">{game.title}</h3>
                 <p className="mt-3 min-h-14 text-sm leading-6 text-slate-300">{game.description}</p>
-                <Link href={game.href} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[.07] px-4 py-3 text-sm font-black text-white transition hover:border-cyan-200/70 hover:bg-cyan-200 hover:text-slate-950">
+                <Link href={`/play/${game.slug}?source=arcade`} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[.07] px-4 py-3 text-sm font-black text-white transition hover:border-cyan-200/70 hover:bg-cyan-200 hover:text-slate-950">
                   <Gamepad2 className="size-4" aria-hidden="true" />
-                  {game.label}
+                  {game.card.label}
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </div>
