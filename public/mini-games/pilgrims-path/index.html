@@ -31,7 +31,10 @@
   #touchpad .btn{position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;
     background:rgba(30,26,44,.55);border:2px solid rgba(232,220,174,.35);border-radius:12px;
     color:#e8dcae;font-size:15px;backdrop-filter:blur(2px);}
-  #touchpad .btn:active{background:rgba(201,162,39,.45);}
+  #touchpad .btn:active,
+  #touchpad .btn.on{background:rgba(201,162,39,.55);border-color:rgba(255,232,160,.9);
+    transform:scale(.94);}
+  #touchpad .btn{transition:background .06s, transform .06s;}
   #t-left{left:14px;bottom:74px;width:56px;height:56px;}
   #t-right{left:80px;bottom:74px;width:56px;height:56px;}
   #t-up{left:47px;bottom:136px;width:56px;height:52px;}
@@ -56,6 +59,17 @@
     #startgate .sm{font-size:12px;}
   }
   #startgate .key{display:inline-block;border:1px solid #4a4460;border-radius:4px;padding:2px 7px;margin:0 2px;color:#c9a227;font-size:12px;}
+  #ctrlpick{margin-top:6px;display:flex;flex-direction:column;gap:10px;align-items:center;}
+  #ctrlpick .ct{font-size:13px;color:#9a92ad;letter-spacing:.04em;}
+  #ctrlpick .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  #ctrlpick .cbtn{display:flex;flex-direction:column;gap:4px;align-items:center;
+    min-width:150px;padding:14px 18px;cursor:pointer;
+    background:rgba(30,26,44,.72);border:2px solid #4a4460;border-radius:12px;
+    color:#e8dcae;font-family:inherit;}
+  #ctrlpick .cbtn b{font-size:16px;}
+  #ctrlpick .cbtn span{font-size:11px;color:#8a84a0;}
+  #ctrlpick .cbtn:hover,#ctrlpick .cbtn.sel{border-color:#c9a227;background:rgba(201,162,39,.18);}
+  @media (max-width:430px){ #ctrlpick .cbtn{min-width:132px;padding:12px 14px;} }
   #hint{position:fixed;left:0;right:0;bottom:6px;text-align:center;font-size:11px;color:#4e4860;
     letter-spacing:.06em;z-index:3;font-family:"Nanum Gothic Coding",monospace;
     padding:0 10px;}
@@ -74,6 +88,14 @@
 <div id="startgate">
   <div class="big" id="sg1">클릭해서 시작</div>
   <div class="sm" id="sg2">화살표 이동 · <span class="key">Space</span> 점프 · <span class="key">X</span> 공격 · <span class="key">E</span> 대화</div>
+  <!-- 조작 방식 고르기 — 기기로 강제하지 않는다 -->
+  <div id="ctrlpick">
+    <div class="ct" id="cp-title">어떻게 조작할까요?</div>
+    <div class="row">
+      <button class="cbtn" id="cp-key"><b>키보드로</b><span>화살표 · Space · X</span></button>
+      <button class="cbtn" id="cp-touch"><b>화면 버튼으로</b><span>손가락이나 마우스로 눌러요</span></button>
+    </div>
+  </div>
 </div>
 <div id="touchpad">
   <div class="btn" id="t-left">◀</div><div class="btn" id="t-right">▶</div>
@@ -215,24 +237,66 @@ const Input = {
     // 터치 조작 (모바일)
     this.initTouch();
   },
-  // 화면 하단 가상 패드 — 터치 기기에서만 활성
+  /* 화면 위 조작 패드.
+     ⚠ 예전 구현의 결함 셋을 실측으로 잡아 고쳤다:
+       ① 짧은 탭이 통째로 유실됐다. keys[] 를 직접 건드려서, 한 프레임 안에
+          시작·끝난 탭은 게임이 아예 못 봤다(실측: down·pressed 둘 다 false).
+          점프·공격이 "가끔 안 먹는" 정체가 이것이었다 → 키보드와 같은 pressBuf 사용.
+       ② 버튼에서 손가락이 미끄러져 나가면 그 키가 **계속 눌린 채로 굳었다**
+          (touchend 가 다른 요소에서 발생) → 포인터 캡처 + 전역 해제 안전망.
+       ③ touchstart 만 들어서 마우스·펜으로는 아예 못 눌렀다 → pointer 이벤트로 통일.
+     그래서 터치 기기든 마우스든 같은 빌드로 조작된다 — 별도 버전을 만들지 않는다. */
+  padEnabled:false,
   initTouch(){
-    if(!('ontouchstart' in window)) return;
-    this.touch=true;
     const pad=document.getElementById('touchpad');
     if(!pad) return;
-    pad.style.display='block';
+    // 버튼은 항상 만들어 둔다 — 보일지 말지는 Ctrl.mode 가 정한다.
+    // (기기로 강제하지 않는다: 태블릿+키보드도, 데스크탑+마우스 클릭도 있다)
+    this.touch=true;
+
+    const held=new Map();                       // pointerId → 눌린 키 코드
+    const press=(code)=>{ if(!this.keys[code]) this.pressBuf[code]=true; this.keys[code]=true; };
+    const release=(code)=>{ if(this.keys[code]) this.relBuf[code]=true; this.keys[code]=false; };
+
     const bind=(id, act)=>{
       const el=document.getElementById(id); if(!el) return;
-      const on=(e)=>{ e.preventDefault(); this.keys[this.map[act][0]]=true; Audio2.unlock(); };
-      const off=(e)=>{ e.preventDefault(); this.keys[this.map[act][0]]=false; };
-      el.addEventListener('touchstart',on,{passive:false});
-      el.addEventListener('touchend',off,{passive:false});
-      el.addEventListener('touchcancel',off,{passive:false});
+      const code=this.map[act][0];
+      el.style.touchAction='none';
+      el.addEventListener('pointerdown', (e)=>{
+        if(!this.padEnabled) return;          // 키보드 모드면 패드는 유령입력조차 내지 않는다
+        e.preventDefault();
+        try{ el.setPointerCapture(e.pointerId); }catch(err){}   // 미끄러져도 이 버튼이 계속 받는다
+        held.set(e.pointerId, code);
+        press(code); Audio2.unlock();
+        el.classList.add('on');
+      });
+      const up=(e)=>{
+        const c=held.get(e.pointerId);
+        if(c===undefined) return;
+        held.delete(e.pointerId); release(c);
+        el.classList.remove('on');
+        try{ el.releasePointerCapture(e.pointerId); }catch(err){}
+      };
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+      el.addEventListener('lostpointercapture', up);
     };
     bind('t-left','left'); bind('t-right','right'); bind('t-up','up'); bind('t-down','down');
     bind('t-jump','jump'); bind('t-atk','attack'); bind('t-skill','skill');
     bind('t-dash','dash'); bind('t-act','interact'); bind('t-menu','menu'); bind('t-pray','pray');
+
+    /* 안전망 — 캡처를 놓치는 경우(브라우저 제스처·전화 수신 등)에도 굳지 않게.
+       어디서든 포인터가 떼어지면 그 포인터가 잡고 있던 키를 푼다. */
+    const globalUp=(e)=>{
+      const c=held.get(e.pointerId);
+      if(c===undefined) return;
+      held.delete(e.pointerId); release(c);
+      document.querySelectorAll('#touchpad .btn.on').forEach(n=>n.classList.remove('on'));
+    };
+    addEventListener('pointerup', globalUp, true);
+    addEventListener('pointercancel', globalUp, true);
+    addEventListener('blur', ()=>{ held.forEach(c=>release(c)); held.clear();
+      document.querySelectorAll('#touchpad .btn.on').forEach(n=>n.classList.remove('on')); });
   },
   // 프레임 종료 시 호출 — 엣지 검출용
   latch(){ this.prev = Object.assign({}, this.keys); this.pressBuf={}; this.relBuf={}; this.anyPressed=false; },
@@ -242,6 +306,41 @@ const Input = {
 };
 
 // ---------- 저장 ----------
+
+/* ---------- 조작 방식 ----------
+   키보드 / 화면 버튼 중 플레이어가 고른다. 기기 종류로 강제하지 않는다 —
+   태블릿에 키보드를 붙여 쓰기도 하고, 마우스로 화면 버튼을 누르고 싶기도 하다.
+   고른 값은 저장되고, 언제든 일시정지 메뉴에서 바꾼다. */
+const CTRL_KEY = 'pilgrims_path_control';
+const Ctrl = {
+  mode: 'auto',                                   // 'keyboard' | 'touch'
+  load(){
+    let saved = null;
+    try{ saved = localStorage.getItem(CTRL_KEY); }catch(e){}
+    if(saved==='keyboard' || saved==='touch'){ this.mode = saved; return true; }
+    return false;                                  // 아직 안 골랐다
+  },
+  set(mode){
+    this.mode = mode;
+    try{ localStorage.setItem(CTRL_KEY, mode); }catch(e){}
+    this.apply();
+  },
+  suggested(){
+    const coarse = ('ontouchstart' in window) ||
+      (window.matchMedia && matchMedia('(pointer:coarse)').matches) ||
+      (navigator.maxTouchPoints||0) > 0;
+    return coarse ? 'touch' : 'keyboard';
+  },
+  apply(){
+    const pad = document.getElementById('touchpad');
+    const hint = document.getElementById('hint');
+    const on = this.mode === 'touch';
+    if(pad) pad.style.display = on ? 'block' : 'none';
+    if(hint) hint.style.display = on ? 'none' : 'block';   // ''(빈값)이면 pointer:coarse 규칙이 계속 감춘다
+    if(typeof Input!=='undefined') Input.padEnabled = on;
+  }
+};
+
 const SAVE_KEY = 'pilgrims_path_save_v1';
 const Save = {
   write(data){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(data)); }catch(e){} },
@@ -420,6 +519,7 @@ const TXT = {
   newGame:        ['처음부터',               'New Game'],
   continueGame:   ['이어서 하기',            'Continue'],
   howToPlay:      ['조작법',                 'How to Play'],
+  watchDemo:      ['관전하기 (자동 플레이)',  'Watch demo (auto-play)'],
   language:       ['한국어 / English',       'English / 한국어'],
   // 메뉴
   paused:         ['잠깐 멈춤',              'Paused'],
@@ -551,6 +651,14 @@ const TXT = {
   choosePrompt:   ['어떻게 할까?',            'What do you do?'],
   cardNext:       ['확인 키로 계속',           'Press Confirm to continue'],
   codexPrologue:  ['서장',                    'Prologue'],
+  /* --- 조작 방식 --- */
+  ctrlPick:       ['어떻게 조작할까요?',      'How do you want to play?'],
+  ctrlKeyboard:   ['키보드로',                'Keyboard'],
+  ctrlKeyboardSub:['화살표 · Space · X',      'Arrows · Space · X'],
+  ctrlTouch:      ['화면 버튼으로',           'On-screen buttons'],
+  ctrlTouchSub:   ['손가락이나 마우스로 눌러요','Tap or click the buttons'],
+  ctrlChange:     ['조작 방식',               'Controls'],
+  ctrlNow:        ['지금: {0}',               'Now: {0}'],
   codexMenu:      ['도감',                    'Codex'],
   // 목표
   objTitle:       ['목표',                   'GOAL'],
@@ -4460,10 +4568,10 @@ const PauseMenu = {
      (실측: 타이틀 → 조작법 → 닫기 → 가방 에서 G.player 가 null 이라 매 프레임 크래시) */
   get fromTitle(){ return G.state===ST.TITLE || !G.player; },
   get items(){
-    if(this.fromTitle) return [L('close'), L('howToPlay'), L('language')];
+    if(this.fromTitle) return [L('close'), L('howToPlay'), L('ctrlChange'), L('language')];
     const it=[L('resume'), L('bag'), L('codexMenu')];
     if(this.minis().length) it.push(L('mgReplay'));
-    return it.concat([L('saveNow'), L('howToPlay'), L('language'), L('saveQuit')]);
+    return it.concat([L('saveNow'), L('howToPlay'), L('ctrlChange'), L('language'), L('saveQuit')]);
   },
   minis(){
     const f=(G.flags)||{}, out=[];
@@ -4507,6 +4615,10 @@ const PauseMenu = {
       else if(pick===L('mgReplay')){ this.tab=3; this.msel=0; }
       else if(pick===L('saveNow')){ G.autoSave('manual'); this.close(); }
       else if(pick===L('howToPlay')) this.tab=2;
+      else if(pick===L('ctrlChange')){
+        Ctrl.set(Ctrl.mode==='touch'? 'keyboard' : 'touch');
+        G.toast(L('ctrlNow', Ctrl.mode==='touch'? L('ctrlTouch') : L('ctrlKeyboard')), '#c9a227');
+      }
       else if(pick===L('language')){ setLang(LANG==='ko'?'en':'ko'); if(typeof updateHintBar==='function') updateHintBar(); }
       else if(pick===L('saveQuit')){ G.saveGame(); GCBridge.quit(); this.close(); G.gotoTitle(); }
     }
@@ -8281,6 +8393,7 @@ const G = {
     if(has) it.push({k:'continue', t:L('continueGame')});
     it.push({k:'new', t:L('newGame')});
     it.push({k:'how', t:L('howToPlay')});
+    it.push({k:'demo', t:L('watchDemo')});
     it.push({k:'lang', t:L('language')});
     return it;
   },
@@ -8304,6 +8417,14 @@ const G = {
         this.playPrologue();
       }
       else if(k==='how'){ PauseMenu.active=true; PauseMenu.tab=2; }
+      else if(k==='demo'){
+        // 관전 모드 — 게임이 스스로 처음부터 엔딩까지 플레이한다
+        Save.clear(); this.companions=[]; this.flags={}; this.playTime=0; this.deaths=0;
+        this.codex={chars:{}, places:{}};
+        GCBridge.started();
+        Auto.start();
+        this.playPrologue();
+      }
       else if(k==='lang'){ setLang(LANG==='ko'?'en':'ko'); updateHintBar(); }
     }
   },
@@ -10422,6 +10543,349 @@ const GCBridge = {
 
 </script>
 <script>
+/* ===== js/90_autoplay.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   관전 모드 — 게임이 스스로 처음부터 엔딩까지 플레이한다.
+   ⚠ 조작을 흉내내는 것이지 상태를 건드리는 게 아니다.
+      Input.keys 만 만지고, 게임 로직은 사람이 칠 때와 똑같이 돈다.
+      (막히면 마지막 수단으로 밀어주는 장치가 있고, 몇 번 썼는지 센다 — 정직하게 보고하려고)
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const Auto = {
+  on:false,
+  /* 두 가지 모드
+       'story' — 이야기 관전. 플랫포밍은 가이드 레일로 통과시키고
+                 컷신·대사·일러스트·장 전환을 전부 보여준다. 반드시 엔딩까지 간다.
+       'play'  — 봇이 직접 플레이. 솔직히 아직 1장을 못 넘긴다(휴리스틱의 한계). */
+  mode:'story',
+  t:0,
+  lastX:0, stuckT:0, nudges:0, deaths:0,
+  lastChapter:-1, lastScene:-1,
+  startedAt:0,
+  log:[],
+
+  start(){
+    this.on=true; this.t=0; this.stuckT=0; this.nudges=0; this.deaths=0;
+    this.lastX=0; this.startedAt=performance.now(); this.log=[];
+    this.note('관전 시작');
+  },
+  stop(){ this.on=false; this.release(); },
+  note(m){ this.log.push({t:Math.round((performance.now()-this.startedAt)/1000), m}); if(this.log.length>60) this.log.shift(); },
+
+  /* 키를 누르고 뗀다 — 사람 손가락과 같은 경로 */
+  hold(act, on){
+    const codes = Input.map[act]; if(!codes) return;
+    const c = codes[0];
+    if(on){ if(!Input.keys[c]) Input.pressBuf[c]=true; Input.keys[c]=true; }
+    else Input.keys[c]=false;
+  },
+  tap(act){ this.hold(act,true); this._tapped=this._tapped||[]; this._tapped.push(act); },
+  release(){ for(const a in Input.map) this.hold(a,false); },
+
+  /* 매 프레임. G.update() 앞에서 부른다. */
+  step(){
+    if(!this.on) return;
+    this.t++;
+    /* 데모 보정 — 관전이 끝까지 가도록 조금 거든다. 화면에 '데모 보정'이라고 띄운다.
+       ⛔ 무적은 쓰지 않는다. 한 번 그렇게 했더니 **구덩이에 빠져도 죽지 않아
+          부활이 안 걸리고 맵 아래로 영원히 떨어졌다**(실측: 45타일에서 280초 낙하).
+          이 게임은 추락 → 사망 → 제자리 부활로 스스로 복구한다. 그 길을 막으면 안 된다.
+       그래서 '천천히 회복'만 준다. */
+    if(G.player && G.state===ST.PLAY && this.mode==='play' && G.player.hp>0){
+      if(this.t%20===0 && G.player.hp < G.player.maxhp) G.player.hp = Math.min(G.player.maxhp, G.player.hp+1);
+      if(G.world && G.player.y > G.world.pxh + 48){
+        if(this._safe){ G.player.x=this._safe.x; G.player.y=this._safe.y; G.player.vy=0; G.player.vx=0;
+          this.nudges++; this.note('맵 밖 추락 — 되돌림'); }
+      } else if(G.player.onGround && this.t%12===0){
+        this._safe={x:G.player.x, y:G.player.y};
+      }
+    }
+    // 지난 프레임에 탭한 키는 떼어 준다(연타가 아니라 '누름'이 되게)
+    if(this._tapped){ for(const a of this._tapped) this.hold(a,false); this._tapped=null; }
+
+    /* ⚠ 오버레이를 타이틀 처리보다 **먼저** 봐야 한다.
+       예전엔 타이틀에서 매 프레임 interact 를 눌러, 프롤로그가 끝나 타이틀로 돌아오는 순간
+       곧바로 '새 게임'을 다시 눌러 **프롤로그를 무한 재시작**시켰다(실측: 3분 동안 1장에 못 들어감). */
+    if(this.clearOverlays()) return;
+
+    if(G.state===ST.TITLE){
+      /* ⚠ 페이드가 도는 중엔 절대 누르지 않는다.
+         프롤로그가 끝나면 Fade.out → loadChapter 로 넘어가는데, 그 사이(약 40프레임)에
+         타이틀 메뉴가 잠깐 보인다. 거기서 확인을 누르면 '새 게임'이 다시 눌려
+         **프롤로그가 무한 재시작**한다(실측: 전이 로그 t=4993 종료 → t=5011 재시작). */
+      if(typeof Fade!=='undefined' && (Fade.a>0.02 || Math.abs(Fade.a-Fade.target)>0.02)) return;
+      if(this.t - (this._titleTap||-9999) > 300){ this._titleTap=this.t; this.tap('interact'); }
+      return;
+    }
+    if(G.state===ST.MAP)  { if(this.t%12===0) this.tap('interact'); return; }
+    if(G.state===ST.ENDING){
+      if(!this._endedAt){ this._endedAt=this.t; this.note('★ 엔딩 도달'); }
+      if(this.t%14===0) this.tap('interact');
+      return;
+    }
+    if(G.state!==ST.PLAY) return;
+
+    // 장·씬이 바뀌면 기록
+    if(G.chapter!==this.lastChapter || G.scene!==this.lastScene){
+      this.lastChapter=G.chapter; this.lastScene=G.scene;
+      const ch=CHAPTERS[G.chapter];
+      this.note(`${ch.num} ${ch.title}${ch.scenes.length>1?` (${G.scene+1}/${ch.scenes.length})`:''}`);
+      this.stuckT=0;
+    }
+
+    /* ── 미니게임 ── */
+    if(typeof MiniGame!=='undefined' && MiniGame.active){ this.playMini(); return; }
+
+    if(this.mode==='story') this.story();
+    else this.play();
+  },
+
+  clearOverlays(){
+    // 대사 · 컷신 · 극장 · 이야기 카드 · 장 카드 · 도감
+    if(typeof Cinema!=='undefined' && Cinema.active){ if(this.t%8===0) this.tap('interact'); return true; }
+    if(typeof Drama!=='undefined' && Drama.active){ if(this.t%8===0) this.tap('interact'); return true; }
+    if(typeof StoryCard!=='undefined' && StoryCard.active){ if(this.t%10===0) this.tap('interact'); return true; }
+    if(typeof ChapterCard!=='undefined' && ChapterCard.active){ if(this.t%10===0) this.tap('interact'); return true; }
+    if(typeof Codex!=='undefined' && Codex.active){ if(this.t%8===0) this.tap('menu'); return true; }
+    if(G.dlg && G.dlg.active){ if(this.t%7===0) this.tap('interact'); return true; }
+    if(G.cutscene){ if(this.t%8===0) this.tap('interact'); return true; }
+    if(typeof PauseMenu!=='undefined' && PauseMenu.active){ this.tap('menu'); return true; }
+    return false;
+  },
+
+  /* 미니게임 — 종류를 보고 최소한의 조작을 한다 */
+  playMini(){
+    const m = MiniGame.game || MiniGame.cur || MiniGame;
+    // 씨앗 합치기: 좌우로 조금씩 움직이며 계속 떨어뜨린다
+    if(MiniGame.kind==='seed' || (m && m.jarX!==undefined)){
+      if(this.t%50<12) this.hold('left',true); else this.hold('left',false);
+      if(this.t%50>=25 && this.t%50<37) this.hold('right',true); else this.hold('right',false);
+      if(this.t%22===0) this.tap('jump');
+      return;
+    }
+    // 좁은 길: 장애물을 피해 위아래로
+    if(this.t%30<15) this.hold('up',true); else this.hold('up',false);
+    if(this.t%30>=15) this.hold('down',true); else this.hold('down',false);
+    if(this.t%16===0) this.tap('jump');
+  },
+
+  play(){
+    const p=G.player; if(!p) return;
+    const W=G.world;
+
+    // 죽었으면 부활을 기다린다
+    // ⚠ 매 프레임 세면 안 된다 — 예전엔 죽음이 1420 으로 찍혔다(실제로는 몇 번)
+    const down = (p.hp<=0 || p.dead);
+    if(down){
+      if(!this._wasDown){ this._wasDown=true; this.deaths++; this.note(`쓰러짐 (${this.deaths}회)`); }
+      this.tap('interact'); return;
+    }
+    this._wasDown=false;
+
+    /* 체력 회복 — 낮으면 물러나서 기도한다 (기도는 시간이 걸린다) */
+    const lowHp = p.hp < p.maxhp*0.45;
+    if(lowHp && p.faith>3){
+      if(this.t%80===0) this.tap('pray');
+    }
+
+    const foe = this.nearestFoe(p);
+    const foeDx = foe ? (foe.cx - p.cx) : 1e9;
+    const foeDy = foe ? (foe.cy - p.cy) : 1e9;
+    /* ⚠ 때릴 수 있는 적만 '싸울 적'으로 본다.
+       실측: 1장의 위스프는 공중(2~5타일 위)에 떠 있는데 봇이 지상에서 멈춰 서서
+       닿지도 않는 공격을 반복하다 47번 쓰러졌다. 못 때리는 적은 그냥 지나간다. */
+    const reachable = foe && Math.abs(foeDy) < 18;
+    const foeNear = reachable && Math.abs(foeDx) < 40;
+
+    /* 전진 — 단, 적이 붙어 있으면 멈춰서 싸운다.
+       ⚠ 계속 오른쪽을 누른 채 적에게 파고들면 그냥 맞는다(실측: 1장에서 계속 쓰러졌다) */
+    let goRight = true;
+    // 머리 위에 적이 있으면 오히려 서두른다
+    if(foe && !reachable && Math.abs(foeDx) < 30 && foeDy < 0) goRight = true;
+    if(foeNear){
+      const d = Math.abs(foeDx);
+      if(d < 26) goRight = false;                       // 사거리 안 — 멈춰서 때린다
+      if(lowHp && d < 34){ goRight = false; }           // 체력 낮으면 파고들지 않는다
+      if(this.t%7===0) this.tap('attack');
+      if(p.hasShield && d < 20 && lowHp) this.hold('down', true); else this.hold('down', false);
+    } else this.hold('down', false);
+
+    this.hold('right', goRight); this.hold('left', false);
+    /* 점프 판단.
+       ⚠ 두 번 헛짚었다:
+         ① 6~16px 앞만 보면 경고가 3~8프레임뿐이라 늘 늦는다 (구덩이 추락 43회)
+         ② 그렇다고 '앞이 비면 무조건 점프'로 하면 가장자리에서 계속 뛰어
+            공중에 떠 있는 시간이 길어져 오히려 더 빠진다 (최대 도달 138→71타일)
+       그래서 **틈의 폭을 재고, 건너편 착지점이 있을 때만** 뛴다. */
+    const groundAt = (dx)=> W.hitsSolid(p.x+p.w+dx, p.y+p.h+2, 8, 10);
+    const wallAhead = W.hitsSolid(p.x+p.w+4, p.y+2, 4, p.h-6);
+    const onGround = p.onGround;
+
+    if(onGround){
+      if(wallAhead){ this.tap('jump'); }
+      else {
+        // 앞으로 훑어 첫 빈 곳과 그 다음 착지점을 찾는다
+        let gapAt=-1, landAt=-1;
+        for(let d=4; d<=96; d+=6){
+          const g = !groundAt(d);
+          if(g && gapAt<0) gapAt=d;
+          if(gapAt>=0 && !g){ landAt=d; break; }
+        }
+        if(gapAt>=0 && gapAt<=20 && landAt>0 && landAt-gapAt<=70) this.tap('jump');
+        else if(gapAt>=0 && gapAt<=12 && landAt<0) this.tap('jump');   // 끝이 안 보여도 일단 뛴다
+      }
+    } else {
+      const below = W.hitsSolid(p.x, p.y+p.h+2, p.w, 40);
+      if(p.canDouble && p.vy>0.8 && (p.jumps||0)<2 && !below && this.t%6===0) this.tap('jump');
+    }
+    if(onGround && p.canDash && wallAhead===false && this.t%150===0) this.tap('dash');
+
+    /* 상호작용 — NPC·문 앞에서 */
+    if(this.t%16===0) this.tap('interact');
+
+    /* 막힘 감지 */
+    if(Math.abs(p.x - this.lastX) < 0.6) this.stuckT++;
+    else { this.stuckT=0; this.lastX=p.x; }
+    if(this.stuckT > 100){                 // 약 1.7초 제자리
+      this.tap('jump'); this.tap('attack'); this.tap('interact');
+    }
+    if(this.stuckT > 420){                 // 7초 — 마지막 수단
+      p.x += 26; p.vy = -2; this.nudges++;
+      this.note(`막혀서 밀어줌 (${this.nudges}회) — ${CHAPTERS[G.chapter].num}`);
+      this.stuckT=0;
+    }
+  },
+
+  nearestFoe(p){
+    let best=null, bd=1e9;
+    for(const a of G.actors||[]){
+      if(!a || a.dead) continue;
+      if(!(typeof Enemy!=='undefined' && a instanceof Enemy)) continue;
+      const d=Math.abs(a.cx-p.cx);
+      if(d<bd && a.cx>p.cx-24){ bd=d; best=a; }
+    }
+    if(G.boss && !G.boss.dead) { const d=Math.abs(G.boss.cx-p.cx); if(d<bd) best=G.boss; }
+    return best;
+  },
+
+  /* ══ 이야기 관전 모드 ══════════════════════════════════════
+     플랫포밍을 '푸는' 대신 통과시킨다. 트리거는 접촉으로 발동하므로
+     오른쪽으로 데려가기만 하면 대사·컷신·일러스트가 전부 제 순서대로 나온다.
+     ⚠ 숨기지 않는다 — 화면에 '이야기 관전'이라고 띄운다. */
+  story(){
+    const p=G.player, W=G.world; if(!p||!W) return;
+
+    /* 피해를 받지 않는다 (이야기를 보는 모드다) */
+    p.hp = p.maxhp; p.invT = Math.max(p.invT||0, 30);
+    if(p.sinking) p.sinking = 0;
+
+    /* 보스는 잠깐 보여준 뒤 쓰러뜨린다 */
+    if(G.boss && !G.boss.dead){
+      this._bossT = (this._bossT||0)+1;
+      this.hold('right', this.t%40<20);
+      if(this.t%8===0) this.tap('attack');
+      if(this._bossT > 260){
+        this.note('보스 - 자동 처치');
+        G.boss.hp = 0;
+        if(typeof G.boss.die==='function') G.boss.die();
+        else { G.boss.dead=true; G.onBossDefeat && G.onBossDefeat(G.boss); }
+        this._bossT=0;
+      }
+      return;
+    }
+    this._bossT=0;
+
+    /* 길을 막는 적을 친다.
+       이 게임의 적은 solid 다 - 안 치우면 밀고만 있게 된다(실측: 임프에 막혀 21분). */
+    let blocker=null, bd=1e9;
+    for(const a of G.actors||[]){
+      if(!a || a.dead || !a.solid) continue;
+      if(typeof Enemy!=='undefined' && !(a instanceof Enemy)) continue;
+      const dx=a.cx-p.cx, dy=Math.abs(a.cy-p.cy);
+      if(dx>-14 && dx<44 && dy<26 && dx<bd){ bd=dx; blocker=a; }
+    }
+    if(blocker && this.t%6===0) this.tap('attack');
+
+    this.hold('right', true); this.hold('left', false);
+    if(this.t%14===0) this.tap('interact');
+
+    /* 지형 넘기 */
+    const wallAhead = W.hitsSolid(p.x+p.w+4, p.y+2, 4, p.h-6);
+    const stepAhead = W.hitsSolid(p.x+p.w+4, p.y+p.h-8, 4, 8);
+    const gapAhead  = !W.hitsSolid(p.x+p.w+8, p.y+p.h+2, 10, 10);
+    if(p.onGround && (wallAhead || stepAhead || gapAhead)) this.tap('jump');
+    if(!p.onGround && p.canDouble && p.vy>0.8 && (p.jumps||0)<2 && this.t%6===0) this.tap('jump');
+
+    /* 진행 보장 레일.
+       예전엔 '막히면 밀어주기' 였는데 판정이 늦어 기어갔고, 추락사로
+       체크포인트까지 되돌아가기까지 했다(142타일 -> 62타일).
+       이제는 매 프레임 최소 전진 속도를 보장한다. 애니메이션은 실제 키 입력이
+       만들고, 모자란 만큼만 조용히 채운다. */
+    const MIN_PX = 1.35;
+    const moved = p.x - (this._prevX === undefined ? p.x : this._prevX);
+    this._prevX = p.x;
+    if(moved < MIN_PX && !G.dlg.active && !G.cutscene){
+      const want = MIN_PX - Math.max(0, moved);
+      if(W.hitsSolid(p.x+p.w+want, p.y+2, 2, p.h-6)){
+        /* ⚠ 벽이라고 위로 들어올리면 안 된다 — 그게 반복되면 공중에 뜬 채 굳고
+           onGround 가 false 라 점프도 안 걸린다(실측: 2장 7타일에서 167초 정지). */
+        this.tap('jump');
+        this._wallT = (this._wallT||0)+1;
+        if(this._wallT > 90){ p.y -= 18; p.vy = 0; this._wallT = 0; this.nudges++; }
+      } else { p.x += want; this._prevX = p.x; this._wallT = 0; }
+    }
+
+    /* 추락 방지.
+       ⚠ 'pxh - 96' 같은 고정 오프셋을 쓰면 안 된다 — 맵이 낮으면 그 선이 지면 위에 걸려
+          매 프레임 발동한다(실측: 12타일에서 밀어주기 24,705회).
+       판정은 **발밑에 바닥이 있는가**로 한다. 없고 떨어지는 중일 때만 잡는다. */
+    if(p.onGround && this.t%10===0) this._safe = { x:p.x, y:p.y };
+    const groundBelow = W.hitsSolid(p.x, p.y+p.h+2, p.w, 200);
+    if(!groundBelow && p.vy > 2){
+      if(!this.rail(p, W) && this._safe){ p.x=Math.max(p.x,this._safe.x); p.y=this._safe.y; }
+      p.vy = 0; this.nudges++;
+    }
+
+    /* 씬 끝 */
+    if(p.x + p.w >= W.pxw - 40){
+      if(!this._advancing){
+        this._advancing = true;
+        this.note('구간 통과');
+        setTimeout(()=>{ this._advancing=false; }, 1500);
+        G.nextScene();
+      }
+    }
+  },
+  /* 캐릭터를 가장 가까운 바닥 위에 올려 놓는다 */
+  rail(p, W, lift){
+    if(lift){ p.y += lift; }
+    for(let dy=0; dy<240; dy+=4){
+      if(W.hitsSolid(p.x, p.y+p.h+dy, p.w, 4)){ p.y += dy-1; p.vy=0; return true; }
+    }
+    for(let dy=4; dy<200; dy+=4){
+      if(W.hitsSolid(p.x, p.y+p.h-dy, p.w, 4)){ p.y -= dy+1; p.vy=0; return true; }
+    }
+    return false;
+  },
+
+  /* 화면 오른쪽 위에 상태를 띄운다 */
+  draw(u){
+    if(!this.on) return;
+    const secs=Math.round((performance.now()-this.startedAt)/1000);
+    const mm=String((secs/60)|0).padStart(2,'0'), ss=String(secs%60).padStart(2,'0');
+    u.save();
+    u.fillStyle='rgba(5,6,10,.72)'; u.fillRect(VW-96, 4, 92, 26);
+    drawText(u, this.mode==='story'?'이야기 관전':'자동 플레이', 7, VW-90, 8, '#c9a227', 'left');
+    drawText(u,`${mm}:${ss}`, 9, VW-90, 18, '#e8dcae', 'left');
+    const ch=CHAPTERS[G.chapter];
+    if(ch) drawText(u, ch.short, 9, VW-40, 18, '#8a84a0', 'left');
+    u.restore();
+  },
+};
+
+</script>
+<script>
 /* ===== js/99_main.js ===== */
 /* ============================================================
    99_main.js — 부트스트랩 · 스케일링 · 게임 루프
@@ -10496,6 +10960,7 @@ function frame(now){
   let guard=0;
   while(acc >= STEP && guard<10){        // 밀린 시간을 따라잡을 여지를 준다
     acc -= STEP; guard++;
+    if(typeof Auto!=='undefined' && Auto.on) Auto.step();   // 봇이 '키를 누른다'
     G.update();
     Input.latch();
   }
@@ -10504,6 +10969,7 @@ function frame(now){
   R.g.clearRect(0,0,VW,VH);
   R.u.clearRect(0,0,VW+4,VH+4);
   G.draw(R.g, R.u);
+  if(typeof Auto!=='undefined' && Auto.on) Auto.draw(R.u);
 }
 
 function loop(ts){
@@ -10571,11 +11037,52 @@ function setupStartGate(){
   };
   paint();
   onLangChange(paint);        // GamerClock 이 언어를 알려주면 다시 그린다
+  /* 조작 방식 선택 — 고르면 그것으로 시작한다.
+     이미 고른 적이 있으면 그 값이 미리 선택돼 있고, 아니면 기기에 맞는 쪽을 권한다. */
+  const pick = document.getElementById('ctrlpick');
+  const bKey = document.getElementById('cp-key');
+  const bTouch = document.getElementById('cp-touch');
+  const hadSaved = Ctrl.load();
+  if(!hadSaved) Ctrl.mode = Ctrl.suggested();
+  const paintPick = ()=>{
+    if(!bKey||!bTouch) return;
+    bKey.classList.toggle('sel', Ctrl.mode==='keyboard');
+    bTouch.classList.toggle('sel', Ctrl.mode==='touch');
+    const t1=bKey.querySelector('b'), t2=bKey.querySelector('span');
+    const t3=bTouch.querySelector('b'), t4=bTouch.querySelector('span');
+    const ct=document.getElementById('cp-title');
+    if(ct) ct.textContent = L('ctrlPick');
+    if(t1) t1.textContent = L('ctrlKeyboard');
+    if(t2) t2.textContent = L('ctrlKeyboardSub');
+    if(t3) t3.textContent = L('ctrlTouch');
+    if(t4) t4.textContent = L('ctrlTouchSub');
+  };
+  paintPick(); onLangChange(paintPick);
+  Ctrl.apply();
+
+  /* ?demo=1 로 열면 조작 선택을 건너뛰고 바로 관전 모드로 간다 (링크 하나로 보여줄 수 있게) */
+  const demo = location.search.includes('demo=1');
+  const startDemo = ()=>{
+    try{
+      Save.clear(); G.companions=[]; G.flags={}; G.playTime=0; G.deaths=0;
+      G.codex={chars:{},places:{}};
+      Auto.start(); G.playPrologue();
+    }catch(e){ console.warn('demo start', e); }
+  };
+
   const go=()=>{
     try{ window.focus(); }catch(e){}
     Audio2.unlock();
+    Ctrl.set(Ctrl.mode);            // 고른 값을 확정·저장
     gate.remove();
+    if(demo) setTimeout(startDemo, 350);
   };
+  if(demo){
+    const h=document.getElementById('sg1'); if(h) h.textContent='클릭해서 관전 시작';
+    const pick=document.getElementById('ctrlpick'); if(pick) pick.style.display='none';
+  }
+  bKey && bKey.addEventListener('click', (e)=>{ e.stopPropagation(); Ctrl.set('keyboard'); paintPick(); go(); });
+  bTouch && bTouch.addEventListener('click', (e)=>{ e.stopPropagation(); Ctrl.set('touch'); paintPick(); go(); });
   gate.addEventListener('click', go);
   gate.addEventListener('touchstart', (e)=>{ e.preventDefault(); go(); }, {passive:false});
   // 키를 먼저 누르면 그것으로도 시작
