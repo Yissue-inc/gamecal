@@ -4774,8 +4774,13 @@ const Codex = {
           const g2=x.createLinearGradient(fx,fy,fx,fy+fh);
           g2.addColorStop(0, tint); g2.addColorStop(1, '#100d1a');
           x.fillStyle=g2; x.fillRect(fx,fy,fw,fh);
-          x.fillStyle='#3e3654'; x.fillRect(fx,fy,fw,1); x.fillRect(fx,fy+fh-1,fw,1);
-          x.fillRect(fx,fy,1,fh); x.fillRect(fx+fw-1,fy,1,fh);
+          // 실물 액자가 있으면 그것을 두른다 (성향에 따라 금/철)
+          const frameArt = (typeof CodexArt!=='undefined') &&
+            CodexArt.get((al==='evil'||al==='boss')? 'codex-frame-iron' : 'codex-frame-gold');
+          if(!frameArt){
+            x.fillStyle='#3e3654'; x.fillRect(fx,fy,fw,1); x.fillRect(fx,fy+fh-1,fw,1);
+            x.fillRect(fx,fy,1,fh); x.fillRect(fx+fw-1,fy,1,fh);
+          }
           // 바닥 그림자
           x.fillStyle='rgba(0,0,0,0.45)';
           x.beginPath(); x.ellipse(fx+fw/2, fy+fh-14, 22, 5, 0, 0, Math.PI*2); x.fill();
@@ -4787,6 +4792,8 @@ const Codex = {
             x.drawImage(sp, Math.round(fx+fw/2-dw/2), Math.round(fy+fh-12-dh), dw, dh);
             x.restore();
           }
+          if(frameArt){ x.save(); x.imageSmoothingEnabled=true;
+            x.drawImage(frameArt, fx-6, fy-6, fw+12, fh+12); x.restore(); }
         } else {
           drawText(u, '?', 40, px+pw/2, 60, '#3a3448', 'center');
         }
@@ -4873,20 +4880,48 @@ const CODEX_DESC = {
    ============================================================ */
 'use strict';
 
+/* 장면 일러스트.
+   실제 배달 규격: assets/chapter/ch01-c.webp ~ ch12-c.webp
+     · 폴더는 chapter/ (scene/ 아님)
+     · 장 번호는 **두 자리 0 패딩**
+     · 막은 한 글자 — **a(도입) · b(중반) · c(결말)**
+   지금은 결말(c) 12장이 와 있고 a/b 24장은 제작 중이다.
+   없는 파일은 조용히 건너뛴다(빈 액자를 띄우지 않는다). */
 const SceneArt = {
   img:{}, tried:{}, missing:{},
-  key(ch, act){ return `ch${ch+1}-${act}`; },
+  ACT: {open:'a', mid:'b', close:'c'},
+  key(ch, act){ return `ch${String(ch+1).padStart(2,'0')}-${this.ACT[act]||act}`; },
   load(k){
     if(this.tried[k]) return;
     this.tried[k]=true;
     const im=new Image();
     im.onload  = ()=>{ this.img[k]=im; };
     im.onerror = ()=>{ this.missing[k]=true; };
-    im.src = `assets/scene/${k}.webp`;
+    im.src = `assets/chapter/${k}.webp`;
   },
   get(ch, act){ const k=this.key(ch,act); this.load(k); return this.img[k]||null; },
-  /* 그 장에 들어갈 때 세 장을 미리 받아 둔다 */
+  /* 그 장에 들어갈 때 세 막을 미리 받아 둔다 (없는 것은 404 한 번으로 끝) */
   prefetch(ch){ ['open','mid','close'].forEach(a=> this.load(this.key(ch,a))); }
+};
+
+
+/* 도감 액자 — assets/codex/ 아래.
+     codex-frame-gold : 만난 인물·장소
+     codex-frame-iron : 아직 못 만난 것
+     codex-locked     : 잠금 자리표시 */
+const CodexArt = {
+  img:{}, tried:{},
+  get(name){
+    if(!this.tried[name]){
+      this.tried[name]=true;
+      const im=new Image();
+      im.onload=()=>{ this.img[name]=im; };
+      im.onerror=()=>{};
+      im.src=`assets/codex/${name}.webp`;
+    }
+    const im=this.img[name];
+    return (im && im.naturalWidth)? im : null;
+  }
 };
 
 /* 장소 카드 — 도감 오른쪽에 쓴다 */
@@ -4969,12 +5004,63 @@ const StoryCard = {
    ============================================================ */
 'use strict';
 
+/* ── 미니게임 그림 ────────────────────────────────────────────
+   assets/minigame/ 아래 파일이 있으면 그것을 쓰고, 없으면 지금까지처럼
+   코드로 그린다. ⛔ 없는 파일은 두 번 요청하지 않는다(404 폭주 방지).
+     mg-seed-0 ~ mg-seed-6  512×512  일곱 열매 (투명)
+     mg-seed-jar            512×512  항아리
+     mg-run-bg              1920×270 골짜기 배경 (가로 타일링)
+     mg-run-wall            40×68    길을 막은 어둠의 무리
+     mg-run-lamp            512×512  길가 등불
+   ============================================================ */
+const MGArt = {
+  img:{}, tried:{}, fit:{},
+  get(name){
+    if(!this.tried[name]){
+      this.tried[name]=true;
+      const im=new Image();
+      im.onload=()=>{ this.img[name]=im; if(name.startsWith('mg-seed-')) this.measure(name, im); };
+      im.onerror=()=>{};
+      im.src=`assets/minigame/${name}.webp`;
+    }
+    const im=this.img[name];
+    return (im && im.naturalWidth)? im : null;
+  },
+
+  /* 그림마다 투명 여백이 다르다.
+     ⚠ 같은 배율로 그리면 여백이 적은 그림(무화과)은 크게, 많은 그림(보리알)은
+     작게 보여 물리 반지름과 어긋난다 — 실측: 무화과가 옆 보리알을 파고들었다.
+     그래서 불투명 영역을 한 번 재서, '내용물이 물리 지름에 맞도록' 배율을 잡는다. */
+  measure(name, im){
+    try{
+      const N=64;
+      const c=makeCanvas(N,N), g=ctxOf(c);
+      g.drawImage(im, 0, 0, N, N);
+      const d=g.getImageData(0,0,N,N).data;
+      let x0=N, y0=N, x1=-1, y1=-1;
+      for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+        if(d[(y*N+x)*4+3] > 24){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+      }
+      if(x1<0){ this.fit[name]={s:1, cx:0.5, cy:0.5}; return; }
+      const wFrac=(x1-x0+1)/N, hFrac=(y1-y0+1)/N;
+      this.fit[name]={
+        s: 1/Math.max(wFrac, hFrac),          // 내용물을 꽉 채우도록 키우는 배율
+        cx: ((x0+x1+1)/2)/N,                  // 내용물의 중심 (여백이 한쪽에 쏠린 경우 보정)
+        cy: ((y0+y1+1)/2)/N
+      };
+    }catch(e){ this.fit[name]={s:1, cx:0.5, cy:0.5}; }
+  },
+  prefetch(){ ['mg-seed-jar','mg-run-bg','mg-run-wall','mg-run-lamp']
+    .concat(SEEDS.map((_,i)=>'mg-seed-'+i)).forEach(n=>this.get(n)); }
+};
+
 /* ---------- 공통 껍데기 ---------- */
 const MiniGame = {
   active:false, kind:null, impl:null, onDone:null, outro:0, result:null,
   open(kind, onDone){
     this.kind=kind; this.onDone=onDone||null; this.outro=0; this.result=null;
     this.impl = (kind==='seed')? SeedGarden : NarrowRun;
+    MGArt.prefetch();
     this.impl.start();
     this.active=true;
     Audio2.sfx('confirm');
@@ -5152,6 +5238,28 @@ const SeedGarden = {
     x.save(); x.globalAlpha=0.28; x.fillStyle='#000';
     x.beginPath(); x.ellipse(bx, by+r*0.86, r*0.82, r*0.22, 0, 0, Math.PI*2); x.fill(); x.restore();
 
+    // 실물 그림이 있으면 그것으로 갈음한다
+    const artKey='mg-seed-'+b.t;
+    const art = MGArt.get(artKey);
+    if(art){
+      const f = MGArt.fit[artKey] || {s:1, cx:0.5, cy:0.5};
+      const d = r*2.06*f.s;                            // 내용물이 물리 지름과 맞도록
+      x.save(); x.imageSmoothingEnabled=true;
+      x.drawImage(art, bx-d*f.cx, by-d*f.cy, d, d);    // 내용물 중심을 공 중심에
+      x.restore();
+      if(b.t===SEEDS.length-1){                        // 생명나무 열매만 빛살을 덧입힌다
+        x.save(); x.globalCompositeOperation='lighter';
+        const halo=x.createRadialGradient(bx,by,r*0.5,bx,by,r*1.7);
+        halo.addColorStop(0,'rgba(255,240,180,0.26)'); halo.addColorStop(1,'rgba(255,230,150,0)');
+        x.fillStyle=halo; x.fillRect(bx-r*1.8, by-r*1.8, r*3.6, r*3.6);
+        for(let k=0;k<10;k++){ const a2=k*Math.PI/5 + t2*0.008, rr=r+5+Math.sin(t2*0.06+k)*3;
+          x.fillStyle='rgba(255,244,190,0.5)';
+          x.fillRect(bx+Math.cos(a2)*rr-1.5, by+Math.sin(a2)*rr-1.5, 3, 3); }
+        x.restore();
+      }
+      return;
+    }
+
     // 몸통 — 위에서 빛을 받는 구체
     const g=x.createRadialGradient(bx-r*0.34, by-r*0.40, r*0.08, bx, by, r*1.06);
     g.addColorStop(0, this.lighten(s[3], 46));
@@ -5276,6 +5384,11 @@ const SeedGarden = {
   drawJar(x){
     const L=this.L, R=this.R, T2=this.T, B=this.B;
     const w=R-L, oh=B-T2;
+    /* ⛔ mg-seed-jar 는 플레이 용기로 쓰지 않는다.
+       배달된 그림이 **씨앗이 이미 가득 그려진 장식 유리병**이라, 게임에서
+       떨어뜨린 씨앗과 그림 속 씨앗이 구분되지 않는다.
+       실측: 공을 0개로 비운 화면에서도 병 안에 열매 10개가 그대로 보였다.
+       빈 용기 버전이 오면 여기서 다시 쓴다(요청은 ASSET_SPEC 에). */
     // 손잡이
     x.strokeStyle='#7a4d33'; x.lineWidth=7; x.lineJoin='round';
     [[L-6,-1],[R+6,1]].forEach(([hx,d])=>{
@@ -5335,8 +5448,11 @@ const SeedGarden = {
     u.fillStyle='rgba(28,20,16,0.72)'; u.fillRect(10, 8, pw2, ph2);
     u.fillStyle='#8a6a3a'; u.fillRect(10, 8, pw2, 1); u.fillRect(10, 8+ph2-1, pw2, 1);
     u.fillRect(10, 8, 1, ph2); u.fillRect(10+pw2-1, 8, 1, ph2);
-    drawText(u, L('mgSeedTitle'), 15, 20, 13, '#f2e3a6');
-    drawText(u, L('mgScore'), 10, 20, 34, '#9a8f78');
+    const jarIcon = MGArt.get('mg-seed-jar');
+    if(jarIcon){ x.save(); x.imageSmoothingEnabled=true;
+      x.drawImage(jarIcon, 14, 6, 46, 46); x.restore(); }
+    drawText(u, L('mgSeedTitle'), 15, jarIcon? 66 : 20, 13, '#f2e3a6');
+    drawText(u, L('mgScore'), 10, jarIcon? 66 : 20, 34, '#9a8f78');
     drawText(u, ''+this.score, 14, 10+pw2-12, 31, '#ffe9b0', 'right');
     drawText(u, L('mgSeedHow'), 10, VW/2, VH-13, '#8f8699', 'center');
 
@@ -5473,6 +5589,15 @@ const NarrowRun = {
     const g=x.createLinearGradient(0,0,0,VH);
     g.addColorStop(0,'#0a0a14'); g.addColorStop(0.5,'#161327'); g.addColorStop(1,'#080711');
     x.fillStyle=g; x.fillRect(0,0,VW,VH);
+    // 실물 협곡 배경이 있으면 가로로 이어 붙인다 (1920×270 · 가로 타일링)
+    const bg = MGArt.get('mg-run-bg');
+    if(bg){
+      x.save(); x.imageSmoothingEnabled=true;
+      const bw = bg.naturalWidth * (VH/bg.naturalHeight);
+      let ox = -((this.dist*0.45) % bw);
+      for(; ox < VW; ox += bw) x.drawImage(bg, ox, 0, bw, VH);
+      x.restore();
+    } else
     // 양쪽 절벽 실루엣 (시차 스크롤)
     for(let k=0;k<2;k++){
       const sp = k? 0.45 : 0.22, base = k? 0 : 8;
@@ -5503,9 +5628,13 @@ const NarrowRun = {
       const sx = lp.d - this.dist;
       if(sx<-20||sx>VW+20) continue;
       const ly = this.laneY[lp.l]-4+sh;
+      x.save(); x.globalCompositeOperation='lighter';
       x.fillStyle=hexA('#c9a227',0.16);
-      x.beginPath(); x.arc(sx, ly, 13, 0, Math.PI*2); x.fill();
-      x.fillStyle='#c9a227'; x.fillRect(sx-1, ly-2, 3, 4);
+      x.beginPath(); x.arc(sx, ly, 15, 0, Math.PI*2); x.fill();
+      x.restore();
+      const lamp = MGArt.get('mg-run-lamp');
+      if(lamp){ x.save(); x.imageSmoothingEnabled=true; x.drawImage(lamp, sx-13, ly-16, 26, 32); x.restore(); }
+      else x.fillStyle='#c9a227', x.fillRect(sx-1, ly-2, 3, 4);
     }
     /* 갈림 — 길가에 박힌 나무 이정표. 네모 상자는 '시스템 UI' 로 읽힌다. */
     for(const gt of this.gates){
@@ -5549,6 +5678,16 @@ const NarrowRun = {
         gg.addColorStop(0,'rgba(224,60,60,0.18)'); gg.addColorStop(1,'rgba(0,0,0,0)');
         x.fillStyle=gg; x.fillRect(sx-26,wy-22,54,52); x.globalCompositeOperation='source-over'; }
       const T3=this.t||0;
+      const wallArt = MGArt.get('mg-run-wall');
+      if(wallArt){
+        const bob=Math.sin(T3*0.14)*1.5;
+        x.save(); x.imageSmoothingEnabled=true;
+        x.drawImage(wallArt, sx-20, wy-34+bob, 40, 68);
+        x.restore();
+        x.restore();
+        if(!w.hit) drawText(u, '-'+w.cost, 12, sx+1, wy+16, '#ffb0b0','center');
+        continue;
+      }
       [[-7,0,10,26],[4,-2,11,28],[-1,3,9,22]].forEach(([ox,oy,ww,hh],k)=>{
         const bob=Math.sin(T3*0.14+k*1.7)*1.2;
         x.fillStyle = k===1? '#2a0f18' : '#1c0a12';
@@ -8396,6 +8535,17 @@ const HERO_MOODS = {
   armor:  ['neutral','brave','awe','grief','hurt']
 };
 
+/* 배달된 파일명이 게임 키와 다른 인물들.
+   ⚠ 파일을 다시 만들어 달라고 하지 않는다 — 이름 쪽이 더 서술적이고,
+   맞추는 건 이쪽이 한 줄이다. (지난번 표정 초상 14장이 이 불일치 하나로
+   한 장도 안 떴다. 그 교훈으로 별칭 표를 둔다.) */
+const PORTRAIT_ALIAS = {
+  judge:    'judge-hategood',
+  shepherd: 'shepherd-knowledge',
+  shining:  'shining-one',
+  worldly:  'worldly-wiseman'
+};
+
 const BigPortrait = {
   cache: {}, img: {}, tried: {}, missing: {},
 
@@ -8447,7 +8597,7 @@ const BigPortrait = {
     const isHero = (charKey==='christian' || charKey==='christianRobe' || charKey==='christianArmor');
     const files = isHero
       ? [this.heroFile(mood), `christian-${this.heroForm()}-neutral`, charKey]
-      : [charKey];
+      : [PORTRAIT_ALIAS[charKey], charKey].filter(Boolean);
     for(const f of files){
       this.load(f);
       if(this.img[f]) return this.img[f];
