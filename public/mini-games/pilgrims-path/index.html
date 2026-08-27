@@ -484,8 +484,16 @@ let LANG = '';   // loadLang() 이 정한다
 const LANG_KEY = 'pilgrims_path_lang';
 
 function loadLang(){
-  try{ const v=localStorage.getItem(LANG_KEY); if(v==='ko'||v==='en') LANG=v; }catch(e){}
-  // 저장된 값이 없으면 브라우저 언어로 추정
+  /* ?lang=ko / ?lang=en 이 가장 우선이다.
+     ⚠ 이게 없으면 브라우저 언어를 따라가는데, 그 결과 한국어로 보고 싶어도
+        영어로 시작하는 일이 생긴다(실측: navigator.language 가 en-US 인 환경).
+        링크 하나로 언어를 정해 보여줄 수 있어야 한다. */
+  try{
+    const m = /[?&]lang=(ko|en)/.exec(location.search);
+    if(m){ LANG = m[1]; localStorage.setItem(LANG_KEY, LANG); }
+  }catch(e){}
+  if(!LANG){ try{ const v=localStorage.getItem(LANG_KEY); if(v==='ko'||v==='en') LANG=v; }catch(e){} }
+  // 저장된 값도 없으면 브라우저 언어로 추정
   if(!LANG){ LANG = String(navigator.language||'ko').toLowerCase().startsWith('ko')? 'ko':'en'; }
   applyFont();
 }
@@ -10630,7 +10638,7 @@ const Auto = {
     if(G.chapter!==this.lastChapter || G.scene!==this.lastScene){
       this.lastChapter=G.chapter; this.lastScene=G.scene;
       const ch=CHAPTERS[G.chapter];
-      this.note(`${ch.num} ${ch.title}${ch.scenes.length>1?` (${G.scene+1}/${ch.scenes.length})`:''}`);
+      this.note(`${chNum(G.chapter)} ${chTitle(G.chapter)}${ch.scenes.length>1?` (${G.scene+1}/${ch.scenes.length})`:''}`);
       this.stuckT=0;
     }
 
@@ -10752,7 +10760,7 @@ const Auto = {
     }
     if(this.stuckT > 420){                 // 7초 — 마지막 수단
       p.x += 26; p.vy = -2; this.nudges++;
-      this.note(`막혀서 밀어줌 (${this.nudges}회) — ${CHAPTERS[G.chapter].num}`);
+      this.note(`막혀서 밀어줌 (${this.nudges}회) — ${chNum(G.chapter)}`);
       this.stuckT=0;
     }
   },
@@ -10879,7 +10887,7 @@ const Auto = {
     drawText(u, this.mode==='story'?'이야기 관전':'자동 플레이', 7, VW-90, 8, '#c9a227', 'left');
     drawText(u,`${mm}:${ss}`, 9, VW-90, 18, '#e8dcae', 'left');
     const ch=CHAPTERS[G.chapter];
-    if(ch) drawText(u, ch.short, 9, VW-40, 18, '#8a84a0', 'left');
+    if(ch) drawText(u, chShort(G.chapter), 9, VW-40, 18, '#8a84a0', 'left');
     u.restore();
   },
 };
