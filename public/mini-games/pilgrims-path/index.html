@@ -98,7 +98,7 @@
    ⚠ Codex 가 같은 파일명으로 그림을 교체하면 브라우저는 옛 그림을 계속 쓴다
    (실측: 열매 8종을 새로 받았는데 화면은 그대로였고, 측정값까지 전과 동일했다).
    빌드할 때 stamp.py 가 이 값을 갱신한다. */
-const ASSET_VER = '1787797426';
+const ASSET_VER = '1787799289';
 function assetUrl(path){ return `${path}?v=${ASSET_VER}`; }
 
 
@@ -550,6 +550,7 @@ const TXT = {
   mgPick:         ['어느 것을 다시 할까',      'Which one again?'],
   choosePrompt:   ['어떻게 할까?',            'What do you do?'],
   cardNext:       ['확인 키로 계속',           'Press Confirm to continue'],
+  codexPrologue:  ['서장',                    'Prologue'],
   codexMenu:      ['도감',                    'Codex'],
   // 목표
   objTitle:       ['목표',                   'GOAL'],
@@ -4347,7 +4348,11 @@ const JourneyMap = {
     if(this.t>34) this.animT = Math.min(1, this.animT + 0.014);
     const pos = lerp(this.from, this.target, this.animT);
     this.scroll = lerp(this.scroll, pos*86 - VW*0.42, 0.10);
-    if(this.animT>=1 && (this.t>170 || Input.pressed('interact')||Input.pressed('jump'))){
+    /* ⚠ 예전엔 170프레임(2.8초)이면 저절로 닫혔다. 걷는 연출에 1.2초가 들어가니
+       읽을 시간은 1.6초뿐 — "어디까지 왔고 몇 장이 남았나"를 보라고 만든 화면인데
+       화면에 [E] 계속 이라고 써 놓고 안 눌러도 넘어가 버렸다.
+       이제는 눌러야 넘어간다. 아주 오래 방치될 때만 스스로 넘긴다. */
+    if(this.animT>=1 && (Input.pressed('interact')||Input.pressed('jump')||this.t>1200)){
       this.active=false; const cb=this.onDone; this.onDone=null; if(cb) cb();
     }
   },
@@ -4749,7 +4754,7 @@ const Codex = {
         x.fillStyle='#3a3448'; x.fillRect(15, yy+5, 5, 5);
       }
       drawText(u, open? nm : '— — — —', 12, 28, yy, open? '#f2ecdc':'#4e4860');
-      drawText(u, ch? `${ch}장` : '', 10, 214, yy+2, open? '#8a84a0':'#3a3448', 'right');
+      drawText(u, ch? `${ch}장` : L('codexPrologue'), 10, 214, yy+2, open? '#8a84a0':'#3a3448', 'right');
     }
     // 스크롤 표시
     if(L2.length > rows){
@@ -4771,58 +4776,69 @@ const Codex = {
     if(open){
       // 초상 (실물 일러스트가 있으면 그것)
       if(this.tab===0){
-        const art = ART.chars[key];
-        if(art){
-          /* 액자 — 인물이 허공에 떠 있지 않게 배경과 테두리를 준다.
-             그리고 스프라이트 전신을 넣는다(예전엔 흉상 확대라 얼굴이 잘렸다). */
-          const fw=104, fh=124, fx=px+pw/2-fw/2, fy=24;
-          const al = row[4]||'neutral';
-          const tint = al==='evil'? '#3a1e28' : al==='boss'? '#361a30'
-                     : al==='good'||al==='hero'? '#2a2a3e' : '#241f33';
-          const g2=x.createLinearGradient(fx,fy,fx,fy+fh);
-          g2.addColorStop(0, tint); g2.addColorStop(1, '#100d1a');
-          x.fillStyle=g2; x.fillRect(fx,fy,fw,fh);
-          // 실물 액자가 있으면 그것을 두른다 (성향에 따라 금/철)
-          const frameArt = (typeof CodexArt!=='undefined') &&
-            CodexArt.get((al==='evil'||al==='boss')? 'codex-frame-iron' : 'codex-frame-gold');
-          if(!frameArt){
-            x.fillStyle='#3e3654'; x.fillRect(fx,fy,fw,1); x.fillRect(fx,fy+fh-1,fw,1);
-            x.fillRect(fx,fy,1,fh); x.fillRect(fx+fw-1,fy,1,fh);
-          }
-          // 바닥 그림자
-          x.fillStyle='rgba(0,0,0,0.45)';
-          x.beginPath(); x.ellipse(fx+fw/2, fy+fh-14, 22, 5, 0, 0, Math.PI*2); x.fill();
-          const sp = art.idle && art.idle.r;
-          if(sp){
-            const sc = Math.min(3, Math.floor((fh-30)/sp.height)) || 2;
-            const dw=sp.width*sc, dh=sp.height*sc;
-            x.save(); x.imageSmoothingEnabled=false;
-            x.drawImage(sp, Math.round(fx+fw/2-dw/2), Math.round(fy+fh-12-dh), dw, dh);
-            x.restore();
-          }
-          if(frameArt){ x.save(); x.imageSmoothingEnabled=true;
-            x.drawImage(frameArt, fx-6, fy-6, fw+12, fh+12); x.restore(); }
+        /* 도감 카드.
+           ⚠ codex-frame-* 는 투명한 창이 있는 '테두리'가 아니라 **100% 불투명한
+           카드 배경**이다(384×512). 예전엔 초상 위에 덮어 그려서 액자 안이
+           통째로 비어 보였다(실측). 배경으로 먼저 깔고 그 위에 인물을 얹는다.
+           인물은 새로 받은 일러스트 초상을 쓰고, 없으면 픽셀 스프라이트로 돌아간다. */
+        const al = row[4]||'neutral';
+        const fw=116, fh=155, fx=px+pw/2-fw/2, fy=22;
+        const cardArt = (typeof CodexArt!=='undefined') &&
+          CodexArt.get((al==='evil'||al==='boss')? 'codex-frame-iron' : 'codex-frame-gold');
+        if(cardArt){
+          x.save(); x.imageSmoothingEnabled=true;
+          x.drawImage(cardArt, fx, fy, fw, fh);
+          x.restore();
         } else {
-          drawText(u, '?', 40, px+pw/2, 60, '#3a3448', 'center');
+          const tint = al==='evil'? '#3a1e28' : al==='boss'? '#361a30'
+                     : (al==='good'||al==='hero')? '#2a2a3e' : '#241f33';
+          const g2=x.createLinearGradient(fx,fy,fx,fy+fh);
+          g2.addColorStop(0, tint); g2.addColorStop(1,'#100d1a');
+          x.fillStyle=g2; x.fillRect(fx,fy,fw,fh);
+          x.fillStyle='#3e3654'; x.fillRect(fx,fy,fw,1); x.fillRect(fx,fy+fh-1,fw,1);
+          x.fillRect(fx,fy,1,fh); x.fillRect(fx+fw-1,fy,1,fh);
+        }
+        // 카드 안쪽 여백 — 액자 테두리를 침범하지 않게
+        const ix=fx+13, iy=fy+13, iw=fw-26, ih=fh-30;
+        const illo = (typeof BigPortrait!=='undefined') && BigPortrait.get(key, ih);
+        if(illo && illo.naturalWidth){
+          const side=Math.min(illo.naturalWidth, illo.naturalHeight);
+          x.save(); x.beginPath(); x.rect(ix,iy,iw,ih); x.clip();
+          x.imageSmoothingEnabled=true;
+          x.drawImage(illo, (illo.naturalWidth-side)/2, 0, side, side, ix, iy, iw, iw);
+          x.restore();
+        } else {
+          const sp = ART.chars[key] && ART.chars[key].idle && ART.chars[key].idle.r;
+          if(sp){
+            const sc=Math.max(2, Math.min(3, Math.floor((ih-18)/sp.height)));
+            const dw=sp.width*sc, dh=sp.height*sc;
+            x.fillStyle='rgba(0,0,0,0.35)';
+            x.beginPath(); x.ellipse(fx+fw/2, iy+ih-8, 20, 5, 0, 0, Math.PI*2); x.fill();
+            x.save(); x.imageSmoothingEnabled=false;
+            x.drawImage(sp, Math.round(fx+fw/2-dw/2), Math.round(iy+ih-6-dh), dw, dh);
+            x.restore();
+          } else drawText(u, '?', 40, px+pw/2, fy+50, '#3a3448', 'center');
         }
       } else {
         // 장소 — assets/place/<key>.webp 가 있으면 그 그림, 없으면 표식
+        // 장소는 가로 그림이다 — 인물 카드보다 넓게, 패널 폭을 거의 다 쓴다
         const pim = (typeof PlaceArt!=='undefined') && PlaceArt.get(key);
         if(pim && pim.naturalWidth){
-          const fw=Math.min(pw-16, 116), fh=Math.round(fw*0.66), fx=px+pw/2-fw/2, fy=28;
+          const fw=pw-24, fh=Math.round(fw*0.5625), fx=px+12, fy=24;   // 16:9
           x.save(); x.beginPath(); x.rect(fx,fy,fw,fh); x.clip();
           x.imageSmoothingEnabled=true; x.drawImage(pim, fx, fy, fw, fh); x.restore();
-          x.fillStyle='#3e3654'; x.fillRect(fx,fy,fw,1); x.fillRect(fx,fy+fh-1,fw,1);
+          x.fillStyle='#c9a227'; x.fillRect(fx,fy,fw,1); x.fillRect(fx,fy+fh-1,fw,1);
           x.fillRect(fx,fy,1,fh); x.fillRect(fx+fw-1,fy,1,fh);
         } else {
           drawText(u, '◈', 34, px+pw/2, 52, '#c9a227', 'center');
         }
       }
-      drawText(u, nm, 15, px+pw/2, 152, '#f2ecdc', 'center');
+      const nameY = (this.tab===0)? 184 : 150;   // 장소 그림(24~138) 아래로
+      drawText(u, nm, 15, px+pw/2, nameY, '#f2ecdc', 'center');
       const desc = CODEX_DESC[key];
       if(desc){
         const lines = wrapText(u, LANG==='ko'? desc[0]:desc[1], 11, pw-24);
-        lines.slice(0,6).forEach((l,i)=> drawText(u, l, 11, px+12, 176+i*15, '#a8a0c0'));
+        lines.slice(0,6).forEach((l,i)=> drawText(u, l, 11, px+12, nameY+24+i*15, '#a8a0c0'));
       }
     } else {
       drawText(u, '?', 44, px+pw/2, 56, '#2e2742', 'center');
@@ -4836,6 +4852,52 @@ const Codex = {
 
 /* 도감 설명 — 원작의 한 줄 */
 const CODEX_DESC = {
+  /* ── 장소 설명 ── 20곳 전부 비어 있었다. 도감에 그림만 있고 말이 없으면
+     "여기가 어디였지" 를 못 채운다. 각 장소가 이야기에서 한 일을 한 줄로. */
+  'city-of-destruction': ['크리스천이 살던 도시. 곧 불탄다는 말을 아무도 믿지 않았다.',
+    'The city Christian lived in. Nobody believed the word that it would burn.'],
+  'slough-of-despond':   ['두려움이 고여 만들어진 진창. 짐이 무거울수록 깊이 빠진다.',
+    'A bog made of collected fears. The heavier the burden, the deeper you sink.'],
+  'village-of-morality': ['착하게만 살면 된다고 말하는 마을. 짐은 그대로 남는다.',
+    'A village that says being good is enough. The burden stays where it was.'],
+  'mount-sinai':         ['머리 위로 무너질 듯 솟은 불의 산. 규칙만으로는 넘지 못한다.',
+    'A burning mountain that leans overhead. Rules alone cannot get you past it.'],
+  'wicket-gate':         ['성벽에 난 좁은 나무 문. 두드리는 사람에게만 열린다.',
+    'A narrow wooden gate in the wall. It opens only to the one who knocks.'],
+  'interpreters-house':  ['촛불 켜진 방들. 해석자가 그림으로 뜻을 보여 준다.',
+    'Candlelit rooms where the Interpreter shows meaning in pictures.'],
+  'the-cross':           ['짐이 저절로 굴러 떨어진 언덕. 크리스천이 처음 웃은 자리.',
+    'The hill where the burden rolled away by itself. Where Christian first laughed.'],
+  'hill-difficulty':     ['가파른 바위산. 옆으로 난 두 샛길은 둘 다 끝이 나쁘다.',
+    'A steep rock hill. Both bypaths beside it end badly.'],
+  'arbor':               ['왕이 마련한 중턱의 정자. 쉬어도 되지만 잠들면 잃는다.',
+    'A resting arbour set by the King. Rest is allowed; sleep costs you.'],
+  'palace-beautiful':    ['사자 사이를 지나야 닿는 궁전. 전신갑주를 여기서 받는다.',
+    'A palace reached between lions. The full armour is given here.'],
+  'armoury':             ['궁전의 무기고. 칼·방패·투구·흉갑·띠·신발이 모두 있다.',
+    'The palace armoury: sword, shield, helmet, breastplate, belt, and shoes.'],
+  'valley-humiliation':  ['아볼루온과 맞선 골짜기. 등을 보이면 등에 맞는다.',
+    'The valley where Apollyon stood. Turn your back and you are struck there.'],
+  'valley-shadow':       ['등불 하나로 건너는 칠흑. 속삭임은 그대의 것이 아니다.',
+    'Pitch dark crossed with one lamp. The whispers are not yours.'],
+  'vanity-fair':         ['일 년 내내 열리는 장터. 여기서 신실이 하늘로 올라갔다.',
+    'A fair that never closes. Faithful went up to heaven from here.'],
+  'by-path-meadow':      ['울타리 너머 편해 보이던 풀밭. 의심의 성으로 이어진다.',
+    'The easy-looking meadow past the fence. It leads to Doubting Castle.'],
+  'doubting-castle':     ['절망 거인의 성. 열쇠는 처음부터 품에 있었다.',
+    'Giant Despair\u2019s castle. The key was in his coat all along.'],
+  'hill-lucre':          ['은광이 있다는 언덕. 데마가 손짓하는 자리.',
+    'A hill said to hold a silver mine. Where Demas beckons.'],
+  'delectable-mountains':['목자들이 먼 도시를 보여 주는 산. 지도를 여기서 받는다.',
+    'Mountains where the Shepherds show the far City. The map is given here.'],
+  'enchanted-ground':    ['공기가 잠을 부르는 땅. 여기서 자면 깨어나지 못한다.',
+    'Ground whose air invites sleep. Sleep here and you do not wake.'],
+  'beulah':              ['천성이 보이는 국경. 해가 지지 않고 꽃이 진 적이 없다.',
+    'The borderland in sight of the City. The sun does not set here.'],
+  'river-of-death':      ['다리 없는 강. 믿는 만큼 얕고 의심하는 만큼 깊다.',
+    'A river with no bridge. As shallow as you believe, as deep as you doubt.'],
+  'celestial-city':      ['여정의 끝. 문이 열리고 나팔이 울린다.',
+    'The end of the journey. The gate opens and the trumpets sound.'],
   christian:['멸망의 도시를 떠나 천성으로 가는 소년. 등에 짐을 지고 있다.','A boy who leaves the City of Doom for the Golden City, a load on his back.'],
   evangelist:['좁은 문을 가리켜 준 사람. 곁길로 샜을 때 다시 찾아온다.','The one who points to the small gate — and comes back when you stray.'],
   wife:['크리스천의 어머니. 짐이 보이지 않는다.','Christian’s mother. She cannot see the load.'],
@@ -4954,11 +5016,31 @@ const StoryCard = {
 
   show(ch, act, cap, cb){
     const im = SceneArt.get(ch, act);
-    if(!im){ if(cb) cb(); return false; }        // 파일이 아직 없다 — 조용히 통과
+    if(!im){
+      /* 아직 안 받아졌다면 잠깐 기다렸다 다시 본다.
+         404 로 확정된 것(=아직 안 만든 막)은 기다리지 않고 바로 통과한다. */
+      const k = SceneArt.key(ch, act);
+      if(!SceneArt.missing[k]){
+        let waited = 0;
+        const poll = ()=>{
+          waited += 60;
+          const im2 = SceneArt.get(ch, act);
+          if(im2){ this.begin(im2, cap, cb); return; }
+          if(waited >= 900 || SceneArt.missing[k]){ if(cb) cb(); return; }
+          setTimeout(poll, 60);
+        };
+        setTimeout(poll, 60);
+        return true;                              // 곧 뜬다 — 호출자는 기다린다
+      }
+      if(cb) cb(); return false;
+    }
+    this.begin(im, cap, cb);
+    return true;
+  },
+  begin(im, cap, cb){
     this.active=true; this.img=im; this.cap=cap||''; this.t=0; this.holdT=0;
     this.onEnd=cb||null;
     Audio2.sfx('item');
-    return true;
   },
   close(){
     this.active=false;
@@ -6802,6 +6884,24 @@ class LB {
     RND=mulberry32(20260825);
   }
   plat(x,y,len,c){ for(let i=0;i<len;i++) this.set(x+i,y,c||'='); }
+  /* 건널 수 있는 구덩이.
+     ⚠ terrain(...,amp) 은 칸마다 높이를 ±1 흔든다. 그 위에 구덩이를 파면
+     도움닫기 높이와 착지 높이가 자리마다 달라져, 점프 성공 구간이 운에 좌우된다.
+     실측: 1장 x44 는 성공 구간이 **0.5타일**뿐이었다(42.0~43.2 에서 뛰면 전부 사망).
+     그래서 구덩이는 반드시 양쪽을 같은 높이로 평탄화한 뒤에 판다. */
+  pit(x, width, y, pad){
+    pad = pad===undefined? 3 : pad;
+    for(let i=x-pad; i<x+width+pad; i++){
+      if(i<0 || i>=this.w) continue;
+      for(let j=0;j<this.h;j++) if(j>=y) this.set(i,j,'#'); else if(this.at&&false) {}
+    }
+    // 위쪽을 비워 머리 공간을 확보
+    for(let i=x-pad; i<x+width+pad; i++){
+      if(i<0 || i>=this.w) continue;
+      for(let j=y-4;j<y;j++) this.set(i,j,' ');
+    }
+    for(let i=0;i<width;i++) for(let j=y;j<this.h;j++) this.set(x+i,j,' ');
+  }
   spikes(x,y,len){ for(let i=0;i<len;i++) this.set(x+i,y,'^'); }
   mud(x1,x2,topY){ for(let x=x1;x<=x2;x++) for(let y=topY;y<this.h;y++) this.set(x,y,'m'); }
   water(x1,x2,topY){ for(let x=x1;x<=x2;x++) for(let y=topY;y<this.h;y++) this.set(x,y,'~'); }
@@ -6822,17 +6922,17 @@ function buildCh1(){
   for(let i=0;i<9;i++){ RND=mulberry32(700+i); L.building(4+i*11, 13-rndi(4,8), rndi(5,8), 9); }
   RND=mulberry32(20260825);
   L.plat(30,10,4); L.plat(38,8,4);
-  L.rect(44,12,1,5,' '); L.ground(45,52,12);
+  L.pit(44,1,13); L.ground(45,52,13);   // 양쪽 같은 높이 — 넘을 수 있는 구덩이
   L.plat(56,10,3);
-  L.rect(70,11,1,6,' ');
+  L.pit(70,1,13);
   L.plat(74,9,4); L.plat(82,7,4); L.plat(90,9,3);
   L.ground(96,120,13);
-  L.rect(104,12,1,5,' '); L.rect(112,12,1,5,' ');
+  L.pit(104,1,13); L.pit(112,1,13);
   L.plat(122,10,4); L.plat(130,8,5); L.plat(140,10,4);
-  L.rect(126,12,1,5,' ');
+  L.pit(126,1,13);
   L.ground(148,172,13);
   L.plat(154,10,3); L.plat(162,9,3);
-  L.rect(176,12,1,5,' '); L.rect(184,12,1,5,' '); L.rect(192,12,1,5,' ');
+  L.pit(176,1,13); L.pit(184,1,13); L.pit(192,1,13);
   L.plat(178,10,3); L.plat(186,9,3); L.plat(194,10,3);
   L.ground(198,229,13);
   L.back(0,14,230,3);
@@ -6926,7 +7026,10 @@ function buildCh4(){
   L.plat(26,10,4); L.plat(54,9,4); L.plat(82,10,4);
   // 해석자의 집 (실내)
   L.rect(112,2,132,15,'.');
-  L.ground(112,243,13);
+  // ⚠ 바깥 지형은 x110 에서 끝나고 실내는 x112 에서 시작해, x111 이 **바닥 없는
+  //   구덩이**로 남아 있었다. 해석자의 집으로 가는 길목이라 반드시 지나야 하는데
+  //   걸어가면 그대로 떨어져 죽는다(실측). 바닥을 이어 준다.
+  L.ground(111,243,13);
   L.rect(112,2,132,1,'#');
   for(let i=0;i<6;i++){ L.rect(112+i*26,3,2,7,'#'); }   // 방 칸막이 — 아래로 지나갈 수 있다
   L.back(0,14,244,3);
@@ -7597,6 +7700,12 @@ const G = {
     } else if(this.chapter+1 < CHAPTERS.length){
       const from=this.chapter, to=this.chapter+1;
       this.autoSave('chapter');
+      /* ⚠ 다음 장의 그림을 **지금** 받기 시작한다.
+         예전엔 loadChapter(to) 직후에 도입 카드를 띄우려 했는데, 그 시점엔
+         아직 디코드가 안 끝나 show() 가 false 를 돌려주고 조용히 건너뛰었다.
+         실측: ch3-close 는 떴는데 ch4-open 은 파일이 있는데도 한 번도 안 떴다.
+         여정 지도가 떠 있는 몇 초가 받아 두기에 충분하다. */
+      SceneArt.prefetch(to);
       /* 장을 마칠 때 결말 그림 → 여정 지도 → 다음 장 도입 그림.
          그림이 없으면 각 단계가 스스로 건너뛴다(빈 액자를 띄우지 않는다). */
       const goMap = ()=> Fade.out(()=>{
