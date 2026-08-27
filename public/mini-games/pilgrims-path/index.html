@@ -297,6 +297,24 @@ const Input = {
     addEventListener('pointercancel', globalUp, true);
     addEventListener('blur', ()=>{ held.forEach(c=>release(c)); held.clear();
       document.querySelectorAll('#touchpad .btn.on').forEach(n=>n.classList.remove('on')); });
+
+    /* 화면 아무 데나 눌러도 대사가 넘어간다.
+       ⚠ 이게 없으면 '안 넘어간다'고 느낀다 — 실측으로 한 대사에서 26,430프레임(7분)을
+          기다린 적이 있다. 조작 패드 버튼 위에서는 무시한다(버튼이 자기 일을 하게). */
+    addEventListener('pointerdown', (e)=>{
+      if(e.target && e.target.closest && e.target.closest('#touchpad')) return;
+      if(document.getElementById('startgate')) return;      // 시작 게이트는 제 몫이 있다
+      const talking =
+        (typeof G!=='undefined' && G.dlg && G.dlg.active) ||
+        (typeof Drama!=='undefined' && Drama.active) ||
+        (typeof StoryCard!=='undefined' && StoryCard.active) ||
+        (typeof ChapterCard!=='undefined' && ChapterCard.active) ||
+        (typeof Cinema!=='undefined' && Cinema.active);
+      if(!talking) return;
+      const code = Input.map.interact[0];
+      Input.pressBuf[code]=true; Input.keys[code]=true;
+      setTimeout(()=>{ Input.keys[code]=false; Input.relBuf[code]=true; }, 70);
+    }, true);
   },
   // 프레임 종료 시 호출 — 엣지 검출용
   latch(){ this.prev = Object.assign({}, this.keys); this.pressBuf={}; this.relBuf={}; this.anyPressed=false; },
@@ -528,6 +546,8 @@ const TXT = {
   continueGame:   ['이어서 하기',            'Continue'],
   howToPlay:      ['조작법',                 'How to Play'],
   watchDemo:      ['관전하기 (자동 플레이)',  'Watch demo (auto-play)'],
+  dlgNextKey:     ['[E] 또는 [Space] 로 계속', 'Press [E] or [Space]'],
+  dlgNextTouch:   ['화면을 누르면 계속',        'Tap anywhere'],
   language:       ['한국어 / English',       'English / 한국어'],
   // 메뉴
   paused:         ['잠깐 멈춤',              'Paused'],
@@ -4290,8 +4310,13 @@ class Dialogue {
         drawText(u, c.t, 13, cx0+20, yy, i===this.sel? '#ffe08a':'#b8b2c8');
       });
     } else if(this.shown>=this.text.length){
+      /* ⚠ 예전엔 6x6 픽셀 삼각형 하나가 전부였다. 넓은 화면에서는 보이지도 않아
+         '안 넘어간다'고 느낀다(실측: 한 대사에서 26,430프레임 = 7분 대기).
+         무엇을 눌러야 하는지 글로 말한다. */
       const bl = Math.sin(this.holdT*0.16)>0;
       if(bl){ x.fillStyle='#ffe08a'; x.fillRect(VW-26, VH-22, 6, 6); x.fillRect(VW-25, VH-16, 4, 2); }
+      const tip = (typeof Ctrl!=='undefined' && Ctrl.mode==='touch') ? L('dlgNextTouch') : L('dlgNextKey');
+      drawText(u, tip, 9, VW-34, VH-21, bl? '#ffe08a':'#8a8298', 'right');
     }
   }
 }
@@ -9035,6 +9060,16 @@ const Drama = {
       drawText(u, vis, 13, bx+22, ty + i*17, '#1e1810', 'left', false);
     });
     u.globalAlpha = 1;
+
+    /* 다 읽었으면 '어떻게 넘기는지' 알려 준다.
+       ⚠ 프롤로그는 29줄이다. 안내가 없으면 첫 줄에서 막혔다고 느낀다. */
+    if(!this.choices && this.shown >= (this.text||'').length){
+      const bl = Math.sin(this.holdT*0.16) > 0;
+      const tip = (typeof Ctrl!=='undefined' && Ctrl.mode==='touch') ? L('dlgNextTouch') : L('dlgNextKey');
+      u.globalAlpha = a * (bl? 1 : 0.45);
+      drawText(u, tip, 9, bx+bw-22, by+bh-16, '#8a7a52', 'right', false);
+      u.globalAlpha = 1;
+    }
 
     /* 선택지 */
     if(this.choices) this.drawChoices(u, a, by);
