@@ -1,8 +1,8 @@
 {
   "slug": "world-sprint-circuit",
   "title": "World Sprint Circuit",
-  "description": "좌·우를 번갈아 두드려 달리는 픽셀 육상 아케이드. 6종목, 기준기록을 넘겨라.",
-  "version": "1.0.0",
+  "description": "육상부 감독이 되어 선수를 키우는 육성 시뮬레이션. 훈련·컨디션·부상을 관리하고 대회를 지켜본다.",
+  "version": "2.0.0",
   "entry": "/mini-games/world-sprint-circuit/index.html",
   "thumbnail": "/mini-games/assets/world-sprint-circuit-card-v1.webp",
   "orientation": "landscape",

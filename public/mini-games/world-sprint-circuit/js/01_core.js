@@ -47,8 +47,10 @@ const Input = {
   map:{
     left  : ['KeyA','ArrowLeft'],
     right : ['KeyD','ArrowRight'],
-    action: ['Space','KeyK'],
-    back  : ['Escape','KeyQ'],
+    up    : ['KeyW','ArrowUp'],
+    down  : ['KeyS','ArrowDown'],
+    action: ['Space','KeyK','Enter'],
+    back  : ['Escape','KeyQ','Backspace'],
     pause : ['KeyP'],
   },
   /* 이번 프레임에 눌리기 시작했나 (타이밍 게임이라 이게 핵심) */
@@ -75,6 +77,15 @@ const Input = {
   owns(code){ for(const a in this.map) if(this.map[a].includes(code)) return true; return false; },
   /* 프레임 끝에서 비운다 */
   flush(){ this.pressBuf={}; this.relBuf={}; },
+  /* 꾹 누르면 반복 — 목록에서 한 칸씩만 가면 답답하다 */
+  _rep:{},
+  repeat(act, now){
+    if(this.pressed(act)){ this._rep[act]=now+340; return true; }
+    if(this.down(act)){
+      if(now >= (this._rep[act]||1e18)){ this._rep[act]=now+90; return true; }
+    } else delete this._rep[act];
+    return false;
+  },
 
   /* 화면 버튼 — 천로역정에서 잡은 결함 셋을 처음부터 반영:
        ① 짧은 탭 유실 → pressBuf 사용 (keys[] 직접 조작 금지)
@@ -104,7 +115,8 @@ const Input = {
       el.addEventListener('lostpointercapture',up);
     };
     bind('p-left','left'); bind('p-right','right');
-    bind('p-act','action'); bind('p-pause','pause');
+    bind('p-up','up');     bind('p-down','down');
+    bind('p-act','action'); bind('p-back','back'); bind('p-pause','pause');
     // 전역 안전망 — 버튼 밖에서 손을 떼도 반드시 풀린다
     addEventListener('pointerup', ()=>{ if(!this.padEnabled) return;
       for(const el of document.querySelectorAll('.pbtn.on')) el.classList.remove('on'); });

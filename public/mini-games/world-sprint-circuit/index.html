@@ -20,10 +20,13 @@
 
   /* ── 화면 조작 패드 ─────────────────────────────────────── */
   #pad{display:none;position:fixed;inset:auto 0 0 0;z-index:5;
-    padding:0 12px calc(12px + env(safe-area-inset-bottom)) 12px;
-    grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end;}
+    padding:0 12px calc(10px + env(safe-area-inset-bottom)) 12px;
+    grid-template-columns:auto 1fr auto;gap:10px;align-items:end;justify-content:space-between;}
+  .pgroup{display:flex;flex-direction:column;gap:6px;align-items:center;}
+  .prow{display:flex;gap:6px;}
+  .pbtn.sm{height:44px;min-width:52px;font-size:15px;padding:0 12px;}
   .pbtn{display:flex;align-items:center;justify-content:center;
-    height:76px;border-radius:14px;cursor:pointer;
+    height:56px;min-width:78px;border-radius:12px;cursor:pointer;padding:0 14px;
     background:rgba(22,26,38,.78);border:2px solid #3a4258;
     color:#e6edf7;font-family:inherit;font-size:19px;font-weight:700;
     transition:transform .06s,background .06s;backdrop-filter:blur(2px);}
@@ -31,7 +34,7 @@
   .pbtn.wide{grid-column:span 1;}
   #p-pause{position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;
     height:34px;width:46px;font-size:13px;z-index:6;}
-  @media (min-height:560px){ .pbtn{height:88px;} }
+  @media (min-height:620px){ .pbtn{height:64px;} .pbtn.sm{height:50px;} }
 
   /* ── 시작 화면 ─────────────────────────────────────────── */
   #gate{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;
@@ -55,9 +58,18 @@
 </div></div>
 
 <div id="pad">
-  <div class="pbtn" id="p-left">◀ 왼발</div>
-  <div class="pbtn" id="p-act">액션</div>
-  <div class="pbtn" id="p-right">오른발 ▶</div>
+  <div class="pgroup" id="pad-dir">
+    <div class="pbtn sm" id="p-up">▲</div>
+    <div class="prow">
+      <div class="pbtn sm" id="p-left">◀</div>
+      <div class="pbtn sm" id="p-right">▶</div>
+    </div>
+    <div class="pbtn sm" id="p-down">▼</div>
+  </div>
+  <div class="pgroup" id="pad-act">
+    <div class="pbtn" id="p-act">확인</div>
+    <div class="pbtn sm" id="p-back">취소</div>
+  </div>
 </div>
 <div class="pbtn" id="p-pause">II</div>
 
@@ -81,6 +93,13 @@
 <script src="js/11_hurdles.js"></script>
 <script src="js/12_jumps.js"></script>
 <script src="js/13_throws.js"></script>
+<script src="js/30_athlete.js"></script>
+<script src="js/31_training.js"></script>
+<script src="js/32_season.js"></script>
+<script src="js/33_racesim.js"></script>
+<script src="js/41_mgr_ui.js"></script>
+<script src="js/42_meet_ui.js"></script>
+<script src="js/43_manager.js"></script>
 <script src="js/20_screens.js"></script>
 <script src="js/99_main.js"></script>
 </body>

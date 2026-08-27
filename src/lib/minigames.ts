@@ -74,7 +74,7 @@ export const MINI_GAMES: MiniGameManifest[] = [
     slug: 'wave-village-fishing',
     title: 'Wave Village Fishing Log',
     description: 'A pixel-art fishing trip with an aquarium to fill and care for.',
-    version: '1.0.0',
+    version: '2.0.0',
     entry: '/mini-games/wave-village-fishing/index.html',
     thumbnail: '/mini-games/wave-village-fishing/assets/backgrounds/harbor-day.png',
     orientation: 'responsive',
@@ -95,7 +95,7 @@ export const MINI_GAMES: MiniGameManifest[] = [
   {
     slug: 'world-sprint-circuit',
     title: 'World Sprint Circuit',
-    description: 'A pixel athletics circuit: find the A/D rhythm, clear event challenges, and chase your personal best.',
+    description: 'Coach a track club: train athletes, manage condition and injuries, then watch the meets play out.',
     version: '1.0.0',
     entry: '/mini-games/world-sprint-circuit/index.html',
     thumbnail: '/mini-games/assets/world-sprint-circuit-card-v1.webp',

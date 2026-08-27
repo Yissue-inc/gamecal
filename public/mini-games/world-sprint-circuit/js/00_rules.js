@@ -18,7 +18,7 @@ const RULES = {
   falseStartThresholdMs: 100,  // 총성 전 100ms 안쪽 입력 = 부정출발
 
   /* ── 속도 ── */
-  baseSpeed: 12.2,              // m/s
+  baseSpeed: 11.25,              // m/s
   maxSpeedCap: 12.5,
   balanceScale: 1.0,
   /* 감속 계수(1/초). 두드리는 중엔 거의 안 줄고, 손을 놓으면 빠르게 죽는다.
@@ -105,11 +105,11 @@ function phaseAt(distM, trackM){
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
 const EVENTS = [
-  { id:'sprint100',  name:'100m 달리기',   short:'100M',    unit:'s', higher:false, qualify:13.00, distanceM:100 },
-  { id:'hurdles110', name:'110m 허들',     short:'110MH',   unit:'s', higher:false, qualify:15.20, distanceM:110 },
-  { id:'longJump',   name:'멀리뛰기',       short:'LJ',      unit:'m', higher:true,  qualify:6.20 },
+  { id:'sprint100',  name:'100m 달리기',   short:'100M',    unit:'s', higher:false, qualify:13.60, distanceM:100 },
+  { id:'hurdles110', name:'110m 허들',     short:'110MH',   unit:'s', higher:false, qualify:15.90, distanceM:110 },
+  { id:'longJump',   name:'멀리뛰기',       short:'LJ',      unit:'m', higher:true,  qualify:5.90 },
   { id:'highJump',   name:'높이뛰기',       short:'HJ',      unit:'m', higher:true,  qualify:1.70 },
-  { id:'javelin',    name:'창던지기',       short:'JAV',     unit:'m', higher:true,  qualify:55.0 },
+  { id:'javelin',    name:'창던지기',       short:'JAV',     unit:'m', higher:true,  qualify:52.0 },
   { id:'hammer',     name:'해머던지기',     short:'HAM',     unit:'m', higher:true,  qualify:48.0 },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;

@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
-const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3 };
+const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4 };
 /* 실제로 플레이 가능한 종목. 여기 없는 건 선택 화면에서 '준비 중'으로 잠근다.
    ⚠ 목록만 늘려놓고 구현이 없으면 플레이어는 빈 화면을 만난다. */
 const READY = ['sprint100','hurdles110','longJump','highJump','javelin','hammer'];
@@ -34,6 +34,7 @@ const G = {
     this.t += dt*1000;
     switch(this.state){
       case ST.TITLE:  this.updTitle(); break;
+      case ST.MANAGER: MG.update(dt); return;      // 감독 모드는 자체 입력 처리(flush 포함)
       case ST.SELECT: this.updSelect(); break;
       case ST.PLAY:   this.updPlay(dt); break;
       case ST.RESULT: this.updResult(); break;
@@ -41,9 +42,18 @@ const G = {
     Input.flush();
   },
 
+  titleSel:0,
   updTitle(){
-    if(Input.pressed('action') || Input.pressed('left') || Input.pressed('right')){
-      Sfx.ui(); this.state=ST.SELECT;
+    const items = MG.hasSave() ? 3 : 2;
+    if(Input.pressed('up'))   { this.titleSel=(this.titleSel+items-1)%items; Sfx.ui(); }
+    if(Input.pressed('down')) { this.titleSel=(this.titleSel+1)%items; Sfx.ui(); }
+    if(Input.pressed('action')){
+      Sfx.ui();
+      const hasSave=MG.hasSave();
+      const pick = hasSave ? this.titleSel : this.titleSel+1;   // 0=이어하기 1=새 클럽 2=직접 뛰기
+      if(pick===0){ MG.load() ? this.state=ST.MANAGER : MG.newGame() || (this.state=ST.MANAGER); this.state=ST.MANAGER; }
+      else if(pick===1){ MG.newGame(); this.state=ST.MANAGER; }
+      else this.state=ST.SELECT;
     }
   },
 
@@ -89,6 +99,7 @@ const G = {
     ctx.fillStyle=PAL.black; ctx.fillRect(0,0,VW,VH);
     switch(this.state){
       case ST.TITLE:  this.drawTitle(ctx,uctx); break;
+      case ST.MANAGER: MG.draw(ctx,uctx); break;
       case ST.SELECT: this.drawSelect(ctx,uctx); break;
       case ST.PLAY:   this.event.draw(ctx); this.event.drawUI(uctx); break;
       case ST.RESULT: this.event.draw(ctx); this.drawResult(uctx); break;
@@ -112,11 +123,21 @@ const G = {
       drawRunner(ctx, x, y, (this.t*0.0016+i*0.3)%1, ['#5aaaff','#ffd75e','#ff6b8a'][i]);
     }
     ctx.fillStyle='rgba(5,6,10,.5)'; ctx.fillRect(0,0,VW,VH);
-    txt(uctx,'WORLD SPRINT CIRCUIT', VW/2, 88, 24, PAL.gold, 'center', 700);
-    txt(uctx,'좌 · 우를 번갈아 두드려 달린다', VW/2, 120, 12, PAL.white, 'center');
-    if(Math.floor(this.t/500)%2===0)
-      txt(uctx, Ctrl.mode==='touch'?'액션 버튼을 누르세요':'SPACE 를 누르세요', VW/2, 162, 12, PAL.blue,'center',700);
-    txt(uctx,'조작 방식은 일시정지(P)에서 언제든 바꿀 수 있습니다', VW/2, VH-22, 9, PAL.dim,'center');
+    txt(uctx,'WORLD SPRINT CIRCUIT', VW/2, 54, 24, PAL.gold, 'center', 700);
+    txt(uctx,'육상부 감독이 되어 선수를 키운다', VW/2, 84, 11, PAL.white, 'center');
+    const hasSave=MG.hasSave();
+    const items = (hasSave?[['이어하기','저장된 클럽으로 계속']]:[])
+      .concat([['새 클럽 시작','신인 6명으로 처음부터'],['직접 뛰기','아케이드 모드 — 내가 조작한다']]);
+    items.forEach((it,i)=>{
+      const y=110+i*30, on=i===this.titleSel;
+      uctx.fillStyle = on?'rgba(255,215,94,.16)':'rgba(22,26,38,.7)';
+      uctx.fillRect(VW/2-110, y, 220, 26);
+      uctx.strokeStyle = on?PAL.gold:'#3a4258'; uctx.lineWidth=2;
+      uctx.strokeRect(VW/2-110, y, 220, 26);
+      txt(uctx, it[0], VW/2, y+4, 13, on?PAL.gold:PAL.white,'center',700);
+      txt(uctx, it[1], VW/2, y+16, 8, PAL.dim,'center');
+    });
+    txt(uctx,'▲▼ 이동 · 확인 선택   |   조작 방식은 P 에서 바꿉니다', VW/2, VH-20, 9, PAL.dim,'center');
   },
 
   drawSelect(ctx,uctx){
