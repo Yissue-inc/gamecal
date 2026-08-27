@@ -27,7 +27,7 @@ export const MINI_GAMES: MiniGameManifest[] = [
     slug: 'pilgrims-path',
     title: 'The Pilgrim’s Path',
     description: 'A playable Pilgrim’s Progress: carry the burden, lose it at the Cross, and cross the last river.',
-    version: '1.5.0',
+    version: '1.5.1',
     entry: '/mini-games/pilgrims-path/index.html',
     thumbnail: '/mini-games/assets/pilgrims-path-card-v1.webp',
     orientation: 'responsive',
