@@ -541,6 +541,7 @@ const TXT = {
   mgReplay:       ['미니게임',                'Minigames'],
   mgPick:         ['어느 것을 다시 할까',      'Which one again?'],
   choosePrompt:   ['어떻게 할까?',            'What do you do?'],
+  cardNext:       ['확인 키로 계속',           'Press Confirm to continue'],
   codexMenu:      ['도감',                    'Codex'],
   // 목표
   objTitle:       ['목표',                   'GOAL'],
@@ -4031,7 +4032,7 @@ class Dialogue {
   constructor(){
     this.active=false; this.script=null; this.i=0;
     this.text=''; this.shown=0; this.speed=1.2;
-    this.who=null; this.name='';
+    this.who=null; this.name=''; this.mood='neutral';
     this.choices=null; this.sel=0;
     this.onEnd=null; this.lines=[]; this.holdT=0;
     this.boxY=VH-74; this.narration=false;
@@ -4064,6 +4065,7 @@ class Dialogue {
     if(n.text===undefined){ this.next(); return; }
     this.who=n.who!==undefined? n.who : this.who;
     this.name=n.name!==undefined? n.name : this.name;
+    if(n.mood) this.mood=n.mood;              // 지정 없으면 직전 표정 유지
     this.text=n.text; this.shown=0; this.choices=null;
     this.narration = !this.who;
     this.holdT=0;
@@ -4117,9 +4119,20 @@ class Dialogue {
     // 픽셀 프레임
     panel(x, 8, by, VW-16, bh, this.narration? {bg:'rgba(8,8,14,0.88)', b1:'#a8a0c0', b2:'#4a4460'} : {});
     if(!this.narration){
-      const p = makePortrait(this.who);
       panel(x, 14, by+8, 46, 46, {bg:'#241f30'});
-      x.drawImage(p, 17, by+11, 40, 40);
+      /* 실물 일러스트가 있으면 그걸 쓴다 (주인공은 지금 모습 × 지금 감정).
+         없으면 지금까지처럼 픽셀 흉상. 파일이 늘수록 화면이 저절로 좋아진다. */
+      const art = BigPortrait.get(this.who, 40, this.mood);
+      if(art && art.naturalWidth){
+        const sw=art.naturalWidth, sh=art.naturalHeight;
+        const side=Math.min(sw, sh*0.9);                    // 얼굴 쪽 정사각으로 잘라 담는다
+        x.save(); x.beginPath(); x.rect(17, by+11, 40, 40); x.clip();
+        x.imageSmoothingEnabled = true;
+        x.drawImage(art, (sw-side)/2, 0, side, side, 17, by+11, 40, 40);
+        x.restore();
+      } else {
+        x.drawImage(makePortrait(this.who), 17, by+11, 40, 40);
+      }
     }
     // 텍스트 (고해상도)
     const tx = this.narration? 26 : 70;
@@ -4778,8 +4791,17 @@ const Codex = {
           drawText(u, '?', 40, px+pw/2, 60, '#3a3448', 'center');
         }
       } else {
-        // 장소 — 컷신 그림이 있으면 미리보기
-        drawText(u, '◈', 34, px+pw/2, 52, '#c9a227', 'center');
+        // 장소 — assets/place/<key>.webp 가 있으면 그 그림, 없으면 표식
+        const pim = (typeof PlaceArt!=='undefined') && PlaceArt.get(key);
+        if(pim && pim.naturalWidth){
+          const fw=Math.min(pw-16, 116), fh=Math.round(fw*0.66), fx=px+pw/2-fw/2, fy=28;
+          x.save(); x.beginPath(); x.rect(fx,fy,fw,fh); x.clip();
+          x.imageSmoothingEnabled=true; x.drawImage(pim, fx, fy, fw, fh); x.restore();
+          x.fillStyle='#3e3654'; x.fillRect(fx,fy,fw,1); x.fillRect(fx,fy+fh-1,fw,1);
+          x.fillRect(fx,fy,1,fh); x.fillRect(fx+fw-1,fy,1,fh);
+        } else {
+          drawText(u, '◈', 34, px+pw/2, 52, '#c9a227', 'center');
+        }
       }
       drawText(u, nm, 15, px+pw/2, 152, '#f2ecdc', 'center');
       const desc = CODEX_DESC[key];
@@ -4838,6 +4860,99 @@ const CODEX_DESC = {
   ignorance:['샛길로 왔고, 착하게 살았으니 된다고 한다.','Came by a side path. Says being good is enough.'],
   flatterer:['흰 옷을 입었으나 그물을 든 검은 형체.','White robe, black form — and a net.'],
   atheist:['천성 같은 건 없다며 반대로 걸어간다.','Says there is no such city, and walks the other way.']
+};
+
+</script>
+<script>
+/* ===== js/46_storycard.js ===== */
+/* ============================================================
+   46_storycard.js — 장면 일러스트 카드 (각 장의 도입·중반·결말)
+   ★ assets/scene/ch<장>-<막>.webp  (막 = open | mid | close)
+     파일이 있으면 그 장면에서 큰 그림 한 장을 띄운다. 없으면 조용히 건너뛴다.
+     ⛔ 없는 파일을 두 번 요청하지 않는다(404 폭주 방지).
+   ============================================================ */
+'use strict';
+
+const SceneArt = {
+  img:{}, tried:{}, missing:{},
+  key(ch, act){ return `ch${ch+1}-${act}`; },
+  load(k){
+    if(this.tried[k]) return;
+    this.tried[k]=true;
+    const im=new Image();
+    im.onload  = ()=>{ this.img[k]=im; };
+    im.onerror = ()=>{ this.missing[k]=true; };
+    im.src = `assets/scene/${k}.webp`;
+  },
+  get(ch, act){ const k=this.key(ch,act); this.load(k); return this.img[k]||null; },
+  /* 그 장에 들어갈 때 세 장을 미리 받아 둔다 */
+  prefetch(ch){ ['open','mid','close'].forEach(a=> this.load(this.key(ch,a))); }
+};
+
+/* 장소 카드 — 도감 오른쪽에 쓴다 */
+const PlaceArt = {
+  img:{}, tried:{},
+  get(key){
+    if(!this.tried[key]){
+      this.tried[key]=true;
+      const im=new Image();
+      im.onload=()=>{ this.img[key]=im; };
+      im.onerror=()=>{};
+      im.src = `assets/place/${key}.webp`;
+    }
+    return this.img[key]||null;
+  }
+};
+
+/* 한 장짜리 이야기 카드.
+   그림이 없으면 아예 뜨지 않는다 — "빈 액자"를 보여 주느니 건너뛴다. */
+const StoryCard = {
+  active:false, img:null, cap:'', t:0, onEnd:null, holdT:0,
+
+  show(ch, act, cap, cb){
+    const im = SceneArt.get(ch, act);
+    if(!im){ if(cb) cb(); return false; }        // 파일이 아직 없다 — 조용히 통과
+    this.active=true; this.img=im; this.cap=cap||''; this.t=0; this.holdT=0;
+    this.onEnd=cb||null;
+    Audio2.sfx('item');
+    return true;
+  },
+  close(){
+    this.active=false;
+    const cb=this.onEnd; this.onEnd=null;
+    if(cb) cb();
+  },
+  update(){
+    if(!this.active) return;
+    this.t++;
+    if(this.t>18) this.holdT++;
+    if(this.holdT>6 && (Input.pressed('interact')||Input.pressed('jump')||Input.pressed('attack')||Input.pressed('menu'))) this.close();
+  },
+  draw(x,u){
+    if(!this.active) return;
+    const a = Math.min(1, this.t/16);
+
+    // 게임 캔버스 — 그림
+    x.fillStyle='#07060c'; x.fillRect(0,0,VW,VH);
+    const im=this.img;
+    const zoom = 1 + Math.min(0.05, this.t*0.00016);          // 아주 느린 켄번즈
+    const iw=im.naturalWidth||im.width, ih=im.naturalHeight||im.height;
+    const scale = Math.max(VW/iw, (VH-40)/ih) * zoom;
+    const dw=iw*scale, dh=ih*scale;
+    x.save(); x.globalAlpha=a; x.imageSmoothingEnabled=true;
+    x.drawImage(im, Math.round(VW/2-dw/2), Math.round((VH-34)/2-dh/2), Math.round(dw), Math.round(dh));
+    x.restore();
+
+    // UI 캔버스 — 레터박스와 자막
+    u.save();
+    u.globalAlpha=a;
+    u.fillStyle='#07060c'; u.fillRect(-2,-2,VW+4,16); u.fillRect(-2,VH-34,VW+4,36);
+    const lines = wrapText(u, this.cap, 12, VW-52);
+    lines.slice(0,2).forEach((l,i)=> drawText(u, l, 12, 26, VH-30+i*15, '#f2ecdc','left',false));
+    if(this.holdT>6 && Math.sin(this.holdT*0.1)>-0.2)
+      drawText(u, L('cardNext'), 10, VW-22, VH-16, '#8a8270', 'right', false);
+    u.restore();
+  }
 };
 
 </script>
@@ -5489,7 +5604,10 @@ const NarrowRun = {
 'use strict';
 
 const nr  = (ko,en)=>({_n:1, ko, en});
-const d   = (who,nKo,nEn,ko,en)=>({_d:1, who, nKo, nEn, ko, en});
+/* 마지막 인자 mood 는 주인공 표정 파일을 고른다 (없으면 직전 표정 유지).
+   burden: neutral strain fear shame despair cry resolve
+   robe:   joy relief          armor: neutral brave awe grief hurt */
+const d   = (who,nKo,nEn,ko,en,mood)=>({_d:1, who, nKo, nEn, ko, en, mood});
 const ac  = (fn)=>({act:fn});
 const ci  = (id)=>({cine:id});   // 컷신 삽입
 const cho = (list)=>({_c:1, list});   // [koText, enText, val, faithDelta, actFn]
@@ -5700,7 +5818,7 @@ ch6_three:[
   d('presumption','추정','Presumption','걱정을 왜 해? 다 알아서 잘 돼. 난 원래 운이 좋아.',
     'Why worry? It works out. I have always been lucky.'),
   d('christian','크리스천','Christian','쇠사슬이 발에 있어요! 제가 풀어 드릴게요!',
-    'There are chains on your feet! Let me get them off!'),
+    'There are chains on your feet! Let me get them off!','strain'),
   nr('셋은 눈을 뜨지도 않았다. 크리스천은 오래 서 있다가, 결국 혼자 올라갔다.',
      'Not one of them opened their eyes. Christian stood a long while, then climbed on alone.'),
   ac((G)=>{ G.player.doubt=Math.max(0,G.player.doubt-5); G.toast(LANG==='ko'?'깨우지 못한 사람도 있다':'Some cannot be woken', '#8a84a0'); })
@@ -5713,7 +5831,7 @@ ch6_formalist:[
   d('hypocrisy','위선자','Hypocrisy','다 도착하면 똑같아요. 길에서 어떻게 왔는지 누가 물어봐요?',
     'We all arrive the same. Who asks how you got there?'),
   d('christian','크리스천','Christian','저는 주인이 낸 길로 왔어요. 담을 넘은 건 그분이 부른 게 아니잖아요.',
-    'I came the way the Lord laid out. Climbing the wall is not being invited.'),
+    'I came the way the Lord laid out. Climbing the wall is not being invited.','resolve'),
   d('formalist','형식주의자','Formalist','고집 세네. 우린 편한 길로 갈게요.',
     'Stubborn. We will take the easy way.'),
   nr('둘은 곧 갈림길에서 각각 다른 샛길로 사라졌다. 하나는 위험이라는 곳으로, 하나는 멸망이라는 곳으로.',
@@ -5788,7 +5906,7 @@ ch12_flatterer:[
   d('hopeful','소망','Hopeful','좋은 분 같은데요. 우리를 알아봐 주잖아요.',
     'He seems kind. He can see what we are.'),
   d('christian','크리스천','Christian','…목자들이 준 지도를 아직 안 펴 봤어요.',
-    '…We never opened the map the Shepherds gave us.'),
+    '…We never opened the map the Shepherds gave us.','strain'),
   cho([
     ['지도를 먼저 펴 본다','Open the map first','map', +2],
     ['안내를 따라간다','Follow the guide','net', -3]
@@ -5800,7 +5918,7 @@ ch12_atheist:[
   d('atheist','무신론자','Atheist','천성? 하하! 이십 년을 찾아다녔소. 그런 도시는 없소.',
     'The Celestial City? Ha! I searched twenty years. There is no such place.'),
   d('christian','크리스천','Christian','우린 산 위에서 그 문을 봤어요. 두 눈으로요.',
-    'We saw its gate from the mountain. With our own eyes.'),
+    'We saw its gate from the mountain. With our own eyes.','brave'),
   d('atheist','무신론자','Atheist','헛것을 본 거요. 나처럼 돌아서시오. 그게 어른의 일이오.',
     'You saw nothing. Turn back like me. That is what grown men do.'),
   d('hopeful','소망','Hopeful','…아저씨는 지도를 잃어버린 거예요. 우린 아직 갖고 있어요.',
@@ -5862,7 +5980,7 @@ ch9_run:[
   d('timorous','겁먹은 순례자','Frightened Pilgrim','길이 둘로 갈려. 어느 쪽이 맞는지 아무도 몰라.',
     'The path splits in two. Nobody knows which side is right.'),
   d('christian','크리스천','Christian','같이 가요. 내가 앞장설게요.',
-    'Come with me. I will go first.')
+    'Come with me. I will go first.','resolve')
 ],
 ch9_run_end:[
   nr('골짜기 끝. 어둠은 그대로였지만, 지나온 길은 이제 뒤에 있었다.',
@@ -6053,13 +6171,13 @@ ch8_open:[
   ac((G)=>{ G.toast(L('t_needSword'), '#ff8a6a'); })
 ],
 ch8_apollyon:[
-  d('christian','크리스천','Christian','…너는 뭐야.','...What are you?'),
+  d('christian','크리스천','Christian','…너는 뭐야.','...What are you?','awe'),
   nr('몸은 비늘로 덮이고, 발은 곰의 발이고, 배에서 연기가 나고, 입은 사자의 입이었다.',
      'Scales covered it. Its feet were bear’s feet. Smoke came from its belly. Its mouth was a lion’s mouth.'),
   nr('아볼루온 — "부수는 자"라고 불리는 것.','Apollyon — the one they call "the Destroyer."'),
   nr('"어디서 왔고 어디로 가느냐?"','"Where did you come from, and where are you going?"'),
   d('christian','크리스천','Christian','멸망의 도시에서 왔고 천성으로 간다.',
-    'I came from the City of Doom, and I’m going to the Golden City.'),
+    'I came from the City of Doom, and I’m going to the Golden City.','brave'),
   nr('"멸망의 도시는 내 땅이다. 내가 거기 왕이야. 왜 내 부하가 도망치지? 돌아와라. 두 배로 주마."',
      '"The City of Doom is mine. I am its king. Why is one of mine running away? Come back. I’ll pay you double."'),
   d('christian','크리스천','Christian','나는 다른 왕이랑 약속했어. 그분을 버릴 수 없어.',
@@ -6391,7 +6509,7 @@ function rebuildStory(){
   for(const id in RAW){
     STORY[id] = RAW[id].map(n=>{
       if(n._n) return {who:null, text: k? n.ko : n.en};
-      if(n._d) return {who:n.who, name: k? n.nKo : n.nEn, text: k? n.ko : n.en};
+      if(n._d) return {who:n.who, name: k? n.nKo : n.nEn, text: k? n.ko : n.en, mood:n.mood};
       if(n._c) return {choice: n.list.map(c=>({t: k? c[0]:c[1], val:c[2], f:c[3], act:c[4]}))};
       if(n.cine) return {cine:n.cine};
       return n;
@@ -6415,8 +6533,10 @@ const ex = (side)=>({exit:side});
 const bgOf = (id)=>({bg:id});
 
 /* d2: 대사 · m2: 혼잣말(이름 없이) · n2: 내레이션 */
-const d2 = (who,nKo,nEn,ko,enT)=>({_d:1, who, nKo, nEn, ko, en:enT});
-const m2 = (who,ko,enT)=>({_m:1, who, ko, en:enT});
+/* 마지막 인자 mood 는 주인공 표정 파일을 고른다 (assets/portrait/christian-<form>-<mood>.webp).
+   생략하면 직전 표정을 그대로 유지한다 — 장면 톤이 한 줄마다 튀지 않게. */
+const d2 = (who,nKo,nEn,ko,enT,mood)=>({_d:1, who, nKo, nEn, ko, en:enT, mood});
+const m2 = (who,ko,enT,mood)=>({_m:1, who, ko, en:enT, mood});
 const n2 = (ko,enT)=>({_n:1, ko, en:enT});
 
 const PROLOGUE_RAW = [
@@ -6425,9 +6545,9 @@ const PROLOGUE_RAW = [
      'A city in England. People called it the City of Doom.\nNobody wondered why.'),
 
   en('christian','left','크리스천'),
-  m2('christian','…또 이 꿈이다.','...This dream again.'),
+  m2('christian','…또 이 꿈이다.','...This dream again.','fear'),
   m2('christian','불이 하늘에서 내려와 지붕을 태우고, 나는 발이 안 떨어져서 그냥 서 있는 꿈.',
-     'Fire falls from the sky, the roofs burn, and my feet will not move.'),
+     'Fire falls from the sky, the roofs burn, and my feet will not move.','despair'),
   m2('christian','세 달째 같은 꿈을 꾼다.','Three months now. The same dream.'),
 
   n2('소년의 이름은 크리스천. 열두 살. 아버지는 없고, 어머니와 동생 넷이 있다.\n낮에는 삼을 꼬아 밧줄을 만들고, 밤에는 다락에서 책을 읽는다.',
@@ -6435,17 +6555,17 @@ const PROLOGUE_RAW = [
 
   m2('christian','책은 아버지가 남긴 거야. 글자가 반쯤 지워져서 읽기 힘든데,\n한 줄만은 또렷하게 남아 있어.',
      'The book was my father’s. Half the letters are worn away,\nbut one line is still clear.'),
-  m2('christian','"장차 올 진노를 피하라."','"Flee from the wrath to come."'),
-  m2('christian','피하라니… 어디로?','Flee... but where?'),
+  m2('christian','"장차 올 진노를 피하라."','"Flee from the wrath to come."','resolve'),
+  m2('christian','피하라니… 어디로?','Flee... but where?','fear'),
 
   en('wife','right','어머니'),
   d2('wife','어머니','Mother','또 촛불 켰니? 기름 아까운 줄 모르고.',
      'Candle again? Do you know what oil costs?'),
   d2('christian','크리스천','Christian','어머니. 이 책이 우리 도시가 불탄다고 해요.',
-     'Mother. This book says our city will burn.'),
+     'Mother. This book says our city will burn.','strain'),
   d2('wife','어머니','Mother','책이 무슨 말을 하든 내일도 밧줄은 꼬아야 해.',
      'Whatever the book says, there is rope to make tomorrow.'),
-  d2('christian','크리스천','Christian','…네.','...Yes.'),
+  d2('christian','크리스천','Christian','…네.','...Yes.','shame'),
   m2('christian','어머니는 무섭지 않으신 걸까.\n아니면, 무서운 걸 아는데 어떻게 할 수가 없는 걸까.',
      'Is she not afraid?\nOr does she know, and simply cannot do anything about it?'),
   ex('right'),
@@ -6498,8 +6618,8 @@ function rebuildPrologue(){
   const k = (LANG==='ko');
   PROLOGUE = PROLOGUE_RAW.map(n=>{
     if(n._n) return {who:null, name:'', text: k? n.ko : n.en};
-    if(n._m) return {who:n.who, name:'', text: k? n.ko : n.en};   // 혼잣말 — 이름 없음
-    if(n._d) return {who:n.who, name: k? n.nKo : n.nEn, text: k? n.ko : n.en};
+    if(n._m) return {who:n.who, name:'', text: k? n.ko : n.en, mood:n.mood};   // 혼잣말 — 이름 없음
+    if(n._d) return {who:n.who, name: k? n.nKo : n.nEn, text: k? n.ko : n.en, mood:n.mood};
     if(n.choice) return {choice: n.choice.map(c=>({t: k? c.t : c.e, val:c.val, f:c.f}))};
     return n;
   });
@@ -7310,6 +7430,7 @@ const G = {
     if(this.scene===0){ ChapterCard.show(chNum(ci), chTitle(ci), chSub(ci)); GCBridge.chapter(ci); }
     this.objective = ci;
     // 이 장의 장소를 도감에 기록
+    SceneArt.prefetch(ci);                       // 그 장의 3막 그림을 미리 받아 둔다
     CODEX_PLACES.filter(r=>r[3]===ci+1).forEach(r=> codexMeet('place', r[0]));
     codexMeet('char','christian');
     /* ⚠ 여기서 씬의 인물을 전부 해금하면 안 된다.
@@ -7329,11 +7450,20 @@ const G = {
     } else if(this.chapter+1 < CHAPTERS.length){
       const from=this.chapter, to=this.chapter+1;
       this.autoSave('chapter');
-      Fade.out(()=>{
+      /* 장을 마칠 때 결말 그림 → 여정 지도 → 다음 장 도입 그림.
+         그림이 없으면 각 단계가 스스로 건너뛴다(빈 액자를 띄우지 않는다). */
+      const goMap = ()=> Fade.out(()=>{
         this.state=ST.MAP;
-        JourneyMap.open(from, to, ()=>{ Fade.out(()=>{ this.loadChapter(to,0); Fade.in(); }); });
+        JourneyMap.open(from, to, ()=>{
+          Fade.out(()=>{
+            this.loadChapter(to,0);
+            StoryCard.show(to, 'open', chSub(to));
+            Fade.in();
+          });
+        });
         Fade.in();
       });
+      if(!StoryCard.show(from, 'close', chSub(from), goMap)) goMap();
     } else this.endGame();
   },
   /* 하트를 다 잃으면 그 자리에서 다시 일어난다 (장을 처음부터 하지 않는다) */
@@ -7637,6 +7767,7 @@ const G = {
        컷신·프롤로그·도감·미니게임에 들어가면 화면이 검은 채로 영영 안 열렸다.
        (실측: 타이틀 → "처음부터" → 프롤로그가 통째로 암전. 게임을 못 시작한다) */
     Fade.update();
+    if(StoryCard.active){ StoryCard.update(); return; }
     if(Cinema.active){ Cinema.update(); this.particles.update(); return; }
     if(Drama.active){ Drama.update(); return; }
     if(MiniGame.active){ MiniGame.update(); this.particles.update(); return; }
@@ -7658,7 +7789,7 @@ const G = {
     this.playTime++;
     this.dlg.update();
     if(this.freeze>0 && !this.burdenAnim){ this.freeze--; this.particles.update(); this.cam.update(); return; }
-    const locked = this.dlg.active || this.cutscene || Cinema.active || Drama.active || Codex.active || MiniGame.active || this.bossIntro>0 || (ChapterCard.active&&ChapterCard.t<40);
+    const locked = this.dlg.active || this.cutscene || Cinema.active || Drama.active || Codex.active || MiniGame.active || StoryCard.active || this.bossIntro>0 || (ChapterCard.active&&ChapterCard.t<40);
 
     const p=this.player;
 
@@ -8041,6 +8172,7 @@ const G = {
       }
     }
 
+    if(StoryCard.active){ StoryCard.draw(x,u); Fade.draw(x,u); return; }
     if(MiniGame.active){ MiniGame.draw(x,u); this.particles.draw(x,{ox:0,oy:0}); Fade.draw(x,u); return; }
     if(Cinema.active){ Cinema.draw(x,u); return; }
     if(Drama.active){ Drama.draw(x,u); Fade.draw(x,u); return; }
@@ -8250,16 +8382,49 @@ const POST = {
    ============================================================ */
 'use strict';
 
+/* ── 대형 초상 로더 ──────────────────────────────────────────
+   주인공은 "지금 어떤 모습인가(form) × 지금 어떤 감정인가(mood)" 로 그림이 갈린다.
+     form : burden(짐을 진) → robe(십자가 뒤 흰옷) → armor(궁전 뒤 전신갑주)
+     mood : neutral 을 기본으로, 장면마다 지정
+   파일 규칙  assets/portrait/christian-<form>-<mood>.webp
+   그 밖의 인물  assets/portrait/<key>.webp
+   폴백 순서  요청한 표정 → 같은 form 의 neutral → 평면 <key>.webp → 픽셀 스프라이트
+   ⚠ 파일이 없어도 게임은 그대로 돌아간다. 없는 파일은 두 번 요청하지 않는다. */
+const HERO_MOODS = {
+  burden: ['neutral','strain','fear','shame','despair','cry','resolve'],
+  robe:   ['joy','relief'],
+  armor:  ['neutral','brave','awe','grief','hurt']
+};
+
 const BigPortrait = {
-  cache: {}, img: {}, tried: {},
-  load(key){
-    if(this.tried[key]) return;
-    this.tried[key] = true;
-    const im = new Image();
-    im.onload = ()=>{ this.img[key] = im; };
-    im.onerror = ()=>{};
-    im.src = `assets/portrait/${key}.webp`;
+  cache: {}, img: {}, tried: {}, missing: {},
+
+  /* 주인공이 지금 어떤 모습인지 */
+  heroForm(){
+    const p = G.player;
+    if(!p) return 'burden';
+    if(p.armor && (p.armor.plate || p.armor.sword)) return 'armor';
+    if(!p.burden) return 'robe';
+    return 'burden';
   },
+  /* 요청한 감정을 그 form 이 실제로 가진 표정으로 맞춘다 */
+  heroFile(mood){
+    const form = this.heroForm();
+    const have = HERO_MOODS[form] || ['neutral'];
+    const want = (mood||'neutral').toLowerCase();
+    const use  = have.includes(want)? want : have[0];
+    return `christian-${form}-${use}`;
+  },
+
+  load(file){
+    if(this.tried[file]) return;
+    this.tried[file] = true;
+    const im = new Image();
+    im.onload  = ()=>{ this.img[file] = im; };
+    im.onerror = ()=>{ this.missing[file] = true; };
+    im.src = `assets/portrait/${file}.webp`;
+  },
+
   make(charKey, h){
     const id = charKey + '@' + h;
     if(this.cache[id]) return this.cache[id];
@@ -8277,15 +8442,24 @@ const BigPortrait = {
     this.cache[id] = c;
     return c;
   },
-  get(charKey, h){
-    this.load(charKey);
-    return this.img[charKey] || this.make(charKey, h);
+
+  get(charKey, h, mood){
+    const isHero = (charKey==='christian' || charKey==='christianRobe' || charKey==='christianArmor');
+    const files = isHero
+      ? [this.heroFile(mood), `christian-${this.heroForm()}-neutral`, charKey]
+      : [charKey];
+    for(const f of files){
+      this.load(f);
+      if(this.img[f]) return this.img[f];
+    }
+    return this.make(charKey, h);
   }
 };
 
 const Drama = {
   active:false, script:null, i:-1, onEnd:null,
   text:'', shown:0, lines:[], name:'', holdT:0,
+  mood:'neutral', leftMood:'neutral', rightMood:'neutral',
   left:null, leftName:'', right:null, rightName:'', speaker:'',
   choices:null, sel:0, fadeIn:0, bg:null, totalChars:0,
 
@@ -8293,6 +8467,7 @@ const Drama = {
     this.active=true; this.script=script.slice(); this.i=-1;
     this.onEnd=onEnd||null; this.choices=null; this.fadeIn=0;
     this.left=null; this.right=null; this.leftName=''; this.rightName='';
+    this.mood='neutral'; this.leftMood='neutral'; this.rightMood='neutral';
     this.bg = (opt && opt.bg) || null;
     G.dialogueResult = null;
     this.next();
@@ -8316,6 +8491,11 @@ const Drama = {
     if(n.text===undefined){ this.next(); return; }
     this.speaker = n.who || '';
     this.name = n.name || '';
+    if(n.mood){                                   // 지정이 없으면 직전 표정을 유지한다
+      this.mood = n.mood;
+      if(this.speaker===this.left)  this.leftMood  = n.mood;
+      if(this.speaker===this.right) this.rightMood = n.mood;
+    }
     this.text = n.text; this.shown = 0; this.holdT = 0;
     this.relayout();
   },
@@ -8411,14 +8591,14 @@ const Drama = {
 
     const H = 168, baseY = VH - 2;
     if(this.left){
-      const p = BigPortrait.get(this.left, H);
+      const p = BigPortrait.get(this.left, H, this.speaker===this.left? this.mood : this.leftMood);
       const w = Math.round(p.width * (H/p.height));
       u.globalAlpha = a * (this.speaker===this.left? 1 : 0.55);
       u.drawImage(p, -Math.round(w*0.22), baseY-H, w, H);
       u.globalAlpha = 1;
     }
     if(this.right){
-      const p = BigPortrait.get(this.right, H);
+      const p = BigPortrait.get(this.right, H, this.speaker===this.right? this.mood : this.rightMood);
       const w = Math.round(p.width * (H/p.height));
       u.save();
       u.globalAlpha = a * (this.speaker===this.right? 1 : 0.55);
