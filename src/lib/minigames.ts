@@ -92,6 +92,28 @@ export const MINI_GAMES: MiniGameManifest[] = [
     },
     analyticsPrefix: 'minigame_wave_village_fishing',
   },
+  {
+    slug: 'world-sprint-circuit',
+    title: 'World Sprint Circuit',
+    description: 'A pixel athletics circuit: find the A/D rhythm, clear event challenges, and chase your personal best.',
+    version: '1.0.0',
+    entry: '/mini-games/world-sprint-circuit/index.html',
+    thumbnail: '/mini-games/assets/world-sprint-circuit-card-v1.webp',
+    orientation: 'landscape',
+    input: ['tap', 'keyboard', 'pointer'],
+    supportsGuest: true,
+    requiresAuthFor: ['save_score'],
+    score: {
+      primaryMetric: 'circuit_score',
+      higherIsBetter: true,
+      unit: 'pts',
+    },
+    calendar: {
+      allowedGameSlugs: [],
+      eventScoped: false,
+    },
+    analyticsPrefix: 'minigame_world_sprint_circuit',
+  },
 ]
 
 export function getMiniGameBySlug(slug: string) {

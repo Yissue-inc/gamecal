@@ -1,0 +1,294 @@
+/* ══════════════════════════════════════════════════════════════════
+   던지기 — 창던지기 · 해머던지기. 둘 다 3회 시기.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* ── 창던지기 ─────────────────────────────────────────────
+   조주로 속도 → 액션을 쥐어 힘을 모으고 → 파울선 앞에서 놓는다. */
+class JavelinEvent extends FieldEvent {
+  newAttempt(){
+    this.phase='RUNUP';
+    this.runner = new Runner(1,{},true, RULES.javelinFoulLineM + 8);
+    this.runner.reset(0); this.runner.started=true;
+    this.holdStart=-1; this.charge=0; this.foul=false;
+    this.vx=0; this.vy=0; this.px=0; this.py=0; this.flying=false;
+    this.throwFrom=0; this.range=0;
+  }
+  onStride(side,tMs){ if(this.phase!=='RUNUP') return;
+    const j=this.runner.stride(side,tMs,'off'); if(j) Sfx.step(j); }
+  onAction(tMs){
+    if(this.phase!=='RUNUP') return;
+    if(this.holdStart<0){ this.holdStart=tMs; this.say('힘을 모으는 중…'); Sfx.beep(330,0.1,'square',0.1); }
+  }
+  onActionUp(tMs){
+    if(this.phase!=='RUNUP'||this.holdStart<0) return;
+    this.release(tMs);
+  }
+  release(tMs){
+    const heldMs = tMs - this.holdStart; this.holdStart=-1;
+    let charge = clamp(heldMs/RULES.javelinChargeMs, 0.2, 1.4);
+    if(charge>1) charge = Math.max(0.35, 1-(charge-1)*1.4);   // 너무 오래 쥐면 손해
+    this.charge = charge;
+    this.foul = this.runner.distM > RULES.javelinFoulLineM + RULES.foulToleranceM;
+    // 파울선에 가까울수록 각도가 최적에 붙는다
+    const near = clamp(1 - Math.abs(this.runner.distM - RULES.javelinFoulLineM)/3, 0, 1);
+    const angle = RULES.javelinOptAngleDeg - (1-near)*11;
+    /* 최대 출력이 기준기록보다 낮으면 그 종목은 영영 통과 못 한다.
+       실측: 예전 계수로 최대 ~49m 인데 기준이 52m 였다. 완벽한 던지기가 ~85m 가 되게 잡는다
+       (실제 세계기록 98.48m). */
+    const v = this.runner.speed*0.50 + 24.0*charge;
+    const th = angle*Math.PI/180;
+    this.vx = v*Math.cos(th); this.vy = v*Math.sin(th);
+    this.throwFrom = this.runner.distM;
+    this.px = 0; this.py = 1.8;                     // 손 높이에서 출발
+    this.angle = angle; this.releaseV = v;
+    this.phase='FLIGHT'; this.flying=true;
+    if(this.foul) this.say('파울 — 선을 넘었다', true);
+    else Sfx.beep(880,0.12,'square',0.13);
+  }
+  update(dt){
+    this.t += dt*1000;
+    if(this.phase==='RUNUP'){
+      this.runner.simulate(dt, this.t);
+      if(this.holdStart>=0 && this.t-this.holdStart > RULES.javelinChargeMs*2){
+        this.release(Math.round(this.t));           // 안 놓으면 자동으로 놓아 준다
+      }
+      if(this.runner.distM > RULES.javelinFoulLineM + 4){
+        this.foul=true; this.say('파울 — 선을 지나쳤다', true);
+        this.phase='RESULT'; this.resultAt=this.t; this.pending=null;
+      }
+    } else if(this.phase==='FLIGHT'){
+      this.px += this.vx*dt; this.vy -= 9.81*dt; this.py += this.vy*dt;
+      if(this.py <= 0){
+        this.range = this.foul ? 0 : this.px;
+        this.phase='RESULT'; this.resultAt=this.t;
+        this.pending = this.foul ? null : +this.range.toFixed(2);
+        this.foul ? Sfx.fail() : Sfx.beep(1046,0.2,'square',0.14);
+      }
+    } else if(this.phase==='RESULT'){
+      if(this.t-this.resultAt>1600) this.nextAttempt(this.pending===undefined?null:this.pending);
+    }
+    const focus = this.phase==='FLIGHT' ? this.throwFrom + this.px*0.55 : this.runner.distM;
+    this.camM += (Math.max(0, focus - VW*this.mPerPx*0.4) - this.camM)*Math.min(1,dt*6);
+    Sfx.crowd(this.phase==='FLIGHT'?0.8:0.3);
+  }
+  draw(ctx){
+    // 던지기는 멀리 보여야 한다 — 축척을 늘린다
+    const scale = this.phase==='FLIGHT' ? 0.30 : 0.16;
+    this.mPerPx += (scale-this.mPerPx)*0.06;
+    const gt = Track.fieldBack(ctx, this.camM);
+    const GROUND = Track.fieldGround(ctx, { grassTop: gt });
+    const px=(m)=>Math.round((m-this.camM)/this.mPerPx);
+    // 파울선 — 땅에 그은 선 + 눈에 띄는 기둥
+    const fx=px(RULES.javelinFoulLineM);
+    ctx.fillStyle=PAL.white; ctx.fillRect(fx, GROUND-34, 2, 34);
+    ctx.fillStyle=PAL.red;   ctx.fillRect(fx, GROUND-40, 2, 6);
+    // 10m 눈금
+    for(let m=10;m<=100;m+=10){ const x=px(RULES.javelinFoulLineM+m); if(x<=0||x>=VW) continue;
+      ctx.fillStyle='rgba(242,245,250,.4)'; ctx.fillRect(x,GROUND-8,1,8);
+      ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
+    // 선수
+    const rx = px(this.phase==='RUNUP'?this.runner.distM:this.throwFrom);
+    drawRunner(ctx, rx, GROUND, this.phase==='RUNUP'?this.runner.stridePhase:0.25, '#ffd75e',
+      { lean:this.phase!=='RUNUP', throwing:this.phase!=='RUNUP' });
+    // 창
+    if(this.phase==='RUNUP'){
+      ctx.fillStyle='#e8e2d6'; ctx.fillRect(rx-6, GROUND-24, 16, 1);
+    } else if(this.phase==='FLIGHT'||this.phase==='RESULT'){
+      const jx = px(this.throwFrom + this.px), jy = GROUND - this.py/this.mPerPx;
+      const ang = Math.atan2(-this.vy, this.vx);
+      ctx.save(); ctx.translate(jx, Math.min(GROUND, jy)); ctx.rotate(-ang);
+      if(!Art.blit(ctx,'javelin',0,0,'center')){
+        ctx.fillStyle='#e8e2d6'; ctx.fillRect(-10,0,20,1);
+        ctx.fillStyle=PAL.gold; ctx.fillRect(8,-1,4,2);
+      }
+      ctx.restore();
+    }
+  }
+  drawUI(uctx){
+    plate(uctx,0,0,VW,30,0.72);
+    txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
+    txt(uctx,'SPEED',66,3,8,PAL.dim); txt(uctx,this.runner.speed.toFixed(1)+' m/s',66,13,11,PAL.white);
+    txt(uctx,'BEST',150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
+    txt(uctx,'QUALIFY',VW-8,3,8,PAL.dim,'right');
+    txt(uctx,this.qualify.toFixed(1)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    for(let i=0;i<3;i++){ const m=this.marks[i];
+      txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
+          m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
+
+    if(this.phase==='RUNUP'){
+      const left = RULES.javelinFoulLineM - this.runner.distM;
+      plate(uctx,0,Track.GAUGE_Y,VW,Track.GAUGE_H,0.82);
+      if(this.holdStart<0){
+        txt(uctx, left<8?'액션을 쥐어 힘을 모으세요':`파울선까지 ${Math.max(0,left).toFixed(1)}m`,
+            VW/2,44,13,left<8?PAL.gold:PAL.white,'center',700);
+        const now=this.t,tg=this.runner.targetIntervalMs();
+        const err=this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tg)/tg,-1,1);
+        HUD.rhythm(uctx,{nextSide:-this.runner.lastSide||1,phaseErr:err,form:this.runner.form});
+      } else {
+        const held=this.t-this.holdStart;
+        const w=200,x=(VW-w)/2,y=Track.GAUGE_Y+9;
+        uctx.fillStyle='rgba(242,245,250,.14)'; uctx.fillRect(x,y,w,10);
+        const p=clamp(held/(RULES.javelinChargeMs*1.4),0,1);
+        uctx.fillStyle = held<=RULES.javelinChargeMs ? PAL.green : PAL.red;
+        uctx.fillRect(x,y,Math.round(w*p),10);
+        uctx.fillStyle=PAL.white; uctx.fillRect(x+Math.round(w/1.4)-1,y-3,2,16);
+        txt(uctx,'가득 찼을 때 놓으세요',VW/2,y+12,8,PAL.dim,'center');
+        txt(uctx, left<0.5&&left>-0.5?'지금 놓아!':`파울선까지 ${Math.max(0,left).toFixed(1)}m`,
+            VW/2,44,14,Math.abs(left)<1?PAL.green:PAL.gold,'center',700);
+      }
+    } else if(this.phase==='FLIGHT'){
+      txt(uctx, this.px.toFixed(1)+'m', VW/2, 44, 20, PAL.gold,'center',700);
+    } else if(this.phase==='RESULT'){
+      const m=this.pending;
+      txt(uctx, m===null?'파울':m.toFixed(2)+'m', VW/2, 92, 28, m===null?PAL.red:PAL.gold,'center',700);
+    }
+    if(this.msg && this.t-this.msgAt<900){ const a=1-(this.t-this.msgAt)/900;
+      uctx.save(); uctx.globalAlpha=a;
+      txt(uctx,this.msg,VW/2,68,12,this.msgBad?PAL.red:PAL.green,'center',700); uctx.restore(); }
+  }
+}
+
+/* ── 해머던지기 ───────────────────────────────────────────
+   좌·우를 번갈아 두드려 회전을 올리고 → 각도 바늘이 최적일 때 놓는다. */
+class HammerEvent extends FieldEvent {
+  newAttempt(){
+    this.phase='SPIN';
+    this.spin=0;            // 회전 각속도 (rad/s)
+    this.angle=0;           // 해머 각도
+    this.turns=0;
+    this.lastSide=0; this.lastTapMs=-1e9;
+    this.spinStart=-1;
+    this.range=0; this.px=0; this.py=0; this.vx=0; this.vy=0;
+    this.releaseAngle=0; this.foul=false;
+    this.runner = new Runner(1,{},true,1);   // 판정 재사용
+    this.runner.reset(0);
+  }
+  onStride(side,tMs){
+    if(this.phase!=='SPIN') return;
+    if(this.spinStart<0) this.spinStart=tMs;
+    if(this.lastSide===side){ this.say('같은 쪽!', true); this.spin=Math.max(0,this.spin-0.5); }
+    else {
+      const dt=tMs-this.lastTapMs;
+      const gain = this.lastTapMs<-1e8 ? 0.9 : clamp(420/Math.max(60,dt), 0.25, 1.5);
+      this.spin = Math.min(RULES.hammerMaxSpin, this.spin + gain*0.62);
+      this.turns += 0.5;
+      Sfx.beep(220+this.spin*70, 0.05,'square',0.09);
+    }
+    this.lastSide=side; this.lastTapMs=tMs;
+  }
+  onAction(tMs){
+    if(this.phase!=='SPIN') return;
+    if(this.spin < RULES.hammerMinSpin){ this.say('회전이 부족하다', true); return; }
+    this.release(tMs);
+  }
+  release(tMs){
+    // 각도 바늘이 24°~66° 안에 있어야 유효, 45°가 최적
+    const deg = ((this.angle*180/Math.PI) % 360 + 360) % 360;
+    const shot = deg > 90 ? 90 - (deg-90) : deg;         // 0~90 으로 접는다
+    this.releaseAngle = shot;
+    this.foul = shot < RULES.hammerMinAngleDeg || shot > RULES.hammerMaxAngleDeg;
+    const th = shot*Math.PI/180;
+    const v = 4.2 + this.spin*3.1;
+    this.vx = v*Math.cos(th); this.vy = v*Math.sin(th);
+    this.px=0; this.py=1.6;
+    this.phase='FLIGHT';
+    if(this.foul) this.say(`섹터 밖 (${shot.toFixed(0)}°)`, true);
+    else Sfx.beep(660,0.16,'square',0.14);
+  }
+  update(dt){
+    this.t += dt*1000;
+    if(this.phase==='SPIN'){
+      this.angle += this.spin*dt;
+      this.spin = Math.max(0, this.spin - dt*0.55);        // 안 두드리면 회전이 죽는다
+      if(this.spinStart>=0 && this.t - this.spinStart > RULES.hammerAutoReleaseMs){
+        this.release(Math.round(this.t));                  // 시간 초과 시 자동 릴리스
+      }
+    } else if(this.phase==='FLIGHT'){
+      this.px += this.vx*dt; this.vy -= 9.81*dt; this.py += this.vy*dt;
+      if(this.py<=0){
+        this.range = this.foul?0:this.px;
+        this.phase='RESULT'; this.resultAt=this.t;
+        this.pending = this.foul?null:+this.range.toFixed(2);
+        this.foul?Sfx.fail():Sfx.beep(1046,0.2,'square',0.14);
+      }
+    } else if(this.phase==='RESULT'){
+      if(this.t-this.resultAt>1600) this.nextAttempt(this.pending===undefined?null:this.pending);
+    }
+    Sfx.crowd(this.phase==='SPIN'?clamp(this.spin/8,0,1)*0.7:0.4);
+  }
+  draw(ctx){
+    const scale = this.phase==='FLIGHT'||this.phase==='RESULT' ? 0.26 : 0.10;
+    this.mPerPx += (scale-this.mPerPx||0)*0.06 || 0;
+    if(!this.mPerPx || !isFinite(this.mPerPx)) this.mPerPx=0.10;
+    const gt = Track.fieldBack(ctx, 20);
+    const GROUND = Track.fieldGround(ctx, { grassTop: gt, surface: PAL.grass });
+    const CX=76;
+    const px=(m)=>Math.round(CX + m/this.mPerPx);
+    // 서클(콘크리트)
+    ctx.fillStyle=PAL.wallDark; ctx.fillRect(CX-24, GROUND-4, 48, 4);
+    ctx.fillStyle=PAL.wall;     ctx.fillRect(CX-24, GROUND-4, 48, 2);
+    for(let m=10;m<=90;m+=10){ const x=px(m); if(x<=CX||x>=VW) continue;
+      ctx.fillStyle='rgba(242,245,250,.4)';  ctx.fillRect(x,GROUND-8,1,8);
+      ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
+    drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:this.phase!=='SPIN' });
+    if(this.phase==='SPIN'){
+      // 해머 — 선수를 중심으로 돈다
+      const r=26, hx=CX+Math.cos(this.angle)*r, hy=GROUND-16-Math.sin(this.angle)*r*0.6;
+      ctx.strokeStyle='#c9cede'; ctx.lineWidth=1; ctx.beginPath();
+      ctx.moveTo(CX,GROUND-16); ctx.lineTo(hx,hy); ctx.stroke();
+      if(!Art.blit(ctx,'hammer',hx,hy,'center')){
+        ctx.fillStyle=PAL.gold; ctx.fillRect(Math.round(hx)-3,Math.round(hy)-3,6,6); }
+    } else {
+      const hx=px(this.px), hy=GROUND-this.py/this.mPerPx;
+      if(!Art.blit(ctx,'hammer',hx,Math.min(GROUND-2,Math.round(hy)),'center')){
+        ctx.fillStyle=PAL.gold; ctx.fillRect(hx-3,Math.min(GROUND-2,Math.round(hy))-3,6,6); }
+    }
+  }
+  drawUI(uctx){
+    plate(uctx,0,0,VW,30,0.72);
+    txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
+    txt(uctx,'회전',66,3,8,PAL.dim); txt(uctx,this.spin.toFixed(1),66,13,11,
+      this.spin>=RULES.hammerOptSpin?PAL.green:(this.spin>=RULES.hammerMinSpin?PAL.gold:PAL.red));
+    txt(uctx,'BEST',150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
+    txt(uctx,'QUALIFY',VW-8,3,8,PAL.dim,'right');
+    txt(uctx,this.qualify.toFixed(1)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    for(let i=0;i<3;i++){ const m=this.marks[i];
+      txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
+          m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
+
+    if(this.phase==='SPIN'){
+      plate(uctx,0,Track.GAUGE_Y,VW,Track.GAUGE_H,0.82);
+      txt(uctx,'좌·우를 번갈아 두드려 회전을 올리세요',VW/2,44,12,PAL.white,'center',700);
+      // 회전 게이지
+      const w=140,x=24,y=Track.GAUGE_Y+9;
+      uctx.fillStyle='rgba(242,245,250,.14)'; uctx.fillRect(x,y,w,10);
+      const opt=RULES.hammerOptSpin/RULES.hammerMaxSpin;
+      uctx.fillStyle='rgba(92,255,156,.4)'; uctx.fillRect(x+w*opt-6,y,20,10);
+      uctx.fillStyle=this.spin>=RULES.hammerMinSpin?PAL.green:PAL.red;
+      uctx.fillRect(x,y,Math.round(w*clamp(this.spin/RULES.hammerMaxSpin,0,1)),10);
+      txt(uctx,'회전',x,y+12,8,PAL.dim);
+      // 각도 바늘
+      const deg=((this.angle*180/Math.PI)%360+360)%360;
+      const shot = deg>90 ? 90-(deg-90) : deg;
+      const ax=250, aw=180;
+      uctx.fillStyle='rgba(242,245,250,.14)'; uctx.fillRect(ax,y,aw,10);
+      const lo=RULES.hammerMinAngleDeg/90, hi=RULES.hammerMaxAngleDeg/90;
+      uctx.fillStyle='rgba(92,255,156,.25)'; uctx.fillRect(ax+aw*lo,y,aw*(hi-lo),10);
+      uctx.fillStyle='rgba(92,255,156,.7)'; uctx.fillRect(ax+aw*(RULES.hammerOptAngleDeg/90)-3,y,6,10);
+      uctx.fillStyle=PAL.white; uctx.fillRect(ax+aw*clamp(shot/90,0,1)-1,y-3,2,16);
+      txt(uctx,'각도 — 초록에서 액션',ax,y+12,8,PAL.dim);
+      const left=Math.max(0,(RULES.hammerAutoReleaseMs-(this.spinStart<0?0:this.t-this.spinStart))/1000);
+      txt(uctx,left.toFixed(1)+'초',VW-8,44,12,left<1.5?PAL.red:PAL.dim,'right',700);
+    } else if(this.phase==='FLIGHT'){
+      txt(uctx,this.px.toFixed(1)+'m',VW/2,44,20,PAL.gold,'center',700);
+    } else if(this.phase==='RESULT'){
+      const m=this.pending;
+      txt(uctx,m===null?'파울':m.toFixed(2)+'m',VW/2,92,28,m===null?PAL.red:PAL.gold,'center',700);
+      if(this.releaseAngle) txt(uctx,`릴리스 ${this.releaseAngle.toFixed(0)}°  (최적 45°)`,VW/2,124,11,PAL.dim,'center');
+    }
+    if(this.msg && this.t-this.msgAt<900){ const a=1-(this.t-this.msgAt)/900;
+      uctx.save(); uctx.globalAlpha=a;
+      txt(uctx,this.msg,VW/2,68,12,this.msgBad?PAL.red:PAL.green,'center',700); uctx.restore(); }
+  }
+}

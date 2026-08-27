@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>World Sprint Circuit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Galmuri11:wght@400;700&display=swap">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:#05060a;
+    font-family:"Galmuri11","Nanum Gothic Coding",monospace;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  #stack{position:relative;line-height:0;}
+  canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+  #game{position:relative;z-index:1;}
+  #ui{position:absolute;left:0;top:0;z-index:2;pointer-events:none;}
+
+  /* ── 화면 조작 패드 ─────────────────────────────────────── */
+  #pad{display:none;position:fixed;inset:auto 0 0 0;z-index:5;
+    padding:0 12px calc(12px + env(safe-area-inset-bottom)) 12px;
+    grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end;}
+  .pbtn{display:flex;align-items:center;justify-content:center;
+    height:76px;border-radius:14px;cursor:pointer;
+    background:rgba(22,26,38,.78);border:2px solid #3a4258;
+    color:#e6edf7;font-family:inherit;font-size:19px;font-weight:700;
+    transition:transform .06s,background .06s;backdrop-filter:blur(2px);}
+  .pbtn.on{background:rgba(90,170,255,.5);border-color:#7fc0ff;transform:scale(.94);}
+  .pbtn.wide{grid-column:span 1;}
+  #p-pause{position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;
+    height:34px;width:46px;font-size:13px;z-index:6;}
+  @media (min-height:560px){ .pbtn{height:88px;} }
+
+  /* ── 시작 화면 ─────────────────────────────────────────── */
+  #gate{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;background:#05060a;
+    color:#e6edf7;text-align:center;padding:20px;}
+  #gate h1{font-size:26px;letter-spacing:.06em;color:#ffd75e;}
+  #gate .sub{font-size:12px;color:#7d8699;letter-spacing:.05em;}
+  #gate .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
+  .cbtn{display:flex;flex-direction:column;gap:5px;align-items:center;min-width:158px;
+    padding:15px 18px;cursor:pointer;background:rgba(22,26,38,.8);
+    border:2px solid #3a4258;border-radius:13px;color:#e6edf7;font-family:inherit;}
+  .cbtn b{font-size:16px;}
+  .cbtn i{font-style:normal;font-size:11px;color:#7d8699;}
+  .cbtn:hover,.cbtn.sel{border-color:#ffd75e;background:rgba(255,215,94,.16);}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stack">
+  <canvas id="game"></canvas>
+  <canvas id="ui"></canvas>
+</div></div>
+
+<div id="pad">
+  <div class="pbtn" id="p-left">◀ 왼발</div>
+  <div class="pbtn" id="p-act">액션</div>
+  <div class="pbtn" id="p-right">오른발 ▶</div>
+</div>
+<div class="pbtn" id="p-pause">II</div>
+
+<div id="gate">
+  <h1>WORLD SPRINT CIRCUIT</h1>
+  <div class="sub">좌·우를 번갈아 두드려 달린다</div>
+  <div class="sub" id="g-pick">어떻게 조작할까요?</div>
+  <div class="row">
+    <button class="cbtn" id="g-key"><b>키보드로</b><i>A / D · Space</i></button>
+    <button class="cbtn" id="g-touch"><b>화면 버튼으로</b><i>손가락이나 마우스로</i></button>
+  </div>
+</div>
+
+<script src="js/00_rules.js"></script>
+<script src="js/01_core.js"></script>
+<script src="js/02_runner.js"></script>
+<script src="js/03_art.js"></script>
+<script src="js/04_audio.js"></script>
+<script src="js/05_hud.js"></script>
+<script src="js/10_sprint.js"></script>
+<script src="js/11_hurdles.js"></script>
+<script src="js/12_jumps.js"></script>
+<script src="js/13_throws.js"></script>
+<script src="js/20_screens.js"></script>
+<script src="js/99_main.js"></script>
+</body>
+</html>

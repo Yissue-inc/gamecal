@@ -1,0 +1,28 @@
+{
+  "slug": "world-sprint-circuit",
+  "title": "World Sprint Circuit",
+  "description": "좌·우를 번갈아 두드려 달리는 픽셀 육상 아케이드. 6종목, 기준기록을 넘겨라.",
+  "version": "1.0.0",
+  "entry": "/mini-games/world-sprint-circuit/index.html",
+  "thumbnail": "/mini-games/assets/world-sprint-circuit-card-v1.webp",
+  "orientation": "landscape",
+  "input": [
+    "tap",
+    "keyboard",
+    "pointer"
+  ],
+  "supportsGuest": true,
+  "requiresAuthFor": [
+    "save_score"
+  ],
+  "score": {
+    "primaryMetric": "circuit_score",
+    "higherIsBetter": true,
+    "unit": "pts"
+  },
+  "calendar": {
+    "allowedGameSlugs": [],
+    "eventScoped": false
+  },
+  "analyticsPrefix": "minigame_world_sprint_circuit"
+}
