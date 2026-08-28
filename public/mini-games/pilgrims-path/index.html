@@ -570,6 +570,23 @@ const TXT = {
   mgBurdenLose:   ['짐이 굴러떨어졌다.',         'The burden rolled away.'],
   mgTimeUp:       ['시간이 다 됐다.',           'Time ran out.'],
   t_mgBurden:     ['등이 단단해졌다 (체력 +2)',  'Your back grew strong (HP +2)'],
+  /* 장 보스 — '왜 안 통하는가'를 화면이 말해 준다. 안 그러면 버그로 보인다. */
+  t_bossGuarded:  ['지금은 통하지 않는다',        'It will not take a blow now'],
+  t_bossCinder:   ['불덩이를 넘어야 한다',        'Leap the rolling fire'],
+  t_bossMire:     ['잠겨 있는 동안은 못 때린다',  'You cannot strike it while it is submerged'],
+  t_bossMireSink: ['멈추면 가라앉는다',           'Standing still pulls you under'],
+  t_bossWorldly:  ['사람이 아니라 그 말을 쳐라',  'Strike the words, not the man'],
+  t_bossLieHit:   ['거짓말이 마음에 붙었다',      'The lie clung to your heart'],
+  t_bossGolem:    ['방패를 내릴 때를 기다려라',   'Wait until the shield comes down'],
+  t_bossRock:     ['지나간 뒤를 노려라',          'Strike it from behind'],
+  t_bossRockfall: ['돌을 다 떨군 뒤가 기회다',    'Its chance comes when the stones are spent'],
+  t_bossKnight:   ['내리치는 순간 방패를 들어라 (↓)','Raise the shield as it strikes (↓)'],
+  t_bossKnightParry:['막아 냈다 — 지금이다',      'Turned aside — now!'],
+  t_bossWhisper:  ['그림자가 있는 쪽이 진짜다',   'The one with a shadow is real'],
+  t_bossEcho:     ['가짜였다 — 의심이 짙어졌다',  'A false one — doubt deepens'],
+  t_bossHawker:   ['손이 비었을 때만 통한다',     'Only when his hands are empty'],
+  t_bossCoin:     ['금화를 주웠다 — 힘이 빠진다', 'You took the gold — it saps you'],
+  t_bossWin:      ['길이 열렸다 (믿음 +2)',       'The way opened (Faith +2)'],
   mgGuardHint:    ['▲▼ 로 방패를 화살 높이에 맞추세요','Move the shield to meet each arrow'],
   mgLanternTitle: ['등불 잇기',                'Light the Lanterns'],
   mgLanternWatch: ['순서를 보세요',            'Watch the order'],
@@ -4130,6 +4147,711 @@ class Trigger extends Entity {
 
 </script>
 <script>
+/* ===== js/34_chapterbosses.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   장별 보스 9종 — 장마다 '다른 동사'를 가르친다.
+   ⚠ 기존 보스는 8장 아볼루온·11장 절망 거인 둘뿐이었다. 나머지 열 장은
+     보스 없이 끝났다. 여기서 각 장에 하나씩 세우되, **체력 깎기 반복이 되지
+     않도록 장마다 '약점이 열리는 조건'을 다르게** 둔다.
+
+     1장  잿불덩이   구르는 불 — 점프해서 넘는다
+     2장  수렁의 손  가만히 서 있으면 가라앉는다 — 계속 움직인다
+     3장  세속 현자  본체는 안 통한다 — 떠오른 '거짓말'을 친다
+     4장  문지기 골렘 방패를 내릴 때만 통한다 — 기다린다
+     5장  짐덩이     구르는 방향 반대편(뒤)에서만 통한다 — 자리를 잡는다
+     6장  산사태     떨어지는 그림자를 보고 비킨다 — 미리 읽는다
+     7장  시험의 기사 예고된 방향을 막아야 틈이 생긴다 — 방향을 맞춘다
+     9장  속삭임     진짜 하나·가짜 여럿 — 가려낸다 (가짜를 치면 믿음이 깎인다)
+     10장 호객꾼 두목 던지는 금화를 **줍지 말고 피한다** — 참는다
+
+   전부 '피하기만 잘해도' 이길 수 있게 만든다. 아이가 대상이다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* ── 공통 뼈대 ────────────────────────────────────────────
+   체력·페이즈·피격·죽음 연출은 여기서 한 번만 쓴다.
+   각 보스는 tick(p, world) 과 그림만 채운다. */
+class ChapterBoss extends Entity {
+  constructor(x, y, o){
+    super(x, y, o.w, o.h);
+    this.maxhp = o.hp; this.hp = o.hp;
+    this.bossKey = o.key; this.name = o.name; this.color = o.color;
+    this.isBoss = true; this.grav = o.float ? 0 : GRAV;
+    this.state='intro'; this.stateT=0; this.cool=60;
+    this.flash=0; this.openT=0;        // openT>0 이면 약점이 열려 있다
+    this.hitCd=0; this.facing=-1;
+  }
+  get phaseIdx(){ return this.hp > this.maxhp*0.62 ? 0 : (this.hp > this.maxhp*0.28 ? 1 : 2); }
+  /* 약점이 열려 있나 — 보스마다 다르다. 기본은 항상 열림. */
+  get open(){ return true; }
+  takeHit(dmg, fromX, crit){
+    if(this.state==='intro' || this.state==='dying') return;
+    if(!this.open){
+      /* 안 통한다 — 왜 안 통하는지 화면이 말해 준다. 안 그러면 버그로 보인다. */
+      this.flash=4; Audio2.sfx('deny'); G.cam.addShake(2);
+      G.dmgNum(this.cx, this.y+10, 0, '#8a8a9a');
+      /* ⚠ G.t 는 없다(실측). 보스 자신의 프레임 수로 잰다. */
+      if(this._nagT===undefined || this.t - this._nagT > 90){
+        this._nagT = this.t; G.toast(L(this.hintKey||'t_bossGuarded'), '#c8a0a0');
+      }
+      return;
+    }
+    const before=this.phaseIdx;
+    this.hp -= dmg; this.flash=7;
+    Audio2.sfx(crit?'crit':'hit'); G.cam.addShake(crit?5:3);
+    if(crit) G.hitStop(5);
+    G.dmgNum(this.cx, this.y+10, dmg, crit?'#ffd75e':'#ffffff', crit);
+    G.particles.burst(this.cx, this.cy, crit?12:7,
+      {color:this.color, spd:1.8, life:20, size:2, glow:true});
+    if(this.phaseIdx>before){
+      G.hitStop(16); G.cam.addShake(8); Audio2.sfx('roar');
+      G.particles.burst(this.cx,this.cy,28,{color:this.color,spd:3,life:46,size:4,glow:true,shrink:true});
+    }
+    if(this.hp<=0){ this.hp=0; this.defeat(); }
+  }
+  defeat(){ this.state='dying'; this.stateT=0; Audio2.stop(); Audio2.sfx('roar'); }
+  /* 플레이어에게 닿는 피해 — 보스가 직접 부딪히는 경우 */
+  touchHurt(p, dmg){
+    if(this.hitCd>0) return;
+    if(aabb(this.box, p.box)){ this.hitCd=40; p.hurt(dmg, this.cx); }
+  }
+  update(world){
+    this.t++;
+    if(this.flash>0) this.flash--;
+    if(this.hitCd>0) this.hitCd--;
+    if(this.openT>0) this.openT--;
+    if(this.state==='dying'){
+      this.stateT++;
+      if(this.stateT%6===0){
+        G.particles.burst(this.cx+(rnd()-0.5)*this.w, this.cy+(rnd()-0.5)*this.h, 9,
+          {color:this.color, spd:2, life:30, size:3, glow:true});
+        Audio2.sfx('hit'); G.cam.addShake(4);
+      }
+      if(this.stateT>80){ this.dead=true; G.onBossDefeat && G.onBossDefeat(this); }
+      return;
+    }
+    if(this.state==='intro'){ this.stateT++; if(this.stateT>56){ this.state='idle'; this.cool=45; } return; }
+    const p=G.player;
+    this.facing = sign(p.cx-this.cx) || this.facing;
+    this.tick(p, world);
+    if(this.grav){ this.vy += this.grav; this.moveY(world, this.vy); if(this.onGround) this.vy=0; }
+  }
+  tick(){}
+  /* 떠 있는 보스를 플레이어 발 높이에 맞춘다.
+     ⚠ 스폰한 칸의 지면에 맞추면, 그 칸이 한 단 높기만 해도 보스가 공격 판정
+        (플레이어 y-2, 높이 18~26) 위로 올라가 **영영 안 맞는다**(실측: 늪·산사태
+        승률 0%, 겹친 프레임 0). 뜬 보스는 플레이어 기준으로 잡는다. */
+  hoverToPlayer(p, lift, rate){
+    const want = (p.y + p.h) - this.h - (lift||0);
+    this.y = lerp(this.y, want, rate===undefined?0.08:rate);
+  }
+  /* 공통 그림 — 몸통 + 페이즈 색 + 약점이 열렸을 때의 빛 */
+  drawBody(x, cam, opt){
+    opt=opt||{};
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    if(this.open && this.state!=='intro'){
+      x.globalCompositeOperation='lighter';
+      x.fillStyle='rgba(255,240,180,.13)';
+      x.fillRect(bx-6, by-6, this.w+12, this.h+12);
+      x.globalCompositeOperation='source-over';
+    }
+    x.fillStyle = this.flash>0 ? '#ffffff' : (opt.body || this.color);
+    x.fillRect(bx, by, this.w, this.h);
+    x.fillStyle = this.flash>0 ? '#ffffff' : (opt.dark || 'rgba(0,0,0,.28)');
+    x.fillRect(bx, by+this.h-Math.round(this.h*0.28), this.w, Math.round(this.h*0.28));
+    /* 눈 — 어디를 보는지 알려 준다 */
+    const ex = bx + this.w/2 + this.facing*this.w*0.16;
+    x.fillStyle='#ffe08a';
+    x.fillRect(Math.round(ex-5), by+Math.round(this.h*0.22), 4, 4);
+    x.fillRect(Math.round(ex+2), by+Math.round(this.h*0.22), 4, 4);
+    if(!this.open){                       // 막고 있다는 표시
+      x.strokeStyle='rgba(160,170,200,.75)'; x.lineWidth=2;
+      x.strokeRect(bx-3.5, by-3.5, this.w+7, this.h+7);
+    }
+  }
+  draw(x,cam){ this.drawBody(x,cam); }
+}
+
+/* ── 1장 · 잿불덩이 ── 구르는 불을 점프해서 넘는다 ─────────── */
+class CinderBoss extends ChapterBoss {
+  /* ⚠ 처음엔 늘 때릴 수 있게 뒀더니 9초에 끝났다(실측). 보스가 아니라 체력 깎기다.
+     불을 굴린 직후 **사그라든 동안**에만 통한다 — 넘고, 기다렸다 친다. */
+  constructor(x,y){ super(x,y,{key:'cinder', name:'잿불덩이', w:52, h:52, hp:150, color:'#ff7a3a'});
+    this.hintKey='t_bossCinder'; }
+  get open(){ return this.openT>0; }
+  tick(p, world){
+    this.vx *= 0.9;
+    if(this.state==='idle'){
+      this.stateT++; this.cool--;
+      this.vx = lerp(this.vx, sign(p.cx-this.cx)*0.5, 0.04);
+      this.moveX(world, this.vx);
+      if(this.cool<=0){ this.state='wind'; this.stateT=0; }
+    }
+    else if(this.state==='wind'){         // 예고 — 몸을 웅크린다
+      this.stateT++;
+      if(this.stateT===1) Audio2.sfx('select');
+      if(this.stateT>34){ this.state='roll'; this.stateT=0;
+        const n = 1 + this.phaseIdx;      // 페이즈마다 굴리는 개수가 는다
+        for(let i=0;i<n;i++)
+          G.actors.push(new RollingFire(this.cx, this.y+this.h-12, this.facing, i*26));
+        Audio2.sfx('dart'); G.cam.addShake(4);
+      }
+    }
+    else if(this.state==='roll'){
+      this.stateT++;
+      if(this.stateT===1) this.openT = 84 - this.phaseIdx*14;   // 다 쏟은 직후가 빈틈
+      if(this.stateT>this.openT+16){ this.state='idle'; this.stateT=0; this.cool = 76 - this.phaseIdx*16; }
+    }
+    this.touchHurt(p, 3);
+  }
+  draw(x,cam){
+    const wind = this.state==='wind';
+    if(wind){                              // 예고 — 발밑이 붉게 달아오른다
+      const a=Math.min(1,this.stateT/34);
+      x.fillStyle=`rgba(255,120,40,${0.10+0.25*a})`;
+      x.fillRect(Math.round(this.x-40-cam.ox), Math.round(this.y+this.h-6-cam.oy), this.w+80, 6);
+    }
+    this.drawBody(x,cam,{body: wind? '#ffb04a' : '#ff7a3a', dark:'#8c2e10'});
+  }
+}
+class RollingFire extends Entity {
+  constructor(x,y,dir,delay){ super(x-9,y-18,18,18);
+    this.dirX=dir||-1; this.delay=delay||0; this.solid=false; this.grav=0; this.life=260; }
+  update(world){
+    this.t++;
+    if(this.delay>0){ this.delay--; return; }
+    this.life--; if(this.life<=0){ this.dead=true; return; }
+    this.x += this.dirX*2.5;
+    /* 바닥을 따라간다 — 계단을 만나면 올라선다 */
+    if(world.hitsSolid(this.x, this.y, this.w, this.h)) this.y -= 3;
+    else if(!world.hitsSolid(this.x, this.y+this.h+1, this.w, 2)) this.y += 2;
+    if(this.t%4===0) G.particles.spawn({x:this.cx,y:this.cy,vx:0,vy:-0.4,life:20,max:20,
+      size:3,color:'#ff9a3a',grav:-0.02,glow:true,shrink:true});
+    const p=G.player;
+    if(aabb(this.box, p.box)){ p.hurt(3, this.cx); this.dead=true; }
+    if(this.x<-40 || this.x>world.pxw+40) this.dead=true;
+  }
+  draw(x,cam){
+    if(this.delay>0) return;
+    const r=9+Math.sin(this.t*0.3)*1.5;
+    x.globalCompositeOperation='lighter';
+    x.fillStyle='rgba(255,150,60,.5)';
+    x.beginPath(); x.arc(this.cx-cam.ox, this.cy-cam.oy, r+4, 0, Math.PI*2); x.fill();
+    x.globalCompositeOperation='source-over';
+    x.fillStyle='#ffd75e';
+    x.beginPath(); x.arc(this.cx-cam.ox, this.cy-cam.oy, r, 0, Math.PI*2); x.fill();
+  }
+}
+
+/* ── 2장 · 수렁의 손 ── 가만히 있으면 가라앉는다 ──────────── */
+class MireBoss extends ChapterBoss {
+  constructor(x,y){ super(x,y,{key:'mire', name:'수렁의 손', w:56, h:64, hp:250, color:'#4a6a4a', float:true});
+    this.hintKey='t_bossMire'; this.sink=0; this.under=0; }
+  get open(){ return this.under<=0; }     // 잠겨 있는 동안은 안 통한다
+  tick(p, world){
+    /* 플레이어가 멈춰 있으면 발밑이 잠긴다 */
+    const moving = Math.abs(p.vx) > 0.35;
+    this.sink = clamp(this.sink + (moving ? -2.4 : 0.62), 0, 100);
+    if(this.sink>=100){
+      this.sink=55; p.hurt(2, p.cx+10, {unblockable:true});
+      G.toast(L('t_bossMireSink'), '#c8a0a0');
+    }
+    this.hoverToPlayer(p, 0, 0.10);
+    if(this.under>0){ this.under--; if(this.under===0){ this.openT=90; Audio2.sfx('confirm'); } }
+    else {
+      this.cool--;
+      /* ⚠ 예전엔 p.x 에서 ±60 을 유지하게 했더니 몸 너비까지 더해 82px 밖에 서서
+         플레이어의 공격 사거리(24~30px)에 **영영 닿지 않았다**(실측 승률 0%).
+         수렁의 손은 도망가는 존재가 아니다 — 천천히 따라붙는다. */
+      this.x = lerp(this.x, p.cx - this.w/2, 0.014);
+      this.hoverToPlayer(p, 0, 0.12);
+      if(this.cool<=0){
+        this.under = 54; this.cool = 190 - this.phaseIdx*24;  // 잠수 — 그동안 못 때린다
+        Audio2.sfx('splash'); G.cam.addShake(3);
+        /* 잠기는 동안 늪에서 손이 솟는다 */
+        for(let i=0;i<1+this.phaseIdx;i++)
+          G.actors.push(new MireGrab(p.cx + (i-1)*70 + (rnd()-0.5)*30, this.y+this.h-8));
+      }
+    }
+    if(this.under<=0) this.touchHurt(p, 2);
+  }
+  draw(x,cam){
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    if(this.under>0){                      // 잠긴 상태 — 물결만
+      x.fillStyle='rgba(70,110,80,.5)';
+      x.fillRect(bx-4, by+this.h-10, this.w+8, 8);
+      return;
+    }
+    this.drawBody(x,cam,{body:'#4a6a4a', dark:'#22401f'});
+    /* 진흙 방울 */
+    if(this.t%7===0) G.particles.spawn({x:this.cx+(rnd()-0.5)*40,y:this.y+10,vx:0,vy:0.6,
+      life:26,max:26,size:3,color:'#3a5a38',grav:0.02,shrink:true});
+    /* 가라앉는 정도 — 플레이어 발밑 표시는 게임 쪽에서 그린다 */
+  }
+}
+class MireGrab extends Entity {
+  constructor(x,y){ super(x-10,y-4,20,30); this.solid=false; this.grav=0; this.life=110; this.up=0; }
+  update(){
+    this.t++; this.life--;
+    this.up = Math.min(26, this.up + (this.t<30 ? 1.1 : (this.life<30 ? -1.4 : 0)));
+    if(this.life<=0) this.dead=true;
+    const p=G.player;
+    if(this.t>28 && this.up>18 && aabb({x:this.x,y:this.y-this.up,w:this.w,h:this.up}, p.box)){
+      p.hurt(3, this.cx); this.dead=true;
+    }
+  }
+  draw(x,cam){
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    x.fillStyle='#3a5a38'; x.fillRect(bx, by-this.up, this.w, this.up);
+    x.fillStyle='#2a441f'; x.fillRect(bx+3, by-this.up, this.w-6, 5);
+  }
+}
+
+/* ── 3장 · 세속 현자 ── 본체가 아니라 '거짓말'을 친다 ──────── */
+class WorldlyBoss extends ChapterBoss {
+  constructor(x,y){ super(x,y,{key:'worldly', name:'세속 현자', w:34, h:58, hp:120, color:'#b06bff'});
+    this.hintKey='t_bossWorldly'; this.lies=[]; }
+  get open(){ return false; }             // 본체는 영영 안 통한다
+  tick(p, world){
+    this.cool--;
+    this.x = lerp(this.x, p.cx + (p.cx<this.cx? 110 : -110), 0.015);
+    if(this.cool<=0){
+      this.cool = 120 - this.phaseIdx*22;
+      const n = 1 + this.phaseIdx;
+      for(let i=0;i<n;i++){
+        /* ⚠ 예전엔 보스 머리 위에 띄우고 계속 올라가게 했더니 플레이어보다
+           76~123px 위에 떠서 **영영 닿지 않았다**(실측). 칠 수 있어야 기믹이다. */
+        const lie=new LieBubble(this.cx + (i-(n-1)/2)*46, this.y + this.h*0.55, this);
+        this.lies.push(lie); G.actors.push(lie);
+      }
+      Audio2.sfx('select');
+    }
+    this.lies = this.lies.filter(l=>!l.dead);
+    this.touchHurt(p, 2);
+  }
+  /* 거짓말이 터지면 본체가 그만큼 깎인다 */
+  lieBurst(){
+    this.hp -= 12; this.flash=7;
+    G.dmgNum(this.cx, this.y+10, 12, '#ffd75e', true);
+    G.cam.addShake(4); Audio2.sfx('crit');
+    if(this.hp<=0){ this.hp=0; this.defeat(); }
+  }
+  draw(x,cam){ this.drawBody(x,cam,{body:'#8a5ad0', dark:'#3a2058'}); }
+}
+class LieBubble extends Entity {
+  constructor(x,y,owner){ super(x-13,y-13,26,26); this.owner=owner; this.solid=false;
+    this.grav=0; this.life=300; this.hp=1; this.isBoss=true; this.open=true; }
+  get box(){ return {x:this.x,y:this.y,w:this.w,h:this.h}; }
+  takeHit(){
+    if(this.dead) return;
+    this.dead=true;
+    G.particles.burst(this.cx,this.cy,16,{color:'#ffe08a',spd:2.2,life:26,size:3,glow:true});
+    Audio2.sfx('confirm');
+    this.owner && !this.owner.dead && this.owner.lieBurst();
+  }
+  update(){
+    this.t++; this.life--;
+    const p=G.player;
+    /* 플레이어 쪽으로 천천히 다가온다 — 가만두면 마음에 붙는다 */
+    this.x += sign(p.cx - this.cx) * 0.55;
+    /* 높이는 플레이어 가슴께를 따라간다 — 위로 달아나지 않는다 */
+    const want = p.cy - 10 + Math.sin(this.t*0.06)*5;
+    this.y = lerp(this.y, want - this.h/2, 0.06);
+    if(this.life<=0 || aabb(this.box, p.box)){   // 안 터뜨리면 마음에 붙는다
+      this.dead=true;
+      if(Math.abs(p.cx-this.cx)<90){ p.hurt(3, this.cx); G.toast(L('t_bossLieHit'), '#c8a0a0'); }
+    }
+  }
+  draw(x,cam){
+    const bx=this.cx-cam.ox, by=this.cy-cam.oy;
+    const pulse = 1 + Math.sin(this.t*0.14)*0.08;
+    x.globalCompositeOperation='lighter';
+    x.fillStyle='rgba(200,140,255,.35)';
+    x.beginPath(); x.arc(bx,by,15*pulse,0,Math.PI*2); x.fill();
+    x.globalCompositeOperation='source-over';
+    x.fillStyle='#d8b0ff';
+    x.beginPath(); x.arc(bx,by,11*pulse,0,Math.PI*2); x.fill();
+    /* ⚠ 월드 좌표에 글자를 그리는 통로가 없다(drawText 는 UI 캔버스 전용).
+       글자 대신 '말풍선 꼬리'로 거짓말이라는 걸 알린다. */
+    x.fillStyle='#d8b0ff';
+    x.beginPath(); x.moveTo(bx-4,by+9); x.lineTo(bx+4,by+9); x.lineTo(bx-1,by+16); x.fill();
+  }
+}
+
+/* ── 4장 · 문지기 골렘 ── 방패를 내릴 때만 통한다 ─────────── */
+class GolemBoss extends ChapterBoss {
+  constructor(x,y){ super(x,y,{key:'golem', name:'문지기 골렘', w:60, h:78, hp:240, color:'#8a90a6'});
+    this.hintKey='t_bossGolem'; }
+  get open(){ return this.openT>0; }
+  tick(p, world){
+    if(this.state==='idle'){
+      this.cool--;
+      this.vx = lerp(this.vx, sign(p.cx-this.cx)*0.34, 0.05);
+      this.moveX(world, this.vx);
+      if(this.cool<=0){ this.state='raise'; this.stateT=0; }
+    }
+    else if(this.state==='raise'){        // 내리치기 예고
+      this.stateT++;
+      if(this.stateT===1) Audio2.sfx('select');
+      if(this.stateT>40){ this.state='slam'; this.stateT=0;
+        Audio2.sfx('hit'); G.cam.addShake(9);
+        /* 충격파 두 갈래 */
+        G.actors.push(new Shock(this.cx, this.y+this.h-8, -1));
+        G.actors.push(new Shock(this.cx, this.y+this.h-8,  1));
+      }
+    }
+    else if(this.state==='slam'){
+      this.stateT++;
+      /* 내리친 직후가 빈틈 — 여기서만 통한다 */
+      if(this.stateT===2) this.openT = 104 - this.phaseIdx*12;
+      if(this.stateT>this.openT+10){ this.state='idle'; this.cool = 96 - this.phaseIdx*18; }
+    }
+    this.touchHurt(p, 3);
+  }
+  draw(x,cam){
+    const raise=this.state==='raise';
+    if(raise){
+      const a=Math.min(1,this.stateT/40);
+      x.fillStyle=`rgba(255,200,120,${0.12+0.22*a})`;
+      x.fillRect(Math.round(this.x-70-cam.ox), Math.round(this.y+this.h-5-cam.oy), this.w+140, 5);
+    }
+    this.drawBody(x,cam,{body: raise? '#b0b6c8':'#8a90a6', dark:'#4a4f60'});
+  }
+}
+class Shock extends Entity {
+  constructor(x,y,dir){ super(x-10,y-14,20,14); this.dirX=dir; this.solid=false; this.grav=0; this.life=110; }
+  update(world){
+    this.t++; this.life--; if(this.life<=0){ this.dead=true; return; }
+    this.x += this.dirX*3.1;
+    if(!world.hitsSolid(this.x, this.y+this.h+1, this.w, 2)) this.y += 2;
+    const p=G.player;
+    /* 점프로 넘을 수 있다 — 낮게 간다 */
+    if(aabb(this.box, p.box)){ p.hurt(2, this.cx); this.dead=true; }
+  }
+  draw(x,cam){
+    x.fillStyle='#c8cede';
+    x.fillRect(Math.round(this.x-cam.ox), Math.round(this.y+6-cam.oy), this.w, 8);
+    x.fillStyle='rgba(200,210,230,.4)';
+    x.fillRect(Math.round(this.x-cam.ox), Math.round(this.y-cam.oy), this.w, 6);
+  }
+}
+
+/* ── 5장 · 짐덩이 ── 구르는 반대편(뒤)에서만 통한다 ────────── */
+class BurdenBoss extends ChapterBoss {
+  constructor(x,y){ super(x,y,{key:'burdenrock', name:'짐덩이', w:58, h:58, hp:150, color:'#6b5442'});
+    this.hintKey='t_bossRock'; this.rollDir=-1; }
+  get open(){
+    /* 구르는 방향의 '뒤'에 서 있으면 통한다.
+       ⚠ 그것만으로는 너무 까다로웠다(실측 보통 20%). 벽에 부딪혀 휘청이는
+          동안(openT)에도 통하게 해서 배우는 길을 하나 더 준다. */
+    if(this.openT>0) return true;
+    const p=G.player;
+    return sign(p.cx - this.cx) === -this.rollDir;
+  }
+  tick(p, world){
+    if(this.state==='idle'){
+      this.cool--; this.vx*=0.88; this.moveX(world, this.vx);
+      if(this.cool<=0){ this.state='wind'; this.stateT=0; this.rollDir = sign(p.cx-this.cx)||-1; }
+    }
+    else if(this.state==='wind'){
+      this.stateT++;
+      if(this.stateT>36){ this.state='roll'; this.stateT=0; this.vx = this.rollDir*(2.4+this.phaseIdx*0.4);
+        Audio2.sfx('roar'); G.cam.addShake(5); }
+    }
+    else if(this.state==='roll'){
+      this.stateT++;
+      const hit = this.moveX(world, this.vx);
+      if(hit || this.stateT>72){ this.state='idle'; this.stateT=0; this.cool=120-this.phaseIdx*16;
+        if(hit){ G.cam.addShake(7); Audio2.sfx('hit'); this.openT=100; } }
+      if(aabb(this.box, p.box)){ this.touchHurt(p, 3); }
+    }
+    if(this.state!=='roll') this.touchHurt(p, 2);
+  }
+  draw(x,cam){
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    if(this.state==='wind'){
+      x.fillStyle='rgba(255,180,120,.28)';
+      x.fillRect(bx + (this.rollDir>0? this.w : -110), by+this.h-6, 110, 6);
+    }
+    /* 구르는 게 보이게 — 회전선 */
+    x.save(); x.translate(bx+this.w/2, by+this.h/2);
+    x.rotate((this.x*0.05)*(this.rollDir||1));
+    x.fillStyle=this.flash>0?'#fff':'#6b5442'; x.fillRect(-this.w/2,-this.h/2,this.w,this.h);
+    x.fillStyle='#4a3a2c'; x.fillRect(-this.w/2, -4, this.w, 8);
+    x.fillRect(-4, -this.h/2, 8, this.h);
+    x.restore();
+    if(!this.open){ x.strokeStyle='rgba(160,170,200,.7)'; x.lineWidth=2;
+      x.strokeRect(bx-3.5,by-3.5,this.w+7,this.h+7); }
+  }
+}
+
+/* ── 6장 · 산사태 ── 그림자를 보고 미리 비킨다 ───────────── */
+class RockfallBoss extends ChapterBoss {
+  constructor(x,y){ super(x,y,{key:'rockfall', name:'산사태', w:64, h:44, hp:210, color:'#7a6a58', float:true});
+    /* ⚠ 생성자에서 homeY 를 잡으면 안 된다 — startBoss 가 new Klass(bx, 0) 로 만든 뒤
+       지면에 맞춰 y 를 다시 넣는다. 그래서 homeY 가 0이 되어 보스가 맵 꼭대기로
+       날아가 영영 닿지 않았다(실측: 승률 0%, 150초 무승부). 첫 tick 에서 잡는다. */
+    this.hintKey='t_bossRockfall'; this.homeY=null; }
+  get open(){ return this.openT>0; }
+  tick(p, world){
+    if(this.homeY===null) this.homeY = (p.y + p.h) - this.h - 54;   // 플레이어 기준 높이
+    /* ⚠ 높이 떠 있으면 근접 공격이 닿지 않는다(실측: 공격상자 y199 vs 보스 하단 y192).
+       빈틈일 때는 **내려앉는다** — 돌을 다 쏟아 힘이 빠진 모습이자,
+       유일하게 때릴 수 있는 창이다. */
+    const wantY = this.openT>0 ? (p.y + p.h - this.h) : this.homeY;
+    this.y = lerp(this.y, wantY, this.openT>0 ? 0.16 : 0.06);
+    this.cool--;
+    this.x = lerp(this.x, p.cx-this.w/2, 0.03);
+    if(this.cool<=0){
+      this.state='drop'; this.cool = 130 - this.phaseIdx*26;
+      const n=2+this.phaseIdx;
+      for(let i=0;i<n;i++){
+        const tx = p.cx + (rnd()-0.5)*230;
+        G.actors.push(new FallingRock(tx, this.y+40, i*22));
+      }
+      Audio2.sfx('select');
+      /* 돌을 다 떨군 직후가 빈틈 */
+      this.openT = 62;
+    }
+    this.touchHurt(p, 3);
+  }
+  draw(x,cam){ this.drawBody(x,cam,{body:'#7a6a58', dark:'#463a2c'}); }
+}
+class FallingRock extends Entity {
+  constructor(x,y,delay){ super(x-11,y,22,22); this.solid=false; this.grav=0;
+    this.delay=delay||0; this.warn=46; this.fell=false; this.groundY=null; }
+  update(world){
+    this.t++;
+    if(this.delay>0){ this.delay--; return; }
+    if(this.groundY===null){
+      /* 떨어질 자리의 바닥을 미리 찾는다 — 그림자를 거기에 그린다 */
+      let gy=this.y;
+      for(let ty=Math.floor(this.y/TS); ty<world.h; ty++)
+        if(isSolidCh(world.at(Math.floor(this.cx/TS), ty))){ gy=ty*TS; break; }
+      this.groundY=gy;
+    }
+    if(this.warn>0){ this.warn--; return; }     // 예고 시간 — 이때 비킨다
+    this.vy += 0.42; this.y += this.vy;
+    const p=G.player;
+    if(aabb(this.box, p.box)){ p.hurt(4, this.cx); this.dead=true; return; }
+    if(this.y+this.h >= this.groundY){
+      this.dead=true; G.cam.addShake(4); Audio2.sfx('hit');
+      G.particles.burst(this.cx, this.groundY, 10, {color:'#8a7a66', spd:1.8, life:24, size:3, shrink:true});
+    }
+  }
+  draw(x,cam){
+    if(this.delay>0) return;
+    if(this.groundY!==null){                    // 그림자 — 클수록 임박
+      const a = this.warn>0 ? (1-this.warn/46) : 1;
+      x.fillStyle=`rgba(10,8,14,${0.25+0.4*a})`;
+      const r = 8+10*a;
+      x.beginPath(); x.ellipse(this.cx-cam.ox, this.groundY-2-cam.oy, r, r*0.34, 0, 0, Math.PI*2); x.fill();
+    }
+    if(this.warn>0) return;
+    x.fillStyle='#8a7a66';
+    x.fillRect(Math.round(this.x-cam.ox), Math.round(this.y-cam.oy), this.w, this.h);
+    x.fillStyle='#5a4a38';
+    x.fillRect(Math.round(this.x-cam.ox), Math.round(this.y+this.h-7-cam.oy), this.w, 7);
+  }
+}
+
+/* ── 7장 · 시험의 기사 ── 내리치는 순간 방패를 들어야 한다 ─── */
+class KnightBoss extends ChapterBoss {
+  /* ⚠ 처음엔 '오는 방향을 막는다'로 만들었는데, 이 게임의 막기(↓)에는 방향이 없다
+     (blocking = 방패 소지 + ↓ + 땅 + 정지). 조작에 없는 걸 요구하면 그냥 불가능한
+     보스가 된다. **타이밍 패링**으로 바꿨다 — 예고를 보고 내리치는 순간 ↓ 를 든다.
+     7장은 전신갑주를 받은 직후라 방패를 막 배운 자리이기도 하다. */
+  constructor(x,y){ super(x,y,{key:'knight', name:'시험의 기사', w:44, h:70, hp:220, color:'#c9cede'});
+    this.hintKey='t_bossKnight'; this.tellSide=0; }
+  get open(){ return this.openT>0; }
+  tick(p, world){
+    if(this.state==='idle'){
+      this.cool--;
+      this.vx = lerp(this.vx, sign(p.cx-this.cx)*0.4, 0.06);
+      this.moveX(world, this.vx);
+      if(this.cool<=0){ this.state='tell'; this.stateT=0;
+        this.tellSide = sign(p.cx-this.cx) || -1;   // 어디서 오는지는 그림으로만 알린다
+        Audio2.sfx('select'); }
+    }
+    else if(this.state==='tell'){
+      this.stateT++;
+      if(this.stateT > (46 - this.phaseIdx*8)){
+        this.state='swing'; this.stateT=0;
+        /* 내리치는 그 순간 방패를 들고 있으면 튕겨 나가 빈틈이 생긴다 */
+        const blocked = !!p.blocking;
+        if(blocked){
+          this.openT = 110; Audio2.sfx('crit'); G.cam.addShake(6);
+          G.toast(L('t_bossKnightParry'), '#8affb0');
+          G.particles.burst(p.cx, p.cy, 18, {color:'#ffe08a', spd:2.4, life:26, size:3, glow:true});
+        } else if(Math.abs(p.cx-this.cx) > 96){
+          /* 방패가 없으면(7장 전에 만나는 경우) 멀리 물러난 것도 회피로 친다 —
+             가진 적 없는 도구를 요구하지 않는다. */
+          this.openT = 70; Audio2.sfx('confirm');
+          G.toast(L('t_bossKnightParry'), '#8affb0');
+        } else {
+          p.hurt(3, this.cx + this.tellSide*40);
+          Audio2.sfx('hit'); G.cam.addShake(7);
+        }
+      }
+    }
+    else if(this.state==='swing'){
+      this.stateT++;
+      if(this.stateT>this.openT+8){ this.state='idle'; this.cool=88-this.phaseIdx*14; }
+    }
+    this.touchHurt(p, 2);
+  }
+  draw(x,cam){
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    this.drawBody(x,cam,{body:'#c9cede', dark:'#5f6478'});
+    if(this.state==='tell'){                    // 어느 쪽에서 오는지 크게 알린다
+      const a=Math.min(1,this.stateT/30);
+      x.fillStyle=`rgba(255,138,138,${0.30+0.45*a})`;
+      const ax = this.tellSide<0 ? bx-46 : bx+this.w+8;
+      x.fillRect(ax, by+10, 38, 10);
+      x.fillStyle='#ffe08a';
+      x.fillRect(this.tellSide<0? ax : ax+30, by+6, 8, 18);
+    }
+  }
+}
+
+/* ── 9장 · 속삭임 ── 진짜 하나·가짜 여럿 ──────────────────── */
+class WhisperBoss extends ChapterBoss {
+  constructor(x,y){ super(x,y,{key:'whisper', name:'속삭임', w:36, h:52, hp:180, color:'#8a7ad0', float:true});
+    this.hintKey='t_bossWhisper'; this.echoes=[]; }
+  tick(p, world){
+    this.hoverToPlayer(p, 6, 0.06);
+    this.y += Math.sin(this.t*0.05)*0.5;
+    this.cool--;
+    this.x = lerp(this.x, p.cx + Math.sin(this.t*0.02)*130 - this.w/2, 0.02);
+    if(this.cool<=0){
+      this.cool = 190 - this.phaseIdx*30;
+      /* 가짜를 흩뿌린다 — 하나만 진짜다 */
+      for(const e of this.echoes) e.dead=true;
+      this.echoes=[];
+      const n=2+this.phaseIdx;
+      for(let i=0;i<n;i++){
+        const e=new WhisperEcho(p.cx + (i-(n-1)/2)*96 + (rnd()-0.5)*40, this.y);
+        this.echoes.push(e); G.actors.push(e);
+      }
+      Audio2.sfx('deny');
+    }
+    this.echoes=this.echoes.filter(e=>!e.dead);
+    this.touchHurt(p, 3);
+  }
+  draw(x,cam){
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    /* 진짜는 발밑에 옅은 그림자가 있다 — 가짜에는 없다. 이게 단서다. */
+    x.fillStyle='rgba(10,8,14,.42)';
+    x.beginPath(); x.ellipse(bx+this.w/2, by+this.h+5, 16, 5, 0, 0, Math.PI*2); x.fill();
+    this.drawBody(x,cam,{body:'#8a7ad0', dark:'#3a2c60'});
+  }
+}
+class WhisperEcho extends Entity {
+  constructor(x,y){ super(x-18,y,36,52); this.solid=false; this.grav=0; this.life=200;
+    this.hp=1; this.isBoss=true; this.open=true; }
+  takeHit(){
+    if(this.dead) return;
+    this.dead=true;
+    /* 가짜를 치면 의심이 짙어진다 — 그래서 가려내야 한다 */
+    G.player.doubt = Math.min(100, (G.player.doubt||0) + 14);
+    Audio2.sfx('deny'); G.cam.addShake(3);
+    G.toast(L('t_bossEcho'), '#c88aa0');
+    G.particles.burst(this.cx,this.cy,10,{color:'#5a4a80',spd:1.6,life:22,size:3,shrink:true});
+  }
+  update(){
+    this.t++; this.life--; if(this.life<=0) this.dead=true;
+    this.y += Math.sin(this.t*0.05)*0.5;
+  }
+  draw(x,cam){
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    x.globalAlpha=0.75;
+    x.fillStyle='#6a5aa0'; x.fillRect(bx,by,this.w,this.h);
+    x.fillStyle='#ffe08a';
+    x.fillRect(bx+10, by+12, 4, 4); x.fillRect(bx+22, by+12, 4, 4);
+    x.globalAlpha=1;
+    /* 그림자가 없다 — 이게 가짜라는 표시 */
+  }
+}
+
+/* ── 10장 · 호객꾼 두목 ── 금화를 줍지 말고 피한다 ─────────── */
+class HawkerBoss extends ChapterBoss {
+  constructor(x,y){ super(x,y,{key:'hawker', name:'호객꾼 두목', w:40, h:64, hp:200, color:'#c9a227'});
+    this.hintKey='t_bossHawker'; this.purse=0; }
+  get open(){ return this.purse<=0; }     // 손에 금화가 남아 있으면 안 통한다
+  tick(p, world){
+    if(this.state==='idle'){
+      this.cool--;
+      this.vx = lerp(this.vx, sign(p.cx-this.cx)*0.36, 0.05);
+      this.moveX(world, this.vx);
+      if(this.cool<=0){ this.purse = 3 + this.phaseIdx; this.state='throw'; this.stateT=0; }
+    }
+    else if(this.state==='throw'){
+      this.stateT++;
+      if(this.stateT%16===0 && this.purse>0){
+        this.purse--;
+        G.actors.push(new LureCoin(this.cx, this.y+18, sign(p.cx-this.cx)||-1));
+        Audio2.sfx('coin');
+      }
+      if(this.purse<=0 && this.stateT>36){ this.state='idle'; this.cool=110-this.phaseIdx*20; }
+    }
+    this.touchHurt(p, 3);
+  }
+  draw(x,cam){
+    this.drawBody(x,cam,{body:'#b8901f', dark:'#5a4408'});
+    /* 남은 금화를 머리 위에 보여 준다 — 언제 통하는지 알 수 있게 */
+    const bx=Math.round(this.x-cam.ox), by=Math.round(this.y-cam.oy);
+    for(let i=0;i<this.purse;i++){
+      x.fillStyle='#ffd75e';
+      x.beginPath(); x.arc(bx+8+i*11, by-9, 4, 0, Math.PI*2); x.fill();
+    }
+  }
+}
+class LureCoin extends Entity {
+  constructor(x,y,dir){ super(x-7,y-7,14,14); this.solid=false; this.grav=0.10;
+    this.vx=dir*1.5; this.vy=-2.2; this.life=220; }
+  update(world){
+    this.t++; this.life--; if(this.life<=0){ this.dead=true; return; }
+    this.vy += this.grav; this.x += this.vx; this.y += this.vy;
+    if(world.hitsSolid(this.x, this.y+this.h, this.w, 2)){ this.vy = -Math.abs(this.vy)*0.42; this.vx*=0.7;
+      if(Math.abs(this.vy)<0.6){ this.vy=0; this.y = Math.floor((this.y+this.h)/TS)*TS - this.h; } }
+    const p=G.player;
+    /* 닿으면 '주운' 것이 된다 — 힘이 빠진다. 피해야 한다. */
+    if(aabb(this.box, p.box)){
+      this.dead=true;
+      p.hurt(2, this.cx, {unblockable:true});
+      p.faith = Math.max(0, p.faith - 5);
+      G.toast(L('t_bossCoin'), '#c8a0a0');
+      Audio2.sfx('deny');
+    }
+  }
+  draw(x,cam){
+    const bx=this.cx-cam.ox, by=this.cy-cam.oy;
+    x.globalCompositeOperation='lighter';
+    x.fillStyle='rgba(255,215,94,.35)';
+    x.beginPath(); x.arc(bx,by,10,0,Math.PI*2); x.fill();
+    x.globalCompositeOperation='source-over';
+    x.fillStyle='#ffd75e';
+    x.beginPath(); x.arc(bx,by,6,0,Math.PI*2); x.fill();
+    x.fillStyle='#8a6a1e';
+    x.fillRect(Math.round(bx-2), Math.round(by-3), 4, 6);
+  }
+}
+
+/* ── 등록표 ── 80_game.js 의 startBoss 가 여기서 찾는다 ────── */
+const CHAPTER_BOSSES = {
+  cinder:     CinderBoss,
+  mire:       MireBoss,
+  worldly:    WorldlyBoss,
+  golem:      GolemBoss,
+  burdenrock: BurdenBoss,
+  rockfall:   RockfallBoss,
+  knight:     KnightBoss,
+  whisper:    WhisperBoss,
+  hawker:     HawkerBoss,
+};
+
+</script>
+<script>
 /* ===== js/40_ui.js ===== */
 /* ============================================================
    40_ui.js — 대화 · HUD · 메뉴 · 여정 지도
@@ -7297,6 +8019,60 @@ ch8_apollyon:[
      '"I hate that King, his rules, and his people. This is where you end."'),
   ac((G)=>{ G.startBoss('apollyon'); })
 ],
+ch1_boss:[
+  nr('잿더미 속에서 불덩이 하나가 몸을 일으켰다.',
+     'A cinder rose from the ashes and took shape.'),
+  d('christian','크리스천','Christian','굴러 오는구나. 넘어야 한다.',
+    'It rolls at me. I must leap it.')
+],
+ch2_boss:[
+  nr('늪 한가운데서 커다란 손이 솟았다.',
+     'A great hand rose from the middle of the mire.'),
+  d('christian','크리스천','Christian','서 있으면 가라앉는다. 멈추지 말자.',
+    'Standing still sinks me. I must keep moving.')
+],
+ch3_boss:[
+  nr('세속 현자가 웃으며 말을 뿌리기 시작했다.',
+     'Worldly Wiseman smiled and began to scatter his words.'),
+  d('christian','크리스천','Christian','이 사람은 때려서 될 일이 아니다. 그 말을 깨야 한다.',
+    'Striking the man does nothing. I must break his words.')
+],
+ch4_boss:[
+  nr('문 앞을 지키는 돌 골렘이 방패를 세웠다.',
+     'A stone golem raised its shield before the gate.'),
+  d('christian','크리스천','Christian','방패를 내릴 때가 있을 것이다. 그때다.',
+    'It must lower that shield sometime. That is the moment.')
+],
+ch5_boss:[
+  nr('굴러떨어진 짐이 스스로 일어나 굴러 왔다.',
+     'The fallen burden rose on its own and came rolling.'),
+  d('christian','크리스천','Christian','정면은 못 당한다. 지나간 뒤를 노리자.',
+    'I cannot meet it head-on. I will strike from behind.')
+],
+ch6_boss:[
+  nr('산이 흔들리더니 돌이 쏟아지기 시작했다.',
+     'The mountain shook and stones began to pour down.'),
+  d('christian','크리스천','Christian','그림자가 먼저 온다. 그걸 보고 비키자.',
+    'The shadow comes first. I will watch it and step aside.')
+],
+ch7_boss:[
+  nr('갑주를 받은 자를 시험하는 기사가 검을 들었다.',
+     'A knight raised his sword to test the newly armored.'),
+  d('christian','크리스천','Christian','어느 쪽에서 오는지 보인다. 그쪽을 막자.',
+    'I can see which side it comes from. I will guard there.')
+],
+ch9_boss:[
+  nr('어둠 속에서 같은 얼굴이 여럿 걸어 나왔다.',
+     'Out of the dark came many faces, all the same.'),
+  d('christian','크리스천','Christian','하나만 진짜다. 그림자가 있는 쪽이다.',
+    'Only one is real. The one that casts a shadow.')
+],
+ch10_boss:[
+  nr('시장 두목이 금화를 한 줌 집어 들었다.',
+     'The master of the fair took up a fistful of gold.'),
+  d('christian','크리스천','Christian','던지는 걸 줍지 말자. 손이 비었을 때가 기회다.',
+    'I will not pick up what he throws. His empty hands are my chance.')
+],
 ch8_win:[
   nr('크리스천은 검을 두 손으로 붙잡고 외쳤다.','Christian gripped the sword with both hands and shouted.'),
   d('christian','크리스천','Christian','내가 넘어져도 다시 일어난다! 좋아하지 마!',
@@ -7832,7 +8608,9 @@ function buildCh1(){
     rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
   }), {once:true}));
   A.push(new Trigger(T(225),0,T(5),T(17), ()=>G.nextScene()));
-  return {world, spawn:{x:T(4), y:T(11)}, actors:A};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(200),0,T(4),T(22), ()=>G.say('ch1_boss', ()=>G.startBoss('cinder')), {once:true}));
+  return {world, spawn:{x:T(4), y:T(11)}, actors:A, bossArena:{x:T(194), w:T(34)}};
 }
 
 /* ═══════════════ 제 2 장 · 낙담의 늪 ═══════════════ */
@@ -7865,7 +8643,9 @@ function buildCh2(){
     rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
   }), {once:true}));
   A.push(new Trigger(T(205),0,T(5),T(17), ()=>G.nextScene()));
-  return {world, spawn:{x:T(4), y:T(11)}, actors:A};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(160),0,T(4),T(22), ()=>G.say('ch2_boss', ()=>G.startBoss('mire')), {once:true}));
+  return {world, spawn:{x:T(4), y:T(11)}, actors:A, bossArena:{x:T(154), w:T(48)}};
 }
 
 /* ═══════════════ 제 3 장 · 세속 현자의 언덕 ═══════════════ */
@@ -7902,7 +8682,9 @@ function buildCh3(){
     rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
   }), {once:true}));
   A.push(new Trigger(T(194),T(14),T(6),T(12), ()=>G.nextScene()));
-  return {world, spawn:{x:T(4), y:T(20)}, actors:A};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(150),0,T(4),T(22), ()=>G.say('ch3_boss', ()=>G.startBoss('worldly')), {once:true}));
+  return {world, spawn:{x:T(4), y:T(20)}, actors:A, bossArena:{x:T(144), w:T(50)}};
 }
 
 /* ═══════════════ 제 4 장 · 좁은 문 · 해석자의 집 ═══════════════ */
@@ -7959,7 +8741,9 @@ function buildCh4(){
     rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
   }), {once:true}));
   A.push(new Trigger(T(239),0,T(5),T(17), ()=>G.nextScene()));
-  return {world, spawn:{x:T(4), y:T(11)}, actors:A};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(160),0,T(4),T(22), ()=>G.say('ch4_boss', ()=>G.startBoss('golem')), {once:true}));
+  return {world, spawn:{x:T(4), y:T(11)}, actors:A, bossArena:{x:T(154), w:T(46)}};
 }
 
 /* ═══════════════ 제 5 장 · 십자가 ═══════════════ */
@@ -7998,7 +8782,9 @@ function buildCh5(){
     rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
   }), {once:true}));
   A.push(new Trigger(T(196),0,T(4),T(30), ()=>G.nextScene()));
-  return {world, spawn:{x:T(4), y:T(24)}, actors:A};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(150),0,T(4),T(22), ()=>G.say('ch5_boss', ()=>G.startBoss('burdenrock')), {once:true}));
+  return {world, spawn:{x:T(4), y:T(24)}, actors:A, bossArena:{x:T(144), w:T(50)}};
 }
 
 /* ═══════════════ 제 6 장 · 곤고산 ═══════════════ */
@@ -8054,7 +8840,9 @@ function buildCh6(){
   A.push(new Trigger(T(20),T(28),T(29),T(5), ()=>G.checkRoll(), {once:false}));
   A.push(new Trigger(T(26),T(2),T(18),T(5), ()=>G.say('ch6_lions'), {once:true}));
   A.push(new Trigger(T(60),T(2),T(10),T(5), ()=>G.nextScene()));
-  return {world, spawn:{x:T(5), y:T(53)}, actors:A, vertical:true};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(46),T(2),T(6),T(7), ()=>G.say('ch6_boss', ()=>G.startBoss('rockfall')), {once:true}));
+  return {world, spawn:{x:T(5), y:T(53)}, actors:A, vertical:true, bossArena:{x:T(38), w:T(28)}};
 }
 
 </script>
@@ -8094,7 +8882,9 @@ function buildCh7(){
   A.push(new NPC(T(126), T(13)-26, 'discretion', {name:'조심', face:-1}));
   A.push(new Trigger(T(70),0,T(20),T(3), ()=>G.say('ch7_roof'), {once:true}));
   A.push(new Trigger(T(144),T(14),T(6),T(8), ()=>G.tryLeavePalace()));
-  return {world, spawn:{x:T(4), y:T(16)}, actors:A, safe:true, music:'palace'};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(128),0,T(4),T(22), ()=>G.say('ch7_boss', ()=>G.startBoss('knight')), {once:true}));
+  return {world, spawn:{x:T(4), y:T(16)}, actors:A, safe:true, music:'palace', bossArena:{x:T(120), w:T(30)}};
 }
 
 /* ═══════════════ 제 8 장 · 겸손의 골짜기 · 아볼루온 ═══════════════ */
@@ -8170,7 +8960,9 @@ function buildCh9(){
   }), {once:true}));
   A.push(new Trigger(T(200),0,T(5),T(20), ()=>G.say('ch9_dawn'), {once:true}));
   A.push(new Trigger(T(225),0,T(5),T(20), ()=>G.nextScene()));
-  return {world, spawn:{x:T(3), y:T(12)}, actors:A, dark:true, music:'darkness'};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(185),0,T(4),T(22), ()=>G.say('ch9_boss', ()=>G.startBoss('whisper')), {once:true}));
+  return {world, spawn:{x:T(3), y:T(12)}, actors:A, dark:true, music:'darkness', bossArena:{x:T(178), w:T(40)}};
 }
 
 /* ═══════════════ 제 10 장 · 허영의 시장 ═══════════════ */
@@ -8202,7 +8994,9 @@ function buildCh10(){
   A.push(new Trigger(T(20),0,T(5),T(17), ()=>G.say('ch10_fair'), {once:true}));
   A.push(new Trigger(T(206),0,T(5),T(17), ()=>G.vanityTrial(), {once:true}));
   A.push(new Trigger(T(236),0,T(4),T(17), ()=>G.nextScene()));
-  return {world, spawn:{x:T(4), y:T(11)}, actors:A, music:'vanity'};
+  /* 장 보스 — 공략 기믹이 장마다 다르다. 상세는 34_chapterbosses.js */
+  A.push(new Trigger(T(180),0,T(4),T(22), ()=>G.say('ch10_boss', ()=>G.startBoss('hawker')), {once:true}));
+  return {world, spawn:{x:T(4), y:T(11)}, actors:A, music:'vanity', bossArena:{x:T(172), w:T(32)}};
 }
 
 /* ═══════════════ 제 11-1 장 · 곁길 초원 ═══════════════ */
@@ -8792,10 +9586,14 @@ const G = {
     for(let ty=Math.floor(this.player.y/TS); ty<this.world.h; ty++){
       if(isSolidCh(this.world.at(Math.floor((bx+30)/TS), ty))){ gy = ty*TS; break; }
     }
-    this.boss = kind==='apollyon'? new Apollyon(bx, 0) : new GiantDespair(bx, 0);
+    /* 장별 보스 9종은 CHAPTER_BOSSES 에 있다. 없으면 기존 둘 중 하나. */
+    const Klass = (typeof CHAPTER_BOSSES!=='undefined' && CHAPTER_BOSSES[kind])
+                || (kind==='apollyon' ? Apollyon : GiantDespair);
+    this.boss = new Klass(bx, 0);
     this.boss.y = gy - this.boss.h;
     this.boss.state='intro'; this.boss.stateT=0;
-    codexMeet('char', kind==='apollyon'? 'apollyon' : 'despair');   // 보스 대사는 전부 나레이션이라 따로 남긴다
+    if(kind==='apollyon'||kind==='despair')
+      codexMeet('char', kind);   // 보스 대사는 전부 나레이션이라 따로 남긴다
     this.actors.push(this.boss);
     Audio2.play('boss'); Audio2.sfx('roar');
     this.cam.addShake(10);
@@ -8818,7 +9616,14 @@ const G = {
     this.particles.burst(b.cx, b.cy, 60, {color:'#fff2c0', spd:3.4, life:70, size:3, glow:true, grav:-0.02, shrink:true});
     Audio2.sfx('glory');
     if(b instanceof Apollyon){ this.say('ch8_win', ()=>{ this.nextScene(); }); }
-    else { this.say('ch11_win', ()=>{ this.nextScene(); }); }
+    else if(b instanceof GiantDespair){ this.say('ch11_win', ()=>{ this.nextScene(); }); }
+    else {
+      /* 장별 보스 — 장을 끝내지 않는다. 길이 열리고 계속 걷는다. */
+      this.player.gainExp(40);
+      this.player.maxfaith += 2; this.player.faith = this.player.maxfaith;
+      this.toast(L('t_bossWin'), '#8affb0');
+      if(b.bossKey) this.flags['boss_'+b.bossKey]=true;
+    }
   },
   joinCompanion(key){
     const names={faithful:['신실','Faithful'], hopeful:['소망','Hopeful']};
