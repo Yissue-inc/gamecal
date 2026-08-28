@@ -149,7 +149,7 @@ const MG = {
          목표·국가 메달표가 통째로 사라져** 시즌 중간에 판이 리셋된 것처럼 보인다.
          화면에 보이는 것은 전부 저장한다. */
       localStorage.setItem(MG_SAVE, JSON.stringify({
-        v:4, seen:Date.now(), club:this.club, season:{
+        v:5, seen:Date.now(), club:this.club, season:{
           year:this.season.year, week:this.season.week,
           points:this.season.points, medals:this.season.medals,
           results:this.season.results.length,
@@ -167,7 +167,7 @@ const MG = {
     try{
       const d=JSON.parse(localStorage.getItem(MG_SAVE));
       /* v1 세이브도 계속 열린다 — 없던 항목은 새로 만든다 */
-      if(!d || !(d.v>=1 && d.v<=4)) return false;
+      if(!d || !(d.v>=1 && d.v<=5)) return false;
       const c=new Club(d.club.name, 1);
       Object.assign(c, d.club);
       c.squad = d.club.squad.map(o=>Object.assign(new Athlete(o), o));
@@ -176,6 +176,7 @@ const MG = {
          값이 없으므로 기본값을 채워 준다 — 그래야 Lv1 부터 시작한다. */
       if(typeof RPG!=='undefined') for(const a of c.squad) RPG.ensure(a);
       c.inventory = d.club.inventory || [];
+      c.coaches = d.club.coaches || [];   // 코치(49_depth) — 없던 세이브는 빈 배열
       c.rng = makeRng((Date.now()^0x77)>>>0);
       this.club=c;
       const S=new Season(c, (Date.now()^0x99)>>>0);

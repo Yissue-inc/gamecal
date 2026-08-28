@@ -185,7 +185,7 @@ class Season {
   advanceTraining(focusMap){
     this.weekLog = [];
     for(const a of this.club.squad){
-      const log = trainWeek(a, this.club.program, focusMap[a.id]||null, this.rng);
+      const log = trainWeek(a, this.club.program, focusMap[a.id]||null, this.rng, this.club);
       for(const e of log.events) this.weekLog.push(e);
       const gains = Object.entries(log.gains);
       if(gains.length){

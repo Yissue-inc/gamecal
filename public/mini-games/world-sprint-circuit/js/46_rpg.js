@@ -87,6 +87,7 @@ const RPG = {
         xp    : 경험치 배수 */
   SLOTS: ['shoe','wear','gear'],
   SLOT_NAME: { shoe:'신발', wear:'유니폼', gear:'장비' },
+  SLOT_ICON: { shoe:'slot-shoe', wear:'slot-wear', gear:'slot-gear' },
   RARITY: [
     { key:'common', name:'일반',  color:'#9aa4b8', mult:1.0 },
     { key:'fine',   name:'고급',  color:'#5cff9c', mult:1.5 },
@@ -96,13 +97,15 @@ const RPG = {
   ],
   /* 기본 아이템 — 등급이 오르면 효과가 mult 만큼 커진다 */
   BASE: [
-    { id:'spike',  slot:'shoe', name:'스파이크',   eff:{ grow:0.05 } },
-    { id:'sole',   slot:'shoe', name:'쿠션 밑창',  eff:{ hurt:-0.06 } },
-    { id:'suit',   slot:'wear', name:'경기복',     eff:{ cond:0.8 } },
-    { id:'tights', slot:'wear', name:'압박 타이츠',eff:{ rest:1.2 } },
-    { id:'watch',  slot:'gear', name:'페이스 시계',eff:{ xp:0.08 } },
-    { id:'tape',   slot:'gear', name:'테이핑',     eff:{ hurt:-0.09 } },
-    { id:'band',   slot:'gear', name:'저항 밴드',  eff:{ grow:0.07 } },
+    /* icon 은 발주서(docs/ASSET_ORDER_UI_2026-08-28.md)와 **같은 이름**이다.
+       파일이 없으면 UIK.itemBox 가 등급 색 마름모로 대신 그린다 — 화면은 안 깨진다. */
+    { id:'spike',  slot:'shoe', name:'스파이크',   icon:'item-spike',  eff:{ grow:0.05 } },
+    { id:'sole',   slot:'shoe', name:'쿠션 밑창',  icon:'item-sole',   eff:{ hurt:-0.06 } },
+    { id:'suit',   slot:'wear', name:'경기복',     icon:'item-suit',   eff:{ cond:0.8 } },
+    { id:'tights', slot:'wear', name:'압박 타이츠',icon:'item-tights', eff:{ rest:1.2 } },
+    { id:'watch',  slot:'gear', name:'페이스 시계',icon:'item-watch',  eff:{ xp:0.08 } },
+    { id:'tape',   slot:'gear', name:'테이핑',     icon:'item-tape',   eff:{ hurt:-0.09 } },
+    { id:'band',   slot:'gear', name:'저항 밴드',  icon:'item-band',   eff:{ grow:0.07 } },
   ],
   baseOf(id){ return this.BASE.find(b=>b.id===id) || null; },
   rarityOf(key){ return this.RARITY.find(r=>r.key===key) || this.RARITY[0]; },
@@ -114,6 +117,7 @@ const RPG = {
     const r=this.rarityOf(it.r);
     return r.key==='common' ? b.name : `${r.name} ${b.name}`;
   },
+  itemIcon(it){ const b=this.baseOf(it&&it.id); return b? b.icon : null; },
   itemEff(it){
     const b=this.baseOf(it.id); if(!b) return {};
     const m=this.rarityOf(it.r).mult, out={};
@@ -141,6 +145,13 @@ const RPG = {
       for(const k in out) if(e[k]) out[k] += e[k];
     }
     return out;
+  },
+
+  /* 장비 팔기 — 창고가 쌓이기만 하면 의미가 없다. 등급이 값이다.
+     ⚠ 판 값으로 선수를 산다 — 이게 창고와 이적시장을 잇는 다리다. */
+  sellPrice(it){
+    const m=this.rarityOf(it.r).mult;
+    return Math.round(8 * m * m);      // 일반 8 · 고급 18 · 희귀 35 · 영웅 67 · 전설 128
   },
 
   equip(a, it){
@@ -182,7 +193,10 @@ const RPG = {
      크기 감각: 12시간 자리를 비우면 선수 1명당 약 13,000 XP.
      한 시즌 훈련(24주)이 약 10,800 이니 '하룻밤 = 한 시즌 훈련' 쯤이다.
      반면 올림픽 한 번이 선수단 전체에 99,200 을 준다 — **직접 하는 게 훨씬 낫다.** */
-  IDLE: { xpPerSec: 0.30, capHours: 12 },
+  /* 코인(자금)도 같이 쌓인다 — 방치의 보상이 경험치 하나뿐이면 '쓸 데'가 없다.
+     선수를 사고 장비를 파는 순환에 코인이 들어가야 방치가 게임과 이어진다.
+     크기: 12시간에 약 130코인(신규 클럽 자금이 260) — 하룻밤에 반년치 스폰서쯤. */
+  IDLE: { xpPerSec: 0.30, capHours: 12, coinPerSec: 0.003 },
   idleGain(sinceMs){
     if(!(sinceMs>0)) return 0;
     const sec = Math.min(sinceMs/1000, this.IDLE.capHours*3600);
@@ -195,6 +209,8 @@ const RPG = {
     if(gap < 60*1000) return null;                 // 1분 미만은 없던 일로
     const per = this.idleGain(gap);
     if(per <= 0) return null;
+    const sec = Math.min(gap/1000, this.IDLE.capHours*3600);
+    const coin = Math.round(sec * this.IDLE.coinPerSec * Math.max(1, (club.squad||[]).length)/10*10)/10;
     const rows=[];
     for(const a of club.squad){
       this.ensure(a);
@@ -202,7 +218,8 @@ const RPG = {
       const up = this.award(a, per * (1 + this.bonus(a).xp), '자동 훈련');
       if(up) rows.push({ name:a.name, xp:up.gained, lv:up.levels?a.lv:0, tp:up.tp });
     }
-    return { sec: Math.min(gap/1000, this.IDLE.capHours*3600), per, rows };
+    club.budget = +(((club.budget||0) + coin)).toFixed(1);
+    return { sec, per, rows, coin };
   },
 
   /* ── 세이브 ─────────────────────────────────────────────

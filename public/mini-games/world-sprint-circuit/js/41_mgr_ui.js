@@ -119,6 +119,10 @@ class OfficeScreen extends Screen0 {
                       right: tp>0?'●'+tp:'▶', rightColor: tp>0?PAL.gold:PAL.dim,
                       color: tp>0?PAL.gold:undefined }; })(),
       { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶' },
+      /* 코치진(49_depth) — 뽑으면 그 분야가 잘 자란다. 주급을 먹는다. */
+      (()=>{ const n=(typeof DEPTH!=='undefined')?DEPTH.hired(this.mg.club).length:0;
+             const w=(typeof DEPTH!=='undefined')?DEPTH.wageBill(this.mg.club):0;
+             return { label:'코치진', sub:n? `${n}명 · 주급 ${w}` : '아직 없음 — 분야별로 3명까지', right:'▶' }; })(),
       { label:'선수 사무소', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶' },
       { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶' },
       { label:'리그 순위표', sub:leagueSub(S), right:'▶' },
@@ -135,10 +139,11 @@ class OfficeScreen extends Screen0 {
       case 1: this.mg.push(new SquadScreen(this.mg)); break;
       case 2: this.mg.push(new GrowPickScreen(this.mg)); break;
       case 3: this.mg.push(new ProgramScreen(this.mg)); break;
-      case 4: this.mg.push(new MarketScreen(this.mg)); break;
-      case 5: this.mg.push(new RecordScreen(this.mg)); break;
-      case 6: this.mg.push(new LeagueScreen(this.mg)); break;
-      case 7: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
+      case 4: this.mg.push(new CoachScreen(this.mg)); break;
+      case 5: this.mg.push(new MarketScreen(this.mg)); break;
+      case 6: this.mg.push(new RecordScreen(this.mg)); break;
+      case 7: this.mg.push(new LeagueScreen(this.mg)); break;
+      case 8: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
     }
   }
   cancel(){}

@@ -349,6 +349,8 @@ const G = {
     return [
       { k:'vol',  label:'효과음',   get:()=>Sfx.vol,    set:(v)=>Sfx.setVol(v) },
       { k:'amb',  label:'관중 소리', get:()=>Sfx.ambVol, set:(v)=>Sfx.setAmb(v) },
+      { k:'bgm',  label:'음악',     get:()=>(typeof Music!=='undefined'?Music.vol:0),
+                                    set:(v)=>{ if(typeof Music!=='undefined') Music.setVol(v); } },
       { k:'mute', label:'음소거',   toggle:true },
       /* 박자 안내 — 리듬을 익힌 사람에겐 잔소리다. 끌 수 있어야 한다. */
       { k:'metro', label:'박자 소리', toggle:true },

@@ -131,7 +131,9 @@ class Market {
       }
     }
     // 수입·지출
-    const wages = this.club.squad.reduce((s,a)=>s+wageOf(a),0);
+    /* 선수 주급 + 코치 주급(49_depth). 코치를 안 뽑았으면 0 이라 예전과 같다. */
+    const coachW = (typeof DEPTH!=='undefined') ? DEPTH.wageBill(this.club) : 0;
+    const wages = this.club.squad.reduce((s,a)=>s+wageOf(a),0) + coachW;
     const income = MarketTune.weeklySponsor + this.club.reputation*MarketTune.repBonus;
     this.club.budget = +(this.club.budget + income - wages).toFixed(1);
     if(this.club.budget < 0){

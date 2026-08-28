@@ -40,12 +40,17 @@ const TrainTune = {
 };
 
 /* 한 선수의 한 주를 처리한다. 반환: 무슨 일이 있었는지(로그용) */
-function trainWeek(a, program, focus, rng){
+function trainWeek(a, program, focus, rng, club){
   const log = { athlete:a, gains:{}, events:[] };
   /* 육성 층(46_rpg) — 장비는 **성장·회복·부상·컨디션에만** 작용한다.
      경기 시뮬레이션에는 한 줄도 들어가지 않는다(그래야 48종목 밸런스가 그대로다).
      장비가 없으면 전부 0 이라 예전과 완전히 같다. */
   const RB = (typeof RPG!=='undefined') ? RPG.bonus(a) : { grow:0, rest:0, hurt:0, cond:0, xp:0 };
+  /* 코치(49_depth) — 장비와 같은 통로로 합친다. 스탯별 성장은 아래에서 따로 더한다.
+     ⚠ club 을 안 넘기면 코치는 없는 셈이 된다 — 옛 호출부가 그대로 돌아간다. */
+  const CB = (typeof DEPTH!=='undefined' && club) ? DEPTH.coachBonus(club, null)
+           : { grow:0, rest:0, hurt:0 };
+  RB.rest += CB.rest; RB.hurt += CB.hurt;
 
   /* 부상 중이면 회복만 한다 */
   if(a.injury){
@@ -88,8 +93,10 @@ function trainWeek(a, program, focus, rng){
       /* 종 배율 — 치타는 스피드가 빨리 늘고 코끼리는 파워가 빨리 는다.
          ⚠ 상한을 막지 않는다. 치타도 던지기를 배울 수 있다, 다만 오래 걸린다. */
       const sb = (typeof speciesBias==='function') ? speciesBias(a, k) : 1;
+      /* 그 스탯을 맡은 코치가 있으면 그만큼 더 자란다 */
+      const coachG = (typeof DEPTH!=='undefined' && club) ? DEPTH.coachBonus(club, k).grow : 0;
       let g = TrainTune.baseGain * w/6 * sb * fatiguePenalty * ageF * moraleF * near * (0.7+rng()*0.6)
-              * (1 + RB.grow);
+              * (1 + RB.grow + coachG);
       if(ageF < 0) g = Math.min(0, g);              // 전성기 이후엔 줄 수도 있다
       if(Math.abs(g) < 0.01) continue;
       const before = a.stats[k];
@@ -124,6 +131,9 @@ function trainWeek(a, program, focus, rng){
     if(up && up.levels>0)
       log.events.push({ t:'levelup', msg:`${a.name} Lv.${a.lv} 달성 — 훈련 포인트 +${up.tp}` });
   }
+
+  /* 성장 이력 한 점 — 나중에 꺾은선으로 보여 준다 */
+  if(typeof DEPTH!=='undefined') DEPTH.logWeek(a);
 
   /* 돌발 — 각성·슬럼프 */
   if(!a.injury && rng() < 0.045){

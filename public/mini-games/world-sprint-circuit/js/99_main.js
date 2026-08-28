@@ -39,6 +39,8 @@ function frameStep(now){
   const dt = clamp((now - lastT)/1000 || 0, 0, 0.05);
   lastT = now;
   G.update(dt);
+  /* 음악 — 화면이 바뀐 순간에만 바꾼다(매 프레임 부르면 곡이 다시 시작한다) */
+  if(typeof Music!=='undefined' && Music._last !== G.state){ Music._last = G.state; Music.forState(G.state); }
   if(Screen.stepShake) Screen.stepShake(dt);
   Screen.clearUI();
   G.draw(Screen.ctx, Screen.uctx);
@@ -72,6 +74,7 @@ function translateDom(){
 
 function boot(){
   Screen.init(); Input.init(); Save.load(); Sfx.loadPrefs();
+  if(typeof Music!=='undefined') Music.loadPrefs();
   CharHD.verifyCasts();
   verifyReady();
   verifyStatuses();
