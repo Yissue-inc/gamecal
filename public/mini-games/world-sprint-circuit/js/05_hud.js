@@ -39,12 +39,19 @@ function fmtRec(def, v){
 }
 
 function fmtTime(s){
-  /* ⚠ '99 이상 = 기록 없음' 이라는 옛 규칙이 중장거리를 통째로 지웠다(1500m 기준 255초
-     가 화면에 '--.--' 로 떴다). 1분을 넘으면 분:초 로 읽어 준다. */
-  if(!(s>0) || s>=9999) return '--.--';
+  /* ⚠⚠ 이 함수의 상한이 **세 번** 종목을 지웠다.
+       ① 99.99 : 1500m 기준 255초가 '--.--' 로 떴다
+       ② 9999  : 20km 경보(10968초)·신인 마라톤(3시간 5분)이 또 지워졌다
+     매번 '설마 이보다 긴 종목이 있겠나' 하고 숫자를 박은 게 원인이다. 그런 종목은
+     계속 생긴다. **기록이 아닌 값은 실격 값(DNF) 하나뿐이다** — 상한을 따로 두지 않는다.
+     그리고 한 시간을 넘으면 시:분:초 로 읽어 준다(마라톤이 '114:21.92' 로 나왔다). */
+  if(!(s>0) || s>=DNF) return '--.--';
   if(s < 100) return s.toFixed(2);
-  const m=Math.floor(s/60), r=s-m*60;
-  return m+':'+(r<10?'0':'')+r.toFixed(2);
+  const h = Math.floor(s/3600), rest = s - h*3600;
+  const m = Math.floor(rest/60), r = rest - m*60;
+  /* 한 시간을 넘는 종목은 100분의 1초를 적지 않는다 — 마라톤을 그렇게 재지 않는다 */
+  if(h) return h+':'+String(m).padStart(2,'0')+':'+String(Math.round(r)).padStart(2,'0');
+  return m + ':' + (r<10?'0':'') + r.toFixed(2);
 }
 function fmtDist(m){ return m<=0 ? '--.--' : m.toFixed(2); }
 
@@ -52,14 +59,21 @@ const HUD = {
   /* 경기 중 상단 바 */
   race(ctx, o){
     plate(ctx, 0, 0, VW, 30, 0.72);
+    /* ⚠ 칸 폭을 100m(9.58)에 맞춰 박아 뒀다. 마라톤이 들어오자 시계가 '43:20.67' 이
+       되면서 옆 칸(SPEED)을 파고들었다. 글자가 길면 크기를 줄여 칸 안에 넣는다. */
+    const ts = fmtTime(o.timeS);
     txt(ctx, 'TIME',  8, 3, 8, PAL.dim);
-    txt(ctx, fmtTime(o.timeS), 8, 12, 15, PAL.gold, 'left', 700);
+    txt(ctx, ts, 8, ts.length>7?13:12, ts.length>7?12:15, PAL.gold, 'left', 700);
 
     txt(ctx, 'SPEED', 76, 3, 8, PAL.dim);
     txt(ctx, o.speed.toFixed(1)+' m/s', 76, 13, 11, PAL.white);
 
+    /* 거리도 마찬가지 — '17616 / 42195' 는 11px 로 칸을 넘는다. km 로 줄인다. */
     txt(ctx, 'DIST', 150, 3, 8, PAL.dim);
-    txt(ctx, o.distM.toFixed(0)+' / '+o.trackM, 150, 13, 11, PAL.white);
+    const dist = o.trackM > 10000
+      ? (o.distM/1000).toFixed(1)+' / '+(o.trackM/1000).toFixed(1)+'km'
+      : o.distM.toFixed(0)+' / '+o.trackM;
+    txt(ctx, dist, 150, 13, 11, PAL.white);
 
     // 기준기록 — 지금 페이스로 통과할 수 있나
     const ok = o.timeS <= o.qualify;

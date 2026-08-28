@@ -62,6 +62,9 @@ class MiddleEvent {
   reset(){
     this.phase='SET'; this.t=0;
     this.gunMs=1200+Math.random()*1200; this.setBeeps=0;
+    /* ⚠ 마라톤·20km 경보는 트랙 경기가 아니다 — '9 / 22 바퀴'는 없는 단위다
+       (42195m 를 22등분한 1918m 짜리 '바퀴'였다). 도로 종목은 남은 km 로 말한다. */
+    this.road = this.trackM > 10000;
     this.lapM = this.trackM<=5000 ? 400 : 2000;
     const humans = (typeof Party!=='undefined' && Party.on && Party.modeFor(this.def)==='versus')
                    ? Party.count : 1;
@@ -304,8 +307,14 @@ class MiddleEvent {
     u.fillRect(sx,sy,Math.round(sw*me.stamina),6);
     txt(u,'체력', sx-8, sy-1, 9, PAL.dim,'right');
     /* 랩 · 스퍼트 — 좌우로 갈라 놓는다 */
-    const laps=Math.ceil(this.trackM/this.lapM);
-    txt(u, (me.lap+1)+' / '+laps+' 바퀴', VW-10, sy-14, 10, PAL.white,'right',700);
+    if(this.road){
+      const km = (v)=> (v/1000).toFixed(1);
+      txt(u, K('남은 %1km').replace('%1', km(Math.max(0, this.trackM-me.dist))),
+          VW-10, sy-14, 10, PAL.white,'right',700);
+    } else {
+      const laps=Math.ceil(this.trackM/this.lapM);
+      txt(u, (me.lap+1)+' / '+laps+' 바퀴', VW-10, sy-14, 10, PAL.white,'right',700);
+    }
     if(this.walk) txt(u,'경고 '+me.warns+' / 3', 10, sy-14, 10,
                       me.warns?PAL.red:PAL.dim,'left',700);
     else if(me.spurting) txt(u,'스퍼트 중', 10, sy-14, 10, PAL.red,'left',700);

@@ -144,6 +144,12 @@ const EVENTS = [
   { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:255.0, parS:238.0, distanceM:1500, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
   { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:855.0, parS:792.0, distanceM:5000, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
   { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:8650.0, parS:7800.0, distanceM:20000, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
+  /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
+     ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
+        거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
+  { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:8700,
+    parS:7900, distanceM:42195, kind:'middle',
+    tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
   { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:49.50, distanceM:400, kind:'relay', legs:4, tip:'좌·우로 달리고 인계 구역에서 액션 · 속도가 비슷할 때 넘긴다' },
   { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:210.0, parS:196.0, distanceM:1600, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
@@ -204,6 +210,10 @@ const EVENTS = [
   { id:'equestrian',   name:'승마 장애물',   short:'JUMP',  unit:'벌점', higher:false, qualify:8.0, parS:0.0, kind:'ride', tip:'▲▼ 보폭 · 좌·우 한 걸음 · 도약대에 발이 맞으면 액션' },
   /* 철봉 — 이 게임에서 유일하게 **놓았다가 다시 잡는** 종목. 스윙이 난도를 허락한다. */
   { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym', tip:'좌·우로 흔들어 스윙을 키우고 액션으로 이탈 · 다시 액션으로 잡는다' },
+  /* 링 — 이 게임에서 유일하게 '누르지 않는 것'이 잘하는 종목 */
+  { id:'rings', name:'링', short:'RG', unit:'점', higher:true, qualify:10.8,
+    parS:12.4, kind:'gym',
+    tip:'좌·우로 흔들림을 되잡아 버틴다 — 많이 누를수록 감점' },
   /* 근대5종 — 펜싱·수영·승마·사격·달리기. 다섯 종목이 이미 다 있어서 그릇만 얹었다. */
   { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2600, parS:3500, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
   /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */

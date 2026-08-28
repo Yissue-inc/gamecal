@@ -26,7 +26,7 @@ const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4, CAREER:5, SETTINGS:
 /* 아케이드(직접 뛰기)에서 조작이 구현된 종목.
    ⚠ 감독 모드는 14종목 전부 돌지만, 아케이드는 화면·조작이 있는 것만 연다.
       목록만 늘리고 구현이 없으면 플레이어는 빈 화면을 만난다. */
-const READY = ['sprint100','sprint200','sprint400','hurdles110','hurdles400','steeple3000',
+const READY = ['sprint100','sprint200','sprint400','hurdles110','hurdles400','steeple3000','marathon','rings',
                'longJump','tripleJump','highJump',
                'shotPut','discus','javelin','hammer','relay4x100',
                'swimFree100','swimBack100','swimBreast100','swimFly100','poleVault','diving','lifting','archery','cycling','rowing','trampoline',
@@ -56,7 +56,8 @@ const G = {
       poleVault:PoleVaultEvent, diving:DivingEvent, lifting:LiftingEvent, archery:ArcheryEvent,
       cycling:CyclingEvent, rowing:RowingEvent, trampoline:TrampolineEvent,
       climbSpeed:ClimbEvent, fencing:FencingEvent, decathlon:DecathlonEvent, heptathlon:DecathlonEvent, pentathlon:DecathlonEvent, triathlon:TriathlonEvent, shooting:ShootingEvent,
-      run800:MiddleEvent, run1500:MiddleEvent, run5000:MiddleEvent, walk20k:MiddleEvent }[def.id];
+      run800:MiddleEvent, run1500:MiddleEvent, run5000:MiddleEvent, walk20k:MiddleEvent,
+      marathon:MiddleEvent, rings:RingsEvent }[def.id];
   },
 
   start(def, keepMatch){

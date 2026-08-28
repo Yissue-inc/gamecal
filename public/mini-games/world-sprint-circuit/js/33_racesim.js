@@ -18,6 +18,9 @@ const MidTune = {
   1500: { pace:1.0, speed:0.78, fadeAt:0.55, fadeHi:1.0, fadeLo:0.18, fatHi:0.010, fatLo:0.004 },
   5000: { pace:1.0, speed:0.77, fadeAt:0.60, fadeHi:0.8, fadeLo:0.14, fatHi:0.005, fatLo:0.0018 },
   20000:{ pace:1.0, speed:0.32, fadeAt:0.65, fadeHi:0.6, fadeLo:0.12, fatHi:0.0016,fatLo:0.0005 },
+  /* 마라톤 — 실측으로 맞춘 값이다. 다른 거리들의 '스탯92 = par×0.85' 비율에 맞춘다
+     (800m 0.877 · 1500m 0.853 · 5000m 0.855 · 20km경보 0.834 → 마라톤 0.86). */
+  42195:{ pace:1.0, speed:0.76, fadeAt:0.62, fadeHi:0.7, fadeLo:0.13, fatHi:0.0009,fatLo:0.0003 },
 };
 
 const SimTune = {

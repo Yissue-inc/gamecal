@@ -660,4 +660,26 @@ const I18N_EN = {
   '키보드로': 'Keyboard', 'A / D · Space': 'A / D · Space',
   '화면 버튼으로': 'On-screen buttons', '손가락이나 마우스로': 'Finger or mouse',
   '%1종목 더': '%1 more events',
+  '마라톤': 'Marathon',
+  '▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다':
+    '▲▼ pace · the longest event — go early and there is nothing left',
+  '남은 %1km': '%1km to go',
+
+  /* ── 링 ── */
+  '링': 'Rings', '버티기': 'Hold', '십자버티기': 'Iron cross', '수평버티기': 'Planche',
+  '내리기': 'Dismount', '자세': 'Position', '흔들림': 'Sway',
+  '되잡기 %1': 'Corrections %1',
+  '아직 버텨야 한다': 'Hold it longer',
+  '흔들림 없이 버텼다': 'Held it dead still',
+  '버텼다': 'Held', '많이 흔들렸다': 'A lot of sway',
+  '자세가 무너졌다': 'The hold collapsed',
+  '완벽한 착지!': 'Perfect landing!', '착지': 'Landed', '착지가 흔들렸다': 'Shaky landing',
+  '정점에서 액션 — 내려서기': 'Action at the top — dismount',
+  '액션으로 다음 자세': 'Action for the next position',
+  '%1초 더': '%1s more',
+  '너무 자주 잡으면 몸이 출렁인다': 'Correcting too often makes you swing',
+  '좌·우로 되잡아 흔들림을 0 에 둔다': 'Use ◀ ▶ to hold the sway at zero',
+  '안정 %1%  ·  무너짐 %2': 'Steady %1%  ·  Collapses %2',
+  '좌·우로 흔들림을 되잡아 버틴다 — 많이 누를수록 감점':
+    '◀ ▶ to steady yourself — every correction costs you',
 };

@@ -40,6 +40,18 @@ function frameStep(now){
   G.draw(Screen.ctx, Screen.uctx);
 }
 
+/* READY(선택 화면에서 '준비됨'으로 보이는 목록)와 classFor(실제 클래스 표)는
+   **둘 다 손으로 관리하는 목록**이다. 서로 어긋나면 조용히 갈라진다:
+     · READY 에만 있으면 → 골랐을 때 '아직 준비 중입니다' 토스트만 뜨고 안 시작한다
+     · classFor 에만 있으면 → 만들어 놓고 아무도 못 고른다
+   ⚠ 마라톤을 넣으면서 실제로 전자를 겪었다. 부팅 때 대조해 바로 터뜨린다. */
+function verifyReady(){
+  const bad=[];
+  for(const id of READY) if(!G.classFor(EVENT_BY_ID[id])) bad.push('READY 에만: '+id);
+  for(const e of EVENTS) if(G.classFor(e) && !READY.includes(e.id)) bad.push('classFor 에만: '+e.id);
+  if(bad.length) throw new Error('종목 목록이 어긋났다 — '+bad.join(' · '));
+}
+
 /* HTML 안의 글자는 캔버스 txt() 를 안 거친다 → K() 가 닿지 않는다.
    ⚠ 그 결과 **영어판의 첫 화면(조작 선택)이 통째로 한국어**였다. 캔버스만 번역해
       놓고 다 됐다고 본 것이다. 부팅 때 한 번 DOM 을 훑어 같은 표로 바꾼다. */
@@ -52,6 +64,7 @@ function translateDom(){
 function boot(){
   Screen.init(); Input.init(); Save.load(); Sfx.loadPrefs();
   CharHD.verifyCasts();
+  verifyReady();
   translateDom();
   const gate=document.getElementById('gate');
   const bKey=document.getElementById('g-key'), bTouch=document.getElementById('g-touch');
