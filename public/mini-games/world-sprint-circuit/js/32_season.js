@@ -22,6 +22,13 @@ const MEET_INFO = {
 };
 /* 올림픽 주기 — 4년차마다. 시즌 마지막 대회가 올림픽으로 바뀐다. */
 const OLYMPIC_EVERY = 4;
+/* 한 선수가 한 대회에서 나갈 수 있는 종목 수.
+   ⚠ 없었을 때 실측: 45종목 챔피언십에서 **한 선수가 45종목 전부**에 나갔고(평균 22.8),
+      대회 한 번에 선수단 전원이 피로 100 이 됐다. 종목이 늘수록 나빠지는 구조였다.
+      실제로도 한 선수가 한 대회에서 뛰는 종목은 몇 개뿐이다.
+      상한이 있어야 **선수층**이 뜻을 갖는다 — 45종목을 덮으려면 사람이 많아야 한다.
+   계주는 팀 종목이라 반 개로 센다. */
+const MAX_EVENTS_PER_ATHLETE = 4;
 /* 종목군 — 종목 정의(kind)에서 끌어낸다.
    ⚠ 예전엔 makeRivals 안에 종목 id 목록이 있었고 **없는 종목은 조용히 'sprint'** 였다.
       그래서 역도·양궁·조정 상대가 스프린터 스탯으로 만들어졌다(신규 12종목 전부).
@@ -193,16 +200,36 @@ class Season {
   }
 
   /* 자동 출전표 — 종목별 적합도 상위 N명 */
+  /* 선수별 출전 수 — 계주는 0.5 로 센다 */
+  entryLoad(entries){
+    const load={};
+    for(const id in entries){
+      const ev=EVENT_BY_ID[id]; const w = ev && ev.kind==='relay' ? 0.5 : 1;
+      for(const aid of entries[id]) load[aid]=(load[aid]||0)+w;
+    }
+    return load;
+  }
   autoEntries(){
     const info = MEET_INFO[this.meetKind];
     const out = {};
-    for(const ev of this.meetEvents()){
+    const load = {};
+    /* ⚠ 적합도만 보고 뽑으면 제일 좋은 선수가 **모든 종목**에 들어간다.
+       한 사람이 상한을 채우면 그 종목은 다음 사람에게 간다 — 그래야 선수층이 쓰인다.
+       ⚠ 처음엔 '적합도 **차**가 큰 종목'부터 채웠는데, 그러면 특기가 뚜렷한 종목이 먼저
+          다 가져가서 **100m·200m 같은 주력 종목이 통째로 비었다**(실측 스크린샷).
+          우리가 **잘하는 종목**부터 채운다 — 점수가 나올 곳을 먼저 잡는 게 맞다. */
+    const bestFit = (ev)=> Math.max(0, ...this.club.squad.filter(a=>a.available)
+        .map(a=>eventFitNow(a,ev)));
+    const evs = this.meetEvents().slice().sort((A,B)=> bestFit(B)-bestFit(A));
+    for(const ev of evs){
       const need = ev.kind==='relay' ? 4 : info.entries;
-      const fit = this.club.squad.filter(a=>a.available)
+      const w = ev.kind==='relay' ? 0.5 : 1;
+      const fit = this.club.squad.filter(a=>a.available && (load[a.id]||0)+w <= MAX_EVENTS_PER_ATHLETE)
         .map(a=>({a, s:eventFitNow(a, ev)}))     // 출전표는 '오늘 상태'로 고른다
         .sort((x,y)=>y.s-x.s)
         .slice(0, need);
       out[ev.id] = fit.map(f=>f.a.id);
+      for(const f of fit) load[f.a.id]=(load[f.a.id]||0)+w;
     }
     return out;
   }
@@ -211,10 +238,15 @@ class Season {
   runMeet(){
     const goldBefore = this.medals.gold;   // 커리어 뱃지용 — 이 대회에서 딴 금
     const kind = this.meetKind, info = MEET_INFO[kind];
+    /* 손으로 짠 출전표가 상한을 넘겨도 여기서 막는다 — 화면에서만 막으면 새어 나간다 */
+    this._load = {};
     const meet = { week:this.week, kind, name:info.name, events:[], points:0 };
     for(const ev of this.meetEvents()){
-      const mine = (this.entries[ev.id]||[]).map(id=>this.club.byId(id)).filter(a=>a && a.available);
+      const mine = (this.entries[ev.id]||[]).map(id=>this.club.byId(id))
+        .filter(a=>a && a.available && (this._load[a.id]||0) < MAX_EVENTS_PER_ATHLETE);
       if(!mine.length) continue;
+      const w = ev.kind==='relay' ? 0.5 : 1;
+      for(const a of mine) this._load[a.id]=(this._load[a.id]||0)+w;
       if(ev.kind==='relay'){ this.runRelay(ev, mine, meet, info); continue; }
       const field = mine.concat(this.makeRivals(ev, kind, 8-mine.length));
       const rows = simulateMeetEvent(ev, field, { rng:this.rng, big:info.big });

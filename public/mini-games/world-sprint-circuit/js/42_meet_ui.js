@@ -46,7 +46,14 @@ class EntryScreen extends Screen0 {
   draw(u){
     const S=this.mg.season;
     UI.header(u, this.info.name, `${S.week}주차 · 종목당 ${this.info.entries}명`);
-    txt(u,'★ 은 그 종목을 위해 태어난 종입니다. 컨디션이 나쁘면 기록이 크게 떨어집니다',8,27,9,PAL.dim);
+    /* ⚠ 1인 출전 상한은 화면에 없으면 '왜 종목이 비어 있지?' 로만 보인다.
+       몇 종목을 덮었는지, 누가 상한에 걸렸는지 여기서 보여 준다. */
+    const load=S.entryLoad(S.entries);
+    const covered=this.events.filter(ev=>(S.entries[ev.id]||[]).length).length;
+    const maxed=Object.values(load).filter(v=>v>=MAX_EVENTS_PER_ATHLETE).length;
+    txt(u,`출전 ${covered} / ${this.events.length}종목 · 1인 최대 ${MAX_EVENTS_PER_ATHLETE}종목`
+        + (maxed? ` · ${maxed}명이 꽉 찼다` : ''),
+        8, 27, 9, covered<this.events.length*0.4? PAL.gold : PAL.dim);
     UI.list(u, this.rows, this.sel, 8, 40, VW-16, 24, 7);
     UI.footer(u,'확인 선택   취소 돌아가기');
   }
