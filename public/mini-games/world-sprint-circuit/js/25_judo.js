@@ -208,6 +208,12 @@ class JudoEvent {
        공중에 붙인 판때기**로 보였다. 배경은 원근이 있는데 매트만 정면이었다.
        사다리꼴로 그려 바닥에 눕힌다(먼 쪽을 좁게). */
     const cx=VW/2, cy=172, MW=186, MH=62;
+    /* HD 다다미 — 안전지대까지 한 장이다. 판정에 쓰는 _mat 좌표는 그대로 둔다. */
+    if(BG.obj(BG.ctx(),'judo-tatami', cx, cy+MH/2+11, MH+22)){
+      this._mat={cx, cy, MW, MH};
+      if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.4})`; ctx.fillRect(0,0,VW,VH); }
+      return;
+    }
     const trap=(halfW, halfH, colr)=>{
       const yT=cy-halfH, yB=cy+halfH, wT=halfW*0.84, wB=halfW*1.20;
       ctx.fillStyle=colr; ctx.beginPath();

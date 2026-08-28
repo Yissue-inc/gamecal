@@ -112,6 +112,12 @@ class OfficeScreen extends Screen0 {
     const r=[
       { label:'훈련 지시', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶' },
       { label:'선수단',   sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶' },
+      /* 육성(46_rpg) — 포인트가 남아 있으면 눈에 띄게 */
+      (()=>{ const tp=this.mg.club.squad.reduce((s,a)=>s+(a.tp||0),0);
+             const inv=(this.mg.club.inventory||[]).length;
+             return { label:'육성', sub:`훈련 포인트 ${tp} · 창고 ${inv}개`,
+                      right: tp>0?'●'+tp:'▶', rightColor: tp>0?PAL.gold:PAL.dim,
+                      color: tp>0?PAL.gold:undefined }; })(),
       { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶' },
       { label:'선수 사무소', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶' },
       { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶' },
@@ -127,11 +133,12 @@ class OfficeScreen extends Screen0 {
     switch(this.sel){
       case 0: this.mg.push(new TrainScreen(this.mg)); break;
       case 1: this.mg.push(new SquadScreen(this.mg)); break;
-      case 2: this.mg.push(new ProgramScreen(this.mg)); break;
-      case 3: this.mg.push(new MarketScreen(this.mg)); break;
-      case 4: this.mg.push(new RecordScreen(this.mg)); break;
-      case 5: this.mg.push(new LeagueScreen(this.mg)); break;
-      case 6: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
+      case 2: this.mg.push(new GrowPickScreen(this.mg)); break;
+      case 3: this.mg.push(new ProgramScreen(this.mg)); break;
+      case 4: this.mg.push(new MarketScreen(this.mg)); break;
+      case 5: this.mg.push(new RecordScreen(this.mg)); break;
+      case 6: this.mg.push(new LeagueScreen(this.mg)); break;
+      case 7: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
     }
   }
   cancel(){}
@@ -287,6 +294,12 @@ class ProgramScreen extends Screen0 {
 }
 
 /* ── 선수단 · 선수 상세 ──────────────────────────────────── */
+/* 피로가 높은 선수에 땀방울 — 목록을 훑을 때 '쉬게 해야 할 사람'이 눈에 띈다 */
+function drawSweat(u, a, x, y){
+  if(!a || (a.fatigue||0) < 65) return;
+  BG.obj(u, 'sweat-drop', x, y, 9);
+}
+
 class SquadScreen extends Screen0 {
   get rows(){ return this.mg.club.squad.map(a=>({
     label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${a.speciesName} ${a.name}`, nation:a.nation,
@@ -298,6 +311,12 @@ class SquadScreen extends Screen0 {
   draw(u){
     UI.header(u,'선수단',`${this.mg.club.squad.length}명`);
     UI.list(u,this.rows,this.sel,8,28,VW-16,26,8);
+    /* 피로한 선수는 땀방울로 — 목록에서 '쉬게 해야 할 사람'이 바로 보인다.
+       ⚠ 목록은 8줄씩 스크롤되므로 화면에 실제로 그려진 줄만 표시한다. */
+    const first = Math.max(0, Math.min(this.sel-3, this.mg.club.squad.length-8));
+    this.mg.club.squad.slice(first, first+8).forEach((a,i)=>{
+      drawSweat(u, a, VW-16, 28+i*26+9);
+    });
     UI.footer(u,'확인 상세   취소 돌아가기');
   }
 }

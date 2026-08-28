@@ -64,6 +64,7 @@ class DivingEvent {
       /* 입수 — 수면 직전에 펴야 한다 */
       const left = DIVE.fallDur - this.airT;
       this.entryQ = clamp(1 - Math.abs(left - 0.10)/DIVE.entryWindow, 0, 1);
+      this.splashAt = this.t;                    // 입수 순간 — 물보라를 여기서 띄운다
       this.opened = true;
       this.say(this.entryQ>0.75?'물보라 없이!':`입수 ${Math.round(this.entryQ*100)}%`, this.entryQ<0.35);
       Sfx.beep(this.entryQ>0.75?1320:520, 0.10,'square',0.12);
@@ -145,6 +146,11 @@ class DivingEvent {
   }
   drawUI(u){
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
+    /* 입수 물보라 — 다이빙에서 사람이 가장 보고 싶어 하는 한 순간이다 */
+    if(this.splashAt && this.t-this.splashAt < 700){
+      const k=(this.t-this.splashAt)/700;
+      BG.fx(u, 'water-splash-big', VW/2, this._waterY||VH-58, 34+k*14, clamp(k,0,0.999), 4);
+    }
     txt(u, this.def.name, 8, 6, 12, PAL.gold, 'left', 700);
     txt(u, `${this.attempt} / ${this.attemptsTotal}차`, VW/2, 6, 11, PAL.white, 'center');
     txt(u, this.qualify.toFixed(1)+'점', VW-8, 6, 12,

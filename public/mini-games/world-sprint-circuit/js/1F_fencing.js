@@ -285,13 +285,27 @@ class FencingEvent {
           {rare:i?2:3, t:this.t, scale:0.92, lean:lung, crouch:!lung}))
         { u.fillStyle=i?'#8fa0b4':PAL.gold; u.fillRect(dx-5,y-20,10,20); }
       u.restore();
-      /* 검 — 사거리를 눈으로 보여 준다. 이게 없으면 거리 감각이 안 생긴다. */
+      /* 검 — 사거리를 눈으로 보여 준다. 이게 없으면 거리 감각이 안 생긴다.
+         ⚠ 길이는 **사거리 그 자체**다(그림이 아니라 규칙이다). 어셋을 쓸 때도
+            그 길이에 맞춰 늘려 그린다 — 안 그러면 보이는 것과 닿는 곳이 어긋난다. */
       const px=(m)=>this._px(m)-this._px(0);
-      const bladeLen = px(this.reachOf(f));
-      u.strokeStyle = lung ? '#ffffff' : 'rgba(220,230,245,.55)';
-      u.lineWidth = lung? 2 : 1;
-      u.beginPath(); u.moveTo(x+face*5, y-13);
-      u.lineTo(x+face*(5+Math.abs(bladeLen)), y-13-(lung?1:3)); u.stroke();
+      const bladeLen = Math.abs(px(this.reachOf(f)));
+      const blade = BG.get('epee-blade');
+      if(blade){
+        const bh = 6;
+        u.save(); u.globalAlpha = lung ? 1 : 0.7;
+        if(face<0){ u.translate((x+face*5)*2, 0); u.scale(-1,1);
+                    u.drawImage(blade, x+face*5, y-13-bh/2, bladeLen+5, bh); }
+        else u.drawImage(blade, x+5, y-13-bh/2, bladeLen+5, bh);
+        u.restore();
+      } else {
+        u.strokeStyle = lung ? '#ffffff' : 'rgba(220,230,245,.55)';
+        u.lineWidth = lung? 2 : 1;
+        u.beginPath(); u.moveTo(x+face*5, y-13);
+        u.lineTo(x+face*(5+bladeLen), y-13-(lung?1:3)); u.stroke();
+      }
+      /* 마스크 — 캐릭터 머리 위에 얹는다 */
+      BG.obj(u, 'fence-mask', x, y-24, 12);
       /* 예비 동작 — AI 가 뻗기 전에 반드시 보인다 */
       if(f.tellAt>-1e8 && this.t-f.tellAt < FENCE.tellMs){
         u.fillStyle='rgba(255,120,90,.85)';

@@ -21,6 +21,8 @@ function groupOf(def){
 function eventsInGroup(key){ return EVENTS.filter(e=>groupOf(e)===key); }
 
 /* 결과 화면 제목 — RESULT_STATUS(00_rules)를 전부 덮어야 한다(부팅 때 검사) */
+function def_qualifyOf(ev){ return ev && ev.def ? ev.def.qualify : 0; }
+
 const RESULT_TITLE = { OK:'통과', MISSED_QUALIFY:'기준기록 미달', FALSE_START:'부정 출발',
                        DQ:'실격', TIMEOUT:'시간 초과', ALL_FOUL:'세 번 모두 파울' };
 
@@ -511,8 +513,49 @@ const G = {
 
   updResult(){
     if(this.t - this.resultAt < 350) return;      // 입력 씹힘 방지 — 결과가 뜨자마자 넘어가지 않게
+    /* 감독 모드가 빌려 쓰는 중이면 결과를 넘겨주고 돌아간다 */
+    if(this.mgHook){
+      if(Input.pressed('action')||Input.pressed('back')||Input.pressed('pause')){
+        const hook=this.mgHook; this.mgHook=null; Sfx.ui();
+        this.state = ST.MANAGER;
+        hook(this.event ? this.event.result : null, this.playQuality());
+      }
+      return;
+    }
     if(Input.pressed('action')){ Sfx.ui(); this.start(this.def); }
     if(Input.pressed('back')||Input.pressed('pause')){ Sfx.ui(); this.backToSelect(); }
+  },
+
+  /* ── 감독 모드 ↔ 아케이드 다리 ─────────────────────────────
+     '직접 뛰기'를 고른 종목은 여기로 온다. 아케이드를 그대로 띄우고,
+     끝나면 **손놀림의 품질**만 감독 모드로 돌려준다.
+
+     ⛔ 왜 기록 자체를 안 넘기나: 아케이드는 기본 스탯으로 달린다. 그 기록을
+        그대로 쓰면 **선수를 키운 의미가 사라진다**(누가 뛰든 같은 기록).
+        시뮬레이션(선수 스탯)이 기본 기록을 정하고, 내 손은 그 위에 ±4% 를 얹는다.
+        키운 만큼 빠르고, 잘 친 만큼 더 빠르다 — 두 재미가 곱해진다. */
+  playForManager(def, onDone){
+    this.mgHook = onDone;
+    this.start(def);
+  },
+  /* 이번 판을 얼마나 잘 쳤나 — 0(엉망) ~ 1(완벽). 스탯과 무관한 순수 손놀림. */
+  playQuality(){
+    const ev=this.event; if(!ev) return 0.5;
+    const p = ev.player || (ev.runners && ev.runners[0]) || (ev.climbers && ev.climbers[0]);
+    const j = p && p.judge;
+    if(j){
+      const good = (j.PERFECT|0)*1 + (j.GOOD|0)*0.55;
+      const all  = (j.PERFECT|0)+(j.GOOD|0)+(j.EARLY|0)+(j.LATE|0)+(j.REPEAT|0)+(j.SPAM|0);
+      if(all >= 5) return clamp(good/all, 0, 1);
+    }
+    /* 판정이 없는 종목(점수제)은 기준기록 대비로 본다 */
+    const r=ev.result;
+    if(r && r.value>0 && r.value<DNF && def_qualifyOf(ev)){
+      const q=def_qualifyOf(ev);
+      const ratio = ev.def.higher ? r.value/q : q/r.value;
+      return clamp((ratio-0.8)/0.45, 0, 1);
+    }
+    return 0.5;
   },
 
   /* ── 그리기 ── */
@@ -769,7 +812,11 @@ const G = {
               .replace('%2', m===null?K('파울'):m.toFixed(2))).join('   '),
             VW/2, 138, 10, PAL.white,'center');
       }
-      if(this.newRecord) txt(uctx,'★ 개인 최고기록!', VW/2, 168, 13, PAL.gold,'center',700);
+      if(this.newRecord){
+        /* 신기록 반짝임 — 기록을 세운 순간을 눈으로 짚어 준다 */
+        BG.fx(uctx, 'record-sparkle', VW/2, 176, 22, ((this.t-this.resultAt)%900)/900, 4);
+        txt(uctx,'★ 개인 최고기록!', VW/2, 168, 13, PAL.gold,'center',700);
+      }
       else if(r.status==='MISSED_QUALIFY'){
         const why = this.diagnose(ev);
         if(why) txt(uctx, why, VW/2, 168, 11, PAL.gold,'center');

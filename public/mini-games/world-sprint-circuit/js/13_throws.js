@@ -159,6 +159,7 @@ class HammerEvent extends FieldEvent {
     this.angle=0;           // 해머 각도
     this.turns=0;
     this.lastSide=0; this.lastTapMs=-1e9;
+    this.kick=0; this.kickAt=-1e9;          // 연타 튐
     this.spinStart=-1;
     this.range=0; this.px=0; this.py=0; this.vx=0; this.vy=0;
     this.releaseAngle=0; this.foul=false;
@@ -168,13 +169,26 @@ class HammerEvent extends FieldEvent {
   onStride(side,tMs){
     if(this.phase!=='SPIN') return;
     if(this.spinStart<0) this.spinStart=tMs;
-    if(this.lastSide===side){ this.say('같은 쪽!', true); this.spin=Math.max(0,this.spin-0.5); }
+    if(this.lastSide===side){
+      this.say('같은 쪽!', true); this.spin=Math.max(0,this.spin-0.5);
+      /* 실수도 손에 느껴져야 한다 — 회전이 풀리는 감각 */
+      Sfx.beep(140, 0.09, 'sawtooth', 0.12); Screen.shake(0.25); this.kick=-1; this.kickAt=tMs;
+    }
     else {
       const dt=tMs-this.lastTapMs;
       const gain = this.lastTapMs<-1e8 ? 0.9 : clamp(420/Math.max(60,dt), 0.25, 1.5);
       this.spin = Math.min(RULES.hammerMaxSpin, this.spin + gain*0.62);
       this.turns += 0.5;
-      Sfx.beep(220+this.spin*70, 0.05,'square',0.09);
+      /* ── 연타 손맛 ────────────────────────────────────────
+         이 종목은 **연타가 곧 기믹**이다(빨리 칠수록 회전이 오른다).
+         그런데 반응이 짧은 삑 소리 하나뿐이라 '두드리는 맛'이 없었다.
+         누를 때마다 즉시 튀고, 회전이 오를수록 화면이 같이 달아오르게 한다. */
+      const hot = clamp(this.spin/RULES.hammerMaxSpin, 0, 1);
+      this.kick = 1;                                   // 이번 타의 튐(그리기에서 쓴다)
+      this.kickAt = tMs;
+      Sfx.beep(220+this.spin*70, 0.05,'square',0.09+hot*0.06);
+      if(hot>0.35) Screen.shake(0.15 + hot*0.55);      // 회전이 붙으면 화면이 떤다
+      Track.cheer(hot*0.5);
     }
     this.lastSide=side; this.lastTapMs=tMs;
   }
@@ -234,10 +248,25 @@ class HammerEvent extends FieldEvent {
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
     drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:this.phase!=='SPIN' });
     if(this.phase==='SPIN'){
-      // 해머 — 선수를 중심으로 돈다
-      const r=26, hx=CX+Math.cos(this.angle)*r, hy=GROUND-16-Math.sin(this.angle)*r*0.6;
-      ctx.strokeStyle='#c9cede'; ctx.lineWidth=1; ctx.beginPath();
-      ctx.moveTo(CX,GROUND-16); ctx.lineTo(hx,hy); ctx.stroke();
+      const hot = clamp(this.spin/RULES.hammerMaxSpin, 0, 1);
+      /* 잔상 — 회전이 빠를수록 지나온 자리가 남는다. 속도를 눈으로 만든다. */
+      const r=26;
+      if(hot>0.25){
+        for(let k=1;k<=3;k++){
+          const a2=this.angle - k*0.22*hot;
+          const gx=CX+Math.cos(a2)*r, gy=GROUND-16-Math.sin(a2)*r*0.6;
+          ctx.globalAlpha = (0.26 - k*0.07) * hot;
+          ctx.strokeStyle='#ffd75e'; ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(CX,GROUND-16); ctx.lineTo(gx,gy); ctx.stroke();
+        }
+        ctx.globalAlpha=1;
+      }
+      /* 해머 — 선수를 중심으로 돈다. 한 번 칠 때마다 살짝 늘어난다(튐). */
+      const kick = (this.kick && this.t-this.kickAt<120) ? (1-(this.t-this.kickAt)/120)*this.kick : 0;
+      const rr = r + kick*4;
+      const hx=CX+Math.cos(this.angle)*rr, hy=GROUND-16-Math.sin(this.angle)*rr*0.6;
+      ctx.strokeStyle= kick>0 ? '#ffffff' : '#c9cede'; ctx.lineWidth= kick>0?2:1;
+      ctx.beginPath(); ctx.moveTo(CX,GROUND-16); ctx.lineTo(hx,hy); ctx.stroke();
       if(BG.obj(BG.ctx(),'shot-hd',hx,hy+8,16)){ /* HD */ }
       else if(!Art.blit(ctx,'hammer',hx,hy,'center')){
         ctx.fillStyle=PAL.gold; ctx.fillRect(Math.round(hx)-3,Math.round(hy)-3,6,6); }
@@ -271,8 +300,15 @@ class HammerEvent extends FieldEvent {
       uctx.fillStyle='rgba(242,245,250,.14)'; uctx.fillRect(x,y,w,10);
       const opt=RULES.hammerOptSpin/RULES.hammerMaxSpin;
       uctx.fillStyle='rgba(92,255,156,.4)'; uctx.fillRect(x+w*opt-6,y,20,10);
+      const hot2=clamp(this.spin/RULES.hammerMaxSpin,0,1);
       uctx.fillStyle=this.spin>=RULES.hammerMinSpin?PAL.green:PAL.red;
-      uctx.fillRect(x,y,Math.round(w*clamp(this.spin/RULES.hammerMaxSpin,0,1)),10);
+      uctx.fillRect(x,y,Math.round(w*hot2),10);
+      /* 최고 회전 근처에서는 게이지가 뛴다 — '지금이다'가 보여야 한다 */
+      if(hot2>0.78){
+        uctx.globalAlpha = 0.35+0.35*Math.sin(this.t*0.02);
+        uctx.fillStyle='#ffffff'; uctx.fillRect(x,y,Math.round(w*hot2),10);
+        uctx.globalAlpha=1;
+      }
       txt(uctx,'회전',x,y+12,8,PAL.dim);
       // 각도 바늘
       const deg=((this.angle*180/Math.PI)%360+360)%360;

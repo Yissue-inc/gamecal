@@ -182,6 +182,8 @@ class ShootingEvent {
       u.moveTo(rx,ry-k); u.lineTo(rx,ry-k*0.3);
       u.moveTo(rx,ry+k*0.3); u.lineTo(rx,ry+k); u.stroke();
     }
+    /* 총 — 화면 아래쪽에 걸쳐 '내가 들고 있다'를 만든다 */
+    BG.obj(u, 'rifle-hd', 74, VH-46, 20);
     /* 호흡 막대 — 언제 떼야 하는지 화면에 있어야 한다.
        ⚠ 안 보이면 '왜 흔들리는지' 알 수 없고, 그건 실력이 아니라 운이다. */
     const bw=150, bx=cx-bw/2, by=VH-34;

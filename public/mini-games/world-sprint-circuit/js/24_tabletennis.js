@@ -202,21 +202,25 @@ class TableTennisEvent {
           선수 대비 크기를 줄여야 '탁구대'로 읽힌다. */
     const cx=VW/2, cy=146, TW=150, TH=76, FAR=0.66;   // 먼 쪽 폭 비율
     const nx=TW/2, fx=TW*FAR/2, ty=cy-TH/2, by=cy+TH/2;
-    ctx.fillStyle='#12405e';
-    ctx.beginPath();
-    ctx.moveTo(cx-fx, ty); ctx.lineTo(cx+fx, ty);
-    ctx.lineTo(cx+nx, by); ctx.lineTo(cx-nx, by); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=1; ctx.stroke();
-    /* 센터라인(세로) — 탁구대는 세로로 갈린다 */
-    ctx.strokeStyle='rgba(255,255,255,.45)';
-    ctx.beginPath(); ctx.moveTo(cx, ty); ctx.lineTo(cx, by); ctx.stroke();
-    /* 네트 — 가운데를 가로지른다 */
-    const my=(ty+by)/2, mx=(nx+fx)/2;
-    ctx.fillStyle='rgba(232,240,252,.92)'; ctx.fillRect(cx-mx-3, my-5, mx*2+6, 2);
-    ctx.fillStyle='rgba(232,240,252,.35)'; ctx.fillRect(cx-mx-3, my-5, mx*2+6, 5);
-    /* 다리 */
-    ctx.fillStyle='#0d2436';
-    ctx.fillRect(cx-nx+6, by, 3, 12); ctx.fillRect(cx+nx-9, by, 3, 12);
+    /* HD 탁구대 — 네트·라인·다리까지 한 장에 들어 있다.
+       ⚠ 판정 좌표(_table)는 어셋과 무관하게 그대로다 — 그림이 바뀌어도 규칙은 안 바뀐다. */
+    if(!BG.obj(BG.ctx(),'tt-table', cx, by+12, TH+24)){
+      ctx.fillStyle='#12405e';
+      ctx.beginPath();
+      ctx.moveTo(cx-fx, ty); ctx.lineTo(cx+fx, ty);
+      ctx.lineTo(cx+nx, by); ctx.lineTo(cx-nx, by); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=1; ctx.stroke();
+      /* 센터라인(세로) — 탁구대는 세로로 갈린다 */
+      ctx.strokeStyle='rgba(255,255,255,.45)';
+      ctx.beginPath(); ctx.moveTo(cx, ty); ctx.lineTo(cx, by); ctx.stroke();
+      /* 네트 — 가운데를 가로지른다 */
+      const my=(ty+by)/2, mx=(nx+fx)/2;
+      ctx.fillStyle='rgba(232,240,252,.92)'; ctx.fillRect(cx-mx-3, my-5, mx*2+6, 2);
+      ctx.fillStyle='rgba(232,240,252,.35)'; ctx.fillRect(cx-mx-3, my-5, mx*2+6, 5);
+      /* 다리 */
+      ctx.fillStyle='#0d2436';
+      ctx.fillRect(cx-nx+6, by, 3, 12); ctx.fillRect(cx+nx-9, by, 3, 12);
+    }
     this._table={cx, cy, TW, TH, nx, fx, ty, by};
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.3})`; ctx.fillRect(0,0,VW,VH); }
   }

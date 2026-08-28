@@ -177,9 +177,12 @@ class CanoeEvent {
       const col = g.done ? (g.ok? (g.touch?PAL.gold:PAL.green) : PAL.red)
                          : (g.up? '#ff7b6b' : '#5cff9c');
       const x0=toX(g.x-CANOE.gateW), x1=toX(g.x+CANOE.gateW);
-      u.strokeStyle=col; u.lineWidth=2;
+      /* HD 봉 — 색은 규칙(초록=순방향·빨강=역방향)이라 어셋 위에 얇게 덧칠한다 */
+      const hd = BG.obj(u,'slalom-gate', x0, y+7, 14) && BG.obj(u,'slalom-gate', x1, y+7, 14);
+      u.strokeStyle=col; u.lineWidth=hd?1:2; u.globalAlpha=hd?0.55:1;
       u.beginPath(); u.moveTo(x0, y-7); u.lineTo(x0, y+7); u.stroke();
       u.beginPath(); u.moveTo(x1, y-7); u.lineTo(x1, y+7); u.stroke();
+      u.globalAlpha=1;
       u.strokeStyle=col; u.globalAlpha=0.45; u.lineWidth=1;
       u.beginPath(); u.moveTo(x0, y); u.lineTo(x1, y); u.stroke(); u.globalAlpha=1;
       if(g.up && !g.done) txt(u,'▲', toX(g.x), y-16, 9, '#ff7b6b','center',700);
@@ -187,9 +190,11 @@ class CanoeEvent {
     /* 배 */
     const bx=toX(this.x), by=R.bot-14;
     u.save(); u.translate(bx,by); u.rotate(clamp(this.vx*0.10,-0.5,0.5));
-    u.fillStyle='#f0e0b4';
-    u.beginPath(); u.moveTo(0,-11); u.lineTo(4,6); u.lineTo(-4,6); u.closePath(); u.fill();
-    u.fillStyle='rgba(0,0,0,.3)'; u.fillRect(-4,4,8,2);
+    if(!BG.obj(u,'canoe-boat', 0, 7, 20)){
+      u.fillStyle='#f0e0b4';
+      u.beginPath(); u.moveTo(0,-11); u.lineTo(4,6); u.lineTo(-4,6); u.closePath(); u.fill();
+      u.fillStyle='rgba(0,0,0,.3)'; u.fillRect(-4,4,8,2);
+    }
     u.restore();
     if(!CharHD.draw(u,'otter', bx, by+2, 0.2, {rare:3, t:this.t, scale:0.5, crouch:true})){}
     /* 노 — 어느 쪽을 저었는지 */

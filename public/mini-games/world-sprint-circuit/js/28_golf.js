@@ -202,25 +202,32 @@ class GolfEvent {
     ctx.fillStyle='#2f5a34';
     ctx.fillRect(toX(-34), top-6, toX(-22)-toX(-34), bot-top+12);
     ctx.fillRect(toX(22), top-6, toX(34)-toX(22), bot-top+12);
-    /* 벙커 */
-    ctx.fillStyle='#d8c68a';
-    ctx.fillRect(toX(-30), toY(H.len*0.62)-6, 14, 12);
-    ctx.fillRect(toX(24), toY(H.len*0.42)-6, 14, 12);
+    /* 벙커 — 어셋이 오면 사각형 대신 진짜 모래턱 */
+    const bgc=BG.ctx();
+    for(const [bx,bm] of [[-30, H.len*0.62], [24, H.len*0.42]]){
+      if(!BG.obj(bgc,'golf-bunker', toX(bx)+7, toY(bm)+6, 10)){
+        ctx.fillStyle='#d8c68a'; ctx.fillRect(toX(bx), toY(bm)-6, 14, 12);
+      }
+    }
     /* 그린 */
-    ctx.fillStyle='#5aa860';
     const gr=Math.round(GOLF.greenR*1.6);
-    ctx.beginPath(); ctx.ellipse(cx, toY(H.len), gr, gr*0.55, 0, 0, 6.284); ctx.fill();
+    if(!BG.obj(bgc,'golf-green', cx, toY(H.len)+gr*0.55, gr*1.1)){
+      ctx.fillStyle='#5aa860';
+      ctx.beginPath(); ctx.ellipse(cx, toY(H.len), gr, gr*0.55, 0, 0, 6.284); ctx.fill();
+    }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.35})`; ctx.fillRect(0,0,VW,VH); }
   }
   drawUI(u){
     const V=this._v; if(!V) return;
     const toX=this._toX, toY=this._toY, H=this.H;
-    /* 홀 */
+    /* 홀과 깃대 — 깃대는 공보다 앞이라 UI 층에 그린다 */
     const hx=toX(0), hy=toY(H.len);
     u.fillStyle='#1a1a1a'; u.beginPath(); u.arc(hx,hy,3,0,6.284); u.fill();
-    u.strokeStyle='#e8e8e8'; u.lineWidth=1;
-    u.beginPath(); u.moveTo(hx,hy); u.lineTo(hx,hy-16); u.stroke();
-    u.fillStyle='#ff5a4a'; u.fillRect(hx, hy-16, 8, 5);
+    if(!BG.obj(u,'golf-flag', hx+3, hy, 26)){
+      u.strokeStyle='#e8e8e8'; u.lineWidth=1;
+      u.beginPath(); u.moveTo(hx,hy); u.lineTo(hx,hy-16); u.stroke();
+      u.fillStyle='#ff5a4a'; u.fillRect(hx, hy-16, 8, 5);
+    }
     /* 공 */
     let bx, by;
     if(this.phase==='FLY'){

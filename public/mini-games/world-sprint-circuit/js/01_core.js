@@ -7,7 +7,7 @@
 'use strict';
 
 const VW = 480, VH = 270;                 // 내부 해상도 (16:9)
-const ASSET_VER = '1787951813';
+const ASSET_VER = '1787957884';
 function assetUrl(p){ return `${p}?v=${ASSET_VER}`; }
 
 /* ── 화면 ────────────────────────────────────────────────── */
@@ -64,6 +64,27 @@ const Screen = {
     if(this.scale>0 && w===this._lastW && h===this._lastH) return;
     this.fit();
   },
+  /* ── 화면 흔들림 ────────────────────────────────────────
+     연타가 기믹인 종목(원반·해머·유도)에서 '점점 세지는 느낌'을 만드는 장치.
+     ⚠ 캔버스 안에서 translate 로 흔들면 세 층의 변환을 각각 건드려야 하고
+        가장자리에 빈틈이 생긴다. **캔버스 엘리먼트 자체**를 CSS 로 민다 —
+        세 층이 통째로 같이 움직여서 어긋날 수가 없다. */
+  shakeAmt: 0,
+  shake(a){ this.shakeAmt = Math.max(this.shakeAmt, a); },
+  stepShake(dt){
+    if(this.shakeAmt <= 0.001){
+      if(this._shook){ this._shook=false;
+        for(const c of [this.cv,this.ui,this.bg]) if(c) c.style.transform=''; }
+      return;
+    }
+    this.shakeAmt = Math.max(0, this.shakeAmt - dt*4.5);
+    const a = this.shakeAmt * 4;                    // px
+    const x = (Math.random()*2-1)*a, y = (Math.random()*2-1)*a*0.6;
+    const tf = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+    for(const c of [this.cv,this.ui,this.bg]) if(c) c.style.transform=tf;
+    this._shook = true;
+  },
+
   clearUI(){ this.uctx.save(); this.uctx.setTransform(1,0,0,1,0,0);
     this.uctx.clearRect(0,0,this.ui.width,this.ui.height); this.uctx.restore();
     if(this.bctx){ this.bctx.save(); this.bctx.setTransform(1,0,0,1,0,0);

@@ -214,18 +214,38 @@ class ClimbEvent {
     const gap = (VW - n*wallW)/(n+1);
     /* ⚠ top=26 은 상단 HUD 판(0~30) 아래로 들어가 벽 꼭대기와 1P/2P 라벨이 가려졌다 */
     this._wall = { w:wallW, gap, top:46, bottom:GROUND-2 };
+    /* ⚠ 두 가지를 한꺼번에 잘못하고 있었다.
+       ① BG.tile 은 **화면 폭 전체**로 깐다 — 레인마다 부르면 벽이 화면을 통째로
+          덮어 레인 구분이 사라진다(어셋이 오기 전엔 티가 안 났다).
+       ② 홀드를 **폴백 안에만** 그렸다 — 벽 어셋이 도착하는 순간 홀드가 통째로
+          사라진다. 발주서에도 '홀드는 코드가 그립니다'라고 적어 놓고 그랬다.
+       벽은 레인 사각형에 잘라 넣고, 홀드는 **언제나** 그 위에 얹는다. */
+    const wallImg = BG.get('climb-wall');
+    const bgc = BG.ctx();
+    const wh = this._wall.bottom - this._wall.top;
     for(let i=0;i<n;i++){
       const x = gap + i*(wallW+gap);
-      if(!BG.tile(BG.ctx(),'climb-wall', this._wall.top, this._wall.bottom-this._wall.top, -x)){
-        ctx.fillStyle = '#2a3040'; ctx.fillRect(x, this._wall.top, wallW, this._wall.bottom-this._wall.top);
+      if(wallImg && bgc){
+        bgc.save();
+        bgc.beginPath(); bgc.rect(x, this._wall.top, wallW, wh); bgc.clip();
+        /* 세로로 이어지는 텍스처 — 레인 폭에 맞춰 세로로 반복한다 */
+        const th = wallW * (wallImg.height/wallImg.width);
+        for(let y=this._wall.bottom; y>this._wall.top-th; y-=th)
+          bgc.drawImage(wallImg, x, y-th, wallW, th);
+        bgc.restore();
+      } else {
+        ctx.fillStyle = '#2a3040'; ctx.fillRect(x, this._wall.top, wallW, wh);
         ctx.fillStyle = 'rgba(255,255,255,.05)';
-        ctx.fillRect(x, this._wall.top, 2, this._wall.bottom-this._wall.top);
-        ctx.fillRect(x+wallW-2, this._wall.top, 2, this._wall.bottom-this._wall.top);
-        /* 홀드 — 20개가 지그재그로 */
-        for(let k=1;k<=CLIMB.holds;k++){
-          const hy = this._wall.bottom - (k/CLIMB.holds)*(this._wall.bottom-this._wall.top);
-          const hx = x + wallW/2 + (k%2? -1:1)*wallW*0.24;
-          ctx.fillStyle = k%5===0 ? '#ffd75e' : '#6c7a90';
+        ctx.fillRect(x, this._wall.top, 2, wh);
+        ctx.fillRect(x+wallW-2, this._wall.top, 2, wh);
+      }
+      /* 홀드 — 20개가 지그재그로. 벽 어셋이 있든 없든 항상 그린다. */
+      for(let k=1;k<=CLIMB.holds;k++){
+        const hy = this._wall.bottom - (k/CLIMB.holds)*wh;
+        const hx = x + wallW/2 + (k%2? -1:1)*wallW*0.24;
+        const big = k%5===0;
+        if(!BG.obj(ctx, 'climb-hold', hx, hy+2, big?7:5)){
+          ctx.fillStyle = big ? '#ffd75e' : '#6c7a90';
           ctx.fillRect(Math.round(hx)-3, Math.round(hy)-2, 6, 3);
         }
       }

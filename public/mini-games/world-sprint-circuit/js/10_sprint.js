@@ -103,7 +103,8 @@ class SprintEvent {
       // "제자리에" 신호음 3번
       const want = Math.min(3, Math.floor((this.gunMs - now > 0 ? 3 - (this.gunMs-now)/450 : 3)));
       if(want > this.setBeeps && want<=3){ this.setBeeps=want; Sfx.set(); }
-      if(now >= this.gunMs){ this.phase='RUN'; Sfx.gun(); this.flash=1; this._metroAt=now; }
+      if(now >= this.gunMs){ this.phase='RUN'; Sfx.gun(); this.flash=1; this._metroAt=now;
+        this._dust=[]; }
     }
 
     if(this.phase==='RUN'){
@@ -203,7 +204,8 @@ class SprintEvent {
           o:{ lean:leaning, crouch:this.phase==='SET',
               /* 원근 — 먼 레인 선수는 작게, 가까운 레인은 크게 */
               scale: Track.laneScale(i),
-              rare:(SPECIES[sp]&&SPECIES[sp].rare)||1, moving:this.phase==='RUN', t:this.t } }); }
+              rare:(SPECIES[sp]&&SPECIES[sp].rare)||1, moving:this.phase==='RUN', t:this.t },
+          speedFrac: clamp((r.speed||0)/11, 0, 1) }); }
       else drawRunner(ctx, x, y, r.stridePhase, laneColor[i%laneColor.length],
         { lean:leaning, crouch:this.phase==='SET' });
     }
@@ -213,7 +215,14 @@ class SprintEvent {
   }
   drawUI(uctx){
     // 캐릭터를 먼저 (HUD 아래에)
-    if(this._hd){ for(const c of this._hd) CharHD.draw(uctx, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
+    if(this._hd){
+      /* 발밑 흙먼지 — 달리는 무게를 눈에 보이게 한다(빠를수록 자주) */
+      for(const c of this._hd){
+        if(c.speedFrac>0.35)
+          BG.fx(uctx, 'dust-kick', c.x-6, c.y+2, 9, ((this.t*0.006)+c.x*0.01)%1, 4);
+      }
+      for(const c of this._hd) CharHD.draw(uctx, c.sp, c.x, c.y, c.ph, c.o); this._hd=null;
+    }
     HUD.race(uctx, {
       timeS: Math.max(0, this.elapsed),
       speed: this.player.speed,

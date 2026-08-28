@@ -39,6 +39,7 @@ function frameStep(now){
   const dt = clamp((now - lastT)/1000 || 0, 0, 0.05);
   lastT = now;
   G.update(dt);
+  if(Screen.stepShake) Screen.stepShake(dt);
   Screen.clearUI();
   G.draw(Screen.ctx, Screen.uctx);
 }

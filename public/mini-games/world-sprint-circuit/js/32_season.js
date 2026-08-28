@@ -246,6 +246,7 @@ class Season {
     /* 손으로 짠 출전표가 상한을 넘겨도 여기서 막는다 — 화면에서만 막으면 새어 나간다 */
     this._load = {};
     const meet = { week:this.week, kind, name:info.name, events:[], points:0 };
+    this.rpgFeed = [];        // 이번 대회의 육성 보상만 담는다
     for(const ev of this.meetEvents()){
       const mine = (this.entries[ev.id]||[]).map(id=>this.club.byId(id))
         .filter(a=>a && a.available && (this._load[a.id]||0) < MAX_EVENTS_PER_ATHLETE);
@@ -290,6 +291,14 @@ class Season {
             r.isCR = true;
           }
         }
+        /* ── 육성 보상 (46_rpg) ────────────────────────────────
+           ⛔ 여기서 하는 일은 **경험치와 장비를 주는 것뿐**이다. 위의 순위·기록
+              계산은 이미 끝났고 한 줄도 안 바뀐다. 보상은 결과의 그림자다.
+           ⚠ '직접 뛴다' 표시는 **여기서** 읽어야 한다. 예전엔 아케이드가 끝난 뒤에
+              r.manual 을 붙였는데, 경험치는 이 자리에서 이미 줘 버려서
+              **1.6배가 영영 안 걸렸다**(실측). 출전표에서 이미 정한 값이니 지금 안다. */
+        r.manual = !!(this.manualEvents && this.manualEvents[ev.id]);
+        this.awardRpg(r, ev, info);
       }
       meet.points += evPts;
       meet.events.push({ ev, rows });
@@ -304,6 +313,39 @@ class Season {
     meet.prize = prize;
     this.results.push(meet);
     return meet;
+  }
+
+  /* ── 육성 보상 ───────────────────────────────────────────
+     대회 한 종목의 결과 한 줄에서 경험치와 장비를 준다.
+     ⚠ 이 함수는 **읽기만** 한다(순위·기록·승점은 이미 확정돼 있다).
+        그래서 이걸 통째로 지워도 기존 게임은 그대로 돈다. */
+  awardRpg(r, ev, info){
+    if(typeof RPG==='undefined') return;
+    const team = r.team || [r.athlete];
+    const kind = this.meetKind;
+    for(const a of team){
+      if(!this.club.has(a)) continue;
+      RPG.ensure(a);
+      const gearXp = RPG.bonus(a).xp;
+      let xp = RPG.XP.meetEntry;
+      if(r.rank>=1 && r.rank<=3) xp += RPG.XP.podium[r.rank-1];
+      if(r.isPB) xp += RPG.XP.personalBest;
+      if(r.isCR) xp += RPG.XP.clubRecord;
+      /* 직접 뛴 경기는 더 준다 — 수동과 자동을 잇는 다리 */
+      if(r.manual) xp *= RPG.XP.manualMult;
+      xp *= (1 + gearXp);
+      const up = RPG.award(a, xp, ev.name);
+      if(up){
+        (this.rpgFeed ||= []).push({ name:a.name, ev:ev.name, xp:up.gained,
+                                     lv:up.levels?a.lv:0, tp:up.tp });
+      }
+      /* 장비 드롭 — 성적과 대회 등급이 등급을 정한다 */
+      const drop = RPG.rollDrop(this.rng, r.rank, kind);
+      if(drop){
+        (this.club.inventory ||= []).push(drop);
+        (this.rpgFeed ||= []).push({ name:a.name, drop });
+      }
+    }
   }
 
   /* 계주 — 우리 4명 대 상대 팀들 */

@@ -36,9 +36,15 @@ class EntryScreen extends Screen0 {
       /* ⚠ 계주의 분모까지 대회 인원 제한(2)을 쓰고 있었다 — 화면에 '4 / 2' 가
          초록색으로 떠서 규칙을 어긴 것처럼 보였다. 팀 종목은 구간 수가 정원이다. */
       const cap = (typeof isTeamEvent==='function' && isTeamEvent(ev)) ? ev.legs : this.info.entries;
-      return { label:ev.name, sub: names.length? names.join(', ') : '출전 없음',
+      /* 직접 뛸 종목 표시 — 아케이드로 넘어가 손으로 뛴다(경험치 1.6배) */
+      const man = !!(S.manualEvents && S.manualEvents[ev.id]);
+      const playable = (typeof READY!=='undefined') && READY.includes(ev.id);
+      return { label:(man?'▶ ':'')+ev.name,
+        sub: (man? '직접 뛴다 · ' : '') + (names.length? names.join(', ') : '출전 없음'),
         right:`${ids.length} / ${cap}`,
-        rightColor: bad?PAL.red : ids.length?PAL.green:PAL.dim };
+        color: man?PAL.gold:undefined,
+        rightColor: bad?PAL.red : ids.length?PAL.green:PAL.dim,
+        _ev:ev, _playable:playable };
     });
     return head.concat(r);
   }
@@ -51,6 +57,14 @@ class EntryScreen extends Screen0 {
       for(const ev of this.events)
         S.entries[ev.id]=(S.entries[ev.id]||[]).filter(id=>{ const a=this.mg.club.byId(id); return a&&a.available; });
       const meet = S.runMeet();
+      /* '직접'으로 표시한 종목이 있으면 먼저 뛴다. 없으면 예전 그대로 관전으로. */
+      const anyManual = S.manualEvents && meet.events.some(e=>S.manualEvents[e.ev.id]);
+      if(anyManual){
+        this.mg.runManualQueue(meet, ()=>{
+          this.mg.stack=[new MeetWatchScreen(this.mg, meet)];
+        });
+        return;
+      }
       this.mg.replace(new MeetWatchScreen(this.mg, meet));
       return;
     }
@@ -58,6 +72,21 @@ class EntryScreen extends Screen0 {
     this.mg.push(new PickEntryScreen(this.mg, this.events[this.sel-2]));
   }
   cancel(){ this.mg.pop(); }
+  /* ◀▶ 로 그 종목을 직접 뛸지 정한다 — 목록을 떠나지 않고 바꿀 수 있어야 한다 */
+  update(now){
+    const S=this.mg.season;
+    if(this.sel>=2 && (Input.pressed('left')||Input.pressed('right'))){
+      const ev=this.events[this.sel-2];
+      if(ev && (typeof READY==='undefined' || READY.includes(ev.id))){
+        S.manualEvents = S.manualEvents || {};
+        S.manualEvents[ev.id] = !S.manualEvents[ev.id];
+        Sfx.ui();
+        this.mg.toast(S.manualEvents[ev.id] ? '직접 뜁니다 (경험치 1.6배)' : '자동으로 처리합니다');
+      } else Sfx.fail();
+      return;
+    }
+    super.update(now);
+  }
   draw(u){
     const S=this.mg.season;
     UI.header(u, this.info.name, `${S.week}주차 · 종목당 ${this.info.entries}명`);
@@ -70,7 +99,7 @@ class EntryScreen extends Screen0 {
         + (maxed? ` · ${maxed}명이 꽉 찼다` : ''),
         8, 27, 9, covered<this.events.length*0.4? PAL.gold : PAL.dim);
     UI.list(u, this.rows, this.sel, 8, 40, VW-16, 24, 7);
-    UI.footer(u,'확인 선택   취소 돌아가기');
+    UI.footer(u,'확인 선택 · ◀▶ 직접/자동 · 취소 돌아가기');
   }
 }
 
@@ -363,17 +392,28 @@ class MeetResultScreen extends Screen0 {
   }
   update(now){
     /* ⚠ 메달표를 결과 위에 겹쳐 그렸더니 기록 열을 가렸다(실측). 페이지로 나눈다. */
-    if(Input.pressed('right')||Input.pressed('left')){ this.page = this.page?0:1; Sfx.ui(); return; }
+    if(Input.pressed('right')){ this.page=(this.page+1)%3; Sfx.ui(); return; }
+    if(Input.pressed('left')){ this.page=(this.page+2)%3; Sfx.ui(); return; }
     /* 종목이 한 화면을 넘으면 스크롤한다 — 올림픽은 14종목이다 */
     if(this.page===0){
       const last = this.top + this._drawn;         // 지금 화면의 마지막 다음
       if(Input.repeat('down', now) && last < this._total){ this.top++; Sfx.ui(); return; }
       if(Input.repeat('up', now)   && this.top > 0)       { this.top--; Sfx.ui(); return; }
     }
-    if(Input.pressed('action')||Input.pressed('back')){ Sfx.ui(); this.mg.afterMeet(); }
+    if(Input.pressed('action')||Input.pressed('back')){
+      Sfx.ui();
+      /* 금메달이 있으면 시상식을 한 번 치르고 넘어간다(없으면 예전 그대로) */
+      if(!this._podiumDone && typeof PodiumScreen!=='undefined' && PodiumScreen.has(this.mg, this.meet)){
+        this._podiumDone = true;
+        this.mg.push(new PodiumScreen(this.mg, this.meet));
+        return;
+      }
+      this.mg.afterMeet();
+    }
   }
   draw(u){
     if(this.page===1) return this.drawMedals(u);
+    if(this.page===2) return this.drawRewards(u);
     
     const m=this.meet, S=this.mg.season;
     UI.header(u, m.name+' 결과', `${m.week}주차`);
@@ -412,8 +452,44 @@ class MeetResultScreen extends Screen0 {
         VW/2, VH-30, 9, PAL.white,'center');
     UI.footer(u,'확인 계속');
     /* 메달표는 ▶ 로 넘어간다 — 겹쳐 그리면 결과 목록을 가린다(실측) */
-    txt(u, '▶ 국가별 메달', VW-8, VH-28, 9, PAL.gold, 'right');
+    txt(u, '▶ 메달 · 보상', VW-8, VH-28, 9, PAL.gold, 'right');
   }
+  /* ── 육성 보상 ───────────────────────────────────────────
+     경기가 끝나고 '무엇을 벌었나'를 한 화면에. 이게 다음 대회를 열게 만드는 자리다. */
+  drawRewards(u){
+    const S=this.mg.season;
+    const feed = (S.rpgFeed||[]);
+    UI.header(u, '육성 보상', `${this.meet.name} · ${this.meet.week}주차`);
+    if(!feed.length){ txt(u,'이번 대회에서 얻은 것이 없습니다', VW/2, 100, 12, PAL.dim,'center');
+      UI.footer(u,'◀▶ 페이지   ·   확인 계속'); return; }
+    const lv = feed.filter(f=>f.lv), drops = feed.filter(f=>f.drop);
+    const xpTot = feed.reduce((s,f)=>s+(f.xp||0),0);
+    /* 큰 숫자 세 개 — 한눈에 */
+    const box=(x,label,val,col)=>{
+      plate(u, x, 30, 148, 40, .85);
+      txt(u, K(label), x+74, 34, 9, PAL.dim,'center');
+      txt(u, String(val), x+74, 44, 22, col,'center',700);
+    };
+    box(8,   '얻은 경험치', xpTot.toLocaleString(), PAL.blue);
+    box(166, '레벨 업',     lv.length,              lv.length?PAL.gold:PAL.dim);
+    box(324, '장비',        drops.length,           drops.length?PAL.green:PAL.dim);
+    let y=80;
+    for(const f of feed.slice(-9)){
+      if(f.drop){
+        const c=RPG.rarityOf(f.drop.r).color;
+        txt(u, '◆ '+RPG.itemName(f.drop), 12, y, 10, c,'left',700);
+        txt(u, RPG.itemLine(f.drop), VW-12, y+1, 8, PAL.dim,'right');
+      } else {
+        txt(u, f.name, 12, y, 10, f.lv?PAL.gold:PAL.white,'left', f.lv?700:400);
+        txt(u, '+'+f.xp+' XP', 120, y+1, 9, PAL.blue,'left');
+        if(f.lv) txt(u, `Lv.${f.lv} 달성 · 포인트 +${f.tp}`, VW-12, y, 10, PAL.gold,'right',700);
+        else     txt(u, f.ev||'', VW-12, y+1, 8, PAL.dim,'right');
+      }
+      y+=13; if(y>VH-40) break;
+    }
+    UI.footer(u,'◀▶ 페이지   ·   확인 계속');
+  }
+
   drawMedals(u){
     const S=this.mg.season;
     const tbl = (S.nationTable && S.nationTable()) || [];

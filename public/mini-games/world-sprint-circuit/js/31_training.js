@@ -42,12 +42,16 @@ const TrainTune = {
 /* 한 선수의 한 주를 처리한다. 반환: 무슨 일이 있었는지(로그용) */
 function trainWeek(a, program, focus, rng){
   const log = { athlete:a, gains:{}, events:[] };
+  /* 육성 층(46_rpg) — 장비는 **성장·회복·부상·컨디션에만** 작용한다.
+     경기 시뮬레이션에는 한 줄도 들어가지 않는다(그래야 48종목 밸런스가 그대로다).
+     장비가 없으면 전부 0 이라 예전과 완전히 같다. */
+  const RB = (typeof RPG!=='undefined') ? RPG.bonus(a) : { grow:0, rest:0, hurt:0, cond:0, xp:0 };
 
   /* 부상 중이면 회복만 한다 */
   if(a.injury){
     const speed = (focus==='care') ? 2 : 1;
     a.injury.weeks -= speed;
-    a.fatigue = Math.max(0, a.fatigue - TrainTune.restRecover*0.6);
+    a.fatigue = Math.max(0, a.fatigue - TrainTune.restRecover*0.6 - RB.rest);
     a.condition = clamp(a.condition - 1.5, 20, 100);
     if(a.injury.weeks <= 0){
       log.events.push({ t:'recovered', msg:`${a.name} 복귀 — ${a.injury.name} 회복` });
@@ -64,8 +68,8 @@ function trainWeek(a, program, focus, rng){
   const load = P.load + (F ? F.load : 0);
 
   /* 피로 — 부하가 음수(휴식)면 회복 */
-  if(load < 0) a.fatigue = clamp(a.fatigue + load*TrainTune.restRecover*0.5, 0, 100);
-  else a.fatigue = clamp(a.fatigue + load*TrainTune.fatiguePerLoad*(1+a.eff('fatigue')), 0, 100);
+  if(load < 0) a.fatigue = clamp(a.fatigue + load*TrainTune.restRecover*0.5 - RB.rest, 0, 100);
+  else a.fatigue = clamp(a.fatigue + load*TrainTune.fatiguePerLoad*(1+a.eff('fatigue')) - RB.rest, 0, 100);
 
   /* 성장 — 피로가 높으면 효율이 급락한다. 이게 '쉬게 하는' 이유가 된다. */
   const fatiguePenalty = a.fatigue>70 ? lerp(1,0.15,(a.fatigue-70)/30) : lerp(1.12,1,a.fatigue/70);
@@ -84,7 +88,8 @@ function trainWeek(a, program, focus, rng){
       /* 종 배율 — 치타는 스피드가 빨리 늘고 코끼리는 파워가 빨리 는다.
          ⚠ 상한을 막지 않는다. 치타도 던지기를 배울 수 있다, 다만 오래 걸린다. */
       const sb = (typeof speciesBias==='function') ? speciesBias(a, k) : 1;
-      let g = TrainTune.baseGain * w/6 * sb * fatiguePenalty * ageF * moraleF * near * (0.7+rng()*0.6);
+      let g = TrainTune.baseGain * w/6 * sb * fatiguePenalty * ageF * moraleF * near * (0.7+rng()*0.6)
+              * (1 + RB.grow);
       if(ageF < 0) g = Math.min(0, g);              // 전성기 이후엔 줄 수도 있다
       if(Math.abs(g) < 0.01) continue;
       const before = a.stats[k];
@@ -95,13 +100,14 @@ function trainWeek(a, program, focus, rng){
   }
 
   /* 컨디션 — 피로가 낮고 사기가 높으면 오른다 */
-  const target = clamp(96 - a.fatigue*0.62 + (a.morale-60)*0.16, 20, 100);
+  const target = clamp(96 - a.fatigue*0.62 + (a.morale-60)*0.16 + RB.cond, 20, 100);
   a.condition = clamp(a.condition + (target-a.condition)*0.42 + (rng()-0.5)*TrainTune.condDrift, 15, 100);
 
   /* 부상 — 피로가 높을수록 급격히 위험해진다 */
   if(load > 0){
     const risk = TrainTune.injuryBase * Math.pow(1 + a.fatigue/40, TrainTune.injuryExp)
-               * (1 + a.eff('injury')) * (1 + Math.max(0,load-1.6)*0.5);
+               * (1 + a.eff('injury')) * (1 + Math.max(0,load-1.6)*0.5)
+               * Math.max(0.2, 1 + RB.hurt);
     if(rng() < risk){
       const inj = rollInjury(rng, a);
       a.injury = inj;
@@ -109,6 +115,14 @@ function trainWeek(a, program, focus, rng){
       a.morale = clamp(a.morale-14, 0, 100);
       log.events.push({ t:'injury', msg:`${a.name} 부상 — ${inj.name} (${inj.weeks}주)` });
     }
+  }
+
+  /* 이번 주의 경험치 — 부하가 클수록 많이. 장비의 xp 배수가 여기 붙는다. */
+  if(typeof RPG!=='undefined'){
+    const xp = (RPG.XP.trainWeek + Math.max(0,load)*RPG.XP.trainPerLoad*10) * (1 + RB.xp);
+    const up = RPG.award(a, xp, '훈련');
+    if(up && up.levels>0)
+      log.events.push({ t:'levelup', msg:`${a.name} Lv.${a.lv} 달성 — 훈련 포인트 +${up.tp}` });
   }
 
   /* 돌발 — 각성·슬럼프 */

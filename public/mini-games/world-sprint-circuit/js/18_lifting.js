@@ -153,7 +153,12 @@ class LiftingEvent {
        ⚠ 예전 값은 선수 머리 위로 붕 떠 있었다(실측 스크린샷). */
     const barY = (this.phase==='HOLD') ? y-52 : (this.phase==='PULL' ? y-26 : y-8);
     const bx = CX + (this.phase==='HOLD' ? this.sway*10 : 0);
-    if(!BG.obj(BG.ctx(),'barbell-hd', bx, barY+8, 16)){
+    /* 원판 — 무게가 오르면 눈에 보여야 한다(어셋이 있으면 바 위에 얹는다) */
+    if(BG.obj(BG.ctx(),'barbell-hd', bx, barY+8, 16)){
+      const plates = clamp((this.weight||0)/220, 0.3, 1);
+      BG.obj(BG.ctx(),'barbell-plates', bx-13, barY+8, 10*plates+6);
+      BG.obj(BG.ctx(),'barbell-plates', bx+13, barY+8, 10*plates+6);
+    } else if(true){
       ctx.fillStyle='#c9cede'; ctx.fillRect(Math.round(bx)-24, Math.round(barY), 48, 3);
       ctx.fillStyle='#8a90a6';
       ctx.fillRect(Math.round(bx)-28, Math.round(barY)-6, 6, 15);

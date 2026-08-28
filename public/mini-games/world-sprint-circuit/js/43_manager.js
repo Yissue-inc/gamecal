@@ -69,6 +69,43 @@ const MG = {
   },
   seasonEndScreen(){ return new SeasonEndScreen(this, this.endSeasonOnce()); },
 
+  /* ── 직접 뛸 종목 처리 ───────────────────────────────────
+     대회는 이미 다 시뮬레이션돼 있다(runMeet). '직접'으로 표시한 종목만
+     차례로 아케이드로 넘겨, 끝나면 **손놀림 품질만큼 기록을 당기거나 민다.**
+     ⚠ 시뮬레이션 결과를 통째로 갈아치우지 않는다 — 그러면 선수 스탯이 의미를 잃는다. */
+  MANUAL_SWING: 0.04,          // 잘 치면 4% 당기고 못 치면 4% 민다
+  runManualQueue(meet, done){
+    const S=this.season;
+    const list = (meet.events||[]).filter(e =>
+      S.manualEvents && S.manualEvents[e.ev.id] &&
+      e.rows.some(r=>this.club.has(r.athlete)));
+    let i=0;
+    const next = ()=>{
+      if(i >= list.length){ done(); return; }
+      const slot = list[i++];
+      G.playForManager(slot.ev, (res, quality)=>{
+        this.applyManual(slot, quality);
+        next();
+      });
+    };
+    next();
+  },
+  applyManual(slot, quality){
+    const q = (typeof quality==='number') ? clamp(quality,0,1) : 0.5;
+    const swing = (q - 0.5) * 2 * this.MANUAL_SWING;     // -0.04 ~ +0.04
+    const ev = slot.ev;
+    for(const r of slot.rows){
+      if(!this.club.has(r.athlete)) continue;
+      r.manual = true; r.manualQ = q;
+      if(!(r.value>0) || r.value>=DNF) continue;
+      /* 높을수록 좋은 종목은 올리고, 낮을수록 좋은 종목은 내린다 */
+      r.value = +(ev.higher ? r.value*(1+swing) : r.value*(1-swing)).toFixed(3);
+    }
+    /* 순위를 다시 매긴다 — 내 기록이 바뀌었으니 등수도 바뀔 수 있다 */
+    slot.rows.sort((a,b)=> ev.higher ? b.value-a.value : a.value-b.value);
+    slot.rows.forEach((r,k)=>{ r.rank=k+1; });
+  },
+
   update(dt){
     this.t += dt*1000;
     const top=this.top;
@@ -112,7 +149,7 @@ const MG = {
          목표·국가 메달표가 통째로 사라져** 시즌 중간에 판이 리셋된 것처럼 보인다.
          화면에 보이는 것은 전부 저장한다. */
       localStorage.setItem(MG_SAVE, JSON.stringify({
-        v:3, club:this.club, season:{
+        v:4, seen:Date.now(), club:this.club, season:{
           year:this.season.year, week:this.season.week,
           points:this.season.points, medals:this.season.medals,
           results:this.season.results.length,
@@ -130,10 +167,15 @@ const MG = {
     try{
       const d=JSON.parse(localStorage.getItem(MG_SAVE));
       /* v1 세이브도 계속 열린다 — 없던 항목은 새로 만든다 */
-      if(!d || !(d.v===1 || d.v===2 || d.v===3)) return false;
+      if(!d || !(d.v>=1 && d.v<=4)) return false;
       const c=new Club(d.club.name, 1);
       Object.assign(c, d.club);
       c.squad = d.club.squad.map(o=>Object.assign(new Athlete(o), o));
+      /* 육성 층(46_rpg) — 선수에 붙는 값은 선수와 함께 직렬화된다(Object.assign 이
+         lv·xp·tp·equip 를 그대로 옮긴다). 이 층을 모르던 옛 세이브(v1~v3)는
+         값이 없으므로 기본값을 채워 준다 — 그래야 Lv1 부터 시작한다. */
+      if(typeof RPG!=='undefined') for(const a of c.squad) RPG.ensure(a);
+      c.inventory = d.club.inventory || [];
       c.rng = makeRng((Date.now()^0x77)>>>0);
       this.club=c;
       const S=new Season(c, (Date.now()^0x99)>>>0);
@@ -146,10 +188,18 @@ const MG = {
       this.season=S; this.focus={}; this.lastLog=[];
       /* 시즌이 이미 끝난 상태로 저장됐으면 **그 화면으로 돌아간다** — 사무소를 띄우면
          플레이어는 평가를 못 보고, 다음 주로 넘기는 순간 오프시즌이 두 번 돈다. */
+      /* 방치 정산 — 자리를 비운 동안 선수들이 훈련했다.
+         ⚠ 주차는 안 흐른다(대회를 건너뛰면 안 된다). 경험치만 준다. */
+      if(typeof RPG!=='undefined' && d.seen){
+        this.idleReport = RPG.settleIdle(c, d.seen, Date.now());
+      }
       if(d.season.ended && d.season.endReport){
         S.ended = true; S.endReport = d.season.endReport;
         this.stack=[new SeasonEndScreen(this, S.endReport)];
       } else this.stack=[new OfficeScreen(this)];
+      /* 자리를 비운 동안 번 것을 먼저 보여 준다 */
+      if(this.idleReport && this.idleReport.per>0 && typeof IdleReturnScreen!=='undefined')
+        this.stack.push(new IdleReturnScreen(this, this.idleReport));
       return true;
     }catch(e){ return false; }
   },
