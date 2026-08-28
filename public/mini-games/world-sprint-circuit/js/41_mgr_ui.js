@@ -115,6 +115,7 @@ class OfficeScreen extends Screen0 {
       { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶' },
       { label:'선수 사무소', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶' },
       { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶' },
+      { label:'리그 순위표', sub:leagueSub(S), right:'▶' },
     ];
     if(S.isMeetWeek) r.push({ label:`▶ ${MEET_INFO[S.meetKind].name} 출전`, sub:'출전표를 짜고 경기를 본다',
                               color:PAL.green, right:'!' });
@@ -129,7 +130,8 @@ class OfficeScreen extends Screen0 {
       case 2: this.mg.push(new ProgramScreen(this.mg)); break;
       case 3: this.mg.push(new MarketScreen(this.mg)); break;
       case 4: this.mg.push(new RecordScreen(this.mg)); break;
-      case 5: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
+      case 5: this.mg.push(new LeagueScreen(this.mg)); break;
+      case 6: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
     }
   }
   cancel(){}
@@ -142,7 +144,9 @@ class OfficeScreen extends Screen0 {
     if(S.isOlympicYear){
       txt(u, `${olympicName(C.year)} — 올해다`, VW/2, 40, 10, PAL.gold, 'center', 700);
     } else {
-      txt(u, `${olympicName(C.year + S.yearsToOlympics)}까지 ${S.yearsToOlympics}년`,
+      /* ⚠ 대회 이름을 문장 안에 넣으면 번역 자리표(%1)가 숫자만 접기 때문에 매칭이 깨진다.
+         이름은 이름대로, 문장은 문장대로 넘긴다. */
+      txt(u, olympicName(C.year + S.yearsToOlympics) + ' · ' + K('%1년 뒤').replace('%1', S.yearsToOlympics),
           VW/2, 40, 9, PAL.dim, 'center');
     }
     // 주차 스트립 — 대회가 언제인지 한눈에
@@ -386,5 +390,51 @@ class RecordScreen extends Screen0 {
     rs.slice(-3).forEach((m,i)=>
       txt(u,`${m.week}주 ${m.name} — ${m.points}점`,8,VH-46+i*10,9,PAL.white));
     UI.footer(u,'취소 돌아가기');
+  }
+}
+
+
+/* ── 리그 순위표 ──────────────────────────────────────────
+   ⚠ 예전엔 상대가 대회마다 새로 생기고 사라져서 **이겨도 누구를 이겼는지 몰랐다.**
+      여섯 클럽을 고정으로 두고 여기서 순위를 보여 준다 —
+      "올해는 고원 육상부를 잡아야 한다" 가 목표가 되도록. */
+function leagueSub(S){
+  if(typeof RivalLeague==='undefined' || !S.leagueTable) return '리그 6개 클럽';
+  const t=RivalLeague.table(S), me=t.find(r=>r.mine), top=t[0];
+  /* 클럽 이름은 번역표를 따로 타므로 문장 밖에 둔다 */
+  return me.rank===1 ? K('우리가 1위 · %1점').replace('%1', me.pts)
+       : K('%1위 · 선두 %2점 차').replace('%1', me.rank).replace('%2', top.pts-me.pts)
+         + ' — ' + K(top.name);
+}
+class LeagueScreen extends Screen0 {
+  get rows(){ return []; }
+  update(now){ if(Input.pressed('back')||Input.pressed('action')) this.mg.pop(); }
+  draw(u){
+    const S=this.mg.season;
+    UI.header(u, '리그 순위표', `${S.club.year}년차 · ${S.week} / 24주`);
+    if(typeof RivalLeague==='undefined' || !S.leagueTable){
+      txt(u,'리그 정보가 없습니다', VW/2, VH/2, 12, PAL.dim,'center'); return;
+    }
+    const t=RivalLeague.table(S);
+    const y0=40, rh=19;
+    txt(u,'클럽', 44, y0-11, 8, PAL.dim,'left');
+    txt(u,'금', VW-92, y0-11, 8, PAL.dim,'right');
+    txt(u,'승점', VW-16, y0-11, 8, PAL.dim,'right');
+    t.forEach((r,i)=>{
+      const y=y0+i*rh;
+      u.fillStyle = r.mine ? 'rgba(255,215,94,.16)' : (i%2?'rgba(255,255,255,.04)':'transparent');
+      u.fillRect(8, y-2, VW-16, rh-3);
+      if(r.mine){ u.strokeStyle=PAL.gold; u.lineWidth=1; u.strokeRect(8.5, y-1.5, VW-17, rh-4); }
+      txt(u, String(r.rank), 18, y+2, 12, r.rank<=3?PAL.gold:PAL.dim,'center',700);
+      if(typeof drawFlag==='function') drawFlag(u, 28, y+1, 14, 10, r.nation);
+      txt(u, r.name, 48, y+2, 11, r.mine?PAL.gold:PAL.white,'left', r.mine?700:400);
+      txt(u, String(r.g), VW-92, y+2, 11, PAL.white,'right');
+      txt(u, String(r.pts), VW-16, y+2, 12, r.mine?PAL.gold:PAL.white,'right',700);
+    });
+    const me=t.find(r=>r.mine);
+    const msg = me.rank===1 ? '선두다 — 지키는 것도 일이다'
+              : K('선두까지 %1점').replace('%1', t[0].pts-me.pts);
+    txt(u, msg, VW/2, VH-26, 11, me.rank===1?PAL.green:PAL.white,'center',700);
+    txt(u,'취소 돌아가기', VW/2, VH-13, 9, PAL.dim,'center');
   }
 }

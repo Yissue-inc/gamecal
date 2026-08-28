@@ -22,6 +22,19 @@ const MEET_INFO = {
 };
 /* 올림픽 주기 — 4년차마다. 시즌 마지막 대회가 올림픽으로 바뀐다. */
 const OLYMPIC_EVERY = 4;
+/* 종목군 — 종목 정의(kind)에서 끌어낸다.
+   ⚠ 예전엔 makeRivals 안에 종목 id 목록이 있었고 **없는 종목은 조용히 'sprint'** 였다.
+      그래서 역도·양궁·조정 상대가 스프린터 스탯으로 만들어졌다(신규 12종목 전부).
+      여기 한 곳에만 둔다 — 라이벌 클럽(22_rivalclubs.js)도 이 표를 본다. */
+const SPEC_OF_KIND = {
+  sprint:'sprint', hurdles:'hurdles', middle:'endure', walk:'endure', relay:'sprint',
+  jump:'jump', throw:'throw', swim:'swim',
+  dive:'jump', tramp:'jump', climb:'jump',     // 폭발력·기술
+  lift:'throw', aim:'throw',                    // 힘·정밀
+  cycle:'endure', row:'endure', tri:'endure',   // 지구력
+  fence:'hurdles',                              // 반응·리듬
+  combined:'sprint',                            // 10종은 만능 — 기준만 스프린트로
+};
 /* 대회 등급 배율 — makeRivals·runRelay 가 같은 표를 본다.
    ⚠ 표를 두 벌 두면 한쪽만 고치게 된다. 실제로 그렇게 됐다. */
 const MEET_MULT = { regional:1.00, invitational:1.12, championship:1.26, olympics:1.42 };
@@ -48,7 +61,8 @@ class Season {
     this.weekLog = [];          // 이번 주에 일어난 일
     this.results = [];          // 대회 결과 이력
     this.entries = {};          // 이번 대회 출전표 { eventId: [athleteId] }
-    /* 시즌이 열리면 국가대표를 뽑고 목표를 받는다 */
+    /* 시즌이 열리면 리그를 세우고, 국가대표를 뽑고, 목표를 받는다 */
+    if(typeof RivalLeague!=='undefined') RivalLeague.init(this);
     if(this.pickNationalTeam) this.pickNationalTeam();
     if(this.makeGoal) this.makeGoal();
   }
@@ -208,6 +222,8 @@ class Season {
       /* ⚠ 국가 메달표는 **모든 참가자**를 센다 — 우리 선수만 세면 메달표가 아니라
          우리 성적표다. 올림픽의 재미는 다른 나라와 견주는 데 있다. */
       for(const r of rows) if(r.rank<=3) this.tallyNation(r.athlete, r.rank);
+      /* 라이벌 클럽 승점 — 우리와 **같은 점수표**로 센다(클럽당 최상위 1명). */
+      if(typeof RivalLeague!=='undefined') RivalLeague.tallyEvent(this, rows, info);
       for(const r of rows){
         if(!this.club.has(r.athlete)) continue;
         const p = info.pts[r.rank-1] || 0;
@@ -308,14 +324,8 @@ class Season {
        실측: 그 상태에서 무지성 훈련(OVR 47.8·부상 9.4)이 관리 훈련(OVR 54.8·부상 2.2)을
        승점 292 대 194 로 이겼다 — 교훈이 통째로 뒤집혔다.
        그래서 리그는 **절대 기준**으로 두고(해마다 조금씩 상승) 적응은 살짝만 섞는다. */
-    const spec = { sprint100:'sprint', sprint200:'sprint', sprint400:'sprint',
-                   relay4x100:'sprint', relay4x400:'endure',
-                   hurdles110:'hurdles', run800:'endure', run1500:'endure',
-                   run5000:'endure', walk20k:'endure',
-                   longJump:'jump', tripleJump:'jump', highJump:'jump', poleVault:'jump',
-                   shotPut:'throw', discus:'throw', javelin:'throw', hammer:'throw',
-                   swimFree100:'swim', swimBack100:'swim', swimBreast100:'swim', swimFly100:'swim'
-                 }[ev.id] || 'sprint';
+    const spec = SPEC_OF_KIND[ev.kind];
+    if(!spec) throw new Error('makeRivals: 종목군을 모르는 kind '+ev.kind+' ('+ev.id+')');
     const mine = this.club.squad.filter(a=>a.available);
     const myBest = mine.length ? Math.max(...mine.map(a=>eventFit(a,ev))) : 45;
     const LB = (typeof LEAGUE_BASE_OVERRIDE!=='undefined') ? LEAGUE_BASE_OVERRIDE : LEAGUE_BASE;
@@ -325,14 +335,19 @@ class Season {
     const out=[];
     for(let i=0;i<Math.max(0,n);i++){
       const spread = 0.88 + (i/Math.max(1,n-1))*0.26;      // 상위권이 촘촘해야 우승이 어렵다
+      /* ⚠ 예전엔 상대가 대회마다 새로 생기고 사라졌다 — 이겨도 누구를 이겼는지 몰랐다.
+         여섯 라이벌 클럽 중 하나에 소속시킨다. 특기 종목군이면 더 자주, 더 세게. */
+      const rc = (typeof RivalLeague!=='undefined') ? RivalLeague.pickFor(ev, this.rng, i) : null;
+      const cs = rc ? RivalLeague.strengthOf(rc, ev, this.year) : 1;
       let a=null;
       for(let k=0;k<6;k++){
-        a = this.rivalAt(spec, ev, target*spread);
+        a = this.rivalAt(spec, ev, target*spread*cs);
         if(!used.has(a.name)) break;
       }
       if(used.has(a.name)) a.name = a.name + ' ' + (out.length+2);
       used.add(a.name);
       a.isRival = true;
+      if(rc){ a.clubId=rc.id; a.clubName=rc.name; a.nation=rc.nation; }
       out.push(a);
     }
     return out;

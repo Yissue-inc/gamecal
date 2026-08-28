@@ -591,7 +591,10 @@ const G = {
           sub += `  ·  허들 ${p.hurdlesClean}/${RULES.hurdleCount}`;
         if(sub) txt(uctx, sub, VW/2, 150, 10, PAL.dim,'center');
       } else if(ev.marks){
-        txt(uctx, ev.marks.map((m,i)=>`${i+1}차 ${m===null?'파울':m.toFixed(2)}`).join('   '),
+        /* ⚠ 세 시기를 한 문자열로 붙이면 숫자가 6개라 번역 자리표가 안 맞는다 —
+           조각마다 번역하고 붙인다. */
+        txt(uctx, ev.marks.map((m,i)=>K('%1차 %2').replace('%1',i+1)
+              .replace('%2', m===null?K('파울'):m.toFixed(2))).join('   '),
             VW/2, 138, 10, PAL.white,'center');
       }
       if(this.newRecord) txt(uctx,'★ 개인 최고기록!', VW/2, 168, 13, PAL.gold,'center',700);

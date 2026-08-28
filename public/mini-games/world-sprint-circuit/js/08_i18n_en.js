@@ -372,4 +372,113 @@ const I18N_EN = {
   '트랙 사이클':'Track Cycling', '기어':'Gear', '▲▼ 변속':'▲▼ Shift',
   '경':'L', '중':'M', '강':'H', '기어 %1':'Gear %1',
   '체력':'Energy', '액션 = 스퍼트 (한 번)':'Action = Sprint (once)', '스퍼트!':'Sprint!',
+
+  /* ── 2026-08-28 추가 — 신규 종목·리그·공통 문구 ─────────────
+     ⚠ 여기 없는 문장은 영어 화면에도 **한글 그대로** 나간다. 측정으로 244개를 찾았다:
+        txt() 입력이 아니라 **K() 를 통과한 뒤** 한글이 남는 것만 미번역이다. */
+
+  /* 공통 — 출발·판정 */
+  '부정 출발':'False start', '총성 전에 움직였습니다':'You moved before the gun',
+  '총소리를 듣고 나서 두드리세요':'Wait for the gun, then tap',
+  'SPACE: 다시  ·  Q: 종목 선택':'SPACE: Retry  ·  Q: Event list',
+  '완벽':'Perfect', '어긋남':'Off', '성공!':'Made it!',
+  '세 번 모두 파울':'All three fouled', '기준 %1':'Standard %1',
+  '나':'You', '상대':'Rival', '점수':'Score', '높이':'Height', '회차':'Bounce',
+
+  /* 도약·투척 */
+  '◀ 왼발':'◀ Left', '오른발 ▶':'Right ▶',
+  '액션을 눌렀다 놓아 자세를 잡으세요':'Press and release action to set up',
+  '놓을 타이밍':'Release timing', '가득 찼을 때 놓으세요':'Release when the bar fills',
+  '힘을 모으는 중…':'Gathering power…', '너무 일찍 뛰었다':'Took off too early',
+  '회전이 부족하다':'Not enough spin', '릴리스 %1°  (최적 %2°)':'Release %1°  (best %2°)',
+  '도달 %1m / 바 %2m':'Reached %1m / Bar %2m',
+  '좌·우를 두드려 몸을 넘기세요':'Alternate to carry yourself over',
+  '좌·우를 두드려 몸을 끌어올리세요':'Alternate to haul yourself up',
+  '꽂기 %1%':'Plant %1%', '폴을 꽂았다':'Pole planted',
+  '구름판':'Board', '홉':'Hop', '스텝':'Step', '점프':'Jump',
+  '홉 %1%':'Hop %1%', '스텝 %1%':'Step %1%', '점프 %1%':'Jump %1%',
+  '구름판 %1%':'Board %1%',
+  '홉!':'Hop!', '스텝! %1%':'Step! %1%', '점프! %1%':'Jump! %1%',
+  '홉 — 정점에서 누르세요':'Hop — press at the peak',
+  '스텝 — 정점에서 누르세요':'Step — press at the peak',
+  '점프 — 정점에서 누르세요':'Jump — press at the peak',
+  '%1차 %2':'Att %1: %2', '%1 / %2차':'Attempt %1 / %2',
+
+  /* 중장거리 */
+  '여유':'Easy', '유지':'Even', '승부':'Push',
+  '▲▼ 페이스':'▲▼ Pace', '페이스 ↑ %1':'Pace up — %1', '페이스 ↓ %1':'Pace down — %1',
+  '%1 / %2 바퀴':'Lap %1 / %2', '액션 = 스퍼트 %1회':'Action = Kick (%1)',
+  '스퍼트 중':'Kicking', '힘이 다 떨어졌다':'Ran out of legs',
+  '경고 %1 / %2':'Warning %1 / %2', '경고 %1/%2 — 뛰지 마세요':'Warning %1/%2 — no running',
+  '실격 — 경고 %1회':'Disqualified — %1 warnings',
+
+  /* 조정 */
+  '조정 %1m':'Rowing %1m', '일정함':'Consistency',
+  '좌·우를 천천히 고르게 — 간격을 일정하게':'Slow, even strokes — keep the rhythm steady',
+  '캐치가 얕다 — 배가 채인다':'Shallow catch — the boat checks',
+  '같은 쪽만 저었다':'Both strokes on one side', '피치 업!':'Rate up!',
+  '액션 = 피치 업 (한 번)':'Action = Rate up (once)',
+
+  /* 트램폴린 */
+  '트램폴린':'Trampoline', '회전':'Twist', '%1바퀴':'%1 turns',
+  '자세 폄':'Opened out', '자세 흐트러짐':'Form broken',
+  '타이밍을 놓쳤다':'Missed the timing', '%1연속 완벽':'%1 in a row',
+  '아무 키나 눌러 시작 — 매트에 닿는 순간 액션':'Press any key — action the moment you touch the bed',
+  '좌우 = 회전 · 착지 전에 액션으로 펴고, 닿는 순간 다시 액션':'Left/right to twist · open out before landing, then action on contact',
+
+  /* 스피드 클라이밍 */
+  '스피드 클라이밍':'Speed Climbing', '미끄러짐':'Slips', '흐름':'Flow',
+  '%1 / %2 홀드':'Hold %1 / %2', '데드포인트!':'Dyno!',
+  '액션 = 도약 %1회 (두 칸)':'Action = Dyno (%1, skips two)',
+  '도약은 한 번뿐':'Only one dyno', '손이 꼬였다':'Hands crossed',
+  '리듬이 어긋났다':'Rhythm broke', '도약이 빗나갔다':'Dyno missed',
+  '추락 — 실격':'Fell — disqualified',
+  '좌·우를 고르게 번갈아 — 서두르면 미끄러진다':'Alternate evenly — rushing makes you slip',
+
+  /* 펜싱 */
+  '펜싱 에페':'Fencing (Épée)', '앙 갸르드':'En garde', '굳음':'Frozen',
+  '리포스트':'Riposte', '거리 %1m':'Distance %1m',
+  '사거리 안 — 서로 닿는다':'In distance — both can hit',
+  '사거리 밖':'Out of distance', '%1점 선취':'First to %1',
+  '← 물러서기 · → 다가가기 · 액션 = 런지':'← Retreat · → Advance · Action = Lunge',
+  '헛쳤다 — 자세가 무너졌다':'Missed — you are exposed',
+  '%1P 득점 — 런지':'%1P scores — lunge', '상대 득점 — 런지':'Rival scores — lunge',
+  '%1P 득점 — 피스트 이탈':'%1P scores — off the piste',
+  '상대 득점 — 피스트 이탈':'Rival scores — off the piste',
+  '동시 타격 — 둘 다 득점':'Double touch — both score',
+  '파리! 상대가 받아넘겼다 — 리포스트':'Parry! The rival turned it aside — riposte',
+  '파리! 2P가 받아넘겼다 — 리포스트':'Parry! 2P turned it aside — riposte',
+  '파리! 받아넘겼다 — 리포스트':'Parry! You turned it aside — riposte',
+
+  /* 10종·철인3종 */
+  '10종 경기':'Decathlon', '%1번째 종목':'Event %1 of 10',
+  '지금까지 %1점':'%1 pts so far', '아무 키나 눌러 시작':'Press any key to start',
+  '+%1점':'+%1 pts',
+  '철인3종':'Triathlon', '수영':'Swim', '사이클':'Bike', '달리기':'Run',
+  '수영 → 사이클 → 달리기':'Swim → Bike → Run',
+  '끊기지 않는다 — 앞 구간에서 쓴 힘이 뒤로 넘어간다':'No rest — the effort you spend carries into the next leg',
+  '전환 구역':'Transition', '자전거로':'To the bike', '운동화로':'To the shoes',
+  '여기서 쉬는 게 아니라 잃는 것이다':'This is not a rest — it is time lost',
+  '피로':'Fatigue', '전환':'Transition',
+
+  /* 리그 */
+  '리그 순위표':'League Table', '클럽':'Club', '승점':'Points', '금':'Gold',
+  '리그 6개 클럽':'Six clubs in the league',
+  '우리가 1위 · %1점':'We lead · %1 pts',
+  '%1위 · 1위 %2 %3점 (%4점 차)':'#%1 · leader %2 %3 pts (%4 behind)',
+  '1위까지 %1점':'%1 pts to the lead',
+  '선두다 — 지키는 것도 일이다':'Top of the table — holding it is the job',
+  '리그 정보가 없습니다':'No league data',
+  '검은표범 클럽':'Black Panther AC', '화강암 체육회':'Granite SC',
+  '조류 수영단':'Tidewater Swim', '고원 육상부':'Highland Track',
+  '하늘길 클럽':'Skyward Club', '무쇠 클럽':'Ironbar Club',
+
+  /* 공유 카드 */
+  '공유 카드':'Share card', '스크린샷으로 공유하세요':'Share it with a screenshot',
+  '확인 내려받기  ·  취소 돌아가기':'Confirm: download  ·  Back: return',
+  '▲▼ 공유 카드   ·   확인/취소 돌아가기':'▲▼ Share card   ·   Confirm/Back to return',
+  '이미지를 내려받았습니다':'Image downloaded',
+  '%1년 뒤':'in %1 yr', '선두까지 %1점':'%1 pts to the lead',
+  '%1위 · 선두 %2점 차':'#%1 · %2 pts behind the lead',
+  '화면을 캡처해 공유하세요':'Capture the screen to share',
 };
