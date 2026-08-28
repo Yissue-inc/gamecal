@@ -98,8 +98,17 @@ const G = {
   },
 
   titleSel:0,
+  /* ⚠ 처음 켠 사람에게 기본 선택이 '새 클럽 시작'(감독 모드)이었다 — **한 번도
+     뛰어 보지 않은 사람이 24주 경영 시뮬로 바로 들어간다.** 육상 게임을 켠 사람이
+     제일 먼저 하고 싶은 건 달리는 것이다. 아무 기록도 없으면 '직접 뛰기'에 손을 둔다. */
+  titleDefaulted:false,
   updTitle(){
     const items = MG.hasSave() ? 3 : 2;
+    if(!this.titleDefaulted){
+      this.titleDefaulted = true;
+      const 뛴적있다 = Object.keys(Save.data.best||{}).length > 0;
+      if(!MG.hasSave() && !뛴적있다) this.titleSel = 1;      // 0=새 클럽 1=직접 뛰기
+    }
     if(Input.pressed('up'))   { this.titleSel=(this.titleSel+items-1)%items; Sfx.ui(); }
     if(Input.pressed('down')) { this.titleSel=(this.titleSel+1)%items; Sfx.ui(); }
     /* 커리어 화면 — 쌓인 걸 볼 데가 있어야 모으는 의미가 생긴다 */
@@ -161,15 +170,24 @@ const G = {
 
   updPlay(dt){
     const ev=this.event, now=ev.t;
+    /* 이 프레임이 끝나면 경기 시각은 여기가 된다 — 키가 눌린 순간을 여기서 되짚는다.
+       ⚠ 예전엔 ev.t(이전 프레임 시각)를 그대로 판정에 넣었다. 한 프레임 늦고
+          16.7ms 로 뭉갠 값이다. PERFECT 창(±19ms)과 거의 같은 크기의 잡음이었다. */
+    const evEnd = now + dt*1000;
+    const at = (p, act)=>{
+      const pt = Party.pressAt ? Party.pressAt(p, act) : null;
+      if(pt===null || Input.frameNow===undefined) return Math.round(now);
+      return Math.round(clamp(evEnd - (Input.frameNow - pt), now - 40, evEnd));
+    };
     /* ⚠ 입력을 '플레이어별'로 라우팅한다. 종목은 pIdx 를 받아 자기 선수에게 넘긴다.
        턴제 종목은 지금 차례인 사람만 조작한다 — 남의 차례에 눌러도 안 먹는다. */
     const versus = Party.on && Party.modeFor(this.def)==='versus';
     const lo = versus ? 0 : (Party.on ? Party.turn : 0);
     const hi = versus ? Party.count-1 : lo;
     for(let p=lo; p<=hi; p++){
-      if(Party.pressed(p,'left'))  ev.onStride(-1, Math.round(now), p);
-      if(Party.pressed(p,'right')) ev.onStride( 1, Math.round(now), p);
-      if(Party.pressed(p,'action')) ev.onAction(Math.round(now), p);
+      if(Party.pressed(p,'left'))  ev.onStride(-1, at(p,'left'), p);
+      if(Party.pressed(p,'right')) ev.onStride( 1, at(p,'right'), p);
+      if(Party.pressed(p,'action')) ev.onAction(at(p,'action'), p);
       if(Party.released(p,'action') && ev.onActionUp) ev.onActionUp(Math.round(now), p);
       /* 위/아래 — 사이클 변속처럼 종목이 쓰면 넘긴다 */
       if(ev.onUp   && Party.pressed(p,'up'))   ev.onUp(Math.round(now), p);

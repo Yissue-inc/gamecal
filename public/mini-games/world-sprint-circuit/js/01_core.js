@@ -7,7 +7,7 @@
 'use strict';
 
 const VW = 480, VH = 270;                 // 내부 해상도 (16:9)
-const ASSET_VER = '1787951203';
+const ASSET_VER = '1787951813';
 function assetUrl(p){ return `${p}?v=${ASSET_VER}`; }
 
 /* ── 화면 ────────────────────────────────────────────────── */
@@ -148,9 +148,60 @@ const Input = {
     bind('p-left','left'); bind('p-right','right');
     bind('p-up','up');     bind('p-down','down');
     bind('p-act','action'); bind('p-back','back'); bind('p-pause','pause');
+    this.initGamepad();
     // 전역 안전망 — 버튼 밖에서 손을 떼도 반드시 풀린다
     addEventListener('pointerup', ()=>{ if(!this.padEnabled) return;
       for(const el of document.querySelectorAll('.pbtn.on')) el.classList.remove('on'); });
+  },
+
+  /* ── 게임패드 ──────────────────────────────────────────────
+     ⚠ 이 게임의 핵심 조작은 **좌·우를 238ms 간격으로 번갈아 치는 것**이다.
+        패드로는 그게 훨씬 편하다(엄지 두 개). 그런데 지원이 아예 없었다 —
+        `navigator.getGamepads()` 호출이 코드에 0회였다. 스팀에 낼 물건이라면
+        빠질 수 없는 기본기다.
+     구현은 키보드와 **같은 코드 경로**로 흘려보낸다: 패드 버튼이 눌리면
+     키보드 코드를 대신 눌러 준다. 그래야 48종목이 한 줄도 안 바뀐다. */
+  padMap: {
+    12:'up', 13:'down', 14:'left', 15:'right',      // D-pad
+    0:'action', 1:'back', 2:'action', 3:'up',        // A / B / X / Y
+    9:'pause', 8:'back',                             // Start / Select
+    4:'left', 5:'right',                             // L1 / R1 — 달리기에 이게 제일 편하다
+    6:'left', 7:'right',                             // L2 / R2
+  },
+  _padPrev:{},
+  pollGamepad(){
+    if(!navigator.getGamepads) return;
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const now = performance.now();
+    const down = {};
+    for(const gp of pads){
+      if(!gp) continue;
+      for(const idx in this.padMap){
+        const b = gp.buttons[idx];
+        if(b && (b.pressed || b.value>0.5)) down[this.padMap[idx]] = true;
+      }
+      /* 왼쪽 스틱도 방향으로 — 아날로그를 쓰는 사람이 있다 */
+      const ax = gp.axes[0]||0, ay = gp.axes[1]||0;
+      if(ax < -0.5) down.left = true;
+      if(ax >  0.5) down.right = true;
+      if(ay < -0.5) down.up = true;
+      if(ay >  0.5) down.down = true;
+    }
+    for(const act in this.map){
+      const code = this.map[act][0];
+      const on = !!down[act], was = !!this._padPrev[act];
+      if(on && !was){ if(!this.keys[code]) this.pressBuf[code]=true;
+                      this.keys[code]=true; this.pressTime[code]=now; Sfx.unlock(); }
+      else if(!on && was){ if(this.keys[code]) this.relBuf[code]=true; this.keys[code]=false; }
+      this._padPrev[act]=on;
+    }
+  },
+  initGamepad(){
+    if(!navigator.getGamepads) return;
+    addEventListener('gamepadconnected', ()=>{ this.padConnected=true; });
+    addEventListener('gamepaddisconnected', ()=>{
+      this.padConnected = (navigator.getGamepads()||[]).some(g=>g); });
+    this.padConnected = (navigator.getGamepads()||[]).some(g=>g);
   },
 };
 

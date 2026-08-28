@@ -51,6 +51,16 @@ const Party = {
     if(!this.on && i===0) return SOLO_KEYS[act].some(c=>Input.pressBuf[c]);
     const k=PARTY_KEYS[i]; return k ? !!Input.pressBuf[k[act]] : false;
   },
+  /* 이 프레임에 눌린 그 키의 **실제 시각**(performance.now 기준).
+     ⚠ 판정은 프레임 시각으로 하고 있었다 — PERFECT 창이 ±19ms 인데 프레임이
+        16.7ms 다. 사람이 정확히 쳐도 프레임에 걸려 GOOD 으로 내려앉는다.
+        실제 눌린 시각은 이미 Input.pressTime 에 있었는데 아무도 안 썼다. */
+  pressAt(i, act){
+    const codes = (!this.on && i===0) ? SOLO_KEYS[act]
+                : (PARTY_KEYS[i] ? [PARTY_KEYS[i][act]] : []);
+    for(const c of codes) if(Input.pressBuf[c] && Input.pressTime[c]!==undefined) return Input.pressTime[c];
+    return null;
+  },
   released(i, act){
     if(!this.on && i===0) return SOLO_KEYS[act].some(c=>Input.relBuf[c]);
     const k=PARTY_KEYS[i]; return k ? !!Input.relBuf[k[act]] : false;

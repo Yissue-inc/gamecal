@@ -30,6 +30,9 @@ function installWatchdog(){
 }
 function frameStep(now){
   if(Screen.ensure) Screen.ensure();
+  /* 게임패드는 이벤트가 아니라 폴링이다 — 프레임마다 읽어 키보드와 같은 버퍼에 넣는다 */
+  if(Input.pollGamepad) Input.pollGamepad();
+  Input.frameNow = now;                 // 판정에 실제 키 시각을 쓰기 위해
   /* ⚠ 위쪽만 막고 아래쪽을 안 막았다. 시계가 뒤로 가면(탭 복귀·시계 보정·워치독과
      겹칠 때) dt 가 음수가 되고 경기 시간이 거꾸로 흐른다 — 총성이 영영 안 울린다.
      실측으로 잡았다: 경기 시각이 -22329ms 까지 갔다. */
