@@ -174,5 +174,9 @@ const EVENTS = [
   { id:'decathlon',    name:'10종 경기',    short:'DEC',   unit:'점', higher:true,  qualify:6500, parS:7200, kind:'combined' },
   /* 철인3종 — 두 번째 그릇. 10종과 달리 **끊기지 않는다**(피로가 구간을 관통한다). */
   { id:'triathlon',    name:'철인3종',      short:'TRI',   unit:'s', higher:false, qualify:285, parS:250, kind:'tri' },
+  /* 사격 — 양궁과 달리 거리가 없다. 축은 **호흡**이다. 10발 소수점 채점(109.0 만점). */
+  { id:'shooting',     name:'10m 공기소총', short:'AR10', unit:'점', higher:true,  qualify:95.0, parS:99.0, kind:'shoot' },
+  /* 7종 경기 — 10종과 **같은 그릇**을 쓴다. 표(HEPTA)만 다르다. */
+  { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:6800, parS:7300, kind:'combined' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;

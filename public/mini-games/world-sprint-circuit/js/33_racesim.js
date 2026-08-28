@@ -291,6 +291,7 @@ const ANCHOR = {
   row   : { w:{rhythm:.40, stamina:.32, power:.20, technique:.08},spread:.14, fail:.03, tries:1 },
   climb : { w:{rhythm:.36, technique:.30, power:.22, acceleration:.12}, spread:.16, fail:.09, tries:1 },
   fence : { w:{technique:.40, acceleration:.28, rhythm:.20, speed:.12}, spread:.20, fail:.14, tries:1 },
+  shoot : { w:{technique:.56, rhythm:.30, stamina:.14}, spread:.12, fail:.02, tries:1 },
 };
 function simulateAnchored(a, def, opt){
   opt = opt||{};

@@ -451,7 +451,7 @@ const I18N_EN = {
   '파리! 받아넘겼다 — 리포스트':'Parry! You turned it aside — riposte',
 
   /* 10종·철인3종 */
-  '10종 경기':'Decathlon', '%1번째 종목':'Event %1 of 10',
+  '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '%1번째 종목':'Event %1 of 10',
   '지금까지 %1점':'%1 pts so far', '아무 키나 눌러 시작':'Press any key to start',
   '+%1점':'+%1 pts',
   '철인3종':'Triathlon', '수영':'Swim', '사이클':'Bike', '달리기':'Run',
@@ -477,7 +477,16 @@ const I18N_EN = {
   '공유 카드':'Share card', '스크린샷으로 공유하세요':'Share it with a screenshot',
   '확인 내려받기  ·  취소 돌아가기':'Confirm: download  ·  Back: return',
   '▲▼ 공유 카드   ·   확인/취소 돌아가기':'▲▼ Share card   ·   Confirm/Back to return',
-  '이미지를 내려받았습니다':'Image downloaded', '정점에서 누르세요':'press at the peak', '액션':'Action', '확인':'OK',
+  '이미지를 내려받았습니다':'Image downloaded',
+
+  /* 사격 */
+  '10m 공기소총':'10m Air Rifle', '숨 참기':'Breath hold',
+  '%1 / %2발':'Shot %1 / %2', '다시 호흡':'Re-breathe', '다시 호흡 %1회':'Re-breathed %1×',
+  '액션을 눌러 숨을 참으세요':'Hold action to hold your breath',
+  '액션을 떼면 발사  ·  ▲ 다시 호흡':'Release to fire  ·  ▲ re-breathe',
+  '더는 못 참는다':'Out of breath', '시간 초과 — 쏴야 한다':'Out of time — you must shoot',
+  '완벽한 한 발!':'Perfect shot!', '좋다':'Good', '빗나갔다':'Off the mark',
+  '과녁을 벗어났다':'Missed the target', '%1초':'%1s', '정점에서 누르세요':'press at the peak', '액션':'Action', '확인':'OK',
   '%1년 뒤':'in %1 yr', '선두까지 %1점':'%1 pts to the lead',
   '%1위 · 선두 %2점 차':'#%1 · %2 pts behind the lead',
   '화면을 캡처해 공유하세요':'Capture the screen to share',

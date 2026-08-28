@@ -34,8 +34,26 @@ function decaPoints(slot, value){
   return Math.max(0, Math.floor(slot.A * Math.pow(x, slot.C)));
 }
 
+/* 7종 경기 — 같은 그릇, 표만 다르다.
+   ⚠ 클래스를 복사하면 사본이 생긴다(오늘 이미 세 번 물렸다). 표를 종목 정의에서 고른다. */
+const HEPTA = [
+  { id:'hurdles110', A:9.23076,  B:26.7, C:1.835, track:true },
+  { id:'highJump',   A:1.84523,  B:75.0, C:1.348, cm:true    },
+  { id:'shotPut',    A:56.0211,  B:1.50, C:1.05              },
+  { id:'sprint200',  A:4.99087,  B:42.5, C:1.81,  track:true },
+  { id:'longJump',   A:0.188807, B:210,  C:1.41,  cm:true    },
+  { id:'javelin',    A:15.9803,  B:3.80, C:1.04              },
+  { id:'run800',     A:0.11193,  B:254,  C:1.88,  track:true },
+];
+const COMBINED_TABLES = { decathlon:DECA, heptathlon:HEPTA };
+function combinedTable(def){
+  const t = COMBINED_TABLES[def && def.id];
+  if(!t) throw new Error('combinedTable: 표가 없는 복합 종목 '+(def&&def.id));
+  return t;
+}
+
 class DecathlonEvent {
-  constructor(def){ this.def=def; this.reset(); }
+  constructor(def){ this.def=def; this.slots=combinedTable(def); this.reset(); }
   reset(){
     this.slot=0; this.total=0; this.marks=[];
     this.phase='INTRO'; this.t=0; this.introAt=0;
@@ -45,12 +63,12 @@ class DecathlonEvent {
   }
   get qualify(){ return this.def.qualify; }
   get people(){ return this.sub && this.sub.people; }
-  get cur(){ return DECA[this.slot]; }
+  get cur(){ return this.slots[this.slot]; }
   get curDef(){ return EVENT_BY_ID[this.cur.id]; }
 
   startSlot(i){
     this.slot=i;
-    if(i>=DECA.length){ this.finish(); return; }
+    if(i>=this.slots.length){ this.finish(); return; }
     const d=this.curDef;
     const Klass = G.classFor ? G.classFor(d) : null;
     if(!Klass){ /* 하위 종목이 없으면 0점 처리하고 넘어간다 */
@@ -117,19 +135,19 @@ class DecathlonEvent {
     /* 상단 진행 띠 — 10종은 '지금 몇 번째이고 얼마나 벌었나'가 전부다 */
     const H=15;
     u.fillStyle='rgba(6,10,18,.86)'; u.fillRect(0, VH-H, VW, H);
-    for(let i=0;i<DECA.length;i++){
-      const w=Math.floor((VW-96)/DECA.length), x=6+i*w;
+    for(let i=0;i<this.slots.length;i++){
+      const w=Math.floor((VW-96)/this.slots.length), x=6+i*w;
       const done=i<this.marks.length, now=i===this.slot;
       u.fillStyle = done ? PAL.green : now ? PAL.gold : 'rgba(255,255,255,.16)';
       u.fillRect(x, VH-H+5, w-2, 5);
     }
-    txt(u, (Math.min(this.slot+1,DECA.length))+'/10', VW-84, VH-H+3, 9, PAL.dim,'right');
+    txt(u, (Math.min(this.slot+1,this.slots.length))+'/'+this.slots.length, VW-84, VH-H+3, 9, PAL.dim,'right');
     txt(u, this.total+'점', VW-8, VH-H+2, 11, PAL.gold,'right',700);
 
     if(this.phase==='INTRO'){
       const d=this.curDef;
       u.fillStyle='rgba(5,6,10,.78)'; u.fillRect(0,0,VW,VH);
-      txt(u, (this.slot+1)+'번째 종목', VW/2, 84, 11, PAL.dim,'center');
+      txt(u, K('%1번째 종목').replace('%1', this.slot+1), VW/2, 84, 11, PAL.dim,'center');
       txt(u, d.name, VW/2, 100, 24, PAL.gold,'center',700);
       txt(u, '기준 '+(d.higher? d.qualify.toFixed(2)+'m' : fmtTime(d.qualify)),
           VW/2, 132, 11, PAL.white,'center');

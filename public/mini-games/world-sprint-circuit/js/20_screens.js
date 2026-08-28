@@ -14,7 +14,7 @@ const READY = ['sprint100','sprint200','sprint400','hurdles110','hurdles400','st
                'shotPut','discus','javelin','hammer','relay4x100',
                'swimFree100','swimBack100','swimBreast100','swimFly100','poleVault','diving','lifting','archery','cycling','rowing','trampoline',
                /* 이 다섯은 감독 모드에만 있고 플레이할 수 없었다 — 2026-08-28 아케이드 개방 */
-               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing','decathlon','triathlon'];
+               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing','decathlon','triathlon','shooting','heptathlon'];
 
 const G = {
   state: ST.TITLE,
@@ -38,7 +38,7 @@ const G = {
       swimFree100:SwimEvent, swimBack100:SwimEvent, swimBreast100:SwimEvent, swimFly100:SwimEvent,
       poleVault:PoleVaultEvent, diving:DivingEvent, lifting:LiftingEvent, archery:ArcheryEvent,
       cycling:CyclingEvent, rowing:RowingEvent, trampoline:TrampolineEvent,
-      climbSpeed:ClimbEvent, fencing:FencingEvent, decathlon:DecathlonEvent, triathlon:TriathlonEvent,
+      climbSpeed:ClimbEvent, fencing:FencingEvent, decathlon:DecathlonEvent, heptathlon:DecathlonEvent, triathlon:TriathlonEvent, shooting:ShootingEvent,
       run800:MiddleEvent, run1500:MiddleEvent, run5000:MiddleEvent, walk20k:MiddleEvent }[def.id];
   },
 
