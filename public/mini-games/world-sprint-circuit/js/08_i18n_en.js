@@ -451,6 +451,10 @@ const I18N_EN = {
   '파리! 받아넘겼다 — 리포스트':'Parry! You turned it aside — riposte',
 
   /* 10종·철인3종 */
+  '계영 %1×%2m':'%1×%2m Free Relay', '%1번 주자':'Leg %1', '팀 기록':'Team time',
+  '인계 — 벽을 찍기 직전에 ▲':'Exchange — press ▲ just before the touch',
+  '완벽한 인계!':'Perfect exchange!', '인계':'Exchange', '인계가 늦었다':'Late exchange',
+  '너무 일찍 뛰었다 — 실격':'Left too early — disqualified',
   '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '근대5종':'Modern Pentathlon', '개인혼영 %1m':'%1m Ind. Medley',
 
   /* 탁구 */

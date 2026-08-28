@@ -198,5 +198,8 @@ const EVENTS = [
   { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym' },
   /* 근대5종 — 펜싱·수영·승마·사격·달리기. 다섯 종목이 이미 다 있어서 그릇만 얹었다. */
   { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2600, parS:3500, kind:'combined' },
+  /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */
+  { id:'swimRelay4x100', name:'계영 4×100m', short:'4×100F', unit:'s', higher:false,
+    qualify:220.0, parS:205.0, distanceM:400, kind:'swim', stroke:'free' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;
