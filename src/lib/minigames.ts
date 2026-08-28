@@ -24,6 +24,21 @@ export type MiniGameManifest = {
 
 export const MINI_GAMES: MiniGameManifest[] = [
   {
+    slug: 'paint-world',
+    title: 'Paint World',
+    description: 'Colour a fish or an animal, send it in, and watch your drawing swim and walk in a living aquarium and jungle. 40 sea creatures, 39 jungle animals.',
+    version: '1.0.0',
+    entry: '/mini-games/paint-world/index.html',
+    thumbnail: '/mini-games/assets/paint-world-card-v1.webp',
+    orientation: 'landscape',
+    input: ['tap', 'pointer'],
+    supportsGuest: true,
+    requiresAuthFor: [],
+    score: { primaryMetric: 'creatures_made', higherIsBetter: true, unit: 'creatures' },
+    calendar: { allowedGameSlugs: [], eventScoped: false },
+    analyticsPrefix: 'minigame_paint_world',
+  },
+  {
     slug: 'pilgrims-path',
     title: 'The Pilgrim’s Path',
     description: 'A playable Pilgrim’s Progress: carry the burden, lose it at the Cross, and cross the last river.',

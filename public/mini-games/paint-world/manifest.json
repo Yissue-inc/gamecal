@@ -1,0 +1,22 @@
+{
+  "slug": "paint-world",
+  "title": "Paint World",
+  "description": "물고기와 동물에 색을 칠해 보내면, 그 그림이 살아서 수족관과 정글을 헤엄치고 걷는다. 바다 40종·정글 39종. 만지면 종마다 다르게 반응하고, 손가락을 대고 있으면 모여든다.",
+  "version": "1.0.0",
+  "entry": "/mini-games/paint-world/index.html",
+  "thumbnail": "/mini-games/assets/paint-world-card-v1.webp",
+  "orientation": "landscape",
+  "input": ["tap", "pointer"],
+  "supportsGuest": true,
+  "requiresAuthFor": [],
+  "score": {
+    "primaryMetric": "creatures_made",
+    "higherIsBetter": true,
+    "unit": "마리"
+  },
+  "calendar": {
+    "allowedGameSlugs": [],
+    "eventScoped": false
+  },
+  "analyticsPrefix": "minigame_paint_world"
+}

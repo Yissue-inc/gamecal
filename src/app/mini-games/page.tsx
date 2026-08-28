@@ -68,6 +68,15 @@ const gameCardDetails = {
     label: 'Play The Pilgrim’s Path',
     order: 5,
   },
+  'paint-world': {
+    eyebrow: 'COLOUR IT AND SET IT FREE',
+    image: '/mini-games/assets/paint-world-card-v1.webp',
+    imageAlt: 'Key art of a bright aquarium full of hand-coloured fish, each tagged with a child’s name',
+    badge: 'NEW',
+    accent: 'from-teal-200 via-cyan-400 to-indigo-500',
+    label: 'Play Paint World',
+    order: 0,
+  },
 } as const
 
 const games = MINI_GAMES

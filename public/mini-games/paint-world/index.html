@@ -1,0 +1,4266 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>그린바다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Galmuri11:wght@400;700&display=swap">
+<style>
+ *{margin:0;padding:0;box-sizing:border-box;}
+ html,body{width:100%;height:100%;overflow:hidden;background:#0a2036;
+   font-family:Galmuri11,"Nanum Gothic Coding",sans-serif;
+   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
+ canvas{display:block;touch-action:none;}
+ #gate{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;
+   align-items:center;justify-content:center;gap:22px;background:#0a2036;color:#eaf4ff;}
+ #gate h1{font-size:46px;color:#ffc94a;letter-spacing:4px;}
+ #gate p{font-size:15px;color:#8fa3b8;}
+ /* 이름 입력 — 아이 손가락 기준으로 크게 */
+ #namebox{position:fixed;inset:0;z-index:8;display:none;flex-direction:column;
+   align-items:center;justify-content:center;gap:20px;background:rgba(10,32,54,.0);}
+ #namebox input{font-family:inherit;font-size:34px;font-weight:700;text-align:center;
+   padding:18px 26px;width:min(460px,80vw);border:4px solid #ffc94a;border-radius:16px;
+   background:#0d2a42;color:#fff;outline:none;}
+ #namebox input::placeholder{color:#6b8ba8;}
+ .nb-row{display:flex;gap:16px;}
+ #namebox button{font-family:inherit;font-size:24px;font-weight:700;padding:18px 34px;
+   border-radius:16px;cursor:pointer;border:3px solid #ffc94a;background:#ffc94a;color:#0a2036;}
+ #nb-skip{background:transparent;color:#cfe2f2;border-color:rgba(255,255,255,.35);}
+ #go{padding:20px 44px;border:3px solid #ffc94a;border-radius:16px;background:#123047;
+   color:#ffc94a;font-family:inherit;font-size:22px;font-weight:700;cursor:pointer;}
+</style></head><body>
+<canvas id="game"></canvas>
+<div id="gate">
+  <h1>그린바다</h1>
+  <p>내가 칠한 물고기가 바다에서 헤엄쳐요</p>
+  <button id="go">시작하기</button>
+</div>
+<script>
+/* ===== js/00_core.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   뼈대 — 화면 · 입력 · 저장
+
+   해상도는 픽셀 게임과 다르다. 만화체라 **고해상도 그대로** 그린다.
+   기준 1280x720, 화면에 맞춰 통째로 스케일.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const VW = 1280, VH = 720;
+
+const PAL = {
+  ink:'#12212e',
+  paper:'#fdfaf3', paperDark:'#efe7d6',
+  deep0:'#0a2036', deep1:'#0e3a5a', deep2:'#14567f', deep3:'#1d7ba6',
+  sun:'#ffd75e', coral:'#ff7a6b', kelp:'#2f7d5a', sand:'#e8d4a8', sandDark:'#c9b184',
+  white:'#ffffff', dim:'#8fa3b8', gold:'#ffc94a', red:'#ff5a6e', green:'#4ddc8f',
+};
+
+/* 아이가 쓰는 12색 — 원색으로 시원하게 */
+const CRAYONS = ['#ff4757','#ff8c42','#ffd23f','#8ac926','#2ec4b6','#4aa8ff',
+                 '#5f6bff','#b06bff','#ff6bb0','#8b5e34','#ffffff','#2b2b3a'];
+
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const TAU=Math.PI*2;
+const rnd=()=>Math.random();
+const rndi=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[(Math.random()*a.length)|0];
+const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
+
+const Screen = {
+  cv:null, ctx:null, scale:1, ox:0, oy:0,
+  init(){
+    this.cv=document.getElementById('game');
+    this.ctx=this.cv.getContext('2d');
+    addEventListener('resize',()=>this.fit());
+    this.fit();
+  },
+  fit(){
+    const dpr=Math.min(devicePixelRatio||1,2);
+    const w=innerWidth, h=innerHeight;
+    this.cv.width=Math.round(w*dpr); this.cv.height=Math.round(h*dpr);
+    this.cv.style.width=w+'px'; this.cv.style.height=h+'px';
+    /* ⚠ 예전엔 꽉 채우고(cover) '잘리는 쪽은 배경이라 괜찮다'고 적어 뒀는데
+       **버튼이 잘린다.** 실측 잘림 비율:
+         아이패드 가로 25% · 아이패드 세로 58% · 아이폰 세로 74%
+         (16:9 화면에서만 0% 라 그동안 안 보였다)
+       전시장 태블릿은 대개 4:3 이다 — 아이가 그리기 버튼을 못 누른다.
+       전체가 보이게 맞추고(contain) 남는 자리는 배경색으로 채운다. */
+    this.scale=Math.min(w/VW, h/VH);
+    this.ox=(w-VW*this.scale)/2; this.oy=(h-VH*this.scale)/2;
+    this.ctx.setTransform(dpr,0,0,dpr,0,0);
+    this.dpr=dpr; this.cssW=w; this.cssH=h;
+  },
+  /* 화면 좌표 → 게임 좌표 */
+  toGame(x,y){ return { x:(x-this.ox)/this.scale, y:(y-this.oy)/this.scale }; },
+  begin(){ const c=this.ctx; c.save(); c.translate(this.ox,this.oy); c.scale(this.scale,this.scale); },
+  end(){ this.ctx.restore(); },
+};
+
+/* ── 입력 — 아이가 쓰므로 터치 우선 ─────────────────────── */
+const Input = {
+  down:false, x:0, y:0, px:0, py:0, tapped:null, moved:false, keys:{},
+  init(){
+    const cv=document.getElementById('game');
+    const at=e=>{ const t=e.touches?e.touches[0]:e; return Screen.toGame(t.clientX,t.clientY); };
+    const dn=e=>{ const p=at(e); this.down=true; this.moved=false;
+      this.x=this.px=p.x; this.y=this.py=p.y; this.tapped={x:p.x,y:p.y}; e.preventDefault(); };
+    const mv=e=>{ const p=at(e); this.px=this.x; this.py=this.y; this.x=p.x; this.y=p.y;
+      if(this.down && dist(p.x,p.y,this.tapped?this.tapped.x:p.x,this.tapped?this.tapped.y:p.y)>6) this.moved=true;
+      e.preventDefault(); };
+    const up=e=>{ this.down=false; };
+    cv.addEventListener('touchstart',dn,{passive:false});
+    cv.addEventListener('touchmove',mv,{passive:false});
+    cv.addEventListener('touchend',up,{passive:false});
+    cv.addEventListener('mousedown',dn);
+    cv.addEventListener('mousemove',mv);
+    addEventListener('mouseup',up);
+    addEventListener('keydown',e=>{ this.keys[e.code]=true; });
+    addEventListener('keyup',e=>{ this.keys[e.code]=false; });
+  },
+  takeTap(){ const t=this.tapped; this.tapped=null; return t; },
+};
+
+/* ── 저장 — 아이들 그림은 하루치 유지 ────────────────────── */
+const Save = {
+  key:'paintworld_v1',
+  data:{ creatures:[], made:0, sound:true },
+  load(){ try{ const s=localStorage.getItem(this.key); if(s) Object.assign(this.data, JSON.parse(s)); }catch(_){} },
+  /* ⚠ 상한 60장은 근거 없이 잡은 값이었다. 실측: 한 장 5KB,
+     localStorage 는 10MB 이상 → 1,994장이 들어간다.
+     전시장은 하루 수백 장이라 60장이면 오전에 다 밀린다.
+     600장으로 올리되, 넘치면 오래된 것부터 버리고 그래도 안 되면 더 줄인다. */
+  MAX:600,
+  /* 그림 한 장을 문자열로 — ⚠ PNG 는 한 장 19.9KB 라 600장이면 11.7MB 다.
+     아이패드 Safari 의 localStorage 는 보통 5MB 라 오후에 터진다.
+     webp 0.8 이면 5.2KB(1/4)이고 투명도도 그대로다(실측 58% 동일).
+     webp 를 못 만드는 브라우저는 toDataURL 이 png 를 돌려주므로 저절로 폴백된다. */
+  encode(canvas){
+    try{
+      const d=canvas.toDataURL('image/webp',0.8);
+      if(d && d.startsWith('data:image/webp')) return d;
+    }catch(_){}
+    return canvas.toDataURL('image/png');
+  },
+  write(){
+    let keep=this.data.creatures.slice(-this.MAX);
+    for(let tries=0; tries<6; tries++){
+      try{
+        localStorage.setItem(this.key, JSON.stringify({...this.data, creatures:keep}));
+        return true;
+      }catch(_){
+        /* 용량 초과 — 절반씩 줄여 재시도. 게임은 계속돼야 한다 */
+        keep=keep.slice(Math.ceil(keep.length/2));
+        if(!keep.length) break;
+      }
+    }
+    return false;
+  },
+};
+
+</script>
+<script>
+/* ===== js/05_net.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   동기화 — 여러 대 동시 운영.
+
+   역할은 주소로 정한다:
+     ?role=paint  색칠 태블릿 — 그리고 보낸다. 수조는 자기 것만 보여도 된다
+     ?role=stage  큰 화면    — 안 그리고 받기만 한다. 모두의 그림이 모인다
+     (없으면)      혼자 쓰기  — 지금까지처럼 한 대로 다 한다
+
+   ⚠ 서버가 없거나 죽어도 게임은 그대로 돌아가야 한다.
+     전시 중에 와이파이가 끊겼다고 아이가 못 그리면 안 된다.
+     보내기 실패는 큐에 쌓아 두고 살아나면 다시 보낸다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const Net = {
+  role:'solo', on:false, base:'', since:0,
+  queue:[], pollT:0, failT:0, lastOk:0, sent:0, got:0,
+
+  init(){
+    const m=/[?&]role=(paint|stage)/.exec(location.search);
+    this.role = m ? m[1] : 'solo';
+    this.base = location.origin;
+    if(this.role==='solo') return;
+    this.probe();
+    /* ⚠ 폴링을 렌더 루프(requestAnimationFrame)에 묶었더니 탭이 백그라운드로
+       가는 순간 동기화가 **통째로 멈췄다**(실측: 서버에 5장이 있는데 0장 받음).
+       전시장에서 큰 화면이 잠깐 가려지거나 화면보호기가 뜨면 그대로 끊긴다.
+       네트워크는 자기 타이머로 돈다 — 렌더와 무관하게. */
+    this._timer=setInterval(()=>{
+      if(this.role==='stage') this.poll(); else this.flush();
+      if(!this.on) this.probe();
+    }, 2000);
+    /* 탭이 다시 보이면 즉시 한 번 — 밀린 걸 빨리 따라잡는다 */
+    document.addEventListener('visibilitychange',()=>{
+      if(!document.hidden){ if(this.role==='stage') this.poll(); else this.flush(); }
+    });
+  },
+  probe(){
+    fetch(this.base+'/api/health',{cache:'no-store'})
+      .then(r=>r.json())
+      .then(d=>{ this.on=true; this.lastOk=Date.now();
+        if(this.role==='stage') this.since=0;   // 큰 화면은 오늘치를 처음부터
+      })
+      .catch(()=>{ this.on=false; });
+  },
+
+  /* 색칠 태블릿 — 새 그림을 보낸다 */
+  push(rec){
+    if(this.role==='solo') return;
+    this.queue.push(rec);
+    this.flush();
+  },
+  flush(){
+    if(!this.queue.length || this._busy) return;
+    this._busy=true;
+    const rec=this.queue[0];
+    fetch(this.base+'/api/creatures',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(rec)
+    }).then(r=>r.json())
+      .then(()=>{ this.queue.shift(); this.sent++; this.on=true; this.lastOk=Date.now();
+        this._busy=false; if(this.queue.length) this.flush(); })
+      .catch(()=>{ this.on=false; this._busy=false; });   // 큐에 남겨 둔다
+  },
+
+  /* 큰 화면 — 새 그림을 받아 온다 */
+  poll(){
+    if(this.role!=='stage' || this._polling) return;
+    this._polling=true;
+    fetch(this.base+'/api/creatures?since='+this.since,{cache:'no-store'})
+      .then(r=>r.json())
+      .then(d=>{
+        this.on=true; this.lastOk=Date.now(); this._polling=false;
+        if(!d.creatures || !d.creatures.length) return;
+        for(const rec of d.creatures){
+          if(rec.id>this.since) this.since=rec.id;
+          Game.adopt(rec);
+          this.got++;
+        }
+      })
+      .catch(()=>{ this.on=false; this._polling=false; });
+  },
+  /* 운영자 조작도 서버에 반영 */
+  remove(id){ if(this.role==='solo'||!id) return;
+    fetch(this.base+'/api/creatures/'+id,{method:'DELETE'}).catch(()=>{}); },
+  clear(){ if(this.role==='solo') return;
+    fetch(this.base+'/api/clear',{method:'POST'}).catch(()=>{}); },
+
+  /* 프레임에서는 아무것도 안 한다 — 타이머가 대신 돈다(위 init 참고) */
+  update(){ this.pollT++; },
+  /* 화면 구석에 상태 — 운영자가 연결을 알아야 한다 */
+  draw(c){
+    if(this.role==='solo') return;
+    const ok=this.on;
+    c.save();
+    c.globalAlpha=0.75;
+    c.fillStyle = ok ? PAL.green : PAL.red;
+    c.beginPath(); c.arc(VW-22, 22, 7, 0, TAU); c.fill();
+    c.font='600 13px Galmuri11, sans-serif'; c.textAlign='right';
+    c.fillStyle = ok ? 'rgba(255,255,255,.55)' : PAL.red;
+    const label = this.role==='stage' ? ('받음 '+this.got) :
+                  (this.queue.length ? ('보낼 것 '+this.queue.length) : ('보냄 '+this.sent));
+    c.fillText(ok?label:'연결 끊김', VW-38, 15);
+    c.restore();
+  }
+};
+
+</script>
+<script>
+/* ===== js/10_template.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   도안 — ink(선) + mask(칠할 면)
+
+   ⚠ 어셋이 오기 전에도 게임이 돌아야 한다. 그래서 도안을 **코드로 생성**한다.
+     실물 PNG 가 assets/sea/<id>-ink.png 로 오면 자동으로 그쪽을 쓴다.
+     발주서 규격(720x480, 머리 오른쪽, 중심선 y=240)을 그대로 지킨다 —
+     생성본과 실물이 같은 규격이라야 바꿔 끼워도 안 깨진다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const TW=720, TH=480, TCX=360, TCY=240;
+
+/* 종 정의 — motion 이 이 생물의 '움직이는 방식'이다(다양성의 핵심) */
+const SPECIES = [
+  /* id, 이름, 움직임, 몸 형태, 크기 */
+  {id:'clownfish', ko:'흰동가리', motion:'swim',     shape:'fish',    size:1.0, zone:[1,2]},
+  {id:'goldfish',  ko:'금붕어',   motion:'swim',     shape:'fantail', size:1.0, zone:[1,2]},
+  {id:'angelfish', ko:'엔젤피시', motion:'swim',     shape:'tall',    size:1.0, zone:[1,2]},
+  {id:'pufferfish',ko:'복어',     motion:'bob',      shape:'round',   size:0.95,zone:[2,3]},
+  {id:'seahorse',  ko:'해마',     motion:'seahorse', shape:'seahorse',size:0.8, zone:[2,4]},
+  {id:'starfish',  ko:'불가사리', motion:'crawl',    shape:'star',    size:0.85,zone:[3,4]},
+  {id:'jellyfish', ko:'해파리',   motion:'pulse',    shape:'jelly',   size:0.9, zone:[0,1,5]},
+  {id:'turtle',    ko:'바다거북', motion:'glide',    shape:'turtle',  size:1.15,zone:[1,2,3]},
+  {id:'crab',      ko:'게',       motion:'scuttle',  shape:'crab',    size:0.85,zone:[3,4]},
+  {id:'shrimp',    ko:'새우',     motion:'dart',     shape:'shrimp',  size:0.7, zone:[3,4]},
+  {id:'octopus',   ko:'문어',     motion:'jet',      shape:'octopus', size:1.05,zone:[3,4,5]},
+  {id:'squid',     ko:'오징어',   motion:'jet',      shape:'squid',   size:0.95,zone:[2,5]},
+  {id:'snail',     ko:'바다달팽이',motion:'crawl',   shape:'snail',   size:0.7, zone:[3,4]},
+  {id:'tadpole',   ko:'올챙이',   motion:'undulate', shape:'tadpole', size:0.6, zone:[0,1]},
+  {id:'dolphin',   ko:'돌고래',   motion:'swim',     shape:'dolphin', size:1.35,zone:[0,1]},
+  {id:'whale',     ko:'고래',     motion:'swim',     shape:'whale',   size:2.0, zone:[1,5]},
+  {id:'shark',     ko:'상어',     motion:'swim',     shape:'shark',   size:1.5, zone:[1,2]},
+  {id:'manta',     ko:'쥐가오리', motion:'flap',     shape:'manta',   size:1.5, zone:[2,3]},
+  {id:'stingray',  ko:'가오리',   motion:'flap',     shape:'ray',     size:1.2, zone:[3,4]},
+  {id:'eel',       ko:'뱀장어',   motion:'undulate', shape:'eel',     size:1.1, zone:[3,4,5]},
+  {id:'penguin',   ko:'펭귄',     motion:'dart',     shape:'penguin', size:1.0, zone:[0,1]},
+  {id:'seal',      ko:'물범',     motion:'glide',    shape:'seal',    size:1.25,zone:[0,1]},
+  {id:'lionfish',  ko:'쏠배감펭', motion:'bob',      shape:'lionfish',size:1.0, zone:[2,3]},
+  {id:'koi',       ko:'비단잉어', motion:'swim',     shape:'koi',     size:1.1, zone:[0,1]},
+  /* ⚠ 도안이 40종 발주인데 코드가 24종만 알아서, 도착한 어셋을 못 썼다.
+     40종 전부 등록한다. shape 는 코드 생성본용이라 비슷한 것을 재사용하고,
+     실물 PNG 가 오면 어차피 갈아 끼워진다. motion 이 진짜 중요한 값이다. */
+  {id:'orca',      ko:'범고래',   motion:'swim',     shape:'dolphin', size:1.6, zone:[1,2]},
+  {id:'hammerhead',ko:'귀상어',   motion:'swim',     shape:'shark',   size:1.45,zone:[2,3]},
+  {id:'swordfish', ko:'황새치',   motion:'swim',     shape:'shark',   size:1.4, zone:[1,2]},
+  {id:'tuna',      ko:'참치',     motion:'swim',     shape:'dolphin', size:1.25,zone:[1,2]},
+  {id:'otter',     ko:'해달',     motion:'glide',    shape:'seal',    size:1.0, zone:[0,1]},
+  {id:'lobster',   ko:'바닷가재', motion:'scuttle',  shape:'crab',    size:1.0, zone:[3,4]},
+  {id:'nautilus',  ko:'앵무조개', motion:'bob',      shape:'snail',   size:0.9, zone:[3,5]},
+  {id:'flounder',  ko:'넙치',     motion:'flap',     shape:'ray',     size:1.0, zone:[3,4]},
+  {id:'mandarinfish',ko:'만다린', motion:'bob',      shape:'fish',    size:0.85,zone:[2,3]},
+  {id:'parrotfish',ko:'앵무고기', motion:'swim',     shape:'fish',    size:1.1, zone:[1,2]},
+  {id:'butterflyfish',ko:'나비고기',motion:'bob',    shape:'tall',    size:0.9, zone:[1,2]},
+  {id:'discus',    ko:'디스커스', motion:'bob',      shape:'round',   size:1.0, zone:[1,2]},
+  {id:'seadragon', ko:'해룡',     motion:'seahorse', shape:'seahorse',size:0.95,zone:[2,4]},
+  {id:'anglerfish',ko:'아귀',     motion:'bob',      shape:'round',   size:1.1, zone:[5]},
+  {id:'narwhal',   ko:'일각고래', motion:'swim',     shape:'whale',   size:1.6, zone:[0,1]},
+  {id:'coelacanth',ko:'실러캔스', motion:'glide',    shape:'fish',    size:1.2, zone:[4,5]},
+  /* ⚠ 뱀은 정글 동물이지만 다리가 없어 부위로 못 나눈다.
+     도안이 assets/jungle/ 에 720x480 한 장으로 오고, 움직임은 바다의 undulate 다.
+     SPECIES 에 넣되 목록에서는 정글 쪽에 보인다(SEA_LIKE_JUNGLE). */
+  {id:'snake',     ko:'뱀',        motion:'undulate', shape:'eel',     size:1.15,zone:[0,1]},
+];
+const SP_BY_ID={}; SPECIES.forEach(s=>SP_BY_ID[s.id]=s);
+/* SPECIES 에 있지만 정글 목록에 보여야 하는 종 */
+const SEA_LIKE_JUNGLE = { snake:1 };
+
+/* ── 몸 형태 그리기 — 여기가 도안의 실체 ────────────────── */
+const Shapes = {
+  fish(p){ p.body([[300,0],[180,-70],[40,-40],[-40,0],[40,40],[180,70]]);
+           p.tail(-40,0,-150,-90,-110,0,-150,90); p.fin(60,-40,110,-110,170,-40); p.eye(240,-16); },
+  fantail(p){ p.body([[290,0],[170,-72],[30,-44],[-50,0],[30,44],[170,72]]);
+           p.tail(-50,0,-190,-130,-90,0,-190,130); p.fin(40,-44,90,-120,150,-44); p.eye(230,-16); },
+  tall(p){ p.body([[280,0],[150,-60],[20,-30],[-40,0],[20,30],[150,60]]);
+           p.tail(-40,0,-150,-60,-110,0,-150,60);
+           p.fin(80,-30,60,-190,190,-46); p.fin(80,30,60,190,190,46); p.eye(226,-14); },
+  round(p){ p.circle(60,0,150); p.tail(-90,0,-190,-80,-150,0,-190,80);
+           p.spikes(60,0,150,10); p.eye(150,-40); },
+  seahorse(p){ p.seahorseBody(); p.eye(210,-120); },
+  star(p){ p.star(0,0,180,80,5); p.eye(0,-40); },
+  jelly(p){ p.bell(0,-60,190,120); p.tentacles(0,50,8,180); p.eye(-40,-70); p.eye(40,-70); },
+  turtle(p){ p.shell(0,0,190,140); p.flipper(-60,-110,-160,-190); p.flipper(-60,110,-160,190);
+           p.headBump(200,0,60); p.eye(235,-18); },
+  crab(p){ p.roundBody(0,0,190,130); p.claw(-150,-120,-60); p.claw(-150,120,60);
+           p.legs(0,0,4); p.eye(60,-60); p.eye(-20,-60); },
+  shrimp(p){ p.segBody(6,150,70); p.tail(-190,0,-260,-70,-230,0,-260,70);
+           p.antenna(160,-20,300,-140); p.antenna(160,10,300,120); p.eye(140,-30); },
+  octopus(p){ p.circle(40,-40,140); p.tentacles(20,60,8,230); p.eye(90,-70); p.eye(0,-70); },
+  squid(p){ p.cone(60,0,190,110); p.fin(-100,-100,-190,-40,-100,10);
+           p.fin(-100,100,-190,40,-100,-10); p.tentacles(150,20,6,180,true); p.eye(60,-50); },
+  snail(p){ p.spiral(-30,-30,160,3); p.foot(-160,80,220,70); p.antenna(140,20,210,-70);
+           p.antenna(150,40,230,-20); p.eye(160,10); },
+  tadpole(p){ p.circle(120,0,110); p.tail(20,0,-220,-70,-140,0,-220,70); p.eye(160,-30); },
+  dolphin(p){ p.body([[320,-10],[190,-80],[30,-60],[-90,-20],[-90,30],[40,70],[200,60]]);
+           p.tail(-90,0,-200,-80,-150,0,-200,80); p.fin(70,-60,120,-160,190,-64); p.eye(265,-24); },
+  whale(p){ p.body([[330,0],[190,-110],[10,-100],[-120,-40],[-120,50],[20,110],[200,90]]);
+           p.tail(-120,0,-230,-110,-170,0,-230,110); p.fin(60,-100,110,-190,180,-102);
+           p.spout(240,-100); p.eye(270,-30); },
+  shark(p){ p.body([[330,0],[200,-64],[40,-70],[-80,-24],[-80,24],[50,74],[210,60]]);
+           p.tail(-80,0,-200,-140,-140,0,-190,80); p.fin(40,-70,60,-200,180,-72);
+           p.fin(-10,60,-30,150,90,64); p.eye(272,-22); },
+  manta(p){ p.wings(0,0,340,150); p.tail(-140,0,-330,-14,-280,0,-330,14); p.eye(210,-46); p.eye(210,46); },
+  ray(p){ p.diamond(0,0,270,170); p.tail(-160,0,-320,-12,-270,0,-320,12); p.eye(150,-40); p.eye(150,40); },
+  eel(p){ p.longBody(300,-300,70); p.tail(-300,0,-370,-50,-340,0,-370,50); p.eye(250,-24); },
+  penguin(p){ p.egg(0,0,150,210); p.belly(30,0,100,170); p.flipper(-40,-150,-120,-70);
+           p.beak(150,-40,70); p.eye(120,-80); },
+  seal(p){ p.body([[300,0],[170,-90],[10,-80],[-140,-40],[-140,40],[20,90],[190,80]]);
+           p.tail(-140,0,-240,-90,-200,0,-240,90); p.flipper(0,80,-90,180); p.eye(250,-26); },
+  lionfish(p){ p.body([[240,0],[130,-70],[10,-50],[-70,0],[10,50],[130,70]]);
+           p.tail(-70,0,-170,-80,-130,0,-170,80);
+           for(let i=0;i<5;i++){ const a=-0.9+i*0.42; p.ray(60,-50, 60+Math.cos(a)*230, -50+Math.sin(a)*230-60); }
+           for(let i=0;i<5;i++){ const a=0.9-i*0.42; p.ray(60,50, 60+Math.cos(a)*230, 50+Math.sin(a)*230+60); }
+           p.eye(190,-16); },
+  koi(p){ p.body([[300,0],[170,-76],[20,-50],[-70,0],[20,50],[170,76]]);
+           p.tail(-70,0,-200,-110,-140,0,-200,110);
+           p.fin(70,-50,110,-150,180,-54); p.fin(70,50,110,150,180,54);
+           p.antenna(280,10,340,60); p.antenna(280,-10,340,-60); p.eye(245,-18); },
+};
+
+/* ── 도안 생성기 ─────────────────────────────────────────
+   같은 붓질을 ink(선) 과 mask(면) 두 캔버스에 각각 적용한다.
+   이 이중 기록이 발주서 규격 그대로다. */
+function makeTemplate(sp){
+  const inkC=document.createElement('canvas'); inkC.width=TW; inkC.height=TH;
+  const mskC=document.createElement('canvas'); mskC.width=TW; mskC.height=TH;
+  const I=inkC.getContext('2d'), M=mskC.getContext('2d');
+  for(const c of [I,M]){ c.translate(TCX,TCY); c.lineJoin='round'; c.lineCap='round'; }
+  I.strokeStyle=PAL.ink; I.lineWidth=12;
+  M.fillStyle='#fff';
+
+  const S=(sp.size||1)*0.62;      // 720x480 안에 들어오게
+  for(const c of [I,M]) c.scale(S,S);
+
+  const both=(fn)=>{ fn(I,true); fn(M,false); };
+  const P={
+    body(pts){ both((c,isInk)=>{ c.beginPath();
+      c.moveTo(pts[0][0],pts[0][1]);
+      for(let i=1;i<pts.length;i++){
+        const a=pts[i-1], b=pts[i];
+        c.quadraticCurveTo((a[0]+b[0])/2*1.15,(a[1]+b[1])/2*1.15,b[0],b[1]);
+      }
+      c.closePath(); isInk?c.stroke():c.fill(); }); },
+    circle(x,y,r){ both((c,i)=>{ c.beginPath(); c.arc(x,y,r,0,TAU); i?c.stroke():c.fill(); }); },
+    roundBody(x,y,w,h){ both((c,i)=>{ c.beginPath(); c.ellipse(x,y,w,h,0,0,TAU); i?c.stroke():c.fill(); }); },
+    egg(x,y,w,h){ this.roundBody(x,y,w,h); },
+    belly(x,y,w,h){ both((c,i)=>{ if(!i) return; c.beginPath(); c.ellipse(x,y,w,h,0,0,TAU); c.stroke(); }); },
+    cone(x,y,w,h){ both((c,i)=>{ c.beginPath(); c.moveTo(x+w,y); c.quadraticCurveTo(x,y-h,x-w,y);
+      c.quadraticCurveTo(x,y+h,x+w,y); c.closePath(); i?c.stroke():c.fill(); }); },
+    diamond(x,y,w,h){ both((c,i)=>{ c.beginPath(); c.moveTo(x+w,y); c.lineTo(x,y-h);
+      c.lineTo(x-w,y); c.lineTo(x,y+h); c.closePath(); i?c.stroke():c.fill(); }); },
+    wings(x,y,w,h){ both((c,i)=>{ c.beginPath(); c.moveTo(x+w*0.6,y);
+      c.quadraticCurveTo(x,y-h*1.5,x-w,y-h*0.2);
+      c.quadraticCurveTo(x-w*0.4,y,x-w,y+h*0.2);
+      c.quadraticCurveTo(x,y+h*1.5,x+w*0.6,y); c.closePath(); i?c.stroke():c.fill(); }); },
+    longBody(x1,x2,r){ both((c,i)=>{ c.beginPath(); c.moveTo(x1,0);
+      c.quadraticCurveTo((x1+x2)/2,-r,x2,0); c.quadraticCurveTo((x1+x2)/2,r,x1,0);
+      c.closePath(); i?c.stroke():c.fill(); }); },
+    segBody(n,x,r){ for(let k=0;k<n;k++){ const px=x-k*(2*r*0.62);
+      both((c,i)=>{ c.beginPath(); c.ellipse(px,0,r*0.72,r,0,0,TAU); i?c.stroke():c.fill(); }); } },
+    tail(bx,by,x1,y1,mx,my,x2,y2){ both((c,i)=>{ c.beginPath(); c.moveTo(bx,by);
+      c.lineTo(x1,y1); c.quadraticCurveTo(mx,my,x2,y2); c.closePath(); i?c.stroke():c.fill(); }); },
+    fin(x1,y1,x2,y2,x3,y3){ both((c,i)=>{ c.beginPath(); c.moveTo(x1,y1);
+      c.quadraticCurveTo((x1+x2)/2,(y1+y2)/2,x2,y2); c.lineTo(x3,y3); c.closePath();
+      i?c.stroke():c.fill(); }); },
+    ray(x1,y1,x2,y2){ both((c,i)=>{ if(i){ c.lineWidth=8; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke(); c.lineWidth=12; }
+      else { c.beginPath(); c.moveTo(x1,y1-14); c.lineTo(x2,y2); c.lineTo(x1,y1+14); c.closePath(); c.fill(); } }); },
+    star(x,y,R,r,n){ both((c,i)=>{ c.beginPath();
+      for(let k=0;k<n*2;k++){ const a=-Math.PI/2+k*Math.PI/n, rr=k%2?r:R;
+        c.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr); }
+      c.closePath(); i?c.stroke():c.fill(); }); },
+    bell(x,y,w,h){ both((c,i)=>{ c.beginPath(); c.moveTo(x-w,y+h*0.5);
+      c.quadraticCurveTo(x-w,y-h, x,y-h); c.quadraticCurveTo(x+w,y-h, x+w,y+h*0.5);
+      c.quadraticCurveTo(x,y+h*0.9, x-w,y+h*0.5); c.closePath(); i?c.stroke():c.fill(); }); },
+    tentacles(x,y,n,len,fwd){ for(let k=0;k<n;k++){ const t=(k/(n-1)-0.5);
+      const ex=x+(fwd?len:t*len*0.8), ey=y+(fwd?t*len*0.5:len*(0.7+Math.abs(t)*0.4));
+      both((c,i)=>{ if(i){ c.lineWidth=9; c.beginPath(); c.moveTo(x+t*90,y);
+          c.quadraticCurveTo(x+t*150,(y+ey)/2, ex,ey); c.stroke(); c.lineWidth=12; }
+        else { c.beginPath(); c.moveTo(x+t*90-13,y); c.quadraticCurveTo(x+t*150,(y+ey)/2, ex,ey);
+          c.lineTo(ex,ey); c.quadraticCurveTo(x+t*150,(y+ey)/2, x+t*90+13,y); c.closePath(); c.fill(); } }); } },
+    shell(x,y,w,h){ this.roundBody(x,y,w,h);
+      both((c,i)=>{ if(!i) return; for(let k=-1;k<=1;k++){ c.beginPath();
+        c.moveTo(x-w*0.7, y+k*h*0.45); c.lineTo(x+w*0.7, y+k*h*0.45); c.stroke(); }
+        c.beginPath(); c.moveTo(x,y-h*0.9); c.lineTo(x,y+h*0.9); c.stroke(); }); },
+    spiral(x,y,r,turns){ both((c,i)=>{ c.beginPath();
+      for(let a=0;a<turns*TAU;a+=0.12){ const rr=r*(1-a/(turns*TAU)*0.82);
+        const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr; a?c.lineTo(px,py):c.moveTo(px,py); }
+      if(i){ c.stroke(); } else { c.closePath(); c.fill();
+        c.beginPath(); c.arc(x,y,r,0,TAU); c.fill(); } }); },
+    foot(x,y,w,h){ both((c,i)=>{ c.beginPath(); c.ellipse(x+w/2,y,w/2,h/2,0,0,TAU); i?c.stroke():c.fill(); }); },
+    claw(x,y,ang){ both((c,i)=>{ c.save(); c.translate(x,y); c.rotate(ang*Math.PI/180);
+      c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(-70,-30,-120,0);
+      c.quadraticCurveTo(-70,40,0,0); c.closePath(); i?c.stroke():c.fill(); c.restore(); }); },
+    legs(x,y,n){ for(let k=0;k<n;k++){ const t=k/(n-1)-0.5;
+      both((c,i)=>{ if(!i) return; c.lineWidth=8;
+        c.beginPath(); c.moveTo(x+t*150,y+60); c.quadraticCurveTo(x+t*180,y+150,x+t*220,y+170);
+        c.stroke(); c.lineWidth=12; }); } },
+    flipper(x1,y1,x2,y2){ both((c,i)=>{ c.beginPath(); c.moveTo(x1,y1);
+      c.quadraticCurveTo((x1+x2)/2+30,(y1+y2)/2, x2,y2);
+      c.quadraticCurveTo((x1+x2)/2-20,(y1+y2)/2+40, x1,y1); c.closePath(); i?c.stroke():c.fill(); }); },
+    headBump(x,y,r){ this.circle(x,y,r); },
+    beak(x,y,l){ both((c,i)=>{ c.beginPath(); c.moveTo(x,y-16); c.lineTo(x+l,y);
+      c.lineTo(x,y+16); c.closePath(); i?c.stroke():c.fill(); }); },
+    antenna(x1,y1,x2,y2){ both((c,i)=>{ if(!i) return; c.lineWidth=7;
+      c.beginPath(); c.moveTo(x1,y1); c.quadraticCurveTo((x1+x2)/2,(y1+y2)/2-40,x2,y2);
+      c.stroke(); c.lineWidth=12; }); },
+    spikes(x,y,r,n){ for(let k=0;k<n;k++){ const a=k/n*TAU;
+      both((c,i)=>{ if(!i) return; c.lineWidth=8; c.beginPath();
+        c.moveTo(x+Math.cos(a)*r*0.95, y+Math.sin(a)*r*0.95);
+        c.lineTo(x+Math.cos(a)*(r+42), y+Math.sin(a)*(r+42)); c.stroke(); c.lineWidth=12; }); } },
+    spout(x,y){ both((c,i)=>{ if(!i) return; c.lineWidth=8; c.beginPath();
+      c.moveTo(x,y); c.quadraticCurveTo(x+10,y-60,x-10,y-100); c.stroke(); c.lineWidth=12; }); },
+    seahorseBody(){ both((c,i)=>{ c.beginPath();
+      c.moveTo(180,-170); c.quadraticCurveTo(250,-120,190,-60);
+      c.quadraticCurveTo(120,-20,110,60); c.quadraticCurveTo(100,170,10,190);
+      c.quadraticCurveTo(-60,200,-40,130); c.quadraticCurveTo(-10,150,20,120);
+      c.quadraticCurveTo(40,60,40,-20); c.quadraticCurveTo(50,-120,120,-190);
+      c.closePath(); i?c.stroke():c.fill(); }); },
+    /* 눈은 ink 에만 — mask 에서 비워야 칠해지지 않는다 (발주서 규칙) */
+    eye(x,y){ I.save(); I.fillStyle=PAL.ink; I.beginPath(); I.arc(x,y,26,0,TAU); I.fill();
+      I.fillStyle='#fff'; I.beginPath(); I.arc(x+8,y-8,10,0,TAU); I.fill(); I.restore();
+      M.save(); M.globalCompositeOperation='destination-out';
+      M.beginPath(); M.arc(x,y,30,0,TAU); M.fill(); M.restore(); },
+  };
+  (Shapes[sp.shape]||Shapes.fish)(P);
+  return {ink:inkC, mask:mskC};
+}
+
+/* 캐시 + 실물 어셋 우선 */
+const Templates = {
+  cache:{}, real:{},
+  get(id){
+    if(this.cache[id]) return this.cache[id];
+    const sp=SP_BY_ID[id];
+    const t=makeTemplate(sp);
+    this.cache[id]=t;
+    /* 실물이 있으면 조용히 갈아 끼운다 */
+    this.tryReal(id,t);
+    return t;
+  },
+  tryReal(id,t){
+    if(this.real[id]!==undefined) return;
+    this.real[id]=false;
+    let got=0;
+    const load=(kind)=>{
+      const img=new Image();
+      img.onload=()=>{ t[kind+'Real']=img; if(++got===2){ t.ink=t.inkReal; t.mask=t.maskReal;
+        this.real[id]=true; } };
+      img.onerror=()=>{};
+      img.src=`assets/${(typeof SEA_LIKE_JUNGLE!=='undefined'&&SEA_LIKE_JUNGLE[id])?'jungle':'sea'}/${id}-${kind}.png`;
+    };
+    load('ink'); load('mask');
+  }
+};
+
+</script>
+<script>
+/* ===== js/50_fx.js ===== */
+/* 이펙트 · 소리 — 손맛 */
+'use strict';
+/* ── 연출 스프라이트 ────────────────────────────────────
+   ⚠ 프레임 시트다. 가로로 N칸이 이어져 있고 왼쪽부터 시간 순서.
+     어셋이 없으면 지금까지의 코드 그림으로 폴백한다. */
+const FXA = {
+  cache:{}, tried:{},
+  /* 이름 → [프레임수] */
+  FRAMES:{ 'fx-splash-in':4, 'fx-sparkle':4, 'fx-ring-pulse':4, 'fx-bubble-pop':4,
+           'fx-leaf-fall':1, 'fx-dust-puff':4, 'fx-heart-pop':3, 'fx-spotlight':1,
+           'fx-confetti':4, 'fx-name-tag':1, 'fx-arrow-point':1, 'fx-water-ripple':4 },
+  get(n){
+    if(this.cache[n]) return this.cache[n];
+    if(this.tried[n]) return null;
+    this.tried[n]=true;
+    const img=new Image(); img.onload=()=>{ this.cache[n]=img; };
+    img.src='assets/ui/'+n+'.png';
+    return null;
+  },
+  /* k = 0~1 진행도. 중앙 기준. */
+  draw(c,n,x,y,size,k){
+    const img=this.get(n); if(!img) return false;
+    const N=this.FRAMES[n]||1;
+    const fw=img.width/N, fh=img.height;
+    const f=Math.min(N-1, Math.floor(k*N));
+    const w=size, h=size*(fh/fw);
+    c.drawImage(img, f*fw,0,fw,fh, x-w/2, y-h/2, w, h);
+    return true;
+  },
+  prefetch(){ Object.keys(this.FRAMES).forEach(n=>this.get(n)); }
+};
+
+const FX = {
+  list:[],
+  /* ⚠ 상한이 없으면 여럿이 동시에 반응할 때 프레임이 무너진다
+     (실측: 200마리 중 100이 반응 → 파티클 214개 → 최악 28.3ms, 예산 16.7).
+     오래된 것부터 버린다 — 새로 생긴 반응이 더 중요하다. */
+  MAX:190,
+  push(p){
+    if(this.list.length>=this.MAX) this.list.splice(0, this.list.length-this.MAX+1);
+    this.list.push(p);
+  },
+  prefetch(){ FXA.prefetch(); },
+  clear(){ this.list.length=0; },
+  ring(x,y){ this.push({k:'ring',x,y,t:0,max:34}); },
+  heart(x,y){ this.push({k:'heart',x,y,t:0,max:44,vy:-1.2}); },
+  splash(x,y){ for(let i=0;i<26;i++){ const a=rnd()*TAU, s=2+rnd()*5;
+    this.push({k:'dot',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,t:0,max:40,
+      c:pick(['#ffffff','#bfe9ff','#8fd4ff'])}); } },
+  confetti(x,y){ for(let i=0;i<40;i++){ const a=rnd()*TAU, s=2+rnd()*6;
+    this.push({k:'conf',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-3,t:0,max:70,
+      c:pick(CRAYONS), rot:rnd()*TAU, vr:(rnd()-0.5)*0.4}); } },
+  /* ── 만졌을 때 쓰는 것들 ─────────────────────────── */
+  ink(x,y,dir){                    // 문어·오징어 먹물
+    for(let i=0;i<18;i++){ const a=rnd()*TAU, sp=0.6+rnd()*2.2;
+      this.push({k:'ink', x:x-dir*20, y, vx:Math.cos(a)*sp-dir*1.4,
+        vy:Math.sin(a)*sp*0.6-0.3, t:0, max:64, r:10+rnd()*22}); }
+  },
+  bubbles(x,y,n){                  // 고래 물 뿜기
+    for(let i=0;i<(n||12);i++)
+      this.push({k:'bub', x:x+(rnd()-0.5)*40, y, vx:(rnd()-0.5)*1.0,
+        vy:-1.2-rnd()*1.6, t:0, max:70, r:3+rnd()*7});
+  },
+  glow(x,y,col){                   // 해파리·아귀 빛
+    this.push({k:'glow', x, y, t:0, max:46, c:col||'#9ff'});
+  },
+  note(x,y){                       // 소리내는 동물 — 음표
+    for(let i=0;i<3;i++)
+      this.push({k:'note', x:x+(rnd()-0.5)*30, y, vx:(rnd()-0.5)*0.8,
+        vy:-1.1-rnd()*0.7, t:0, max:56, rot:(rnd()-0.5)*0.5, vr:0});
+  },
+  dust(x,y,n){                     // 땅을 구르거나 뛸 때
+    for(let i=0;i<(n||10);i++){ const a=-rnd()*Math.PI;
+      this.push({k:'dot', x, y, vx:Math.cos(a)*(1+rnd()*3),
+        vy:Math.sin(a)*(0.6+rnd()*1.4), t:0, max:34, c:'rgba(230,215,180,.9)'}); }
+  },
+  sparkle(x,y,n){ for(let i=0;i<(n||8);i++){ const a=rnd()*TAU, s=1+rnd()*3;
+    this.push({k:'dot',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:0,max:30,c:PAL.gold}); } },
+  update(){
+    for(let i=this.list.length-1;i>=0;i--){
+      const p=this.list[i]; p.t++;
+      if(p.vx!==undefined){ p.x+=p.vx; p.y+=p.vy; p.vx*=0.95; p.vy=p.vy*0.95+0.12; }
+      if(p.k==='heart') p.y+=p.vy;
+      if(p.k==='bub'){ p.vy*=0.99; p.x+=Math.sin(p.t*0.12)*0.6; }
+      if(p.rot!==undefined) p.rot+=p.vr;
+      if(p.t>p.max) this.list.splice(i,1);
+    }
+  },
+  draw(c){
+    for(const p of this.list){
+      const k=1-p.t/p.max;
+      c.globalAlpha=k;
+      if(p.k==='ring'){
+        if(!FXA.draw(c,'fx-ring-pulse',p.x,p.y,180,1-k)){
+          c.strokeStyle='rgba(255,255,255,.9)'; c.lineWidth=3;
+          c.beginPath(); c.arc(p.x,p.y,(1-k)*90,0,TAU); c.stroke();
+        }
+      } else if(p.k==='heart'){
+        if(FXA.draw(c,'fx-heart-pop',p.x,p.y,44,1-k)){ c.globalAlpha=1; continue; }
+        c.fillStyle=PAL.red; const r=9;
+        c.beginPath(); c.moveTo(p.x,p.y+r*0.7);
+        c.bezierCurveTo(p.x-r*1.3,p.y-r*0.3,p.x-r*0.5,p.y-r*1.1,p.x,p.y-r*0.35);
+        c.bezierCurveTo(p.x+r*0.5,p.y-r*1.1,p.x+r*1.3,p.y-r*0.3,p.x,p.y+r*0.7);
+        c.fill();
+      } else if(p.k==='ink'){
+        c.globalAlpha=k*0.55;
+        c.fillStyle='#101a26';
+        c.beginPath(); c.arc(p.x,p.y,p.r*(1.4-k*0.5),0,TAU); c.fill();
+      } else if(p.k==='bub'){
+        c.globalAlpha=k*0.85;
+        c.strokeStyle='rgba(255,255,255,.9)'; c.lineWidth=2;
+        c.beginPath(); c.arc(p.x,p.y,p.r,0,TAU); c.stroke();
+      } else if(p.k==='glow'){
+        const g=c.createRadialGradient(p.x,p.y,2,p.x,p.y,90*(1.2-k*0.4));
+        g.addColorStop(0,p.c); g.addColorStop(1,'rgba(255,255,255,0)');
+        c.globalAlpha=k*0.7; c.fillStyle=g;
+        c.beginPath(); c.arc(p.x,p.y,90*(1.2-k*0.4),0,TAU); c.fill();
+      } else if(p.k==='note'){
+        c.save(); c.translate(p.x,p.y); c.rotate(p.rot);
+        c.fillStyle=PAL.white; c.font='700 26px Galmuri11, sans-serif'; c.textAlign='center';
+        c.fillText('♪',0,0); c.restore();
+      } else if(p.k==='conf'){
+        c.save(); c.translate(p.x,p.y); c.rotate(p.rot);
+        c.fillStyle=p.c; c.fillRect(-5,-3,10,6); c.restore();
+      } else {
+        c.fillStyle=p.c||'#fff';
+        c.beginPath(); c.arc(p.x,p.y,3*k+1,0,TAU); c.fill();
+      }
+    }
+    c.globalAlpha=1;
+  }
+};
+
+const Sfx = {
+  ac:null, master:null, on:true,
+  unlock(){ if(this.ac){ if(this.ac.state==='suspended') this.ac.resume(); return; }
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    this.ac=new AC(); this.master=this.ac.createGain();
+    this.master.gain.value=this.on?0.5:0; this.master.connect(this.ac.destination); },
+  toggle(){ this.on=!this.on; if(this.master) this.master.gain.value=this.on?0.5:0;
+    Save.data.sound=this.on; Save.write(); return this.on; },
+  tone(f,d,type,g,slide){ if(!this.ac) return;
+    const t=this.ac.currentTime, o=this.ac.createOscillator(), gg=this.ac.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t);
+    if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),t+d);
+    gg.gain.setValueAtTime(0,t); gg.gain.linearRampToValueAtTime(g||0.12,t+0.01);
+    gg.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    o.connect(gg); gg.connect(this.master); o.start(t); o.stop(t+d+0.02); },
+  ui(){ this.tone(720,0.06,'sine',0.09,900); },
+  /* ⚠ 색칠은 이 작품에서 아이가 가장 오래 하는 행동인데 **아무 소리도 없었다.**
+     손끝이 들려야 '내가 칠하고 있다'가 된다.
+     다만 매 프레임 내면 소음이 된다 — 호출부에서 간격을 둔다. */
+  brush(pitch){
+    if(!this.ac) return;
+    const t=this.ac.currentTime, len=Math.floor(this.ac.sampleRate*0.05);
+    const b=this.ac.createBuffer(1,len,this.ac.sampleRate), d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    const src=this.ac.createBufferSource(); src.buffer=b;
+    /* ⚠ Q=1.4 대역필터가 에너지를 크게 깎아 배경 대비 1.2배밖에 안 됐다(실측).
+       Q 를 넓히고 이득을 올린다. 목표는 배경의 2.5배 이상. */
+    const f=this.ac.createBiquadFilter(); f.type='bandpass';
+    f.frequency.value=900+(pitch||0)*600; f.Q.value=0.8;
+    const g=this.ac.createGain(); g.gain.value=0.55;
+    src.connect(f); f.connect(g); g.connect(this.master); src.start(t);
+  },
+  /* 색을 고를 때 — 색마다 음이 다르면 아이가 색을 '듣는다' */
+  swatch(i){ this.tone(440*Math.pow(2, i/12), 0.09, 'triangle', 0.08); },
+  pop(){ this.tone(420,0.09,'sine',0.11,700); },
+  plop(){ this.tone(300,0.12,'sine',0.11,120); },
+  eat(){ this.tone(880,0.06,'triangle',0.08,1200); },
+  /* 만졌을 때 — 반응마다 다른 소리. 같은 소리면 종이 다른 걸 모른다 */
+  creature(kind){
+    if(!this.on) return;
+    const T=(f,d,ty,g,sl,delay)=>setTimeout(()=>this.tone(f,d,ty,g,sl), delay||0);
+    switch(kind){
+      case 'puff':    T(180,0.22,'sine',0.13,520); break;                    // 부풀
+      case 'ink':     T(140,0.34,'sawtooth',0.07,60); break;                 // 퍼짐
+      case 'glow':    [660,880,1180].forEach((f,i)=>T(f,0.20,'sine',0.07,f*1.1,i*70)); break;
+      case 'pinch':   [0,90,180].forEach((d,i)=>T(1100,0.05,'square',0.05,900,d)); break;
+      case 'hide':    T(520,0.20,'sine',0.10,180); break;                    // 쏙
+      case 'spin':    T(500,0.26,'triangle',0.10,1100); break;
+      case 'dash':    T(300,0.16,'sawtooth',0.08,1400); break;
+      case 'blow':    T(220,0.40,'sine',0.11,90); break;                     // 물 뿜기
+      case 'curl':    T(400,0.24,'sine',0.09,240); break;
+      case 'trumpet': T(210,0.34,'sawtooth',0.11,330); break;                // 코끼리
+      case 'roar':    T(120,0.42,'sawtooth',0.13,80); break;                 // 포효
+      case 'jump':    T(420,0.13,'sine',0.10,900); T(300,0.10,'sine',0.07,180,150); break;
+      case 'swing':   [640,540,700].forEach((f,i)=>T(f,0.12,'sine',0.07,f*0.9,i*90)); break;
+      case 'flap':    [0,80,160].forEach(d=>T(240,0.06,'triangle',0.06,180,d)); break;
+      case 'fan':     [520,660,820,980].forEach((f,i)=>T(f,0.16,'sine',0.07,f*1.2,i*60)); break;
+      case 'stretch': T(340,0.30,'sine',0.09,620); break;
+      case 'shake':   [0,60,120,180].forEach(d=>T(300,0.05,'square',0.05,240,d)); break;
+      case 'curlup':  T(600,0.22,'sine',0.09,220); break;
+      case 'yawn':    T(160,0.38,'sine',0.11,300); break;
+      default:        T(560,0.12,'sine',0.09,760);
+    }
+  },
+  splash(){ [400,600,900].forEach((f,i)=>setTimeout(()=>this.tone(f,0.2,'sine',0.1,f*1.5),i*60)); },
+  join(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.tone(f,0.28,'triangle',0.12),i*95)); },
+};
+
+</script>
+<script>
+/* ===== js/55_ambience.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   소리 풍경 — 세계마다 다르게, 전부 Web Audio 합성 (오디오 파일 0개).
+
+   ⚠ 효과음만 있으면 '조용한 화면에 가끔 삑 소리'다.
+     전시장은 소리가 계속 나야 살아 있는 공간이 된다.
+   ⚠ 다만 아이들이 몇 시간씩 듣는다. **거슬리면 안 된다.**
+     - 반복 주기가 뚜렷하면 귀에 박힌다 → 주기를 어긋나게 겹친다
+     - 고음이 계속되면 피로하다 → 저역 위주, 고역은 짧게만
+     - 소리가 곧 상태다: 아이가 많이 만들수록 풍성해진다
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const Amb = {
+  ac:null, bus:null, nodes:[], realm:null, started:false, level:0,
+
+  init(sfx){
+    if(this.started || !sfx.ac) return;
+    this.ac=sfx.ac;
+    this.bus=this.ac.createGain();
+    this.bus.gain.value=0;                 // 조용히 시작해 서서히 올린다
+    this.bus.connect(sfx.master);
+    this.started=true;
+  },
+  /* 세계가 바뀌면 갈아 끼운다 */
+  set(realm){
+    if(!this.started || this.realm===realm) return;
+    this.stopAll();
+    this.realm=realm;
+    if(realm==='sea') this.buildSea(); else this.buildJungle();
+    this.fade(0.55, 1.6);
+  },
+  fade(to, sec){
+    if(!this.bus) return;
+    const t=this.ac.currentTime;
+    this.bus.gain.cancelScheduledValues(t);
+    this.bus.gain.setValueAtTime(this.bus.gain.value, t);
+    this.bus.gain.linearRampToValueAtTime(to, t+sec);
+  },
+  stopAll(){
+    for(const n of this.nodes){ try{ n.stop ? n.stop() : n.disconnect(); }catch(e){} }
+    this.nodes=[];
+    if(this._timer){ clearInterval(this._timer); this._timer=null; }
+  },
+  /* 흰소음 버퍼 — 물소리·바람의 재료 */
+  noiseBuf(sec){
+    const len=Math.floor(this.ac.sampleRate*sec);
+    const b=this.ac.createBuffer(1,len,this.ac.sampleRate);
+    const d=b.getChannelData(0);
+    let last=0;
+    for(let i=0;i<len;i++){
+      /* 갈색 잡음 — 흰소음보다 저역이라 귀에 편하다 */
+      last=(last+(Math.random()*2-1)*0.06); last=Math.max(-1,Math.min(1,last*0.997));
+      d[i]=last*3;
+    }
+    return b;
+  },
+  loopNoise(freq, q, gain, type){
+    const src=this.ac.createBufferSource();
+    src.buffer=this.noiseBuf(4); src.loop=true;
+    const f=this.ac.createBiquadFilter();
+    f.type=type||'lowpass'; f.frequency.value=freq; f.Q.value=q||0.6;
+    const g=this.ac.createGain(); g.gain.value=gain;
+    src.connect(f); f.connect(g); g.connect(this.bus);
+    src.start();
+    this.nodes.push(src);
+    return {src,f,g};
+  },
+  /* 아주 느린 흔들림 — 기계적으로 안 들리게 */
+  wobble(param, base, depth, sec){
+    const lfo=this.ac.createOscillator();
+    lfo.type='sine'; lfo.frequency.value=1/sec;
+    const amp=this.ac.createGain(); amp.gain.value=depth;
+    param.value=base;
+    lfo.connect(amp); amp.connect(param); lfo.start();
+    this.nodes.push(lfo);
+  },
+
+  /* ── 바다 ─────────────────────────────────────────
+     깊은 물 울림 + 아주 옅은 물결 + 이따금 공기방울 */
+  buildSea(){
+    const deep=this.loopNoise(220, 0.5, 0.16);
+    this.wobble(deep.f.frequency, 220, 70, 17);      // 17초 주기
+    const surf=this.loopNoise(700, 0.8, 0.05);
+    this.wobble(surf.g.gain, 0.05, 0.03, 23);        // 23초 — 서로 안 겹친다
+    /* 공기방울 — 불규칙하게 */
+    this._timer=setInterval(()=>{
+      if(!this.ac || Math.random()>0.55) return;
+      this.bubble();
+    }, 1400);
+  },
+  bubble(){
+    const t=this.ac.currentTime;
+    const o=this.ac.createOscillator(), g=this.ac.createGain();
+    o.type='sine';
+    const f0=380+Math.random()*520;
+    o.frequency.setValueAtTime(f0,t);
+    o.frequency.exponentialRampToValueAtTime(f0*2.2, t+0.09);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(0.035+Math.random()*0.02, t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.14);
+    o.connect(g); g.connect(this.bus); o.start(t); o.stop(t+0.18);
+  },
+
+  /* ── 정글 ─────────────────────────────────────────
+     바람에 흔들리는 잎 + 새소리 + 이따금 먼 울음 */
+  buildJungle(){
+    const wind=this.loopNoise(420, 0.7, 0.10);
+    this.wobble(wind.g.gain, 0.10, 0.06, 13);
+    const leaves=this.loopNoise(2400, 1.2, 0.022, 'bandpass');
+    this.wobble(leaves.g.gain, 0.022, 0.016, 9);
+    this._timer=setInterval(()=>{
+      if(!this.ac) return;
+      const r=Math.random();
+      if(r<0.42) this.bird();
+      else if(r<0.5) this.hoot();
+    }, 1700);
+  },
+  bird(){
+    const t=this.ac.currentTime;
+    const n=2+((Math.random()*3)|0);
+    const base=1500+Math.random()*900;
+    for(let i=0;i<n;i++){
+      const o=this.ac.createOscillator(), g=this.ac.createGain();
+      const st=t+i*0.085;
+      o.type='sine';
+      o.frequency.setValueAtTime(base*(1+i*0.06), st);
+      o.frequency.exponentialRampToValueAtTime(base*(1.25+i*0.06), st+0.05);
+      g.gain.setValueAtTime(0,st);
+      g.gain.linearRampToValueAtTime(0.028, st+0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, st+0.07);
+      o.connect(g); g.connect(this.bus); o.start(st); o.stop(st+0.1);
+    }
+  },
+  hoot(){
+    const t=this.ac.currentTime;
+    const o=this.ac.createOscillator(), g=this.ac.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(230,t);
+    o.frequency.linearRampToValueAtTime(200, t+0.4);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(0.05, t+0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.5);
+    o.connect(g); g.connect(this.bus); o.start(t); o.stop(t+0.55);
+  },
+
+  /* ⚠ 색칠 화면에서는 앰비언스를 낮춘다.
+     아이가 집중하는 순간이고, 붓 소리가 배경에 묻히면 '내가 칠하고 있다'가 안 들린다.
+     실측: 앰비언스 0.14 에 붓 0.05 를 얹으니 구별이 안 됐다. */
+  duck(on){
+    if(!this.bus) return;
+    this._ducked=on;
+    this.fade(on ? 0.14 : (0.42+this.level*0.30), 0.5);
+  },
+
+  /* ⚠ 소리가 곧 상태다 — 아이가 많이 만들수록 풍성해진다.
+     빈 수조와 200마리 수조가 같은 소리면 '내가 채웠다'가 안 느껴진다. */
+  setLevel(n){
+    if(!this.bus) return;
+    const k=Math.min(1, n/120);
+    this.level=k;
+    if(!this._ducked) this.fade(0.42+k*0.30, 2.2);
+  }
+};
+
+</script>
+<script>
+/* ===== js/20_paint.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   색칠 화면 — 아이가 실제로 만지는 곳.
+
+   ⚠ 아이가 아무리 문질러도 선 밖으로 안 나가야 한다.
+     칠한 것을 mask 로 잘라내는 방식(destination-in)이 그걸 보장한다.
+   ⚠ 되돌리기가 없으면 아이는 망쳤다고 생각하고 포기한다. 반드시 있어야 한다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const Paint = {
+  spId:'clownfish', color:CRAYONS[0], tool:'brush', size:44,
+  /* ⚠ 붓이 하나뿐이면 큰 면과 작은 면을 같은 붓으로 칠해야 한다.
+     아이는 굵기를 바꿀 줄 안다 — 3단계면 충분하고, 4단계부터는 헷갈린다. */
+  sizes:[22,44,78], sizeIdx:1,
+  fill:null, fctx:null, undo:[], drawing:false, lastX:0, lastY:0,
+  /* 도안 배치 — 화면 가운데 크게 */
+  /* 바다면 Templates, 정글이면 JTemplate — 한 곳에서 고른다 */
+  tpl(){ return (typeof JUNGLE!=='undefined' && JUNGLE[this.spId])
+    ? JTemplate.get(this.spId) : Templates.get(this.spId); },
+  box(){ const w=TW*0.95, h=TH*0.95; return {x:VW/2-w/2, y:150, w, h}; },
+  toTpl(x,y){ const b=this.box(); return {x:(x-b.x)/b.w*TW, y:(y-b.y)/b.h*TH}; },
+
+  open(spId){
+    if(typeof BG!=='undefined'){ BG.get('paper'); BG.get('frame-wood'); }
+    this.spId=spId||this.spId;
+    this._maskArea=undefined;          // 종이 바뀌면 분모도 바뀐다
+    this.fill=document.createElement('canvas'); this.fill.width=TW; this.fill.height=TH;
+    this.fctx=this.fill.getContext('2d');
+    this.undo=[]; this.pushUndo();
+    this.color=CRAYONS[0]; this.tool='brush'; this.drawing=false;
+    this.sizeIdx=1; this.size=this.sizes[1];
+  },
+  pushUndo(){
+    const c=document.createElement('canvas'); c.width=TW; c.height=TH;
+    c.getContext('2d').drawImage(this.fill,0,0);
+    this.undo.push(c); if(this.undo.length>14) this.undo.shift();
+  },
+  doUndo(){
+    if(this.undo.length<2) return;
+    this.undo.pop();
+    const prev=this.undo[this.undo.length-1];
+    this.fctx.clearRect(0,0,TW,TH); this.fctx.drawImage(prev,0,0);
+    Sfx.ui();
+  },
+  clear(){ this.pushUndo(); this.fctx.clearRect(0,0,TW,TH); Sfx.ui(); },
+
+  /* 도안 안쪽에서 실제로 칠해진 비율.
+     ⚠ 전체 캔버스 대비로 재면 안 된다 — 새우는 꽉 칠해도 화면의 8%다.
+        분모는 **칠할 수 있는 영역(mask)** 이어야 종끼리 비교가 된다. */
+  inkedRatio(){
+    const w=180, h=Math.round(w*TH/TW);
+    const s=document.createElement('canvas'); s.width=w; s.height=h;
+    const sc=s.getContext('2d', {willReadFrequently:true});
+    sc.drawImage(this.fill,0,0,w,h);
+    let painted=0;
+    try{
+      const d=sc.getImageData(0,0,w,h).data;
+      for(let i=3;i<d.length;i+=4) if(d[i]>24) painted++;
+    }catch(e){ return 1; }               // 못 읽으면 통과시킨다 — 막는 게 목적이 아니다
+    if(this._maskArea===undefined){
+      const T=this.tpl();
+      let a=0;
+      if(T && T.mask){
+        const m=document.createElement('canvas'); m.width=w; m.height=h;
+        const mc=m.getContext('2d', {willReadFrequently:true});
+        mc.drawImage(T.mask,0,0,w,h);
+        try{ const md=mc.getImageData(0,0,w,h).data;
+             for(let i=3;i<md.length;i+=4) if(md[i]>24) a++; }catch(e){ a=0; }
+      }
+      this._maskArea = a>0 ? a : w*h*0.28;   // mask 를 못 구하면 대략치
+    }
+    return Math.min(1, painted/this._maskArea);
+  },
+
+  _brushT:0,
+  stroke(x,y,fromX,fromY){
+    /* 붓질 소리 — 5프레임에 한 번만. 매번 내면 소음이 된다 */
+    if(++this._brushT % 5 === 0 && this.tool!=='bucket')
+      Sfx.brush((this.sizeIdx||0)/2);
+    const f=this.fctx;
+    f.save();
+    f.strokeStyle=this.color; f.fillStyle=this.color;
+    f.lineCap='round'; f.lineJoin='round';
+    if(this.tool==='brush'){
+      f.lineWidth=this.size;
+      f.beginPath();
+      if(fromX!==undefined){ f.moveTo(fromX,fromY); f.lineTo(x,y); } else { f.moveTo(x,y); f.lineTo(x+0.1,y); }
+      f.stroke();
+    } else if(this.tool==='eraser'){
+      f.globalCompositeOperation='destination-out';
+      f.lineWidth=this.size*1.3;
+      f.beginPath();
+      if(fromX!==undefined){ f.moveTo(fromX,fromY); f.lineTo(x,y); } else { f.moveTo(x,y); f.lineTo(x+0.1,y); }
+      f.stroke();
+    } else if(this.tool==='star'||this.tool==='heart'||this.tool==='dot'||this.tool==='stripe'){
+      this.stamp(f,x,y);
+    }
+    f.restore();
+    /* ⚠ 여기가 핵심 — 마스크 밖은 잘라낸다 */
+    const T=this.tpl();
+    if(T){ f.save(); f.globalCompositeOperation='destination-in';
+      f.drawImage(T.mask,0,0); f.restore(); }
+  },
+  stamp(f,x,y){
+    const r=this.size*0.8;
+    f.beginPath();
+    if(this.tool==='stripe'){ f.rect(x-r*0.35, y-r*1.6, r*0.7, r*3.2); }
+    else if(this.tool==='dot'){ f.arc(x,y,r,0,TAU); }
+    else if(this.tool==='star'){
+      for(let k=0;k<10;k++){ const a=-Math.PI/2+k*Math.PI/5, rr=k%2?r*0.45:r;
+        f.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr); } f.closePath();
+    } else {
+      f.moveTo(x,y+r*0.7);
+      f.bezierCurveTo(x-r*1.3,y-r*0.3, x-r*0.5,y-r*1.1, x,y-r*0.35);
+      f.bezierCurveTo(x+r*0.5,y-r*1.1, x+r*1.3,y-r*0.3, x,y+r*0.7);
+    }
+    f.fill();
+  },
+  /* 페인트통 — 면 하나를 통째로. 마스크 안에서만 */
+  bucket(x,y){
+    this.pushUndo();
+    const f=this.fctx;
+    const T2=this.tpl();
+    f.save(); f.fillStyle=this.color; f.fillRect(0,0,TW,TH);
+    f.globalCompositeOperation='destination-in';
+    if(T2) f.drawImage(T2.mask,0,0);
+    f.restore();
+    /* 이미 칠한 것 위에 덮이지 않도록 이전 것을 다시 얹는다 */
+    const prev=this.undo[this.undo.length-1];
+    f.drawImage(prev,0,0);
+    Sfx.pop();
+  },
+
+  update(dt){
+    const b=this.box();
+    if(Input.down){
+      const inBox = Input.x>b.x&&Input.x<b.x+b.w&&Input.y>b.y&&Input.y<b.y+b.h;
+      if(inBox){
+        const p=this.toTpl(Input.x,Input.y);
+        if(!this.drawing){ this.drawing=true; this.pushUndo(); this.stroke(p.x,p.y); }
+        else { const q=this.toTpl(Input.px,Input.py); this.stroke(p.x,p.y,q.x,q.y); }
+        this.lastX=p.x; this.lastY=p.y;
+      }
+    } else this.drawing=false;
+  },
+  draw(c){
+    /* 배경 — 종이 */
+    c.fillStyle='#173a52'; c.fillRect(0,0,VW,VH);
+    const b=this.box();
+    c.save();
+    c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=24; c.shadowOffsetY=8;
+    c.fillStyle=PAL.paper; c.fillRect(b.x-16,b.y-16,b.w+32,b.h+32);
+    c.restore();
+    /* 종이 결 — 어셋이 있으면 살짝 얹는다. 없으면 단색 그대로 */
+    const pp=(typeof BG!=='undefined') && BG.get('paper');
+    if(pp){
+      c.save(); c.globalAlpha=0.5;
+      c.beginPath(); c.rect(b.x-16,b.y-16,b.w+32,b.h+32); c.clip();
+      for(let x=b.x-16;x<b.x+b.w+32;x+=256)
+        for(let y=b.y-16;y<b.y+b.h+32;y+=256) c.drawImage(pp,x,y,256,256);
+      c.restore();
+    }
+    const t=this.tpl();
+    c.drawImage(this.fill, b.x,b.y,b.w,b.h);
+    if(t) c.drawImage(t.ink, b.x,b.y,b.w,b.h);
+    /* 나무 액자 — 아이 그림을 감싼다. 가운데가 뚫린 그림이라 도안을 안 가린다 */
+    const fr=(typeof BG!=='undefined') && BG.get('frame-wood');
+    if(fr) c.drawImage(fr, b.x-46, b.y-46, b.w+92, b.h+92);
+    else { c.font='700 22px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle='#8fa3b8'; c.fillText('도안을 불러오는 중…', VW/2, b.y+b.h/2); }
+  }
+};
+
+</script>
+<script>
+/* ===== js/30_creature.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   생물 — 아이가 칠한 그림 한 장이 살아 움직인다.
+
+   ⚠ 움직임이 전부 같으면 40종을 만들어도 한 종처럼 보인다.
+     그래서 **9가지 움직이는 방식**을 따로 만들었다.
+     swim 헤엄 · undulate 구불 · pulse 맥동 · flap 날갯짓 · glide 활공
+     scuttle 옆걸음 · jet 분사 · crawl 기어감 · bob 까딱 · seahorse 곧추서기
+   ⚠ 텍스처는 180x120 으로 줄여서 보관한다(실측: 6.5배 빠르고 메모리 1/4).
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const TEX_W=180, TEX_H=120;
+
+/* ── 몸 위치 자동 측정 ──────────────────────────────────
+   ⚠ 도안마다 몸이 텍스처 한가운데에 있지 않다. 발주서에 중심선 y=240 을
+     못박았지만 종에 따라 40px 이상 어긋나 온다(실측: snail 282).
+     매번 반려하는 대신 **코드가 실제 몸 위치를 재서 맞춘다.**
+     40종이 더 올 것이고, 어셋을 사람이 완벽히 맞추길 기대하면 안 된다. */
+const BodyFit = {
+  cache:new WeakMap(),
+  of(tex){
+    let v=this.cache.get(tex); if(v) return v;
+    try{
+      const c=tex.getContext ? tex : null;
+      const cv=document.createElement('canvas'); cv.width=TEX_W; cv.height=TEX_H;
+      const x=cv.getContext('2d'); x.drawImage(tex,0,0);
+      const d=x.getImageData(0,0,TEX_W,TEX_H).data;
+      let y0=TEX_H, y1=-1;
+      for(let y=0;y<TEX_H;y++){
+        for(let px=0;px<TEX_W;px+=2){
+          if(d[((y*TEX_W+px)*4)+3]>40){ if(y<y0)y0=y; if(y>y1)y1=y; break; }
+        }
+      }
+      if(y1<0){ y0=0; y1=TEX_H-1; }
+      v={ top:y0, bot:y1, mid:(y0+y1)/2,
+          /* 텍스처 중심(60)에서 몸 중심이 얼마나 벗어났나 */
+          midOff:(y0+y1)/2 - TEX_H/2,
+          botOff:y1 - TEX_H/2 };
+    }catch(e){ v={top:0,bot:TEX_H-1,mid:TEX_H/2,midOff:0,botOff:TEX_H/2}; }
+    this.cache.set(tex,v); return v;
+  }
+};
+
+
+/* ══ 만지면 반응한다 ══════════════════════════════════
+   ⚠ 예전엔 탭하면 곧장 확대 화면으로 넘어갔다. 그건 '반응'이 아니라
+     '화면 전환'이라, 아이는 수조를 만졌다는 느낌을 못 받는다.
+   종마다 다르게 반응해야 아이가 **여러 마리를 눌러 본다** —
+     복어는 부풀고, 문어는 먹물을 뿜고, 게는 집게를 흔든다.
+   그게 이 화면을 수족관으로 만든다. */
+const SEA_REACT = {
+  pufferfish:'puff',
+  octopus:'ink', squid:'ink', nautilus:'ink',
+  jellyfish:'glow', anglerfish:'glow', seadragon:'glow', lionfish:'glow',
+  crab:'pinch', lobster:'pinch', shrimp:'pinch',
+  turtle:'hide', snail:'hide', starfish:'hide', flounder:'hide',
+  dolphin:'spin', orca:'spin', seal:'spin', otter:'spin', penguin:'spin',
+  shark:'dash', swordfish:'dash', tuna:'dash', hammerhead:'dash', manta:'dash',
+  whale:'blow', narwhal:'blow',
+  seahorse:'curl', eel:'curl', snake:'curl', coelacanth:'curl',
+};
+const REACT_LEN = { puff:52, ink:46, glow:56, pinch:44, hide:50,
+                    spin:46, dash:40, blow:64, curl:48, wiggle:38 };
+
+class Creature {
+  /* tex: 색칠 완료된 캔버스(또는 이미지) · spId: 종 · name: 아이 이름 */
+  constructor(tex, spId, name, opt){
+    opt=opt||{};
+    this.tex=tex; this.spId=spId; this.name=name||'';
+    const sp=SP_BY_ID[spId]||SPECIES[0];
+    this.sp=sp; this.motion=sp.motion;
+    this.zone=opt.zone!==undefined?opt.zone:pick(sp.zone);
+    this.x=opt.x!==undefined?opt.x:rnd()*VW;
+    this.y=opt.y!==undefined?opt.y:World.zoneY(this.zone)+rnd()*80-40;
+    this.dir=rnd()<0.5?-1:1;
+    /* ⚠ 처음엔 0.30~0.52 로 뒀는데 화면에서 54~94px 이라 아이 그림이 안 보였다.
+       이 작품의 주인공은 아이가 칠한 그림이다. 배경보다 커야 한다. */
+    this.baseS=(0.62+rnd()*0.40)*(sp.size||1);
+    this.s=this.baseS;
+    this.ph=rnd()*TAU;
+    this.spd=(0.5+rnd()*0.7)*(1.25-(sp.size||1)*0.25);
+    this.t=rnd()*300;
+    this.vy=0; this.state='idle'; this.stateT=0;
+    this.reactT=0; this.reactKind=null; this.fedCd=0;
+    this.mine=!!opt.mine;
+    this.joinT=opt.join?70:0;      // 합류 연출
+    this.scared=0; this.target=null;
+    this.wob=rnd()*TAU;
+  }
+  /* 만졌다 — 종에 맞는 반응을 시작한다 */
+  react(){
+    const kind = SEA_REACT[this.spId] || 'wiggle';
+    this.reactKind = kind;
+    this.reactT = this.reactMax = REACT_LEN[kind] || 40;
+    const x=this.x, y=this.y;
+    if(kind==='ink')       FX.ink(x, y, this.dir);
+    else if(kind==='glow') FX.glow(x, y, '#a8f2ff');
+    else if(kind==='blow') FX.bubbles(x, y-this.h*0.34, 14);
+    else if(kind==='puff') FX.ring(x, y);
+    else if(kind==='dash') FX.sparkle(x, y, 10);
+    else                   FX.heart(x, y-this.h*0.3);
+    if(typeof Sfx!=='undefined' && Sfx.creature) Sfx.creature(kind);
+    return kind;
+  }
+  get w(){ return TEX_W*this.s; }
+  get h(){ return TEX_H*this.s; }
+
+  update(dt, world){
+    this.t+=dt*60;
+    /* ⚠ 서로를 전혀 의식하지 않으면 '어항 스크린세이버'다.
+       같은 종끼리 느슨하게 모이고, 겹치면 살짝 비킨다.
+       ⚠ 전부와 비교하면 O(n²) 이다 — 300마리면 45,000번.
+       매 프레임이 아니라 6프레임에 한 번, 이웃 몇 마리만 본다. */
+    if(world.flock && (Game.t + this.ph*97|0) % 6 === 0) this.flock(world);
+    if(this.joinT>0) this.joinT--;
+    if(this.scared>0) this.scared--;
+    if(this.fedCd>0) this.fedCd--;
+    if(this.reactT>0) this.reactT--;
+
+    let sp=this.spd*(this.scared>0?3.2:1);
+    /* 내 것이면 부르는 자리로 모여든다 — 이게 '나를 알아본다'의 정체다 */
+    if(this.mine && world.callAt && this.scared<=0){
+      const cx=world.callAt.x, cy=world.callAt.y;
+      const d=dist(this.x,this.y,cx,cy);
+      if(d>70){
+        const a=Math.atan2(cy-this.y, cx-this.x);
+        this.x+=Math.cos(a)*sp*3.0; this.y+=Math.sin(a)*sp*2.2;
+        this.dir=Math.cos(a)>0?1:-1;
+        if(Game.t%9===0) Game.fx.sparkle(this.x,this.y,1);
+        return;
+      }
+    }
+    /* 먹이가 있으면 몰려간다 */
+    const food=world.nearestFood(this.x,this.y);
+    if(food && this.scared<=0){
+      const d=dist(this.x,this.y,food.x,food.y);
+      /* ⚠ 420 은 화면의 1/3 이라 멀리 있는 물고기는 아예 반응하지 않았다.
+         먹이는 다같이 몰려드는 맛이다 — 화면 전체가 반응하게 넓힌다. */
+      if(d<820){
+        const a=Math.atan2(food.y-this.y, food.x-this.x);
+        this.x+=Math.cos(a)*sp*2.1; this.y+=Math.sin(a)*sp*2.1;
+        this.dir=Math.cos(a)>0?1:-1;
+        /* ⚠ 쿨다운이 없어 한 마리가 매 프레임 쪼았다 — 3번 쪼기로 바꿔도
+           16알이 1초에 사라졌다(실측). 한 입 먹었으면 잠시 물러난다. */
+        if(d<26 && !(this.fedCd>0)){ world.eatFood(food, this); this.fedCd=90; }
+        this.wob+=0.12;
+        /* ⚠ 먹이를 쫓을 때 곧장 return 해서 **밀어내기를 건너뛰었다**.
+           그래서 22마리가 한 점에 겹쳐 아이 그림이 서로를 가렸다.
+           몰려드는 건 좋지만 포개지면 누구 그림인지 알 수 없다. */
+        this.spread(world);
+        return;
+      }
+    }
+    /* 손가락을 가만히 대고 있으면 궁금해서 다가온다.
+       ⚠ 빈 곳을 톡 치면 흩어지는데(scare), 그것만 있으면 아이는 수조를
+         '건드리면 도망가는 것'으로만 배운다. 가만히 대고 기다리면
+         모여든다는 걸 알면 아이가 화면 앞에 오래 머문다. */
+    /* ⚠ 처음엔 끌림만 더하고 아래 motion 을 그대로 뒀더니 생물이 손가락을
+       **지나쳐 갔다**(실측: 6초 뒤 오히려 멀어짐). 먹이와 같은 구조로,
+       다가오는 동안에는 제 갈 길을 접는다. 가까우면 주위를 맴돈다. */
+    if(world.touchAt && !(this.scared>0) && !(this.reactT>0)){
+      const T=world.touchAt;
+      const d=dist(this.x,this.y,T.x,T.y);
+      /* 휘저으면 물살에 밀린다 — 손 뒤로 물이 흐른다 */
+      if(T.swirl && d<300){
+        const k=(1-d/300)*0.5;
+        this.x += (T.vx||0)*k; this.y += (T.vy||0)*k*0.7;
+        this.wob += 0.14;
+        if(Math.abs(T.vx||0)>2) this.dir = (T.vx>0)?1:-1;
+        return;
+      }
+      const eager=Math.min(1,(T.hold-20)/70);
+      if(eager>0 && !T.swirl && d<780){
+        const a=Math.atan2(T.y-this.y, T.x-this.x);
+        if(d>150){                                  // 다가온다
+          this.x+=Math.cos(a)*sp*1.5*eager;
+          this.y+=Math.sin(a)*sp*1.0*eager;
+          this.dir=Math.cos(a)>0?1:-1;
+        } else {                                     // 손끝을 맴돈다
+          const orb=a+Math.PI/2;
+          this.x+=Math.cos(orb)*sp*0.9;
+          this.y+=Math.sin(orb)*sp*0.5;
+          this.dir=Math.cos(orb)>0?1:-1;
+        }
+        this.wob+=0.09;
+        return;
+      }
+    }
+    /* 놀랐으면 도망 */
+    if(this.scared>0 && world.scareAt){
+      const a=Math.atan2(this.y-world.scareAt.y, this.x-world.scareAt.x);
+      this.x+=Math.cos(a)*sp*2.4; this.y+=Math.sin(a)*sp*1.4;
+      this.dir=Math.cos(a)>0?1:-1;
+    } else {
+      this[this.motion] ? this[this.motion](sp) : this.swim(sp);
+    }
+    /* 벽 */
+    if(this.x<-this.w) { this.x=VW+this.w; }
+    if(this.x>VW+this.w){ this.x=-this.w; }
+    const band=World.zoneBand(this.zone);
+    if(this.y<band[0]){ this.y=band[0]; this.vy=Math.abs(this.vy); }
+    if(this.y>band[1]){ this.y=band[1]; this.vy=-Math.abs(this.vy); }
+  }
+
+  /* 밀어내기만 — 먹이를 쫓는 중에도 서로 포개지지 않게 */
+  spread(world){
+    const near=world.neighbors(this.x, this.y, this);
+    let px=0, py=0;
+    for(const o of near){
+      const dx=o.x-this.x, dy=o.y-this.y, d2=dx*dx+dy*dy;
+      const sepR=Math.min(150,(this.w+o.w)*0.22);
+      if(d2<sepR*sepR && d2>1){
+        const d=Math.sqrt(d2);
+        px -= dx/d*(sepR-d)/sepR; py -= dy/d*(sepR-d)/sepR;
+      }
+    }
+    this.x += px*1.1; this.y += py*0.9;
+  }
+
+  /* 무리 짓기 — 가벼운 근사. 격자에서 이웃만 꺼낸다 */
+  flock(world){
+    const near=world.neighbors(this.x, this.y, this);
+    if(!near.length) return;
+    let cx=0, cy=0, n=0, px=0, py=0;
+    for(const o of near){
+      const dx=o.x-this.x, dy=o.y-this.y;
+      const d2=dx*dx+dy*dy;
+      if(d2 > 190*190) continue;
+      if(o.spId===this.spId){ cx+=o.x; cy+=o.y; n++; }   // 같은 종에 끌린다
+      /* ⚠ 46px 은 몸 폭(270~400px)의 1/6 이라 사실상 겹쳐도 안 비켰다.
+         몸 크기에 맞춰 벌린다 — 상한을 둬서 무리가 흩어지지는 않게. */
+      const sepR=Math.min(150,(this.w+o.w)*0.22);
+      if(d2 < sepR*sepR && d2>1){
+        const d=Math.sqrt(d2);
+        px -= dx/d*(sepR-d)/sepR; py -= dy/d*(sepR-d)/sepR;
+      }
+    }
+    if(n){ this.x += ((cx/n)-this.x)*0.004; this.y += ((cy/n)-this.y)*0.004; }
+    this.x += px*0.9; this.y += py*0.6;
+  }
+
+  /* ── 9가지 움직임 ─────────────────────────────────── */
+  swim(sp){                       // 물고기 — 앞으로 나아가며 몸을 흔든다
+    this.x += sp*this.dir;
+    this.y += Math.sin(this.t*0.018+this.ph)*0.5;
+    if(rnd()<0.0016) this.dir*=-1;
+  }
+  undulate(sp){                   // 뱀장어 — 온몸이 크게 구불거린다
+    this.x += sp*0.85*this.dir;
+    this.y += Math.sin(this.t*0.03+this.ph)*1.1;
+    if(rnd()<0.0012) this.dir*=-1;
+  }
+  pulse(sp){                      // 해파리 — 오므렸다 펴며 떴다 가라앉는다
+    const k=(this.t*0.022+this.ph)%TAU;
+    const push = k<1.1 ? 1.6 : -0.14;
+    this.vy = lerp(this.vy, -push*sp*1.3, 0.08);
+    this.y += this.vy;
+    this.x += sp*0.28*this.dir + Math.sin(this.t*0.008)*0.2;
+    if(rnd()<0.0009) this.dir*=-1;
+  }
+  flap(sp){                       // 가오리 — 날개를 젓는다
+    this.x += sp*0.9*this.dir;
+    this.y += Math.sin(this.t*0.02+this.ph)*0.9;
+    if(rnd()<0.0011) this.dir*=-1;
+  }
+  glide(sp){                      // 거북·물범 — 느리고 미끄러진다
+    this.x += sp*0.6*this.dir;
+    this.y += Math.sin(this.t*0.01+this.ph)*0.35;
+    if(rnd()<0.0008) this.dir*=-1;
+  }
+  scuttle(sp){                    // 게 — 옆으로 종종
+    this.x += sp*1.1*this.dir;
+    this.y = World.zoneBand(this.zone)[1]-10 + Math.abs(Math.sin(this.t*0.16))*5;
+    if(rnd()<0.006) this.dir*=-1;
+  }
+  jet(sp){                        // 문어·오징어 — 확 쏘고 미끄러진다
+    this.stateT++;
+    if(this.stateT>90){ this.stateT=0; this.burst=26; if(rnd()<0.4) this.dir*=-1; }
+    if(this.burst>0){ this.burst--; this.x += sp*2.6*this.dir; }
+    else this.x += sp*0.22*this.dir;
+    this.y += Math.sin(this.t*0.012+this.ph)*0.4;
+  }
+  crawl(sp){                      // 불가사리·달팽이 — 바닥을 아주 느리게
+    this.x += sp*0.22*this.dir;
+    this.y = World.zoneBand(this.zone)[1]-8;
+    if(rnd()<0.003) this.dir*=-1;
+  }
+  bob(sp){                        // 복어·쏠배감펭 — 제자리에서 까딱
+    this.x += sp*0.4*this.dir;
+    this.y += Math.sin(this.t*0.035+this.ph)*0.9;
+    if(rnd()<0.002) this.dir*=-1;
+  }
+  dart(sp){                       // 새우·펭귄 — 짧게 툭툭
+    this.stateT++;
+    if(this.stateT>rndi(40,90)){ this.stateT=0; this.burst=14; if(rnd()<0.3) this.dir*=-1; }
+    if(this.burst>0){ this.burst--; this.x += sp*2.2*this.dir; this.y += Math.sin(this.t*0.3)*0.8; }
+  }
+  seahorse(sp){                   // 해마 — 곧추서서 위아래로
+    this.x += sp*0.3*this.dir;
+    this.y += Math.sin(this.t*0.02+this.ph)*0.8;
+    if(rnd()<0.0015) this.dir*=-1;
+  }
+
+  /* ── 그리기 ────────────────────────────────────────
+     세로 띠로 잘라 띠마다 밀어 그린다. 움직임마다 미는 방식이 다르다. */
+  draw(c, world){
+    const tex=this.tex; if(!tex) return;
+    const onW=this.w;
+    /* LOD — 작게 보이면 띠를 줄인다(실측 2.3배) */
+    const SL = onW<70?8 : onW<130?16 : onW<220?28 : 44;
+    let s=this.s;
+    let alpha=1, extraY=0, sx=1, sy=1, rot=0;
+
+    if(this.joinT>0){               // 합류 연출 — 커지며 나타난다
+      const k=1-this.joinT/70;
+      s*=0.4+0.6*k; alpha=k;
+    }
+    /* 만졌을 때의 몸짓 — 기존 움직임 위에 얹는다 */
+    if(this.reactT>0){
+      const k=1-this.reactT/this.reactMax;      // 0 → 1
+      const bump=Math.sin(k*Math.PI);           // 가운데서 최대
+      switch(this.reactKind){
+        case 'puff':  sx*=1+bump*0.55; sy*=1+bump*0.62; break;
+        case 'hide':  sx*=1-bump*0.34; sy*=1-bump*0.34; break;
+        case 'spin':  rot+=k*TAU; break;
+        case 'dash':  extraY-=bump*6; s*=1+bump*0.10; break;
+        case 'pinch': rot+=Math.sin(k*Math.PI*7)*0.30;                 // 집게 흔들기
+                      sx*=1+Math.sin(k*Math.PI*7)*0.14; break;
+        case 'curl':  rot+=Math.sin(k*Math.PI*3)*0.30; sx*=1-bump*0.12; break;
+        case 'glow':  sx*=1+bump*0.12; sy*=1+bump*0.12; break;
+        case 'blow':  extraY-=bump*18; sy*=1+bump*0.10; break;          // 물 뿜으며 솟구침
+        case 'ink':   extraY-=bump*4; sx*=1-bump*0.10; break;
+        default:      rot+=Math.sin(k*Math.PI*5)*0.26; extraY-=bump*12;  // 꼬리 흔들기
+                      sx*=1+bump*0.10;
+      }
+    }
+    const m=this.motion;
+    if(m==='pulse'){                // 해파리 — 종이 오므라든다
+      const k=Math.sin(this.t*0.022+this.ph);
+      sx=1+k*0.16; sy=1-k*0.20;
+    } else if(m==='seahorse'){ rot=-Math.PI/2*0.86; }
+      else if(m==='crawl' && this.sp.shape==='star'){ rot=this.t*0.004; }
+
+    /* 몸 중심을 this.y 에 맞춘다. 바닥에 붙는 종은 아래끝을 바닥에 맞춘다. */
+    const fit=BodyFit.of(tex);
+    const floorish = (m==='crawl'||m==='scuttle');
+    const adj = floorish ? -fit.botOff*s : -fit.midOff*s;
+    c.save();
+    c.globalAlpha=alpha;
+    c.translate(this.x, this.y+extraY+adj);
+    if(this.dir<0) c.scale(-1,1);
+    if(rot) c.rotate(rot);
+    c.scale(s*sx, s*sy);
+
+    const sw=TEX_W/SL;
+    for(let i=0;i<SL;i++){
+      const u=i/SL;                 // 0=꼬리 1=머리
+      let off=0, vscale=1;
+      switch(m){
+        case 'swim':     off=Math.sin(this.t*0.11+this.ph-u*3.0)*11*Math.pow(1-u,1.7); break;
+        case 'undulate': off=Math.sin(this.t*0.10+this.ph-u*5.4)*17*(0.35+0.65*(1-u)); break;
+        case 'flap':     off=0; vscale=1+Math.sin(this.t*0.075+this.ph)*0.30*Math.pow(Math.abs(u-0.5)*2,1.5); break;
+        case 'glide':    off=Math.sin(this.t*0.05+this.ph-u*2.0)*5*Math.pow(1-u,1.6); break;
+        case 'jet':      off=Math.sin(this.t*0.09+this.ph-u*2.4)*(this.burst>0?15:5)*Math.pow(1-u,1.4); break;
+        case 'scuttle':  off=Math.sin(this.t*0.30+u*7)*2.4; break;
+        case 'dart':     off=Math.sin(this.t*0.24+this.ph-u*3)*(this.burst>0?12:3)*Math.pow(1-u,1.5); break;
+        case 'bob':      off=Math.sin(this.t*0.07+this.ph-u*1.6)*5; break;
+        case 'crawl':    off=Math.sin(this.t*0.05+u*5)*2; break;
+        case 'pulse':    off=0; break;
+        case 'seahorse': off=Math.sin(this.t*0.08+this.ph-u*4)*7*Math.pow(1-u,2); break;
+      }
+      c.save();
+      if(vscale!==1) c.scale(1,vscale);
+      c.drawImage(tex, i*sw,0,sw+1,TEX_H,
+                  i*sw-TEX_W/2, off/ (vscale||1) - TEX_H/2, sw+1, TEX_H);
+      c.restore();
+    }
+    c.restore();
+    c.globalAlpha=1;
+
+    /* 내 것 표시 */
+    if(this.mine && world && world.findT>0){
+      c.save();
+      const a=Math.min(1, world.findT/40);
+      c.globalAlpha=a;
+      /* ⚠ 화살표 어셋이 있으면 **원을 건너뛰었다.** 수십 마리 중에서
+         46px 화살표 하나로는 못 찾는다. 원은 늘 그리고 화살표는 얹는다. */
+      c.strokeStyle=PAL.gold; c.lineWidth=5;
+      c.beginPath(); c.arc(this.x, this.y, onW*0.72+10+Math.sin(this.t*0.1)*5, 0, TAU); c.stroke();
+      const arrowSz=Math.max(64, onW*0.55);
+      if(!(typeof FXA!=='undefined' &&
+           FXA.draw(c,'fx-arrow-point', this.x, this.y-onW*0.72-arrowSz*0.55, arrowSz, 0))){
+        c.fillStyle=PAL.gold;
+        c.beginPath(); c.moveTo(this.x, this.y-onW*0.72-16);
+        c.lineTo(this.x-10, this.y-onW*0.72-34); c.lineTo(this.x+10, this.y-onW*0.72-34);
+        c.closePath(); c.fill();
+      } else {
+        c.strokeStyle=PAL.gold; c.lineWidth=3; c.globalAlpha=a*0.7;
+        c.beginPath(); c.arc(this.x, this.y, onW*0.72+8+Math.sin(this.t*0.1)*4, 0, TAU); c.stroke();
+      }
+      c.restore();
+    }
+    /* 이름표 — 가까이 있는 것만 */
+    if(this.name && onW>110){
+      c.save();
+      c.globalAlpha=0.9;
+      c.font='600 15px Galmuri11, sans-serif'; c.textAlign='center';
+      const tw=c.measureText(this.name).width+16;
+      c.fillStyle='rgba(10,32,54,.62)';
+      c.fillRect(this.x-tw/2, this.y+this.h*0.42, tw, 21);
+      c.fillStyle=PAL.white;
+      c.fillText(this.name, this.x, this.y+this.h*0.42+16);
+      c.restore();
+    }
+  }
+}
+
+/* 색칠 결과 → 180x120 텍스처 (합성: 칠한 것 → 마스크로 자르기 → 잉크 덮기) */
+function bakeCreature(fillCanvas, spId){
+  const t=Templates.get(spId);
+  const big=document.createElement('canvas'); big.width=TW; big.height=TH;
+  const b=big.getContext('2d');
+  b.drawImage(fillCanvas,0,0);
+  b.globalCompositeOperation='destination-in';
+  b.drawImage(t.mask,0,0);
+  b.globalCompositeOperation='source-over';
+  b.drawImage(t.ink,0,0);
+  const small=document.createElement('canvas'); small.width=TEX_W; small.height=TEX_H;
+  const s=small.getContext('2d');
+  s.imageSmoothingEnabled=true; s.imageSmoothingQuality='high';
+  s.drawImage(big,0,0,TW,TH,0,0,TEX_W,TEX_H);
+  return small;
+}
+
+</script>
+<script>
+/* ===== js/35_jungle.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   정글 — 부위로 나뉜 동물.
+
+   ⚠ 물고기는 몸을 통으로 휘면 헤엄이 되지만, 네발 동물은 **다리가 따로 움직여야**
+     걷는 것처럼 보인다. 그래서 도안이 body/head/legF/legB/ear 로 나뉘어 온다.
+   ⚠ 아이는 '조립된 한 마리'에 색칠한다. 부위별로 칠하게 하면 아이가 이해 못 한다.
+     그래서 조립 도안을 만들어 칠하게 하고, 그릴 때 부위별로 잘라 쓴다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const JPARTS=['body','head','legF','legB','ear','tail'];
+/* ⚠ 뱀은 다리가 없어 부위로 못 나눈다. 바다 방식(한 덩어리 undulate)으로 쓴다.
+   도안은 assets/jungle/ 에 오지만 720x480 한 장이다. */
+const JUNGLE_FLAT = { snake:{ ko:'뱀', motion:'undulate', size:1.1 } };
+/* 각 부위 그림 안에서 '몸에 붙는 쪽' 좌표 (발주서에 못박은 값) */
+const JOINT={ head:[40,256], legF:[128,30], legB:[128,30], ear:[128,226], tail:[30,128] };
+
+/* 종별 — body 안에서 각 부위가 붙는 자리 (내가 정한다).
+   body 는 512x512, 부위는 256x256 기준. */
+const JUNGLE = {
+  /* anchor = body(512x512) 안에서 그 부위가 붙는 자리. 내가 종마다 잡는다.
+     ⚠ 발주서엔 부위 그림 안의 '이음점'만 못박았다(JOINT).
+        몸의 어디에 붙일지는 종마다 다르니 코드가 정한다. */
+  elephant:{ ko:'코끼리', parts:['body','head','legF','legB','ear'],
+    anchor:{head:[452,232],legF:[372,392],legB:[150,392],ear:[350,180]},
+    scale:{head:1.0,legF:0.92,legB:0.92,ear:0.85}, gait:{swing:0.40,bob:5,speed:0.85}},
+  lion:{ ko:'사자', parts:['body','head','legF','legB','tail','ear'],
+    anchor:{head:[448,236],legF:[366,394],legB:[152,394],tail:[74,258]},
+    scale:{head:1.05,legF:0.86,legB:0.86,tail:0.9}, gait:{swing:0.46,bob:5,speed:1.05}},
+  tiger:{ ko:'호랑이', parts:['body','head','legF','legB','tail','ear'],
+    anchor:{head:[450,240],legF:[368,396],legB:[150,396],tail:[72,262]},
+    scale:{head:0.98,legF:0.86,legB:0.86,tail:0.95}, gait:{swing:0.48,bob:5,speed:1.1}},
+  bear:{ ko:'곰', parts:['body','head','legF','legB','ear'],
+    anchor:{head:[444,238],legF:[362,392],legB:[156,392],ear:[356,182]},
+    scale:{head:1.0,legF:0.9,legB:0.9,ear:0.7}, gait:{swing:0.38,bob:6,speed:0.8}},
+  panda:{ ko:'판다', parts:['body','head','legF','legB','ear'],
+    anchor:{head:[442,236],legF:[360,392],legB:[158,392],ear:[352,180]},
+    scale:{head:1.02,legF:0.9,legB:0.9,ear:0.7}, gait:{swing:0.34,bob:6,speed:0.7}},
+  giraffe:{ ko:'기린', parts:['body','head','legF','legB','ear','tail'],
+    anchor:{head:[452,150],legF:[372,392],legB:[152,392],ear:[360,110],tail:[74,252]},
+    scale:{head:0.85,legF:1.05,legB:1.05,ear:0.6,tail:0.8}, gait:{swing:0.40,bob:4,speed:0.95}},
+  zebra:{ ko:'얼룩말', parts:['body','head','legF','legB','tail','ear'],
+    anchor:{head:[450,214],legF:[368,392],legB:[152,392],tail:[72,250]},
+    scale:{head:0.95,legF:1.0,legB:1.0,tail:0.85}, gait:{swing:0.46,bob:5,speed:1.1}},
+  hippo:{ ko:'하마', layer:'water', parts:['body','head','legF','legB'],
+    anchor:{head:[452,248],legF:[368,398],legB:[152,398]},
+    scale:{head:1.08,legF:0.82,legB:0.82}, gait:{swing:0.30,bob:4,speed:0.65}},
+  rhino:{ ko:'코뿔소', parts:['body','head','legF','legB','ear'],
+    anchor:{head:[452,244],legF:[368,396],legB:[152,396],ear:[366,178]},
+    scale:{head:1.05,legF:0.86,legB:0.86,ear:0.6}, gait:{swing:0.34,bob:5,speed:0.75}},
+  monkey:{ ko:'원숭이', layer:'branch', move:'bounce', parts:['body','head','legF','legB','tail','ear'],
+    anchor:{head:[440,222],legF:[358,388],legB:[164,388],tail:[76,248]},
+    scale:{head:1.0,legF:0.8,legB:0.8,tail:1.05}, gait:{swing:0.52,bob:7,speed:1.15}},
+  sloth:{ ko:'나무늘보', layer:'branch', move:'creep', parts:['body','head','legF','legB'],
+    anchor:{head:[440,226],legF:[356,386],legB:[164,386]},
+    scale:{head:1.0,legF:0.95,legB:0.95}, gait:{swing:0.22,bob:3,speed:0.35}},
+  pig:{ ko:'돼지', parts:['body','head','legF','legB','ear','tail'],
+    anchor:{head:[448,246],legF:[364,396],legB:[156,396],ear:[356,192],tail:[74,262]},
+    scale:{head:1.0,legF:0.76,legB:0.76,ear:0.62,tail:0.55}, gait:{swing:0.42,bob:6,speed:0.9}},
+  /* ── P12 보통 16종 (도착 대기) ── */
+  deer:{ ko:'사슴', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.46,bob:5,speed:1.0}},
+  wolf:{ ko:'늑대', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.48,bob:5,speed:1.1}},
+  fox:{ ko:'여우', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.50,bob:5,speed:1.15}},
+  leopard:{ ko:'표범', parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.48,bob:5,speed:1.1}},
+  cheetah:{ ko:'치타', parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.56,bob:4,speed:1.35}},
+  kangaroo:{ ko:'캥거루', parts:['body','head','legF','legB','tail','ear'], move:'hop', gait:{swing:0.30,bob:12,speed:1.2}},
+  koala:{ ko:'코알라', layer:'branch', parts:['body','head','legF','legB','ear'], gait:{swing:0.24,bob:4,speed:0.45}},
+  camel:{ ko:'낙타', parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.38,bob:6,speed:0.8}},
+  llama:{ ko:'라마', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.40,bob:5,speed:0.9}},
+  gorilla:{ ko:'고릴라', parts:['body','head','legF','legB'], gait:{swing:0.36,bob:7,speed:0.7}},
+  crocodile:{ ko:'악어', layer:'water', parts:['body','head','legF','legB','tail'], gait:{swing:0.26,bob:2,speed:0.55}},
+  landturtle:{ ko:'육지거북', parts:['body','head','legF','legB','tail'], gait:{swing:0.20,bob:2,speed:0.3}},
+  raccoon:{ ko:'너구리', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.44,bob:5,speed:0.95}},
+  squirrel:{ ko:'다람쥐', layer:'branch', parts:['body','head','legF','legB','ear','tail'], move:'bounce', gait:{swing:0.54,bob:8,speed:1.25}},
+  hedgehog:{ ko:'고슴도치', parts:['body','head','legF','legB'], gait:{swing:0.34,bob:4,speed:0.6}},
+  rabbit:{ ko:'토끼', parts:['body','head','legF','legB','ear','tail'], move:'hop', gait:{swing:0.28,bob:11,speed:1.1}},
+  /* ── P13 화려 12종 (도착 대기) ── */
+  peacock:{ ko:'공작', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.34,bob:5,speed:0.7}},
+  parrot:{ ko:'앵무', layer:'branch', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.40,bob:6,speed:0.9}},
+  toucan:{ ko:'큰부리새', layer:'branch', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.38,bob:6,speed:0.85}},
+  flamingo:{ ko:'플라밍고', layer:'water', parts:['body','head','legF','legB','wing'], move:'strut', gait:{swing:0.42,bob:4,speed:0.8}},
+  owl:{ ko:'부엉이', layer:'branch', parts:['body','head','legF','legB','ear','wing'], move:'strut', gait:{swing:0.26,bob:3,speed:0.5}},
+  chameleon:{ ko:'카멜레온', layer:'branch', parts:['body','head','legF','legB','tail'], gait:{swing:0.22,bob:2,speed:0.35}},
+  iguana:{ ko:'이구아나', parts:['body','head','legF','legB','tail'], gait:{swing:0.28,bob:2,speed:0.5}},
+  frog:{ ko:'개구리', layer:'water', parts:['body','head','legF','legB'], move:'hop', gait:{swing:0.30,bob:13,speed:0.95}},
+  /* 나비·잠자리는 legF/legB 자리에 날개가 온다 — 더 크게 펄럭인다 */
+  butterfly:{ ko:'나비', layer:'canopy', parts:['body','head','wing'], move:'fly', gait:{swing:0.85,bob:9,speed:1.0}, flyer:true},
+  beetle:{ ko:'장수풍뎅이', parts:['body','head','legF','legB'], gait:{swing:0.36,bob:3,speed:0.6}},
+  dragonfly:{ ko:'잠자리', layer:'canopy', parts:['body','head','wing'], move:'fly', gait:{swing:0.95,bob:7,speed:1.3}, flyer:true},
+};
+
+/* ── 조립 좌표 — 마스터 SVG 에서 뽑아 둔 값 ───────────────
+   ⚠ 붙는 자리를 비율로 추측했더니 사자 갈기가 몸 위에 뜨고 기린 목이
+     막대처럼 떠 있었다(실측 4회 시행착오).
+     어셋에 <id>-parts-master.svg 가 함께 와서 **의도된 좌표**가 들어 있었다.
+     추측하지 말고 그걸 쓴다. tools/extract_layout.py 가 _layout.json 으로 뽑는다. */
+const JLayout = {
+  data:null, loading:false,
+  load(){
+    if(this.data||this.loading) return;
+    this.loading=true;
+    fetch('assets/jungle/_layout.json').then(r=>r.json())
+      .then(d=>{ this.data=d; JTemplate.cache={}; })
+      .catch(()=>{ this.data={}; });
+  },
+  of(id){ return this.data && this.data[id]; }
+};
+
+/* ── 몸에서 이음 자리를 자동으로 뽑는다 (마스터가 없을 때만) ──
+   ⚠ anchor 를 눈대중으로 찍었더니 머리가 몸에서 떨어져 떠 있었다(실측).
+     종마다 몸 그림이 다르니 **몸 마스크의 실제 범위**에서 비율로 계산한다.
+     12종이 왔고 40종이 더 올 수도 있다 — 손으로 찍을 일이 아니다. */
+const BodyBox = {
+  cache:{},
+  of(id, maskImg){
+    if(this.cache[id]) return this.cache[id];
+    const c=document.createElement('canvas'); c.width=512; c.height=512;
+    const x=c.getContext('2d'); x.drawImage(maskImg,0,0,512,512);
+    const d=x.getImageData(0,0,512,512).data;
+    let x0=512,y0=512,x1=-1,y1=-1;
+    for(let yy=0;yy<512;yy+=2) for(let xx=0;xx<512;xx+=2)
+      if(d[((yy*512+xx)*4)+3]>128){ if(xx<x0)x0=xx; if(xx>x1)x1=xx; if(yy<y0)y0=yy; if(yy>y1)y1=yy; }
+    if(x1<0){ x0=100;y0=150;x1=400;y1=380; }
+    const v={x0,y0,x1,y1,w:x1-x0,h:y1-y0};
+    this.cache[id]=v; return v;
+  },
+  /* 부위 자신의 그림 범위도 잰다 — 여백이 종마다 달라서 이걸 모르면 뜬다 */
+  part(id, part, maskImg){
+    const k=id+':'+part;
+    if(this.cache[k]) return this.cache[k];
+    const c=document.createElement('canvas'); c.width=256; c.height=256;
+    const x=c.getContext('2d'); x.drawImage(maskImg,0,0,256,256);
+    const d=x.getImageData(0,0,256,256).data;
+    let x0=256,y0=256,x1=-1,y1=-1;
+    for(let yy=0;yy<256;yy+=2) for(let xx=0;xx<256;xx+=2)
+      if(d[((yy*256+xx)*4)+3]>128){ if(xx<x0)x0=xx; if(xx>x1)x1=xx; if(yy<y0)y0=yy; if(yy>y1)y1=yy; }
+    if(x1<0){ x0=40;y0=40;x1=216;y1=216; }
+    const v={x0,y0,x1,y1,w:x1-x0,h:y1-y0};
+    this.cache[k]=v; return v;
+  },
+  /* 부위별 붙는 자리 — 몸 범위 대비 비율.
+     ⚠ 그냥 몸 가장자리에 두면 '닿기만 하고 안 겹쳐' 떠 보인다(실측).
+        몸 안쪽으로 확실히 밀어 넣는다. */
+  /* 부위를 '몸에 비해 얼마나 크게' 그릴지 — 보이는 크기 기준.
+     ⚠ 캔버스 비율(256 vs 512)로 그렸더니 머리가 너무 작았다. 그림이 캔버스를
+        얼마나 채우는지는 부위마다 다르다. 보이는 폭/높이로 맞춘다. */
+  relSize(part, id){
+    const T={ head:0.46, legF:0.20, legB:0.20, ear:0.26, tail:0.30 };
+    const S={ giraffe:{head:0.34}, monkey:{head:0.42,tail:0.44},
+              hippo:{head:0.54}, elephant:{head:0.50,ear:0.34},
+              lion:{head:0.52}, sloth:{head:0.44} };
+    return (S[id]&&S[id][part]) || T[part] || 0.4;
+  },
+  anchor(b, part, id){
+    switch(part){
+      case 'head': return [b.x1-b.w*0.20, b.y0+b.h*(id==='giraffe'?0.06:0.32)];
+      case 'legF': return [b.x0+b.w*0.72, b.y1-b.h*0.12];
+      case 'legB': return [b.x0+b.w*0.22, b.y1-b.h*0.12];
+      case 'ear' : return [b.x1-b.w*0.26, b.y0+b.h*0.10];
+      case 'tail': return [b.x0+b.w*0.08, b.y0+b.h*0.36];
+    }
+    return [b.x0+b.w/2, b.y0+b.h/2];
+  }
+};
+
+/* ── 조립 도안 ─────────────────────────────────────────
+   부위를 쉬는 자세로 늘어놓아 720x480 한 장으로 만든다.
+   아이는 이 한 장에 칠한다. */
+const JTemplate = {
+  cache:{},
+  get(id){
+    if(this.cache[id]) return this.cache[id];
+    const D=JUNGLE[id]; if(!D) return null;
+    /* ⚠ 무슨 부위로 이루어졌는지는 **어셋이 안다.**
+       나비를 재제작하며 다리가 빠지고 wing 이 생겼는데, 코드의 parts 는
+       옛 목록(legF/legB)이라 사자 다리를 그대로 붙이고 날개는 무시했다.
+       레이아웃 파일이 있으면 그쪽이 정본이다. (같은 실수를 조립 좌표에서
+       이미 한 번 했다 — 어셋에 딸려온 파일을 먼저 열어 봤어야 했다) */
+    const L0=JLayout.of(id);
+    const parts=(L0&&L0.parts) ? Object.keys(L0.parts) : D.parts;
+    const imgs={}; let ready=true;
+    for(const p of parts){
+      for(const k of ['ink','mask']){
+        const n=`${id}-${p}-${k}`;
+        let im=this._img[n];
+        if(!im){
+          im=new Image(); im.src=`assets/jungle/${n}.png`;
+          this._img[n]=im;
+        }
+        if(!im.complete || !im.naturalWidth) ready=false;
+        imgs[p+'_'+k]=im;
+      }
+    }
+    if(!ready) return null;
+    const L=JLayout.of(id);
+    /* 조립 — 마스터 좌표가 있으면 그대로, 없으면 비율로 추정 */
+    const mk=(kind)=>{
+      const c=document.createElement('canvas'); c.width=TW; c.height=TH;
+      const x=c.getContext('2d');
+      if(L){
+        /* 마스터 캔버스를 720x480 에 꽉 맞춘다 */
+        const S=Math.min(TW/L.canvas[0], TH/L.canvas[1])*0.98;
+        const ox=(TW-L.canvas[0]*S)/2, oy=(TH-L.canvas[1]*S)/2;
+        for(const p of ['legB','wing','tail','ear','body','legF','head']){
+          if(!parts.includes(p)) continue;
+          const pos=L.parts[p]; const im=imgs[p+'_'+kind];
+          if(!pos||!im) continue;
+          /* 마스터의 부위 PNG는 대개 512×512/256×256이지만, 기린·홍학처럼
+             세로 비율을 살린 256×512 부위도 있다. 256×256으로 강제하면 긴
+             다리가 납작해져 형태 QA를 통과한 에셋도 게임에서 망가진다. */
+          const iw=im.naturalWidth || ((p==='body'||p==='head')?512:256);
+          const ih=im.naturalHeight || iw;
+          x.drawImage(im, ox+pos[0]*S, oy+pos[1]*S, iw*S, ih*S);
+        }
+        return c;
+      }
+      /* 512 짜리 body 를 720x480 에 맞춘다 */
+      const S=TH/512*0.92, ox=TW/2-512*S/2, oy=TH/2-512*S/2;
+      const box=BodyBox.of(id, imgs['body_mask']);
+      const put=(p)=>{
+        const im=imgs[p+'_'+kind]; if(!im) return;
+        if(p==='body'){ x.drawImage(im, ox, oy, 512*S, 512*S); return; }
+        const a=BodyBox.anchor(box,p,id);
+        const pb=BodyBox.part(id,p,imgs[p+'_mask']);
+        /* 보이는 폭이 몸 폭의 relSize 배가 되도록 배율을 역산한다 */
+        const sc = (box.w * BodyBox.relSize(p,id)) / Math.max(1, pb.w) * (256/512) * 2;
+        /* 이음점 대신 '그림의 붙는 쪽 가장자리'를 anchor 에 맞춘다.
+           부위마다 여백이 달라서 이음점 좌표만 믿으면 뜬다. */
+        const j=[
+          p==='head'||p==='tail' ? pb.x0 : (pb.x0+pb.x1)/2,
+          p==='legF'||p==='legB' ? pb.y0 : (p==='ear' ? pb.y1 : (pb.y0+pb.y1)/2)
+        ];
+        const w=256*S*sc, h=256*S*sc;
+        const dx=ox+a[0]*S - j[0]*S*sc;
+        const dy=oy+a[1]*S - j[1]*S*sc;
+        x.drawImage(im, dx, dy, w, h);
+      };
+      /* 뒤에 있는 것부터 */
+      ['legB','ear','body','legF','head','tail'].forEach(p=>{ if(D.parts.includes(p)) put(p); });
+      return c;
+    };
+    const t={ ink:mk('ink'), mask:mk('mask'), D, imgs, parts, S:TH/512*0.92,
+              box:BodyBox.of(id, imgs['body_mask']) };
+    this.cache[id]=t;
+    return t;
+  },
+  _img:{},
+  prefetch(){ JLayout.load(); Object.keys(JUNGLE).forEach(id=>{
+    const D=JUNGLE[id];
+    const L=JLayout.of(id);
+    const ps=(L&&L.parts) ? Object.keys(L.parts) : D.parts;
+    for(const p of ps) for(const k of ['ink','mask']){
+      const n=`${id}-${p}-${k}`;
+      if(!this._img[n]){ const im=new Image(); im.src=`assets/jungle/${n}.png`; this._img[n]=im; }
+    }
+  }); }
+};
+
+/* ── 걷는 동물 ─────────────────────────────────────────
+   칠한 그림(조립본)에서 부위별 조각을 떼어 각각 회전시킨다. */
+/* 조립 텍스처 안에서 동물이 실제로 차지하는 범위 (발 위치용) */
+const WalkFit = {
+  cache:new WeakMap(),
+  of(tex){
+    let v=this.cache.get(tex); if(v) return v;
+    try{
+      const c=document.createElement('canvas'); c.width=TEX_W; c.height=TEX_H;
+      const x=c.getContext('2d'); x.drawImage(tex,0,0);
+      const d=x.getImageData(0,0,TEX_W,TEX_H).data;
+      let y0=TEX_H,y1=-1;
+      for(let y=0;y<TEX_H;y++) for(let px=0;px<TEX_W;px+=2)
+        if(d[((y*TEX_W+px)*4)+3]>40){ if(y<y0)y0=y; if(y>y1)y1=y; break; }
+      if(y1<0){ y0=0; y1=TEX_H-1; }
+      v={top:y0, bot:y1, botOff:y1-TEX_H/2};
+    }catch(e){ v={top:0,bot:TEX_H-1,botOff:TEX_H/2}; }
+    this.cache.set(tex,v); return v;
+  }
+};
+
+
+/* ══ 정글도 만지면 반응한다 ══════════════════════════ */
+const JUNGLE_REACT = {
+  elephant:'trumpet',
+  lion:'roar', tiger:'roar', leopard:'roar', cheetah:'roar', wolf:'roar', gorilla:'roar',
+  kangaroo:'jump', rabbit:'jump', frog:'jump',
+  monkey:'swing', squirrel:'swing', sloth:'swing', koala:'swing', chameleon:'swing',
+  parrot:'flap', toucan:'flap', owl:'flap', flamingo:'flap', peacock:'fan',
+  butterfly:'flap', dragonfly:'flap',
+  giraffe:'stretch', camel:'stretch', llama:'stretch', deer:'stretch',
+  bear:'shake', fox:'shake', raccoon:'shake', panda:'shake', zebra:'shake',
+  hedgehog:'curlup', landturtle:'curlup', iguana:'curlup', beetle:'curlup',
+  hippo:'yawn', crocodile:'yawn', rhino:'yawn', pig:'yawn',
+};
+const JREACT_LEN = { trumpet:56, roar:50, jump:44, swing:52, flap:46,
+                     fan:60, stretch:54, shake:42, curlup:50, yawn:56, nod:38 };
+
+/* 층 이름 → 번호 */
+const JLAYER_IDX={ canopy:0, branch:1, ground:2, water:3 };
+
+class Walker {
+  constructor(paintedTex, id, name, opt){
+    opt=opt||{};
+    this.id=id; this.D=JUNGLE[id]; this.name=name||'';
+    this.tex=paintedTex;            // 조립 상태로 칠해진 텍스처 (TEX_W x TEX_H)
+    /* 높이 층 — 종마다 사는 높이가 다르다 */
+    this.layer = JLAYER_IDX[(this.D&&this.D.layer)||'ground'];
+    this.x=opt.x!==undefined?opt.x:rnd()*VW;
+    /* 층 안에서도 흩어놓는다 — 같은 층이 한 줄로 서면 층을 나눈 의미가 없다.
+       위 층일수록 폭이 넓다(가지·허공은 자유롭고 물가는 강을 벗어나면 안 된다) */
+    const SPREAD=[54,44,46,20][this.layer];
+    this.depth=rnd();                       // 0 = 뒤(위·작게) · 1 = 앞(아래·크게)
+    this.baseY=JWorld.layerY(this.layer)+(this.depth-0.5)*2*SPREAD;
+    this.y=opt.y!==undefined?opt.y:this.baseY;
+    this.dir=rnd()<0.5?-1:1;
+    /* ⚠ 0.7~1.1 로 뒀더니 화면에서 101x81px 였다 — 아이 그림이 안 보인다.
+       조립 텍스처를 동물이 66%x79% 만 채우므로 배율을 더 키워야 한다. */
+    /* 위 층일수록 작게 — 멀리 있는 느낌.
+       ⚠ 층 안에서 크기가 균일하면 20마리가 한 줄로 겹쳐 벽이 된다.
+         같은 층에서도 뒤(위)에 선 것은 작게 — 겹쳐도 앞뒤로 읽힌다. */
+    const LS=[0.62,0.78,1.0,1.06][this.layer!==undefined?this.layer:2];
+    const near=0.78+(this.depth!==undefined?this.depth:0.5)*0.44;   // 0.78 ~ 1.22
+    this.s=(1.5+rnd()*0.7)*LS*near;
+    this.spd=(0.4+rnd()*0.5)*this.D.gait.speed;
+    this.t=rnd()*300; this.ph=rnd()*TAU;
+    this.mine=!!opt.mine; this.joinT=opt.join?70:0;
+    this.scared=0; this.reactT=0; this.reactKind=null;
+  }
+  /* 만졌다 — 종에 맞는 반응 */
+  react(){
+    const kind = JUNGLE_REACT[this.id] || 'nod';
+    this.reactKind = kind;
+    this.reactT = this.reactMax = JREACT_LEN[kind] || 40;
+    const x=this.x, y=this.y;
+    if(kind==='roar' || kind==='trumpet') FX.note(x, y-this.h*0.5);
+    else if(kind==='jump')   FX.dust(x, y+8, 12);
+    else if(kind==='fan')    FX.sparkle(x, y-this.h*0.3, 14);
+    else if(kind==='yawn')   FX.ring(x, y-this.h*0.2);
+    else if(kind==='shake')  FX.dust(x, y+6, 8);
+    else                     FX.heart(x, y-this.h*0.45);
+    if(typeof Sfx!=='undefined' && Sfx.creature) Sfx.creature(kind);
+    return kind;
+  }
+  get w(){ return TEX_W*this.s; }
+  get h(){ return TEX_H*this.s; }
+  update(dt, world){
+    this.t+=dt*60;
+    if(this.joinT>0) this.joinT--;
+    if(this.scared>0) this.scared--;
+    if(this.reactT>0) this.reactT--;
+    const sp=this.spd*(this.scared>0?2.8:1);
+    /* ⚠ 모든 종이 똑같이 걸었다 — 캥거루가 안 뛰고 나비가 안 날았다(실측:
+       전 종 세로 흔들림 0px). 속도만 다르면 40종이 한 종처럼 보인다. */
+    /* 나뭇가지 층은 가지 위를 딛는다 — 가지가 없는 구간에서는 제 층 높이로.
+       급히 바뀌면 순간이동처럼 보이므로 천천히 따라간다. */
+    let G0=this.baseY!==undefined?this.baseY:JWorld.groundY();
+    if(this.layer===1 && world && world.perchYAt){
+      const py=world.perchYAt(this.x);
+      this.perchY = (this.perchY===undefined) ? (py!==null?py:G0) : this.perchY;
+      const want = (py!==null) ? py : G0;
+      this.perchY += (want-this.perchY)*0.06;
+      G0=this.perchY;
+    }
+    switch(this.D.move){
+      case 'hop': {                       // 캥거루·토끼·개구리 — 진짜로 뛴다
+        this.hopT=(this.hopT||0)+1;
+        const period = 46 + (this.D.gait.bob||10);
+        const k=(this.hopT%period)/period;
+        const air = k<0.62 ? Math.sin(k/0.62*Math.PI) : 0;
+        this.y = G0 - air*(52+this.D.gait.bob*2.2);
+        this.airborne = air>0.15;
+        break; }
+      case 'fly': {                       // 나비·잠자리 — 땅에 안 붙는다
+        /* ⚠ 층을 넣기 전엔 땅에서 150px 띄웠는데, 이제 기준선 자체가 나무 위라
+           그대로 두면 **화면 밖으로 나갔다**(실측 y=-32).
+           층 기준선 둘레에서만 떠다닌다. */
+        this.flyPh=(this.flyPh||rnd()*TAU)+0.03;
+        this.y = G0 + Math.sin(this.flyPh)*44 + Math.sin(this.flyPh*0.37)*22;
+        break; }
+      case 'bounce':                      // 원숭이·다람쥐 — 통통
+        this.y = G0 - Math.abs(Math.sin(this.t*0.14+this.ph))*22; break;
+      case 'creep':                       // 나무늘보 — 거의 안 움직인다
+        this.y = G0 - Math.sin(this.t*0.02+this.ph)*3; break;
+      case 'strut':                       // 새 — 목을 까딱이며 걷는다
+        this.y = G0 - Math.abs(Math.sin(this.t*0.09+this.ph))*7; break;
+      default:
+        this.y = G0;
+    }
+    if(this.mine && world && world.callAt && this.scared<=0){
+      const cx=world.callAt.x, d=cx-this.x;
+      if(Math.abs(d)>80){
+        this.dir=d>0?1:-1; this.x += sp*2.8*this.dir;
+        if(Game.t%9===0) FX.sparkle(this.x, this.y-40, 1);
+        return;
+      }
+    }
+    /* 손가락을 대고 있으면 다가온다 — 층은 유지하고 x 로만 */
+    if(world.touchAt && !(this.scared>0) && !(this.reactT>0)){
+      const T=world.touchAt, dx=T.x-this.x, ax=Math.abs(dx);
+      if(T.swirl && ax<260){                 // 휘저으면 밀린다
+        this.x += (T.vx||0)*(1-ax/260)*0.45;
+        if(Math.abs(T.vx||0)>2) this.dir=(T.vx>0)?1:-1;
+        return;
+      }
+      const eager=Math.min(1,(T.hold-20)/70);
+      if(eager>0 && !T.swirl && ax<820){
+        if(ax>110){ this.x+=Math.sign(dx)*sp*1.6*eager; this.dir=dx>0?1:-1; }
+        else { this.x+=Math.sign(dx)*sp*0.25; }   // 도착하면 서성인다
+        return;                                    // 제 갈 길은 접는다
+      }
+    }
+    /* 무리 — 같은 종끼리 느슨하게 모인다(바다와 같은 격자를 쓴다)
+       ⚠ 밀어내기 반경이 70px 이었는데 동물 폭은 300~400px 이다.
+         8마리 중 7쌍이 겹쳤다(실측) — 아이 그림이 서로를 가린다.
+         몸 크기로 벌리고, 6프레임마다는 너무 드물어 3프레임마다 본다. */
+    if(world.flock && (Game.t + this.ph*97|0) % 3 === 0){
+      const near=world.neighbors(this.x, this.y, this);
+      let cx=0,n=0,px=0;
+      for(const o of near){
+        const dx=o.x-this.x, ax=Math.abs(dx);
+        if(ax>340) continue;
+        if((o.id||o.spId)===this.id){ cx+=o.x; n++; }
+        const sep=(this.w+o.w)*0.30;
+        if(ax<sep && ax>1) px -= dx/ax*(sep-ax)/sep;
+      }
+      if(n) this.x += ((cx/n)-this.x)*0.003;
+      this.x += px*1.6;
+    }
+    this.x += sp*this.dir;
+    if(this.x<-this.w) this.x=VW+this.w;
+    if(this.x>VW+this.w) this.x=-this.w;
+    if(rnd()<0.0012) this.dir*=-1;
+  }
+  draw(c, world){
+    if(!this.tex) return;
+    let s=this.s, alpha=1;
+    if(this.joinT>0){ const k=1-this.joinT/70; s*=0.4+0.6*k; alpha=k; }
+    const g=this.D.gait;
+    /* 몸이 위아래로 까딱 — 걷는 리듬 */
+    const bob=Math.sin(this.t*0.16+this.ph)*g.bob*0.1;
+    /* 발이 땅에 닿게 — 조립본마다 동물 위치가 달라 자동으로 맞춘다 */
+    const fit=WalkFit.of(this.tex);
+    /* 만졌을 때의 몸짓 — 걷는 리듬 위에 얹는다 */
+    let rsx=1, rsy=1, rrot=0, rdy=0, rdx=0;
+    if(this.reactT>0){
+      const k=1-this.reactT/this.reactMax;
+      const bump=Math.sin(k*Math.PI);
+      switch(this.reactKind){
+        case 'trumpet': rrot=Math.sin(k*Math.PI*4)*0.10; rsx=1+bump*0.10; break;
+        case 'roar':    rsx=1+bump*0.22; rsy=1+bump*0.26; rrot=Math.sin(k*Math.PI*6)*0.05; break;
+        case 'jump':    rdy=-bump*70; rsy=1+bump*0.12; break;
+        case 'swing':   rrot=Math.sin(k*Math.PI*3)*0.34; break;
+        case 'flap':    rsy=1+Math.sin(k*Math.PI*8)*0.16; rdy=-bump*26; break;
+        case 'fan':     rsx=1+bump*0.42; rsy=1+bump*0.16; break;
+        case 'stretch': rsy=1+bump*0.30; rdy=-bump*14; break;
+        case 'shake':   rrot=Math.sin(k*Math.PI*9)*0.13;                 // 몸 털기
+                        rdx=Math.sin(k*Math.PI*11)*this.w*0.06; break;
+        case 'curlup':  rsx=1-bump*0.26; rsy=1-bump*0.30; break;
+        case 'yawn':    rsx=1+bump*0.20; rsy=1-bump*0.06; break;
+        default:        rdy=-bump*16; rrot=Math.sin(k*Math.PI*4)*0.09;
+      }
+    }
+    c.save();
+    c.globalAlpha=alpha;
+    c.translate(this.x+rdx, this.y+bob*s - fit.botOff*s + rdy);
+    if(this.dir<0) c.scale(-1,1);
+    if(rrot) c.rotate(rrot);
+    c.scale(s*rsx, s*rsy);
+    /* ⚠ 부위를 따로 회전시키려면 조각을 떼야 한다.
+       칠한 텍스처는 조립본이므로, 각 부위의 화면 영역을 알아야 한다.
+       그 영역은 JTemplate 의 배치와 같은 식으로 계산한다. */
+    const T=JTemplate.get(this.id);
+    if(!T){ c.drawImage(this.tex, -TEX_W/2, -TEX_H/2); c.restore(); return; }
+    const k=TEX_W/TW;                  // 조립도안(720) → 텍스처(180)
+    const D=this.D;
+    const L=JLayout.of(this.id);
+    let S, ox, oy, useMaster=false;
+    if(L){
+      useMaster=true;
+      S=Math.min(TW/L.canvas[0], TH/L.canvas[1])*0.98*k;
+      ox=(TEX_W-L.canvas[0]*S)/2; oy=(TEX_H-L.canvas[1]*S)/2;
+    } else { S=T.S*k; ox=TEX_W/2-512*S/2; oy=TEX_H/2-512*S/2; }
+    const legAng=(which)=>{
+      /* 날개형(나비·잠자리)은 좌우가 **같이** 펄럭인다. 다리처럼 교대하면 어색하다 */
+      const off = g && this.D.flyer ? 0 : (which==='legF'?0:Math.PI);
+      const rate = this.D.flyer ? 0.42 : 0.16;
+      return Math.sin(this.t*rate+this.ph+off)*g.swing;
+    };
+    const PARTS=(T&&T.parts)||D.parts;
+    const part=(p)=>{
+      if(!PARTS.includes(p)) return;
+      if(useMaster){
+        const pos=L.parts[p]; if(!pos) return;
+        /* ⚠ 조립(JTemplate.mk)은 PNG 실제 크기로 그리는데 여기서만 정사각형을
+           가정하면, 세로형 부위(기린·홍학 다리 256x512, 캥거루·토끼 귀)를
+           **절반만 잘라 회전**한다. 다리 위쪽만 흔들리고 아래는 붙박이가 된다.
+           조립과 같은 크기를 써야 한다. */
+        const src=T && T.imgs && T.imgs[p+'_ink'];
+        const iw=(src&&src.naturalWidth) || ((p==='body'||p==='head')?512:256);
+        const ih=(src&&src.naturalHeight) || iw;
+        const w=iw*S, h=ih*S;
+        const sx=ox+pos[0]*S, sy=oy+pos[1]*S;
+        /* 회전축 — 다리는 위쪽 가운데, 귀는 아래쪽 가운데 */
+        /* 날개는 **몸에 붙은 쪽**을 축으로 돈다. 가운데를 축으로 하면
+           날개가 몸에서 떨어져 허공에서 빙빙 돈다. */
+        const px = sx + w*(p==='wing' ? 0.86 : 0.5);
+        const py = (p==='legF'||p==='legB') ? sy + h*0.12 : sy + h*0.5;
+        let ang=0;
+        if(p==='legF'||p==='legB') ang=legAng(p);
+        if(p==='ear') ang=Math.sin(this.t*0.11+this.ph)*0.18;
+        if(p==='wing') ang=Math.sin(this.t*0.42+this.ph)*0.30;
+        c.save();
+        c.translate(px-TEX_W/2, py-TEX_H/2);
+        if(ang) c.rotate(ang);
+        c.drawImage(this.tex, sx,sy,w,h, -(px-sx), -(py-sy), w,h);
+        c.restore();
+        return;
+      }
+      const a=BodyBox.anchor(T.box,p,this.id);
+      const pb=BodyBox.part(this.id,p,T.imgs[p+'_mask']);
+      const sc = (T.box.w * BodyBox.relSize(p,this.id)) / Math.max(1, pb.w) * (256/512) * 2;
+      const j=[
+        p==='head'||p==='tail' ? pb.x0 : (pb.x0+pb.x1)/2,
+        p==='legF'||p==='legB' ? pb.y0 : (p==='ear' ? pb.y1 : (pb.y0+pb.y1)/2)
+      ];
+      const w=256*S*sc, h=256*S*sc;
+      const px=ox+a[0]*S, py=oy+a[1]*S;      // 이음점의 텍스처 좌표
+      const sx=px-j[0]*S*sc, sy=py-j[1]*S*sc; // 조각의 좌상단
+      let ang=0;
+      if(p==='legF'||p==='legB') ang=legAng(p);
+      if(p==='ear') ang=Math.sin(this.t*0.11+this.ph)*0.22;
+      c.save();
+      c.translate(px-TEX_W/2, py-TEX_H/2);
+      if(ang) c.rotate(ang);
+      c.drawImage(this.tex, sx,sy,w,h, -(px-sx), -(py-sy), w,h);
+      c.restore();
+    };
+    /* body 는 통째로, 나머지는 조각내어 */
+    if(useMaster){
+      ['legB','wing','tail','ear'].forEach(part);
+      const bp=L.parts['body'];
+      if(bp) c.drawImage(this.tex, ox+bp[0]*S, oy+bp[1]*S, 512*S, 512*S,
+        ox+bp[0]*S-TEX_W/2, oy+bp[1]*S-TEX_H/2, 512*S, 512*S);
+      ['legF','head'].forEach(part);
+    } else {
+      ['legB','ear'].forEach(part);
+      c.drawImage(this.tex, ox, oy, 512*S, 512*S,
+        ox-TEX_W/2, oy-TEX_H/2, 512*S, 512*S);
+      ['legF','head'].forEach(part);
+    }
+    c.restore();
+    c.globalAlpha=1;
+
+    /* 내 것 표시 — ⚠ 바다에만 있고 **정글엔 없었다.**
+       찾기를 누르면 동물이 모이기는 하는데 표시가 안 떠서
+       아이가 어느 게 자기 것인지 알 수 없었다. 이 게임의 핵심 기능이다. */
+    if(this.mine && world && world.findT>0){
+      c.save();
+      c.globalAlpha=Math.min(1, world.findT/40);
+      const r=this.w*0.42+10+Math.sin(this.t*0.1)*5;
+      c.strokeStyle=PAL.gold; c.lineWidth=5;
+      c.beginPath(); c.ellipse(this.x, this.y-this.h*0.14, r, this.h*0.52, 0, 0, TAU); c.stroke();
+      const ay=this.y-this.h*0.66, asz=Math.max(64, this.w*0.32);
+      if(!(typeof FXA!=='undefined' &&
+           FXA.draw(c,'fx-arrow-point', this.x, ay-asz*0.55, asz, 0))){
+        c.fillStyle=PAL.gold;
+        c.beginPath(); c.moveTo(this.x, ay); c.lineTo(this.x-14, ay-22);
+        c.lineTo(this.x+14, ay-22); c.closePath(); c.fill();
+      }
+      c.restore();
+    }
+
+    if(this.name && this.w>110){
+      c.save(); c.globalAlpha=0.9;
+      c.font='600 15px Galmuri11, sans-serif'; c.textAlign='center';
+      const tw=c.measureText(this.name).width+16;
+      c.fillStyle='rgba(20,40,20,.62)';
+      c.fillRect(this.x-tw/2, this.y+this.h*0.30, tw, 21);
+      c.fillStyle=PAL.white; c.fillText(this.name, this.x, this.y+this.h*0.30+16);
+      c.restore();
+    }
+  }
+}
+
+/* 색칠 결과 → 텍스처. 바다와 같은 방식이되 조립 도안을 쓴다. */
+function bakeWalker(fillCanvas, id){
+  const t=JTemplate.get(id);
+  const big=document.createElement('canvas'); big.width=TW; big.height=TH;
+  const b=big.getContext('2d');
+  b.drawImage(fillCanvas,0,0);
+  if(t){
+    b.globalCompositeOperation='destination-in'; b.drawImage(t.mask,0,0);
+    b.globalCompositeOperation='source-over';    b.drawImage(t.ink,0,0);
+  }
+  const small=document.createElement('canvas'); small.width=TEX_W; small.height=TEX_H;
+  const sx=small.getContext('2d');
+  sx.imageSmoothingEnabled=true; sx.imageSmoothingQuality='high';
+  sx.drawImage(big,0,0,TW,TH,0,0,TEX_W,TEX_H);
+  return small;
+}
+
+</script>
+<script>
+/* ===== js/40_world.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   수조 — 깊이 6구역 · 시간대 4단계 · 패럴랙스
+
+   ⚠ 배경이 한 장이면 40종을 넣어도 한 화면처럼 보인다.
+     깊이에 따라 색·소품·빛이 바뀌고, 시간대가 그 위에 물든다.
+     전부 코드로 그린다(어셋 0). 실물이 오면 층별로 갈아 끼운다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* 구역: 0 수면 · 1 산호 · 2 중층 · 3 모래 · 4 바닥 · 5 심해 */
+const ZONE_N=6;
+
+/* 시간대 — 하늘빛이 물 전체를 물들인다 */
+const TIMES=[
+  {id:'dawn',  ko:'새벽', top:'#2a4a72', bot:'#0a1c30', tint:'rgba(255,180,140,.10)'},
+  {id:'day',   ko:'낮',   top:'#2fa3d8', bot:'#08243c', tint:'rgba(255,255,255,.04)'},
+  {id:'dusk',  ko:'저녁', top:'#c2643f', bot:'#0d1e34', tint:'rgba(255,120,60,.12)'},
+  {id:'night', ko:'밤',   top:'#12294a', bot:'#050d18', tint:'rgba(80,120,255,.10)'},
+];
+
+/* ── 배경 실물 로더 ─────────────────────────────────────
+   ⚠ 어셋이 없으면 지금까지의 코드 그림으로 폴백한다.
+     한 장씩 오는 대로 갈아 끼워지므로 중간에 멈춰도 화면이 안 깨진다. */
+const BG = {
+  cache:{}, tried:{},
+  get(n){
+    if(this.cache[n]) return this.cache[n];
+    if(this.tried[n]) return null;
+    this.tried[n]=true;
+    /* ⚠ webp 만 찾다가 png 로 온 배경 4종(vignette·paper·frame-wood·caustics)을
+       통째로 놓쳤다. 확장자는 납품하는 쪽 사정이다 — 둘 다 본다. */
+    const img=new Image();
+    img.onload=()=>{ this.cache[n]=img; };
+    img.onerror=()=>{
+      const p2=new Image();
+      p2.onload=()=>{ this.cache[n]=p2; };
+      p2.src='assets/bg/'+n+'.png';
+    };
+    img.src='assets/bg/'+n+'.webp';
+    return null;
+  },
+  /* 가로로 이어 붙여 그린다. off 만큼 흘린다. */
+  tile(c,n,y,h,off){
+    const img=this.get(n); if(!img) return false;
+    const w=h*(img.width/img.height);
+    let x=-(((off||0)%w)+w)%w;
+    for(; x<VW; x+=w) c.drawImage(img,x,y,w,h);
+    return true;
+  },
+  fill(c,n,y,h){
+    const img=this.get(n); if(!img) return false;
+    c.drawImage(img,0,y,VW,h); return true;
+  },
+  prefetch(){ ['caustics','vignette','water-deep','lightrays','surface','sand-floor','rock-far','rock-near',
+    'coral-far','coral-near','kelp','bubbles','dust','cave'].forEach(n=>this.get(n)); }
+};
+
+/* ── 소품 — 바닥에 놓이는 것들 ─────────────────────────── */
+const Props = {
+  cache:{}, tried:{},
+  get(n){
+    if(this.cache[n]) return this.cache[n];
+    if(this.tried[n]) return null;
+    this.tried[n]=true;
+    const img=new Image(); img.onload=()=>{ this.cache[n]=img; };
+    img.src='assets/prop/'+n+'.png';
+    return null;
+  },
+  /* 바닥에 세워 놓는다 — 밑면이 y 에 닿는다 */
+  draw(c,n,x,y,h){
+    const img=this.get(n); if(!img) return false;
+    const w=h*(img.width/img.height);
+    c.drawImage(img, Math.round(x-w/2), Math.round(y-h), w, h);
+    return true;
+  },
+  prefetch(){ ['anemone','clam','urchin','coral-branch','coral-brain','seagrass',
+    'treasure-chest-open','treasure-chest-closed','anchor','shipwreck','bottle','pearl',
+    'feed-pellet','sign-wood','lantern','flag','basket','bucket','easel'].forEach(n=>this.get(n)); }
+};
+
+const World = {
+  zone:1, timeIdx:1, t:0, scroll:0,
+  foods:[], bubbles:[], motes:[], kelp:[], corals:[], rocks:[],
+  scareAt:null, findT:0, whale:null, whaleCd:1400, touchAt:null,
+
+  zoneY(z){ return VH*(0.16+z*0.13); },
+  zoneBand(z){ const c=World.zoneY(z); return [c-110, c+110]; },
+
+  init(){
+    /* 소품을 구역별로 흩뿌린다 — 구역마다 다른 풍경이 되도록 */
+    this.kelp=[]; this.corals=[]; this.rocks=[];
+    for(let i=0;i<26;i++) this.kelp.push({x:rnd()*VW*1.4, h:120+rnd()*260, w:14+rnd()*16,
+      ph:rnd()*TAU, depth:0.3+rnd()*0.5});
+    for(let i=0;i<22;i++) this.corals.push({x:rnd()*VW*1.4, y:VH*0.62+rnd()*VH*0.26,
+      r:26+rnd()*46, n:rndi(3,6), hue:rndi(0,360), depth:0.5+rnd()*0.5});
+    for(let i=0;i<22;i++) this.rocks.push({x:rnd()*VW*1.4, y:VH*0.78+rnd()*VH*0.16,
+      w:60+rnd()*140, h:30+rnd()*70, depth:0.25+rnd()*0.4});
+    for(let i=0;i<70;i++) this.motes.push({x:rnd()*VW, y:rnd()*VH, r:0.8+rnd()*1.8, sp:0.1+rnd()*0.3});
+    /* 바닥 소품 — 실물 어셋이 있으면 놓는다. 자리는 한 번만 정한다. */
+    const KINDS=[['anemone',96],['clam',64],['urchin',54],['coral-branch',120],
+                 ['coral-brain',76],['seagrass',110],['anchor',96],['bottle',58],
+                 ['treasure-chest-closed',78],['pearl',30]];
+    this.props=[];
+    for(let i=0;i<22;i++){
+      const k=KINDS[i%KINDS.length];
+      this.props.push({n:k[0], h:k[1]*(0.8+rnd()*0.5),
+        x:rnd()*VW*1.4, depth:0.5+rnd()*0.5, y:VH-VH*0.12-rnd()*VH*0.05});
+    }
+    /* 난파선 — 큰 장식 하나 */
+    this.wreck={ x:VW*0.62, y:VH-VH*0.14, h:200 };
+  },
+  update(dt){
+    this.t+=dt*60;
+    this.scroll+=dt*8;
+    if(this.findT>0) this.findT--;
+    if(this.scareAt && --this.scareAt.life<=0) this.scareAt=null;
+    if(this.callAt && --this.callAt.life<=0) this.callAt=null;
+    /* 공기방울 */
+    if(this.t%7<1) this.bubbles.push({x:rnd()*VW, y:VH+10, r:2+rnd()*6, sp:0.6+rnd()*1.4, ph:rnd()*TAU});
+    for(let i=this.bubbles.length-1;i>=0;i--){
+      const b=this.bubbles[i]; b.y-=b.sp; b.x+=Math.sin(this.t*0.02+b.ph)*0.4;
+      if(b.y<-20) this.bubbles.splice(i,1);
+    }
+    for(const m of this.motes){ m.y-=m.sp*0.3; m.x+=Math.sin(this.t*0.006+m.y)*0.12;
+      if(m.y<-4){ m.y=VH+4; m.x=rnd()*VW; } }
+    /* 먹이 */
+    for(let i=this.foods.length-1;i>=0;i--){
+      const f=this.foods[i];
+      f.y+=f.vy; f.vy=Math.min(0.62,f.vy+0.006); f.x+=Math.sin(this.t*0.03+f.ph)*0.4;
+      if(--f.life<=0 || f.y>VH) this.foods.splice(i,1);
+    }
+    /* 가끔 고래가 지나간다 — 큰 사건 */
+    if(!this.whale && --this.whaleCd<=0){
+      this.whaleCd=2400+rndi(0,1800);
+      this.whale={x:-400, y:VH*0.32+rnd()*VH*0.2, s:1.5, t:0};
+    }
+    if(this.whale){ this.whale.x+=0.9; this.whale.t++; if(this.whale.x>VW+500) this.whale=null; }
+  },
+  /* ⚠ 5알을 좁게 뿌렸더니 **1초 만에 전부 먹혔다**(실측: 60프레임에 0개).
+     반경 안에 18마리가 있으니 즉시 소진된다 — 아이가 반응을 볼 시간이 없다.
+     먹이는 이 게임에서 몇 안 되는 '내가 일으킨 사건'이다. 몇 초는 가야 한다.
+     16알을 넓게 뿌리고 천천히 가라앉힌다. */
+  dropFood(x,y){
+    for(let i=0;i<22;i++)
+      this.foods.push({
+        x: x+(rnd()-0.5)*260,
+        y: y+(rnd()-0.5)*90 - i*4,          // 조금씩 시차를 두고 내려온다
+        vy: 0.10+rnd()*0.10, life:1500, ph:rnd()*TAU});
+    Sfx.plop();
+  },
+  nearestFood(x,y){
+    let best=null,bd=1e9;
+    for(const f of this.foods){ const d=dist(x,y,f.x,f.y); if(d<bd){bd=d;best=f;} }
+    return best;
+  },
+  /* ⚠ 한 입에 알이 통째로 사라져 16알이 1초 만에 없어졌다(실측).
+     아이는 먹이를 **보고 싶어 한다** — 세 번 쪼아야 없어지게 하면
+     한 알에 여러 마리가 모여드는 그림이 나오고, 화면에도 3배 오래 남는다. */
+  eatFood(f,c){
+    f.bites=(f.bites||0)+1;
+    FX.heart(c.x, c.y-20);
+    Sfx.eat();
+    if(f.bites>=3){
+      const i=this.foods.indexOf(f); if(i>=0) this.foods.splice(i,1);
+    } else {
+      /* 쪼일 때마다 조금 튕겨 나간다 — 물고기끼리 겹치지 않게 */
+      f.x += (f.x-c.x)*0.10 + (rnd()-0.5)*14;
+      f.y += (f.y-c.y)*0.10 - 6;
+      f.vy = -0.25;
+    }
+  },
+  /* ── 이웃 격자 ────────────────────────────────────
+     ⚠ 전부와 거리 비교하면 300마리에 45,000번이다. 한 프레임에 못 한다.
+     화면을 220px 칸으로 나눠 같은 칸 + 이웃 칸만 본다. */
+  grid:null, gridT:-1, CELL:220,
+  rebuildGrid(list){
+    if(this.gridT===Game.t) return;
+    this.gridT=Game.t;
+    const g={};
+    for(const c of list){
+      const k=((c.x/this.CELL)|0)+','+((c.y/this.CELL)|0);
+      (g[k]=g[k]||[]).push(c);
+    }
+    this.grid=g;
+  },
+  neighbors(x,y,self){
+    this.rebuildGrid(Game.beings);
+    const gx=(x/this.CELL)|0, gy=(y/this.CELL)|0, out=[];
+    for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){
+      const cell=this.grid[(gx+i)+','+(gy+j)];
+      if(!cell) continue;
+      for(const o of cell){ if(o!==self && !o.dead) out.push(o); if(out.length>14) return out; }
+    }
+    return out;
+  },
+  flock:true,
+  /* ── 내 것을 부른다 ────────────────────────────────
+     ⚠ '찾기'가 금색 고리만 띄우면 아이는 여전히 눈으로 훑어야 한다.
+       **내 물고기가 아이 앞으로 헤엄쳐 와야** '나를 알아본다'가 된다. */
+  callMine(x,y){
+    /* ⚠ 300프레임(5초)으로 뒀더니 화면 반대편 개체가 도착 전에 부름이 끝났다
+       (실측: 셋 중 하나가 276px 지점에서 멈춤). 12초로 늘린다. */
+    this.findT=720; this.callAt={x,y,life:720};
+  },
+  scare(x,y){ this.scareAt={x,y,life:50};
+    for(const c of Game.creatures){ if(dist(c.x,c.y,x,y)<260) c.scared=64; }
+    FX.ring(x,y);
+  },
+
+  /* ── 배경 그리기 ─────────────────────────────────── */
+  draw(c){
+    const T=TIMES[this.timeIdx];
+    if(!BG.fill(c,'water-deep',0,VH)){
+      const g=c.createLinearGradient(0,0,0,VH);
+      g.addColorStop(0,T.top); g.addColorStop(0.55,PAL.deep1); g.addColorStop(1,T.bot);
+      c.fillStyle=g; c.fillRect(0,0,VW,VH);
+    }
+
+    /* 빛기둥 — 수면에서 내려온다 */
+    c.save(); c.globalCompositeOperation='lighter';
+    if(BG.tile(c,'lightrays',0,VH,this.scroll*6)){ c.restore(); }
+    else {
+    for(let i=0;i<7;i++){
+      const x=((i*230 + this.scroll*6)%(VW+400))-200;
+      const w=70+Math.sin(this.t*0.006+i)*26;
+      const lg=c.createLinearGradient(0,0,0,VH*0.8);
+      lg.addColorStop(0,'rgba(255,240,190,.10)'); lg.addColorStop(1,'rgba(255,240,190,0)');
+      c.fillStyle=lg;
+      c.beginPath(); c.moveTo(x,0); c.lineTo(x+w,0); c.lineTo(x+w*2.4,VH*0.8); c.lineTo(x-w*0.6,VH*0.8);
+      c.closePath(); c.fill();
+    }
+    c.restore(); }
+
+    /* 수면 물결 */
+    if(BG.tile(c,'surface',0,VH*0.09,this.scroll*3)){}
+    else { c.save(); c.fillStyle='rgba(255,255,255,.10)';
+    c.beginPath(); c.moveTo(0,0);
+    for(let x=0;x<=VW;x+=16) c.lineTo(x, 26+Math.sin(x*0.018+this.t*0.03)*10);
+    c.lineTo(VW,0); c.closePath(); c.fill(); c.restore(); }
+
+    /* 먼 바위 (느리게) */
+    if(!BG.tile(c,'rock-far',VH*0.52,VH*0.30,this.scroll*0.9)){
+      this.layer(c, this.rocks, 0.35, (o,px)=>{
+        c.fillStyle='rgba(8,28,46,.85)';
+        c.beginPath(); c.ellipse(px,o.y,o.w,o.h,0,Math.PI,0); c.fill();
+      });
+    }
+    BG.tile(c,'rock-near',VH*0.60,VH*0.34,this.scroll*1.5);
+    /* 산호 */
+    const coralHD = BG.tile(c,'coral-far',VH*0.58,VH*0.24,this.scroll*1.8)
+                  | BG.tile(c,'coral-near',VH*0.66,VH*0.28,this.scroll*2.6);
+    if(!coralHD) this.layer(c, this.corals, 0.6, (o,px)=>{
+      c.strokeStyle=`hsla(${o.hue},55%,42%,.9)`; c.lineWidth=7; c.lineCap='round';
+      for(let k=0;k<o.n;k++){
+        const a=-Math.PI/2+(k/(o.n-1)-0.5)*1.5;
+        const sway=Math.sin(this.t*0.012+k+o.x)*7;
+        c.beginPath(); c.moveTo(px,o.y);
+        c.quadraticCurveTo(px+Math.cos(a)*o.r*0.6+sway, o.y+Math.sin(a)*o.r*0.7,
+                           px+Math.cos(a)*o.r+sway*1.6, o.y+Math.sin(a)*o.r);
+        c.stroke();
+      }
+    });
+    /* 미역 */
+    if(!BG.tile(c,'kelp',VH-VH*0.50,VH*0.50,this.scroll*3.2))
+    this.layer(c, this.kelp, 0.8, (o,px)=>{
+      c.strokeStyle='rgba(38,110,78,.85)'; c.lineWidth=o.w; c.lineCap='round';
+      c.beginPath(); c.moveTo(px, VH);
+      const sway=Math.sin(this.t*0.014+o.ph)*26;
+      c.quadraticCurveTo(px+sway, VH-o.h*0.55, px+sway*1.7, VH-o.h);
+      c.stroke();
+    });
+    /* 난파선 — 가장 뒤 장식 */
+    if(this.wreck) Props.draw(c,'shipwreck',
+      ((this.wreck.x-this.scroll*1.2)%(VW*1.6)+VW*1.6)%(VW*1.6)-VW*0.3,
+      this.wreck.y, this.wreck.h);
+
+    /* 바닥 모래 */
+    if(BG.tile(c,'sand-floor',VH-VH*0.18,VH*0.18,this.scroll*3.6)){}
+    else {
+    const sg=c.createLinearGradient(0,VH-120,0,VH);
+    sg.addColorStop(0,'rgba(232,212,168,0)'); sg.addColorStop(1,'rgba(232,212,168,.55)');
+    c.fillStyle=sg;
+    c.beginPath(); c.moveTo(0,VH);
+    for(let x=0;x<=VW;x+=24) c.lineTo(x, VH-56-Math.sin(x*0.01+this.t*0.002)*14);
+    c.lineTo(VW,VH); c.closePath(); c.fill(); }
+
+    /* 물빛 무늬 — 수면이 바닥에 만드는 그물. 천천히 흐른다 */
+    const ca=BG.get('caustics');
+    if(ca){
+      c.save(); c.globalAlpha=0.16; c.globalCompositeOperation='lighter';
+      const sz=340, ox=-(this.t*0.28)%sz, oy=-(this.t*0.12)%sz;
+      for(let x=ox-sz;x<VW+sz;x+=sz)
+        for(let y=VH*0.42+oy-sz;y<VH+sz;y+=sz) c.drawImage(ca,x,y,sz,sz);
+      c.restore();
+    }
+    /* 바닥 소품 — 모래 위에 */
+    if(this.props) for(const p of this.props){
+      const px=((p.x - this.scroll*3.0*p.depth)%(VW*1.4)+VW*1.4)%(VW*1.4)-VW*0.2;
+      if(px<-160||px>VW+160) continue;
+      Props.draw(c,p.n,px,p.y,p.h);
+    }
+
+    /* 먼지 */
+    if(!BG.tile(c,'dust',0,VH,this.scroll*0.6)){
+      c.fillStyle='rgba(255,255,255,.13)';
+      for(const m of this.motes){ c.beginPath(); c.arc(m.x,m.y,m.r,0,TAU); c.fill(); }
+    }
+  },
+  layer(c, arr, depth, fn){
+    for(const o of arr){
+      const px=((o.x - this.scroll*depth*o.depth)%(VW*1.4)+VW*1.4)%(VW*1.4)-VW*0.2;
+      if(px<-260||px>VW+260) continue;
+      fn(o,px);
+    }
+  },
+  drawFront(c){
+    /* 공기방울 — 생물 앞 */
+    c.save();
+    for(const b of this.bubbles){
+      c.strokeStyle='rgba(255,255,255,.42)'; c.lineWidth=1.4;
+      c.beginPath(); c.arc(b.x,b.y,b.r,0,TAU); c.stroke();
+      c.fillStyle='rgba(255,255,255,.14)'; c.fill();
+    }
+    /* 먹이 */
+    for(const f of this.foods){
+      /* 쪼일수록 작아진다 — 남은 양이 눈에 보여야 아이가 '먹고 있구나' 안다 */
+      const k=1-(f.bites||0)*0.28;
+      if(!Props.draw(c,'feed-pellet',f.x,f.y+7*k,14*k)){
+        c.fillStyle=PAL.gold;
+        c.beginPath(); c.arc(f.x,f.y,4*k,0,TAU); c.fill();
+        c.strokeStyle='rgba(255,255,255,.7)'; c.lineWidth=1; c.stroke();
+      }
+    }
+    c.restore();
+    /* 시간대 물들이기 */
+    c.fillStyle=TIMES[this.timeIdx].tint; c.fillRect(0,0,VW,VH);
+    this.drawGlass(c);
+    /* 가장자리 어둠 — 어셋이 있으면 그림으로 */
+    const vg=BG.get('vignette');
+    if(vg){ c.globalAlpha=0.8; c.drawImage(vg,0,0,VW,VH); c.globalAlpha=1; }
+    else {
+      const v=c.createRadialGradient(VW/2,VH/2,VH*0.44,VW/2,VH/2,VH*1.10);
+      v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.26)');
+      c.fillStyle=v; c.fillRect(0,0,VW,VH);
+    }
+  },
+
+  /* ── 유리 ────────────────────────────────────────────
+     ⚠ 지금까지는 '물속'이었지 '수조'가 아니었다. 아이는 물 안에 있는 게 아니라
+       **유리 앞에 서서 들여다본다.** 그 한 겹이 수족관을 수족관으로 만든다.
+     비스듬한 반사광 두 줄 + 위쪽 밝은 띠 + 모서리 이음매.
+     전부 아주 옅게 — 아이 그림보다 튀면 안 된다. */
+  drawGlass(c){
+    c.save();
+    /* 비스듬히 흐르는 반사광 */
+    c.globalCompositeOperation='lighter';
+    const t=this.t*0.0016;
+    for(let i=0;i<2;i++){
+      const off=((t*0.6+i*0.5)%1.6-0.3)*VW;
+      const g=c.createLinearGradient(off, 0, off+VW*0.30, VH);
+      g.addColorStop(0,'rgba(255,255,255,0)');
+      g.addColorStop(0.5,'rgba(200,235,255,'+(0.05+i*0.015)+')');
+      g.addColorStop(1,'rgba(255,255,255,0)');
+      c.fillStyle=g; c.fillRect(0,0,VW,VH);
+    }
+    /* 수면에 가까운 위쪽이 더 밝다 */
+    const top=c.createLinearGradient(0,0,0,VH*0.34);
+    top.addColorStop(0,'rgba(190,240,255,.10)');
+    top.addColorStop(1,'rgba(190,240,255,0)');
+    c.fillStyle=top; c.fillRect(0,0,VW,VH*0.34);
+    c.globalCompositeOperation='source-over';
+    /* 유리 모서리 — 아주 얇게. 수조 안을 들여다본다는 신호다 */
+    c.strokeStyle='rgba(255,255,255,.10)'; c.lineWidth=3;
+    c.strokeRect(1.5,1.5,VW-3,VH-3);
+    const edge=26;
+    c.fillStyle='rgba(255,255,255,.045)';
+    c.fillRect(0,0,edge,VH); c.fillRect(VW-edge,0,edge,VH);
+    c.restore();
+  },
+  drawWhale(c){
+    if(!this.whale) return;
+    const w=this.whale;
+    c.save(); c.globalAlpha=0.32;
+    c.translate(w.x,w.y); c.scale(w.s,w.s);
+    c.fillStyle='#0a2a44';
+    c.beginPath();
+    c.moveTo(220,0); c.quadraticCurveTo(120,-90,-40,-70);
+    c.quadraticCurveTo(-150,-50,-190,0);
+    c.quadraticCurveTo(-150,60,-40,78);
+    c.quadraticCurveTo(120,92,220,0); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(-190,0); c.lineTo(-280,-70+Math.sin(w.t*0.03)*18);
+    c.lineTo(-240,0); c.lineTo(-280,70+Math.sin(w.t*0.03)*18); c.closePath(); c.fill();
+    c.restore();
+  }
+};
+
+</script>
+<script>
+/* ===== js/45_jungleworld.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   정글 무대 — 바다와 같은 구조, 다른 층 구성.
+
+   ⚠ 바다는 '깊이'로 층을 나눴지만 정글은 '거리'로 나눈다.
+     동물은 땅 위를 걸으므로 세로 자유도가 거의 없다 — 대신 앞뒤로 겹친다.
+     맨 앞 풀(grass-front)이 동물을 가려야 '숲 속에 있다'가 된다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const JTIMES=[
+  {id:'morning', ko:'아침', tint:'rgba(255,214,150,.14)'},
+  {id:'day',     ko:'낮',   tint:'rgba(255,255,255,.03)'},
+  {id:'evening', ko:'저녁', tint:'rgba(255,140,70,.16)'},
+  {id:'night',   ko:'밤',   tint:'rgba(40,70,160,.22)'},
+];
+
+const JWorld = {
+  t:0, scroll:0, timeIdx:1, foods:[], scareAt:null, findT:0, touchAt:null, props:[], leaves:[],
+  /* 큰 이벤트 — 바다에 고래가 지나가듯, 정글엔 새 떼가 하늘을 가른다 */
+  flock2:null, flockCd:1500,
+  /* ── 높이 층 ──────────────────────────────────────────
+     ⚠ 바다는 깊이 6구역에 생물이 층층이 있는데 정글은 **땅 한 줄**이었다.
+       나비도 개구리도 코끼리도 같은 높이에 서서 화면이 납작했다.
+     배경이 덮는 구간(측정값)에 맞춰 층을 나눈다:
+       나뭇잎지붕 0~144 · 덩굴 0~302 · 나무 158~561 · 강 518~590 · 땅 561~720
+     0 나무 위  — 나비·잠자리·새 (지붕과 나무 사이)
+     1 나뭇가지 — 원숭이·다람쥐·나무늘보·앵무 (나무 중간)
+     2 땅       — 네발동물 대부분
+     3 물가     — 개구리·악어·하마 (강 근처, 가장 앞) */
+  LAYERS:[
+    { id:'canopy', y:0.255, name:'나무 위' },
+    { id:'branch', y:0.480, name:'나뭇가지' },
+    { id:'ground', y:0.755, name:'땅' },
+    { id:'water',  y:0.815, name:'물가' },
+  ],
+  layerY(i){ return VH*this.LAYERS[Math.max(0,Math.min(3,i|0))].y; },
+
+  /* 이 x 에 가지가 있으면 그 **윗면** y 를, 없으면 null.
+     ⚠ 층만 나눠 놓으면 원숭이가 가지 옆 허공에 서 있다. 층을 나눈 뜻이
+       "나무 위에 산다"인데, 앉을 자리가 없으면 그냥 높이 뜬 땅일 뿐이다.
+     가지는 스크롤하므로 화면 좌표로 옮겨 비교한다. */
+  perchYAt(x){
+    let best=null, bd=1e9;
+    for(const p of this.perches){
+      if(p.n==='liana-loop'||p.n==='tree-hole') continue;   // 매달리는 것·구멍은 발판이 아니다
+      const px=((p.x - this.scroll*1.9*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
+      const halfW=(p.h*2.4)/2;                              // 가지 폭의 절반(대략)
+      const d=Math.abs(px-x);
+      if(d<halfW && d<bd){ bd=d; best=p.y; }
+    }
+    return best;
+  },
+  groundY(){ return VH*0.755; },
+  band(){ return [VH*0.66, VH*0.80]; },
+
+  init(){
+    this.props=[];
+    const K=[['fruit-tree',260],['bush',110],['log',96],['stump',86],
+             ['flower-patch',56],['mushroom',60],['rock-perch',82],['pond',90],['nest',48]];
+    for(let i=0;i<18;i++){
+      const k=K[i%K.length];
+      this.props.push({n:k[0], h:k[1]*(0.8+rnd()*0.5),
+        x:rnd()*VW*1.5, depth:0.4+rnd()*0.6,
+        y:this.groundY()+ (k[0]==='fruit-tree'? 10 : rnd()*26)});
+    }
+    /* 나뭇가지 층 — 동물이 앉을 자리.
+       ⚠ 층을 나눴더니 원숭이·앵무가 **허공에 떠** 있었다. 가지가 없어서다.
+       어셋(P15 branch-*)이 오면 Props.draw 가 실물로 대체한다. */
+    this.perches=[];
+    const B=[['branch-thick',300],['branch-fork',270],['branch-thin',240],
+             ['liana-loop',150],['tree-hole',130]];
+    for(let i=0;i<9;i++){
+      const b=B[i%B.length];
+      this.perches.push({n:b[0], w:b[1]*(0.85+rnd()*0.4),
+        h:(b[0]==='liana-loop'?150:b[0]==='tree-hole'?96:104)*(0.82+rnd()*0.42),
+        x:rnd()*VW*1.5, depth:0.5+rnd()*0.5,
+        y:this.layerY(1)+(rnd()-0.4)*46});
+    }
+    /* 물가 층 — 수련잎·돌 */
+    this.bankProps=[];
+    const R=[['lilypad',110],['river-stone',120],['reeds',150],['mud-bank',210]];
+    for(let i=0;i<7;i++){
+      const r=R[i%R.length];
+      this.bankProps.push({n:r[0], w:r[1]*(0.85+rnd()*0.4),
+        x:rnd()*VW*1.5, depth:0.6+rnd()*0.4,
+        y:this.layerY(3)+(rnd()-0.3)*18});
+    }
+    for(let i=0;i<22;i++) this.leaves.push({x:rnd()*VW, y:rnd()*VH, r:rnd()*TAU,
+      sp:0.25+rnd()*0.5, sw:rnd()*TAU, sz:10+rnd()*10});
+  },
+
+  /* 소품이 아직 없을 때 코드로 그리는 임시 가지.
+     어셋이 도착하면 이 함수는 호출되지 않는다. */
+  fallbackPerch(c,n,x,y,w){
+    c.save(); c.strokeStyle='#4a3a28'; c.lineCap='round';
+    if(n==='liana-loop'){
+      c.strokeStyle='#4f7a3a'; c.lineWidth=9;
+      c.beginPath(); c.moveTo(x,y-70); c.quadraticCurveTo(x+18,y+30,x-14,y+64);
+      c.stroke();
+      c.beginPath(); c.ellipse(x-14,y+78,17,13,0,0,TAU); c.stroke();
+    } else if(n==='tree-hole'){
+      c.fillStyle='#3a2b1e'; c.beginPath(); c.ellipse(x,y,w*0.22,w*0.28,0,0,TAU); c.fill();
+      c.lineWidth=8; c.stroke();
+    } else {
+      c.lineWidth = n==='branch-thin' ? 11 : 19;
+      c.beginPath(); c.moveTo(x-w/2,y+8); c.quadraticCurveTo(x,y-6,x+w/2,y+2); c.stroke();
+      if(n==='branch-fork'){
+        c.lineWidth=13; c.beginPath();
+        c.moveTo(x+w*0.10,y+1); c.quadraticCurveTo(x+w*0.30,y-34,x+w*0.52,y-46); c.stroke();
+      }
+      /* 잎 몇 장 */
+      c.fillStyle='#4b7a3c';
+      for(let i=0;i<4;i++){
+        const lx=x-w/2+w*(0.18+i*0.22), ly=y-4-((i%2)*9);
+        c.beginPath(); c.ellipse(lx,ly,15,7,-0.5+i*0.35,0,TAU); c.fill();
+      }
+    }
+    c.restore();
+  },
+  update(dt){
+    this.t+=dt*60; this.scroll+=dt*7;
+    if(this.findT>0) this.findT--;
+    if(this.scareAt && --this.scareAt.life<=0) this.scareAt=null;
+    if(this.callAt && --this.callAt.life<=0) this.callAt=null;
+    for(const l of this.leaves){
+      l.y+=l.sp; l.x+=Math.sin(this.t*0.01+l.sw)*0.5; l.r+=0.012;
+      if(l.y>VH+20){ l.y=-20; l.x=rnd()*VW; }
+    }
+    for(let i=this.foods.length-1;i>=0;i--){
+      const f=this.foods[i];
+      const rest=f.rest||this.groundY();
+      if(f.y<rest){ f.vy=Math.min(2.4,(f.vy||0.3)+0.09); f.y+=f.vy; if(f.y>rest) f.y=rest; }
+      if(--f.life<=0) this.foods.splice(i,1);
+    }
+    /* 새 떼 */
+    if(!this.flock2 && --this.flockCd<=0){
+      this.flockCd=2200+rndi(0,1600);
+      const n=7+rndi(0,6), y0=VH*0.14+rnd()*VH*0.14;
+      this.flock2={ t:0, birds:Array.from({length:n},(_,i)=>({
+        x:-120-i*38-rnd()*30, y:y0+((i%3)-1)*22+rnd()*10, ph:rnd()*TAU, sp:1.5+rnd()*0.5 })) };
+    }
+    if(this.flock2){
+      this.flock2.t++;
+      let gone=true;
+      for(const b of this.flock2.birds){
+        b.x+=b.sp; b.y+=Math.sin(this.t*0.04+b.ph)*0.35;
+        if(b.x<VW+140) gone=false;
+      }
+      if(gone) this.flock2=null;
+    }
+  },
+  /* 열매는 나무에서 떨어져 땅에 쌓인다 — 층마다 다른 동물이 먹는다 */
+  dropFood(x){
+    for(let i=0;i<4;i++)
+      this.foods.push({x:x+(rnd()-0.5)*80, y:VH*0.25, vy:0.3, life:900,
+                       rest:this.layerY(2)+rnd()*20});
+    Sfx.plop();
+  },
+  nearestFood(x,y){ let b=null,bd=1e9;
+    for(const f of this.foods){ const d=Math.abs(x-f.x); if(d<bd){bd=d;b=f;} } return b; },
+  eatFood(f,c){ const i=this.foods.indexOf(f); if(i>=0) this.foods.splice(i,1);
+    FX.heart(c.x,c.y-30); Sfx.eat(); },
+  /* ⚠ 정글은 무리가 꺼져 있어 동물이 서로를 전혀 의식하지 않았다.
+     초식동물은 무리를 짓는다 — 바다와 같은 격자를 쓴다. */
+  grid:null, gridT:-1, CELL:240, flock:true,
+  rebuildGrid(list){
+    if(this.gridT===Game.t) return;
+    this.gridT=Game.t;
+    const g={};
+    for(const c of list){ const k=(c.x/this.CELL)|0; (g[k]=g[k]||[]).push(c); }
+    this.grid=g;
+  },
+  neighbors(x,y,self){
+    this.rebuildGrid(Game.animals);
+    const gx=(x/this.CELL)|0, out=[];
+    for(let i=-1;i<=1;i++){
+      const cell=this.grid[gx+i]; if(!cell) continue;
+      for(const o of cell){
+        if(o===self) continue;
+        if(self && (o.layer|0)!==(self.layer|0)) continue;   // 다른 층은 안 본다
+        out.push(o); if(out.length>12) return out;
+      }
+    }
+    return out;
+  },
+  callMine(x,y){ /* ⚠ 300프레임(5초)으로 뒀더니 화면 반대편 개체가 도착 전에 부름이 끝났다
+       (실측: 셋 중 하나가 276px 지점에서 멈춤). 12초로 늘린다. */
+    this.findT=720; this.callAt={x,y,life:720}; },
+  scare(x,y){ this.scareAt={x,y,life:50}; FX.ring(x,y);
+    for(const a of Game.animals) if(Math.abs(a.x-x)<300) a.scared=70; },
+
+  draw(c){
+    /* 하늘 */
+    if(!BG.fill(c,'jungle-sky',0,VH)){
+      const g=c.createLinearGradient(0,0,0,VH);
+      g.addColorStop(0,'#8fd3f4'); g.addColorStop(1,'#3a7d44');
+      c.fillStyle=g; c.fillRect(0,0,VW,VH);
+    }
+    BG.tile(c,'jungle-mountain', VH*0.34, VH*0.22, this.scroll*0.5);
+    BG.tile(c,'jungle-mist',     VH*0.40, VH*0.16, this.scroll*0.8);
+    BG.tile(c,'jungle-tree-far', VH*0.26, VH*0.44, this.scroll*1.1);
+    BG.tile(c,'jungle-tree-mid', VH*0.22, VH*0.56, this.scroll*1.9);
+    BG.tile(c,'jungle-river',    VH*0.72, VH*0.10, this.scroll*2.4);
+    BG.tile(c,'jungle-ground',   VH*0.78, VH*0.22, this.scroll*3.0);
+    BG.tile(c,'jungle-rock-near',VH*0.66, VH*0.20, this.scroll*2.6);
+    /* 나뭇가지 — 동물보다 **뒤**에 그려 앉은 것처럼 보이게 */
+    for(const p of this.perches){
+      const px=((p.x - this.scroll*1.9*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
+      if(px<-320||px>VW+320) continue;
+      /* ⚠ 높이를 폭의 0.6 배로 줬더니 가지가 **화면 절반을 덮는 판자**가 됐다
+         (512x200 짜리를 높이 220 으로 그리면 폭이 563px = 화면의 44%).
+         가지 높이는 100 안팎이면 폭 256 으로 자연스럽다.
+         Props.draw 는 밑면을 y 에 맞추므로, 발주 규격대로 윗면(위에서 40%)이
+         동물 발높이에 오도록 밑면을 내려 잡는다. */
+      const ph=p.h;
+      if(!Props.draw(c,p.n,px,p.y+ph*0.60,ph)) this.fallbackPerch(c,p.n,px,p.y,p.w);
+    }
+    /* 바닥 소품 */
+    for(const p of this.props){
+      const px=((p.x - this.scroll*3.0*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
+      if(px<-260||px>VW+260) continue;
+      Props.draw(c,p.n,px,p.y,p.h);
+    }
+    /* 물가 소품 */
+    for(const p of this.bankProps){
+      const px=((p.x - this.scroll*3.2*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
+      if(px<-260||px>VW+260) continue;
+      Props.draw(c,p.n,px,p.y+8,p.w*0.42);
+    }
+    /* 새 떼 — 나무보다 뒤, 하늘 앞 */
+    if(this.flock2){
+      c.save(); c.globalAlpha=0.55; c.fillStyle='#2b3a2c';
+      for(const b of this.flock2.birds){
+        const f=Math.sin(this.t*0.22+b.ph)*5;
+        c.beginPath();
+        c.moveTo(b.x-8, b.y);
+        c.quadraticCurveTo(b.x-4, b.y-6-f, b.x, b.y-1);
+        c.quadraticCurveTo(b.x+4, b.y-6-f, b.x+8, b.y);
+        c.quadraticCurveTo(b.x+4, b.y-2-f*0.4, b.x, b.y+1);
+        c.quadraticCurveTo(b.x-4, b.y-2-f*0.4, b.x-8, b.y);
+        c.fill();
+      }
+      c.restore();
+    }
+    BG.tile(c,'jungle-tree-near',VH*0.06, VH*0.70, this.scroll*3.6);
+  },
+  /* 동물 뒤가 아니라 '앞'에 오는 것들 */
+  drawFront(c){
+    /* 먹이 */
+    for(const f of this.foods){
+      if(!Props.draw(c,'fruit',f.x,f.y+8,18)){
+        c.fillStyle='#ff5a6e'; c.beginPath(); c.arc(f.x,f.y,7,0,TAU); c.fill();
+      }
+    }
+    /* ⚠ 앞 층을 동물 위에 겹겹이 깔았더니 밝기가 46% 손실됐다(실측).
+       아이 그림이 주인공인데 숲에 파묻힌다.
+       덩굴·나뭇잎지붕은 동물이 없는 '위쪽'에만 그리고, 앞 풀만 발치에 남긴다. */
+    BG.tile(c,'jungle-grass-front', VH-VH*0.13, VH*0.13, this.scroll*4.4);
+    c.save(); c.beginPath(); c.rect(0,0,VW,VH*0.42); c.clip();
+    BG.tile(c,'jungle-vines',  0, VH*0.42, this.scroll*2.2);
+    BG.tile(c,'jungle-canopy', 0, VH*0.20, this.scroll*1.6);
+    c.restore();
+    /* 떨어지는 잎 */
+    for(const l of this.leaves){
+      c.save(); c.translate(l.x,l.y); c.rotate(l.r);
+      if(!FXA.draw(c,'fx-leaf-fall',0,0,l.sz,0)){
+        c.fillStyle='rgba(120,190,90,.75)';
+        c.beginPath(); c.ellipse(0,0,l.sz*0.5,l.sz*0.22,0,0,TAU); c.fill();
+      }
+      c.restore();
+    }
+  },
+  /* ⚠ 시각(時刻) 색조와 가장자리 어둠은 **맨 마지막**에 따로 칠한다.
+     drawFront 안에 두면 나무 위 층(나비·잠자리)이 잎보다 앞에 그려지느라
+     혼자만 색조를 안 받아 밤에도 대낮처럼 밝았다. */
+  drawTint(c){
+    c.fillStyle=JTIMES[this.timeIdx].tint; c.fillRect(0,0,VW,VH);
+    /* 가장자리 어둠 — 어셋이 있으면 그림으로, 없으면 코드로 */
+    const vg=BG.get('vignette');
+    if(vg){ c.globalAlpha=0.75; c.drawImage(vg,0,0,VW,VH); c.globalAlpha=1; }
+    else {
+      const v=c.createRadialGradient(VW/2,VH*0.44,VH*0.46,VW/2,VH*0.44,VH*1.15);
+      v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.24)');
+      c.fillStyle=v; c.fillRect(0,0,VW,VH);
+    }
+  },
+  prefetch(){ ['jungle-sky','jungle-mountain','jungle-mist','jungle-tree-far',
+    'jungle-tree-mid','jungle-tree-near','jungle-ground','jungle-grass-front',
+    'jungle-canopy','jungle-vines','jungle-river','jungle-rock-near','vignette'].forEach(n=>BG.get(n));
+    ['fruit-tree','bush','log','stump','flower-patch','mushroom','rock-perch','pond','nest','fruit']
+      .forEach(n=>Props.get(n)); }
+};
+
+</script>
+<script>
+/* ===== js/60_ui.js ===== */
+/* UI — 아이가 쓰는 버튼. 크고, 글자 없이 그림으로. */
+'use strict';
+/* ── 실물 아이콘 ────────────────────────────────────────
+   ⚠ 어셋이 오기 전에도 돌아야 하므로 코드 그림을 남겨 둔다.
+     assets/ui/<이름>.png 이 있으면 그쪽을 쓰고, 없으면 코드로 그린다.
+     '-on'(누른 상태)이 따로 오므로 상태별로 다른 파일을 쓴다. */
+const Icons = {
+  cache:{}, missing:{},
+  get(name){
+    if(this.cache[name]) return this.cache[name];
+    if(this.missing[name]) return null;
+    this.missing[name]=true;
+    const img=new Image();
+    img.onload=()=>{ this.cache[name]=img; this.missing[name]=false; };
+    img.onerror=()=>{};
+    img.src='assets/ui/'+name+'.png';
+    return null;
+  },
+  /* 그렸으면 true. 버튼 중앙 기준. */
+  draw(c, name, size, on){
+    const img = (on && this.get(name+'-on')) || this.get(name);
+    if(!img) return false;
+    const w=size, h=size*(img.height/img.width);
+    c.drawImage(img, -w/2, -h/2, w, h);
+    return true;
+  },
+  prefetch(){
+    ['brush-fat','brush-thin','bucket','eraser','stamp-star','stamp-heart','stamp-dot',
+     'stamp-stripe','undo','redo','clear','color-swatch',
+     'btn-submit','btn-back','btn-home','btn-find','btn-feed','btn-book',
+     'btn-sound','btn-sound-off','btn-next','panel','tab']
+      .forEach(n=>{ this.get(n); this.get(n+'-on'); });
+  }
+};
+
+const UI = {
+  btns:[],
+  begin(){ this.btns=[]; },
+  /* 버튼 등록 + 그리기. tap 판정은 hit() 로 */
+  btn(c,id,x,y,w,h,draw,on){
+    this.btns.push({id,x,y,w,h});
+    c.save();
+    c.fillStyle= on? 'rgba(255,201,74,.28)' : 'rgba(255,255,255,.10)';
+    this.round(c,x,y,w,h,14); c.fill();
+    c.strokeStyle= on? PAL.gold : 'rgba(255,255,255,.35)'; c.lineWidth=3;
+    this.round(c,x,y,w,h,14); c.stroke();
+    c.translate(x+w/2,y+h/2);
+    draw(c, Math.min(w,h)*0.34);
+    c.restore();
+  },
+  round(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r);
+    c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); },
+  hit(p){ if(!p) return null;
+    for(const b of this.btns) if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h) return b.id;
+    return null; },
+  /* 아이콘 — 전부 코드로 */
+  icon:{
+    brush(c,r){ c.strokeStyle=PAL.white; c.lineWidth=r*0.3; c.lineCap='round';
+      c.beginPath(); c.moveTo(-r*0.7,r*0.7); c.lineTo(r*0.3,-r*0.5); c.stroke();
+      c.fillStyle=PAL.gold; c.beginPath(); c.arc(r*0.45,-r*0.7,r*0.4,0,TAU); c.fill(); },
+    thin(c,r){ c.strokeStyle=PAL.white; c.lineWidth=r*0.14; c.lineCap='round';
+      c.beginPath(); c.moveTo(-r*0.7,r*0.7); c.lineTo(r*0.4,-r*0.6); c.stroke();
+      c.fillStyle=PAL.gold; c.beginPath(); c.arc(r*0.5,-r*0.72,r*0.22,0,TAU); c.fill(); },
+    bucket(c,r){ c.fillStyle=PAL.white;
+      c.beginPath(); c.moveTo(-r*0.6,-r*0.2); c.lineTo(r*0.6,-r*0.2);
+      c.lineTo(r*0.4,r*0.7); c.lineTo(-r*0.4,r*0.7); c.closePath(); c.fill();
+      c.fillStyle=PAL.gold; c.beginPath(); c.arc(r*0.75,r*0.2,r*0.22,0,TAU); c.fill(); },
+    eraser(c,r){ c.save(); c.rotate(-0.4); c.fillStyle=PAL.white;
+      c.fillRect(-r*0.6,-r*0.4,r*1.2,r*0.8);
+      c.fillStyle=PAL.dim; c.fillRect(-r*0.6,0,r*1.2,r*0.4); c.restore(); },
+    star(c,r){ c.fillStyle=PAL.gold; c.beginPath();
+      for(let k=0;k<10;k++){ const a=-Math.PI/2+k*Math.PI/5, rr=k%2?r*0.45:r*0.95;
+        c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); } c.closePath(); c.fill(); },
+    heart(c,r){ c.fillStyle=PAL.red; c.beginPath(); c.moveTo(0,r*0.7);
+      c.bezierCurveTo(-r*1.3,-r*0.3,-r*0.5,-r*1.1,0,-r*0.35);
+      c.bezierCurveTo(r*0.5,-r*1.1,r*1.3,-r*0.3,0,r*0.7); c.fill(); },
+    dot(c,r){ c.fillStyle=PAL.white; c.beginPath(); c.arc(0,0,r*0.75,0,TAU); c.fill(); },
+    undo(c,r){ c.strokeStyle=PAL.white; c.lineWidth=r*0.28; c.lineCap='round';
+      c.beginPath(); c.arc(0,r*0.1,r*0.7,Math.PI*0.9,Math.PI*2.1); c.stroke();
+      c.fillStyle=PAL.white; c.beginPath(); c.moveTo(-r*0.7,r*0.1);
+      c.lineTo(-r*1.0,-r*0.35); c.lineTo(-r*0.3,-r*0.3); c.closePath(); c.fill(); },
+    trash(c,r){ c.fillStyle=PAL.white; c.fillRect(-r*0.55,-r*0.4,r*1.1,r*1.05);
+      c.fillRect(-r*0.75,-r*0.62,r*1.5,r*0.22);
+      c.fillStyle='#173a52'; for(let k=-1;k<=1;k++) c.fillRect(k*r*0.28-r*0.05,-r*0.2,r*0.1,r*0.7); },
+    submit(c,r){ c.fillStyle=PAL.white; c.beginPath();
+      c.moveTo(-r*0.8,-r*0.45); c.lineTo(r*0.2,-r*0.45); c.lineTo(r*0.2,-r*0.8);
+      c.lineTo(r*1.0,0); c.lineTo(r*0.2,r*0.8); c.lineTo(r*0.2,r*0.45);
+      c.lineTo(-r*0.8,r*0.45); c.closePath(); c.fill(); },
+    back(c,r){ c.fillStyle=PAL.white; c.beginPath();
+      c.moveTo(r*0.7,-r*0.6); c.lineTo(-r*0.4,0); c.lineTo(r*0.7,r*0.6); c.closePath(); c.fill(); },
+    find(c,r){ c.strokeStyle=PAL.white; c.lineWidth=r*0.26;
+      c.beginPath(); c.arc(-r*0.15,-r*0.15,r*0.55,0,TAU); c.stroke();
+      c.lineCap='round'; c.beginPath(); c.moveTo(r*0.28,r*0.28); c.lineTo(r*0.8,r*0.8); c.stroke(); },
+    feed(c,r){ c.fillStyle=PAL.gold;
+      [[0,-r*0.5],[-r*0.4,0],[r*0.4,r*0.1],[0,r*0.6],[-r*0.2,r*0.3]].forEach(p=>{
+        c.beginPath(); c.arc(p[0],p[1],r*0.2,0,TAU); c.fill(); }); },
+    book(c,r){ c.fillStyle=PAL.white;
+      c.fillRect(-r*0.75,-r*0.6,r*0.7,r*1.2); c.fillRect(r*0.05,-r*0.6,r*0.7,r*1.2);
+      c.fillStyle='#173a52'; c.fillRect(-r*0.06,-r*0.62,r*0.12,r*1.24); },
+    sound(c,r,on){ c.fillStyle=PAL.white;
+      c.beginPath(); c.moveTo(-r*0.7,-r*0.25); c.lineTo(-r*0.3,-r*0.25);
+      c.lineTo(r*0.1,-r*0.7); c.lineTo(r*0.1,r*0.7); c.lineTo(-r*0.3,r*0.25);
+      c.lineTo(-r*0.7,r*0.25); c.closePath(); c.fill();
+      c.strokeStyle=PAL.white; c.lineWidth=r*0.16; c.lineCap='round';
+      if(Sfx.on){ c.beginPath(); c.arc(r*0.2,0,r*0.45,-0.9,0.9); c.stroke();
+        c.beginPath(); c.arc(r*0.2,0,r*0.75,-0.9,0.9); c.stroke(); }
+      else { c.beginPath(); c.moveTo(r*0.4,-r*0.35); c.lineTo(r*0.95,r*0.35); c.stroke();
+        c.beginPath(); c.moveTo(r*0.95,-r*0.35); c.lineTo(r*0.4,r*0.35); c.stroke(); } },
+    time(c,r){ c.fillStyle=PAL.gold; c.beginPath(); c.arc(0,0,r*0.55,0,TAU); c.fill();
+      c.strokeStyle=PAL.gold; c.lineWidth=r*0.14; c.lineCap='round';
+      for(let k=0;k<8;k++){ const a=k/8*TAU;
+        c.beginPath(); c.moveTo(Math.cos(a)*r*0.75,Math.sin(a)*r*0.75);
+        c.lineTo(Math.cos(a)*r,Math.sin(a)*r); c.stroke(); } },
+  }
+};
+
+</script>
+<script>
+/* ===== js/65_onboard.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   온보딩 — 전시장에서 처음 온 아이를 위한 안내.
+
+   ⚠ 아이는 설명을 안 읽는다. **손이 하는 걸 보고 따라 한다.**
+     그래서 글자보다 '움직이는 손가락'이 먼저다.
+   ⚠ 아무도 안 만지면 다시 유인해야 한다 — 전시장은 사람이 계속 바뀐다.
+     20초 놀고 있으면 스스로 안내가 다시 뜬다(어트랙트 모드).
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const Onboard = {
+  /* 상태: 언제 무엇을 안내하나 */
+  idle:0,               // 아무 입력 없이 흐른 프레임
+  step:null,            // 지금 안내 중인 것
+  t:0, shown:{},
+  IDLE_ATTRACT: 60*20,  // 20초 놀면 다시 유인
+
+  /* 안내 종류 — 화면 상태에 따라 다르다 */
+  pick(game){
+    if(game.state===ST.TANK){
+      if(!this.shown.draw) return 'draw';        // 처음: 그리기 버튼을 눌러라
+      return 'attract';                          // 이후: 다시 유인
+    }
+    if(game.state===ST.PICK && !this.shown.pickOne) return 'pickOne';
+    if(game.state===ST.PAINT){
+      if(!this.shown.paint) return 'paint';      // 도안을 문질러라
+      if(!this.shown.submit && this.painted(game)) return 'submit';
+    }
+    return null;
+  },
+  painted(){ /* 조금이라도 칠했나 */
+    try{
+      const d=Paint.fctx.getImageData(0,0,TW,TH).data;
+      for(let i=3;i<d.length;i+=4*97) if(d[i]>20) return true;
+    }catch(e){}
+    return false;
+  },
+  /* 사람이 만지면 안내를 끈다 */
+  touched(){
+    this.idle=0;
+    if(this.step){ this.shown[this.step]=true; this.step=null; this.t=0; }
+  },
+  update(game){
+    /* 큰 화면은 아무도 안 만진다 — 안내가 계속 떠 있으면 방해만 된다 */
+    if(typeof Net!=='undefined' && Net.role==='stage'){ this.step=null; return; }
+    if(Input.down || Input.tapped) this.touched();
+    else this.idle++;
+
+    if(this.step){ this.t++; return; }
+    /* 처음 안내는 바로, 재유인은 놀고 있을 때만 */
+    const want=this.pick(game);
+    if(!want) return;
+    if(want==='attract' && this.idle < this.IDLE_ATTRACT) return;
+    if(want!=='attract' && this.idle < 50) return;   // 화면 바뀌고 잠깐 뒤
+    this.step=want; this.t=0;
+    if(want==='attract') this.idle=0;
+  },
+
+  /* ── 그리기 ─────────────────────────────────────── */
+  draw(c, game){
+    if(!this.step) return;
+    const S=this.step;
+    const pulse=(Math.sin(this.t*0.06)+1)/2;
+
+    if(S==='draw' || S==='attract'){
+      /* 그리기 버튼을 가리킨다 */
+      const bx=24+96*1.05, by=VH-96-24+48;
+      this.spot(c, bx, by, 92+pulse*10);
+      this.hand(c, bx+40+pulse*10, by+36, pulse);
+      this.bubble(c, bx+30, by-104,
+        S==='attract' ? '나도 그려 볼까?' : '여기를 눌러 그려요');
+    }
+    else if(S==='pickOne'){
+      const b=UI.btns.find(x=>x.id && x.id.startsWith('sp:'));
+      if(b){
+        this.spot(c, b.x+b.w/2, b.y+b.h/2, Math.max(b.w,b.h)*0.72+pulse*8);
+        this.hand(c, b.x+b.w/2+30+pulse*8, b.y+b.h/2+34, pulse);
+        this.bubble(c, b.x+b.w/2, b.y-56, '마음에 드는 걸 고르세요');
+      }
+    }
+    else if(S==='paint'){
+      /* 손가락이 도안 위를 문지른다 */
+      const bx=Paint.box();
+      const k=(this.t%110)/110;
+      const px=bx.x+bx.w*(0.28+0.44*k);
+      const py=bx.y+bx.h*(0.5+Math.sin(k*Math.PI*2)*0.14);
+      c.save();
+      c.strokeStyle='rgba(255,201,74,.55)'; c.lineWidth=26; c.lineCap='round';
+      c.beginPath();
+      for(let i=0;i<=20;i++){
+        const t=i/20*k;
+        const x=bx.x+bx.w*(0.28+0.44*t), y=bx.y+bx.h*(0.5+Math.sin(t*Math.PI*2)*0.14);
+        i?c.lineTo(x,y):c.moveTo(x,y);
+      }
+      c.stroke(); c.restore();
+      this.hand(c, px, py, pulse);
+      this.bubble(c, VW/2, bx.y-64, '손가락으로 문질러 색칠해요');
+    }
+    else if(S==='submit'){
+      const b=UI.btns.find(x=>x.id==='submit');
+      if(b){
+        this.spot(c, b.x+b.w/2, b.y+b.h/2, Math.max(b.w,b.h)*0.66+pulse*10);
+        this.hand(c, b.x+b.w/2+40+pulse*10, b.y+b.h/2+38, pulse);
+        this.bubble(c, b.x+b.w/2, b.y-70, '다 그렸으면 여기!');
+      }
+    }
+  },
+  /* 가리키는 원 — 어두운 막에 구멍을 뚫는다 */
+  spot(c,x,y,r){
+    c.save();
+    c.fillStyle='rgba(6,20,36,.42)';
+    c.beginPath(); c.rect(0,0,VW,VH);
+    c.arc(x,y,r,0,TAU,true);
+    c.fill('evenodd');
+    c.strokeStyle='rgba(255,201,74,.85)'; c.lineWidth=4;
+    c.beginPath(); c.arc(x,y,r,0,TAU); c.stroke();
+    c.restore();
+  },
+  /* 손가락 — 코드로 그린다 */
+  hand(c,x,y,k){
+    c.save();
+    c.translate(x, y+k*4);
+    c.rotate(-0.32);
+    c.fillStyle='#fff6e8'; c.strokeStyle='#12212e'; c.lineWidth=3;
+    c.beginPath();
+    c.moveTo(0,-30); c.quadraticCurveTo(9,-30, 9,-16);
+    c.lineTo(9,-4);
+    c.quadraticCurveTo(20,-6, 22,2);
+    c.quadraticCurveTo(24,22, 12,32);
+    c.quadraticCurveTo(-4,40, -14,28);
+    c.quadraticCurveTo(-22,14, -18,0);
+    c.quadraticCurveTo(-12,-8, -8,-2);
+    c.lineTo(-8,-16);
+    c.quadraticCurveTo(-8,-30, 0,-30);
+    c.closePath(); c.fill(); c.stroke();
+    c.restore();
+  },
+  /* 말풍선 */
+  bubble(c,x,y,s){
+    c.save();
+    c.font='700 26px Galmuri11, sans-serif'; c.textAlign='center';
+    const w=c.measureText(s).width+44, h=54;
+    c.fillStyle='rgba(255,201,74,.96)';
+    UI.round(c, x-w/2, y-h/2, w, h, 16); c.fill();
+    c.beginPath();
+    c.moveTo(x-12, y+h/2-2); c.lineTo(x+12, y+h/2-2); c.lineTo(x, y+h/2+16);
+    c.closePath(); c.fill();
+    c.fillStyle='#12212e'; c.textBaseline='middle';
+    c.fillText(s, x, y+1);
+    c.restore();
+  },
+  reset(){ this.shown={}; this.step=null; this.idle=0; }
+};
+
+</script>
+<script>
+/* ===== js/70_game.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   게임 루프 — 고르기 → 색칠 → 제출 → 수조
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+const ST={ TANK:0, PICK:1, PAINT:2, JOIN:3, NAME:4, CHEER:5, CODEX:6, ZOOM:7 };
+
+/* 만졌을 때 한마디 — 아이가 무슨 일이 일어났는지 알아야 또 누른다 */
+const REACT_SAY = {
+  puff:'복어가 빵빵!', ink:'먹물을 뿜었어요', glow:'반짝반짝 빛나요',
+  pinch:'집게를 흔들어요', hide:'쏙 숨었어요', spin:'빙글 돌았어요',
+  dash:'쌩 하고 달려요', blow:'물을 뿜어요', curl:'몸을 말았어요',
+  wiggle:'꼬리를 흔들어요',
+  trumpet:'코를 흔들어요', roar:'크게 울어요', jump:'폴짝 뛰었어요',
+  swing:'대롱대롱 매달려요', flap:'날개를 퍼덕여요', fan:'꼬리를 활짝 폈어요',
+  stretch:'목을 쭉 늘여요', shake:'몸을 털어요', curlup:'동그랗게 웅크려요',
+  yawn:'입을 크게 벌려요', nod:'고개를 끄덕여요',
+};
+
+const Game = {
+  state:ST.TANK, creatures:[], t:0, joinC:null, joinT:0,
+  pickPage:0, mineIds:[], toast:'', toastT:0,
+  pendingTex:null, myName:'', cheerT:0, zoomC:null, codexPage:0,
+  /* ⚠ 바다와 정글은 무대·생물·움직임이 전부 다르다.
+     한 화면에 섞지 않고 세계를 통째로 갈아 끼운다. */
+  realm:'sea',            // 'sea' | 'jungle'
+  animals:[],             // 정글 동물 (Walker)
+  /* 처음 온 아이를 위한 안내 — 손가락이 도안을 문지르는 시늉 */
+  onboard:0, onboardShown:false,
+
+  init(){
+    World.init(); JWorld.init();
+    /* 저장된 그림 복원 */
+    /* ⚠ 정글 동물도 같은 목록에 저장되는데 전부 Creature 로 되살렸다.
+       다시 켜면 코끼리가 물고기처럼 헤엄쳤다(실측). 종으로 갈라 되살린다. */
+    for(const rec of (Save.data.creatures||[])){
+      const img=new Image(); img.src=rec.d;
+      if(typeof JUNGLE!=='undefined' && JUNGLE[rec.sp]){
+        this.animals.push(new Walker(img, rec.sp, rec.n, {mine:rec.m}));  // y 는 종의 층이 정한다
+      } else if(SP_BY_ID[rec.sp]){
+        this.creatures.push(new Creature(img, rec.sp, rec.n, {mine:rec.m}));
+      }
+    }
+    /* 처음이면 견본 몇 마리를 넣어 빈 수조를 피한다 */
+    if(this.creatures.length<18) this.seed(24-this.creatures.length);
+  },
+  seed(n){
+    for(let i=0;i<n;i++){
+      const sp=pick(SPECIES);
+      const f=document.createElement('canvas'); f.width=TW; f.height=TH;
+      const fx=f.getContext('2d');
+      const g=fx.createLinearGradient(0,0,TW,TH);
+      const h=rndi(0,360);
+      g.addColorStop(0,`hsl(${h},80%,62%)`); g.addColorStop(1,`hsl(${(h+70)%360},80%,55%)`);
+      fx.fillStyle=g; fx.fillRect(0,0,TW,TH);
+      for(let k=0;k<14;k++){ fx.fillStyle=`hsla(${(h+k*37)%360},90%,64%,.8)`;
+        fx.beginPath(); fx.arc(rnd()*TW,rnd()*TH,10+rnd()*26,0,TAU); fx.fill(); }
+      this.creatures.push(new Creature(bakeCreature(f,sp.id), sp.id, ''));
+    }
+  },
+  say(s){ this.toast=s; this.toastT=150; },
+  /* 그리기 순서 캐시를 버린다 — 생물을 지웠는데 캐시가 붙들고 있으면
+     지워진 것이 몇 프레임 더 그려진다 */
+  dropOrder(){ this._order=null; },
+  get W(){ return this.realm==='sea' ? World : JWorld; },
+  get beings(){ return this.realm==='sea' ? this.creatures : this.animals; },
+  switchRealm(){
+    this.realm = this.realm==='sea' ? 'jungle' : 'sea';
+    if(typeof Amb!=='undefined') Amb.set(this.realm);
+    this.say(this.realm==='sea' ? '바다' : '정글');
+    Sfx.ui();
+    if(this.realm==='jungle') JTemplate.prefetch();
+  },
+
+  /* 1단계 — 이름을 묻는다. 이름이 있어야 아이가 자기 물고기를 찾을 수 있다 */
+  askName(){
+    this.pendingTex = JUNGLE[Paint.spId]
+      ? bakeWalker(Paint.fill, Paint.spId)
+      : bakeCreature(Paint.fill, Paint.spId);
+    this.pendingSp=Paint.spId;
+    this.state=ST.NAME; this.nameIdle=0;
+    NameBox.open(this.myName);
+  },
+  submit(name){
+    const tex=this.pendingTex || (JUNGLE[Paint.spId]
+      ? bakeWalker(Paint.fill, Paint.spId) : bakeCreature(Paint.fill, Paint.spId));
+    const spId=this.pendingSp || Paint.spId;
+    this.myName = (name||'').slice(0,8);
+    let c;
+    const snakeLike = typeof SEA_LIKE_JUNGLE!=='undefined' && SEA_LIKE_JUNGLE[spId];
+    if(snakeLike){
+      c=new Creature(tex, spId, this.myName, {mine:true, join:true,
+        x:-140, y:JWorld.groundY()-70});
+      while(this.animals.length>=140) this.animals.shift();
+      this.animals.push(c);
+      this.realm='jungle';
+      if(typeof Amb!=='undefined') Amb.set('jungle');
+    } else if(JUNGLE[spId]){
+      c=new Walker(tex, spId, this.myName, {mine:true, join:true,
+        x:-160, y:JWorld.groundY()});
+      while(this.animals.length>=140) this.animals.shift();
+      this.animals.push(c);
+      this.realm='jungle';
+      if(typeof Amb!=='undefined') Amb.set('jungle');
+    } else {
+      c=new Creature(tex, spId, this.myName, {mine:true, join:true,
+        x:-140, y:World.zoneY(pick(SP_BY_ID[spId].zone))});
+      this.realm='sea';
+      if(typeof Amb!=='undefined') Amb.set('sea');
+    }
+    /* 오래된 것부터 내보내 상한 유지 (실측: 200~300 이 60fps 상한) */
+    if(!JUNGLE[spId]){
+      /* 실측: 실제 게임에서 300마리 65fps · 200마리 119fps. 250 에서 내보낸다. */
+      while(this.creatures.length>=250) this.creatures.shift();
+      this.creatures.push(c);
+    }
+    this.joinC=c; this.joinT=110;
+    /* 2단계 — 축하 화면. 이 순간이 이 작품의 보상이다 */
+    this.state=ST.CHEER; this.cheerT=0;
+    FX.splash(VW*0.2, c.y); FX.confetti(VW/2, VH*0.4);
+    this.splashAt={x:VW*0.2, y:c.y, t:0};
+    Sfx.join();
+    /* 저장 */
+    try{
+      const rec={d:Save.encode(tex), sp:spId, n:this.myName, m:true};
+      Save.data.creatures.push(rec);
+      Save.data.made=(Save.data.made||0)+1; Save.write();
+      /* 여러 대 운영 — 큰 화면으로 보낸다. 서버가 없으면 조용히 넘어간다 */
+      if(typeof Net!=='undefined') Net.push({d:rec.d, sp:spId, n:this.myName});
+    }catch(_){}
+    this.W.findT=200;      // ⚠ World 로 박아 두면 정글에서 안 켜진다
+  },
+
+  update(dt){
+    this.t+=dt*60;
+    if(this.toastT>0) this.toastT--;
+    /* 운영자 화면이 열려 있으면 게임 입력을 가로챈다 */
+    if(typeof Admin!=='undefined' && Admin.open){
+      this.W.update(dt);
+      for(const c of this.beings) c.update(dt,this.W);
+      Admin.update();
+      Input.tapped=null;
+      return;
+    }
+    if(typeof Net!=='undefined') Net.update();
+    /* 온보딩 — 전시장은 사람이 계속 바뀐다. 항상 살아 있어야 한다. */
+    if(typeof Onboard!=='undefined') Onboard.update(this);
+    /* 소리도 상태다 — 아이가 많이 만들수록 풍성해진다 (3초에 한 번만 조정) */
+    if(typeof Amb!=='undefined'){
+      if(this.t%180<1) Amb.setLevel(this.beings.length);
+      /* 색칠·이름 화면에서는 배경을 낮춘다 */
+      const quiet = (this.state===ST.PAINT || this.state===ST.NAME);
+      if(Amb._ducked !== quiet) Amb.duck(quiet);
+    }
+    FX.update();
+    switch(this.state){
+      case ST.TANK: this.updTank(dt); break;
+      case ST.PICK: this.updPick(); break;
+      case ST.PAINT: Paint.update(dt); this.updPaintUI(); break;
+      case ST.JOIN:
+        this.W.update(dt);
+        for(const c of this.beings) c.update(dt,this.W);
+        if(--this.joinT<=0){ this.state=ST.TANK; }
+        break;
+      case ST.NAME: this.updName(); break;
+      case ST.CHEER:
+        if(this.splashAt) this.splashAt.t++;
+        this.W.update(dt);
+        for(const c of this.beings) c.update(dt,this.W);
+        this.cheerT++;
+        if(this.cheerT%22===0) FX.sparkle(VW/2+(rnd()-0.5)*420, VH*0.36+(rnd()-0.5)*160, 6);
+        /* ⚠ 탭해야만 나가는 화면이었다. 전시장에서 아이가 그리고 자리를 뜨면
+           축하 화면이 그대로 남아 **다음 아이가 못 쓴다.**
+           충분히 보여 준 뒤에는 스스로 돌아간다. */
+        if(this.cheerT>40 && (Input.takeTap()||Input.keys['Space']||this.cheerT>8*60)){
+          this.pendingTex=null; this.state=ST.TANK; this.W.findT=260;
+        }
+        break;
+      case ST.CODEX: this.updCodex(); break;
+      case ST.ZOOM:
+        this.W.update(dt);
+        for(const c of this.beings) c.update(dt,this.W);
+        this.zoomT=(this.zoomT||0)+1;
+        if(Input.takeTap() || this.zoomT>12*60){ this.zoomC=null; this.state=ST.TANK; }
+        break;
+    }
+  },
+  updTank(dt){
+    /* 운영자 열기 — 왼쪽 위 길게 누르기 */
+    if(typeof Admin!=='undefined') Admin.watchHold();
+    const W=this.W;
+    /* 손가락을 대고 있는 동안 — 생물이 궁금해서 모여든다.
+       ⚠ 버튼 위에서는 안 된다. 아이가 버튼을 누르려다 물고기를 부른다. */
+    if(Input.down && !UI.hit({x:Input.x, y:Input.y})){
+      if(!W.touchAt) W.touchAt={x:Input.x, y:Input.y, px:Input.x, py:Input.y, hold:0, sw:0};
+      const T=W.touchAt;
+      /* 손을 얼마나 빨리 휘젓고 있나 — 빠르면 물살이 되어 생물을 민다.
+         가만히 있으면 끌어당기고, 휘저으면 밀어낸다. 둘 다 있어야 손맛이 난다. */
+      const mv=Math.hypot(Input.x-T.x, Input.y-T.y);
+      T.sw = T.sw*0.82 + mv*0.18;
+      T.px=T.x; T.py=T.y;
+      T.x=Input.x; T.y=Input.y; T.hold++;
+      T.swirl = T.sw>7;                       // 휘젓는 중
+      if(T.swirl){
+        T.vx=Input.x-T.px; T.vy=Input.y-T.py;
+        if(this.t%4===0){
+          if(this.realm==='sea') FX.bubbles(Input.x, Input.y, 1);
+          else FX.dust(Input.x, Input.y+10, 2);
+        }
+      } else if(T.hold>20 && T.hold%7===0){
+        /* 손끝에서 물이 인다 — 뭔가 일어나고 있다는 신호 */
+        if(this.realm==='sea') FX.bubbles(Input.x, Input.y, 1);
+        else FX.sparkle(Input.x, Input.y, 2);
+      }
+    } else if(W.touchAt){
+      W.touchAt=null;
+    }
+    W.update(dt);
+    for(const c of this.beings) c.update(dt,W);
+    const p=Input.takeTap();
+    if(!p) return;
+    const id=UI.hit(p);
+    if(id==='new'){ this.state=ST.PICK; this.pickPage=0; Sfx.ui(); return; }
+    if(id==='feed'){ this.W.dropFood(VW/2+(rnd()-0.5)*400, VH*0.25); this.say('먹이를 뿌렸어요'); return; }
+    if(id==='find'){
+      const mine=this.beings.filter(b=>b.mine).length;
+      if(!mine){ this.say('아직 만든 게 없어요'); Sfx.ui(); return; }
+      /* 화면 가운데 아래로 부른다 — 아이가 서 있는 쪽 */
+      this.W.callMine(VW/2, this.realm==='sea' ? VH*0.55 : this.W.groundY());
+      this.say('내 친구를 불렀어요'); Sfx.join(); return; }
+    if(id==='realm'){ this.switchRealm(); return; }
+    if(id==='sound'){ Sfx.toggle(); Sfx.ui(); return; }
+    if(id==='codex'){ this.state=ST.CODEX; this.codexPage=0; Sfx.ui(); return; }
+    /* ⚠ 예전엔 콕 누르면 **곧장 확대 화면**으로 넘어갔다. 그건 반응이 아니라
+       화면 전환이라 수조를 만졌다는 느낌이 없었다.
+       한 번 누르면 **그 자리에서 종마다 다르게 반응**하고,
+       반응 중에 한 번 더 누르면 크게 본다. 아이는 눌러 보면서 알게 된다. */
+    let hit=null, hd=1e9;
+    for(const c of this.beings){
+      const d=dist(p.x,p.y,c.x,c.y);
+      if(d < Math.max(52, c.w*0.44) && d<hd){ hd=d; hit=c; }
+    }
+    if(hit){
+      if(hit.reactT>0){                       // 두 번째 — 크게 본다
+        this.zoomC=hit; this.state=ST.ZOOM; this.zoomT=0; Sfx.pop();
+        FX.sparkle(hit.x,hit.y,10); return;
+      }
+      const kind=hit.react();
+      this.say(REACT_SAY[kind] || '안녕!');
+      /* 옆에 있는 것들도 조금 놀란다 — 수조가 살아 있다는 느낌 */
+      for(const o of this.beings){
+        if(o===hit) continue;
+        const d=dist(hit.x,hit.y,o.x,o.y);
+        if(d<230 && o.reactT<=0 && rnd()<0.35) o.scared=Math.max(o.scared||0, 26);
+      }
+      if(this.W.scareAt!==undefined) this.W.scareAt={x:hit.x,y:hit.y};
+      return;
+    }
+    if(id==='time'){
+      const W=this.W, L=(this.realm==='sea'?TIMES:JTIMES);
+      W.timeIdx=(W.timeIdx+1)%L.length; this.say(L[W.timeIdx].ko); Sfx.ui(); return; }
+    /* 빈 곳을 만지면 물고기가 흩어진다 */
+    /* ⚠ World 로 박아 두면 정글에서 빈 곳을 눌러도 아무 일이 없다 */
+    this.W.scare(p.x,p.y);
+  },
+  /* 고르기 화면에서 아이가 그냥 가 버리면 다음 아이가 수족관을 못 본다.
+     만지면 초기화된다 — 고민하는 아이를 쫓아내지는 않는다. */
+  pickIdle:0,
+  updPick(){
+    if(Input.tapped) this.pickIdle=0; else this.pickIdle++;
+    if(this.pickIdle>70*60){ this.pickIdle=0; this.state=ST.TANK; return; }
+    const p=Input.takeTap(); if(!p) return;
+    const id=UI.hit(p);
+    if(id==='back'){ this.state=ST.TANK; Sfx.ui(); return; }
+    if(id==='realm'){ this.switchRealm(); this.pickPage=0; return; }
+    if(id==='ppage+'){ this.pickPage=(this.pickPage+1)%(this._pickPages||1); Sfx.ui(); return; }
+    if(id==='ppage-'){ const n=this._pickPages||1;
+      this.pickPage=(this.pickPage-1+n)%n; Sfx.ui(); return; }
+    if(id && id.startsWith('sp:')){
+      Paint.open(id.slice(3)); this.state=ST.PAINT; this.blankWarned=false; this.backWarned=false; Sfx.ui();
+    }
+  },
+  updPaintUI(){
+    const p=Input.takeTap(); if(!p) return;
+    const id=UI.hit(p);
+    if(!id) return;
+    if(id==='back'){
+      /* ⚠ 다 칠한 그림이 뒤로가기 **한 번**에 사라진다(실측: 0.987 → 0.000).
+         Paint.open 이 새 캔버스를 만들기 때문에 같은 종을 다시 골라도 못 돌린다.
+         많이 칠했을 때만 한 번 잡아 준다 — 조금 칠했으면 종을 잘못 고른 것이다. */
+      const r = Paint.inkedRatio ? Paint.inkedRatio() : 0;
+      if(r > 0.05 && !this.backWarned){
+        this.backWarned = true;
+        this.say('한 번 더 누르면 처음부터예요');
+        Sfx.ui();
+        return;
+      }
+      this.state=ST.PICK; Sfx.ui();
+    }
+    else if(id==='submit'){
+      /* ⚠ 아무것도 안 칠하고 제출하면 **윤곽선만** 수족관에 떠다닌다(실측: 칠 0px,
+         구운 결과 2376px = 전부 선). 아이가 실수로 눌렀을 가능성이 높다.
+         막지는 않는다 — 한 번만 권하고, 다시 누르면 그대로 보낸다.
+         5살에게 '안 됩니다'는 스트레스고, 제 그림을 제가 정한다는 게 이 게임이다. */
+      const r = Paint.inkedRatio ? Paint.inkedRatio() : 1;
+      if(r < 0.05 && !this.blankWarned){
+        this.blankWarned = true;
+        this.say('색을 조금만 더 칠해 볼까요?');
+        Sfx.ui();
+        return;
+      }
+      this.askName();
+    }
+    else if(id==='undo'){ Paint.doUndo(); }
+    else if(id==='clear'){ Paint.clear(); }
+    else if(id==='size'){ Paint.sizeIdx=(Paint.sizeIdx+1)%Paint.sizes.length;
+      Paint.size=Paint.sizes[Paint.sizeIdx]; Sfx.ui(); }
+    else if(id.startsWith('t:')){ Paint.tool=id.slice(2); Sfx.ui();
+      if(Paint.tool==='bucket'){ Paint.bucket(); Paint.tool='brush'; } }
+    else if(id.startsWith('c:')){
+      Paint.color=id.slice(2);
+      Sfx.swatch(CRAYONS.indexOf(Paint.color));   // 색마다 다른 음
+    }
+  },
+
+  updName(){
+    const r=NameBox.poll();
+    if(r===null){
+      /* ⚠ 이름 칸이 뜬 채로 아이가 가 버리면 화면이 거기서 멈춘다.
+         한참 기다린 뒤에는 이름 없이 보낸다 — **그림은 반드시 살린다.** */
+      this.nameIdle=(this.nameIdle||0)+1;
+      if(this.nameIdle>50*60){ this.nameIdle=0; NameBox.close(); this.submit(''); }
+      return;
+    }
+    this.nameIdle=0;
+    NameBox.close();
+    this.submit(r);
+  },
+  updCodex(){
+    const p=Input.takeTap(); if(!p) return;
+    const id=UI.hit(p);
+    if(id==='back'){ this.state=ST.TANK; Sfx.ui(); }
+    else if(id==='cpage'){ this.codexPage++; Sfx.ui(); }
+  },
+
+  /* ── 그리기 ────────────────────────────────────── */
+  draw(){
+    const c=Screen.ctx;
+    c.setTransform(Screen.dpr,0,0,Screen.dpr,0,0);
+    /* 화면 전체 바탕 — 게임 영역 밖(레터박스)까지 덮는다.
+       ⚠ contain 으로 맞추므로 4:3 태블릿에서는 위아래에 여백이 생긴다.
+         세계에 맞는 색이라야 띠가 아니라 '배경'으로 읽힌다. */
+    c.fillStyle = this.realm==='sea' ? '#0a1f33' : '#16281b';
+    c.fillRect(0,0,Screen.cssW,Screen.cssH);
+    Screen.begin();
+    UI.begin();
+    /* ⚠ 운영자 화면이 열려 있으면 게임 화면을 아예 그리지 않는다.
+       UI.btn 은 그리면서 판정도 등록한다 — 탱크를 먼저 그리면 그 버튼이
+       운영자 버튼보다 앞에 등록돼 '내보내기'가 '그리기'에 가려진다(실측). */
+    if(typeof Admin!=='undefined' && Admin.open){
+      Admin.draw(c); Screen.end(); return;
+    }
+    if(this.state===ST.PAINT) this.drawPaint(c);
+    else if(this.state===ST.PICK) this.drawPick(c);
+    else if(this.state===ST.CODEX) this.drawCodex(c);
+    else { this.drawTank(c);
+      if(this.state===ST.CHEER) this.drawCheer(c);
+      if(this.state===ST.ZOOM) this.drawZoom(c);
+      if(this.state===ST.NAME) this.drawNameBack(c); }
+    /* 안내는 가장 위에. 단, 축하·이름·확대 중에는 방해하지 않는다 */
+    if(typeof Onboard!=='undefined' &&
+       (this.state===ST.TANK||this.state===ST.PICK||this.state===ST.PAINT))
+      Onboard.draw(c, this);
+
+    if(typeof Admin!=='undefined' && this.state===ST.TANK) Admin.drawHold(c);
+    /* ⚠ 세로 화면에서는 게임이 화면의 21% 로 쪼그라들어 버튼이 29px 이 된다
+       (실측 아이폰 세로). 아이 손가락에는 너무 작다. 가로로 돌리면 해결된다. */
+    if(Screen.cssH > Screen.cssW*1.15) this.drawRotateHint(c);
+    /* 자체 점검 결과는 가장 위에 — 가려지면 보는 의미가 없다 */
+    if(typeof SelfTest!=='undefined') SelfTest.draw(c);
+    if(typeof Net!=='undefined') Net.draw(c);
+
+    if(this.toastT>0){
+      c.globalAlpha=Math.min(1,this.toastT/25);
+      c.font='700 26px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle='rgba(10,32,54,.7)';
+      const w=c.measureText(this.toast).width+40;
+      UI.round(c,VW/2-w/2,VH-92,w,44,12); c.fill();
+      c.fillStyle=PAL.white; c.fillText(this.toast, VW/2, VH-62);
+      c.globalAlpha=1;
+    }
+    Screen.end();
+  },
+  /* 가로로 돌려 달라는 안내 — 글자를 못 읽는 아이도 알 수 있게 그림으로 */
+  drawRotateHint(c){
+    c.save();
+    c.setTransform(Screen.dpr,0,0,Screen.dpr,0,0);
+    const W=Screen.cssW, H=Screen.cssH;
+    c.fillStyle='rgba(8,20,34,.86)'; c.fillRect(0,0,W,H);
+    c.translate(W/2, H/2);
+    const s=Math.min(W,H)/360;
+    c.scale(s,s);
+    /* 기울어진 태블릿 그림 */
+    c.save(); c.rotate(-0.42);
+    c.strokeStyle='#ffd166'; c.lineWidth=7; c.lineJoin='round';
+    UI.round(c,-70,-100,140,200,14); c.stroke();
+    c.restore();
+    /* 회전 화살표 */
+    c.strokeStyle='#ffd166'; c.lineWidth=7; c.lineCap='round';
+    c.beginPath(); c.arc(0,0,124,-0.35,1.15); c.stroke();
+    c.beginPath(); c.moveTo(52,112); c.lineTo(64,132); c.lineTo(38,138); c.closePath();
+    c.fillStyle='#ffd166'; c.fill();
+    c.font='700 30px Galmuri11, sans-serif'; c.textAlign='center';
+    c.fillStyle='#fff'; c.fillText('가로로 돌려 주세요', 0, 190);
+    c.restore();
+  },
+  drawTank(c){
+    const W=this.W;
+    W.draw(c);
+    if(this.realm==='sea') World.drawWhale(c);
+    /* ⚠ 깊이 순서 — 바다는 크기로, 정글은 **층**으로 정한다.
+       정글에서 크기로 정렬하면 나무 위 나비가 땅 코끼리 앞에 그려진다.
+       ⚠ 매 프레임 200개 배열을 만들어 정렬하니 평상시에도 최악 23ms 가 나왔다
+         (중앙은 6.4ms). 정렬 기준은 크기·층뿐이라 **거의 변하지 않는다** —
+         8프레임마다 다시 세우고 그 사이에는 같은 배열을 쓴다. */
+    const jungle=(this.realm==='jungle');
+    if(!this._order || this._orderT===undefined || this.t-this._orderT>=8
+       || this._orderN!==this.beings.length || this._orderR!==this.realm){
+      this._order=this.beings.slice().sort((a,b)=>
+        jungle ? (((a.layer|0)-(b.layer|0)) || ((a.depth||0)-(b.depth||0)) || (a.s-b.s))
+               : (a.s-b.s));
+      this._orderT=this.t; this._orderN=this.beings.length; this._orderR=this.realm;
+    }
+    const list=this._order;
+    /* ⚠ 나무 위 층은 전경 잎보다 **앞**에 그린다.
+       전경 덩굴·지붕이 y 0~302 를 덮는데 나무 위 층이 정확히 그 안이라,
+       뒤에 그리면 나비·잠자리가 잎에 파묻혀 아이 그림이 안 보인다. */
+    const canopyFirst = (this.realm==='jungle');
+    for(const cr of list) if(!canopyFirst || (cr.layer|0)!==0) cr.draw(c, W);
+    W.drawFront(c);
+    if(canopyFirst) for(const cr of list) if((cr.layer|0)===0) cr.draw(c, W);
+    if(W.drawTint) W.drawTint(c);
+    FX.draw(c);
+    /* 버튼 — ⚠ 축하·확대·이름 화면에서는 그리지 않는다.
+       UI.btn 은 그리면서 동시에 판정도 등록하므로, 안 그리면 눌리지도 않는다.
+       예전엔 축하 화면 위로 버튼이 그대로 보여 아이가 잘못 눌렀다. */
+    if(this.state!==ST.TANK && this.state!==ST.JOIN) return;
+    const S=96, y=VH-S-24;
+    /* 큰 화면(stage)은 아이가 만지지 않는다 — 그리기 버튼을 안 띄운다 */
+    if(typeof Net==='undefined' || Net.role!=='stage')
+    UI.btn(c,'new', 24, y, S*2.1, S, (g,r)=>{
+      if(!Icons.draw(g,'brush-fat',S*0.8)) UI.icon.brush(g,r*0.9);
+      g.font='700 20px Galmuri11, sans-serif'; g.textAlign='center';
+      g.fillStyle=PAL.white; g.fillText('그리기', r*1.5, r*0.35);
+    });
+    /* ⚠ 좌표를 하나씩 손으로 빼다가 **realm 이 find 안에 완전히 들어갔다**(실측
+       find 804.8~939.2 · realm 833.6~929.6). UI.hit 은 먼저 등록된 것을 돌려주므로
+       바다↔정글 전환이 **영영 안 눌렸다** — 정글로 갈 방법이 없었다.
+       오른쪽에서 왼쪽으로 순서대로 쌓아 겹칠 수 없게 만든다. */
+    const W2=S*1.4, GAP=12;
+    const right=[
+      ['sound', S,  (g,r)=>{ if(!Icons.draw(g, Sfx.on?'btn-sound':'btn-sound-off', S*0.78)) UI.icon.sound(g,r); }],
+      ['time',  S,  (g,r)=>UI.icon.time(g,r)],
+      ['codex', S,  (g,r)=>{ if(!Icons.draw(g,'btn-book',S*0.78)) UI.icon.book(g,r); }],
+      ['realm', S,  (g,r)=>{
+        /* 바다↔정글 — 물결과 나뭇잎으로 구분 */
+        g.strokeStyle=PAL.white; g.lineWidth=r*0.2; g.lineCap='round';
+        if(Game.realm==='sea'){
+          g.beginPath();
+          for(let i=0;i<3;i++){ g.moveTo(-r*0.7, -r*0.4+i*r*0.42);
+            g.quadraticCurveTo(0,-r*0.7+i*r*0.42, r*0.7,-r*0.4+i*r*0.42); }
+          g.stroke();
+        } else {
+          g.fillStyle=PAL.white;
+          g.beginPath(); g.ellipse(0,0,r*0.4,r*0.72,0.6,0,TAU); g.fill();
+          g.beginPath(); g.moveTo(-r*0.5,r*0.5); g.lineTo(r*0.5,-r*0.5); g.stroke();
+        }
+      }],
+      ['find',  W2, (g,r)=>{ if(!Icons.draw(g,'btn-find',W2*0.86)) UI.icon.find(g,r); }],
+      ['feed',  W2, (g,r)=>{ if(!Icons.draw(g,'btn-feed',W2*0.86)) UI.icon.feed(g,r); }],
+    ];
+    let bx = VW-24;
+    for(const [id,w,dr] of right){ bx-=w; UI.btn(c,id,bx,y,w,S,dr); bx-=GAP; }
+    /* 마릿수 */
+    c.font='600 20px Galmuri11, sans-serif'; c.textAlign='left';
+    c.fillStyle='rgba(255,255,255,.75)';
+    c.fillText(this.realm==='sea'
+      ? `${this.creatures.length}마리가 헤엄치고 있어요`
+      : `${this.animals.length}마리가 걷고 있어요`, 28, 44);
+  },
+  drawPick(c){
+    c.fillStyle='#123047'; c.fillRect(0,0,VW,VH);
+    c.font='700 34px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.white;
+    c.fillText('무엇을 그릴까요?', VW/2, 62);
+    /* ⚠ 처음엔 8열 142px 로 뒀는데 도안이 너무 작아 뭔지 알아볼 수 없었다.
+       아이가 고르는 화면이다 — 안 보이면 못 고른다. 6열로 키운다. */
+    /* ⚠ pickPage 변수는 있는데 **쓰이지 않았다.** 40종을 한 화면에 다 그려
+       22칸이 화면 밖으로 나갔다(실측) — 아이가 고를 수 있는 종이 절반도 안 됐다.
+       하단 버튼이 y=612 부터라 그리드는 600 까지다. 5열×3행 = 15칸씩 넘긴다.
+       열을 6→5 로 줄인 만큼 도안은 오히려 커진다(196→232). */
+    const cols=5, rows=3, cw=232, ch=168, x0=VW/2-cols*cw/2, y0=96;
+    const per=cols*rows;
+    /* 세계에 맞는 목록을 고른다. 이전에는 정글로 전환해도 바다 목록만 보여
+       실제로 정글 동물을 만들 수 없었다. 실물 template은 여기서 즉시 요청한다. */
+    /* ⚠ 어셋이 안 온 종을 띄우면 아이가 골랐을 때 빈 화면이 된다.
+       도안이 실제로 준비된 것만 보여준다 — 새 어셋이 오면 자동으로 늘어난다.
+       (정글 39종 등록 · 도착 12종 상태에서 27칸이 빈 채로 떴다) */
+    const inJungle=(id)=> typeof SEA_LIKE_JUNGLE!=='undefined' && SEA_LIKE_JUNGLE[id];
+    const choices=(this.realm==='sea'
+      ? SPECIES.filter(sp=>!inJungle(sp.id)).map(sp=>({id:sp.id, ko:sp.ko, jungle:false}))
+      : Object.entries(JUNGLE).map(([id,d])=>({id, ko:d.ko, jungle:true}))
+          .concat(SPECIES.filter(sp=>inJungle(sp.id))
+                         .map(sp=>({id:sp.id, ko:sp.ko, jungle:false})))
+    ).filter(sp => sp.jungle ? !!JTemplate.get(sp.id) : !!Templates.get(sp.id));
+    const pages=Math.max(1, Math.ceil(choices.length/per));
+    if(this.pickPage>=pages) this.pickPage=0;
+    const page=choices.slice(this.pickPage*per, this.pickPage*per+per);
+    page.forEach((sp,i)=>{
+      const x=x0+(i%cols)*cw, y=y0+((i/cols)|0)*ch;
+      UI.btn(c,'sp:'+sp.id, x+8,y+8, cw-16, ch-16, (g,r)=>{
+        const t=sp.jungle ? JTemplate.get(sp.id) : Templates.get(sp.id);
+        const iw=cw*1.02, ih=iw*TH/TW;
+        if(t) g.drawImage(t.ink, -iw/2, -ih/2-ch*0.06, iw, ih);
+        g.font='700 20px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText(sp.ko, 0, ch*0.30);
+      });
+    });
+    UI.btn(c,'back', 24, VH-108, 96,84, (g,r)=>{ if(!Icons.draw(g,'btn-back',72)) UI.icon.back(g,r); });
+    /* 페이지 — 1장뿐이면 아예 안 그린다(안 그리면 눌리지도 않는다) */
+    if(pages>1){
+      UI.btn(c,'ppage-', VW/2-190, VH-108, 96,84, (g,r)=>{
+        g.font='700 30px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText('←', 0, 10); });
+      UI.btn(c,'ppage+', VW/2+94, VH-108, 96,84, (g,r)=>{
+        g.font='700 30px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText('→', 0, 10); });
+      c.font='700 24px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle='rgba(255,255,255,.8)';
+      c.fillText((this.pickPage+1)+' / '+pages, VW/2, VH-58);
+    }
+    UI.btn(c,'realm', VW-220, VH-108, 196,84, (g,r)=>{
+      g.font='700 22px Galmuri11, sans-serif'; g.textAlign='center';
+      g.fillStyle=PAL.gold; g.fillText(Game.realm==='sea'?'정글로 →':'← 바다로', 0, -10);
+    });
+    this._pickPages=pages;
+  },
+  drawPaint(c){
+    Paint.draw(c);
+    /* 색 12개
+       ⚠ 가운데 정렬했더니 마지막 2개가 제출 버튼(VW-330~)에 가렸다(실측 118px 겹침).
+          제출 버튼 왼쪽 공간 안에서 가운데를 잡는다. */
+    const cs=60, gap=7;
+    const zoneR=VW-346;                       // 제출 버튼 왼쪽 한계
+    const zoneL=20+78+16;                     // 뒤로 버튼 오른쪽
+    const total=CRAYONS.length*(cs+gap)-gap;
+    const cx0=Math.max(zoneL, (zoneL+zoneR)/2-total/2);
+    CRAYONS.forEach((col,i)=>{
+      const x=cx0+i*(cs+gap), y=VH-92;
+      UI.btns.push({id:'c:'+col, x, y, w:cs, h:cs});
+      c.save();
+      c.beginPath(); c.arc(x+cs/2,y+cs/2,cs/2-6,0,TAU);
+      c.fillStyle=col; c.fill();
+      /* 실물 테두리가 있으면 그걸 얹는다 (가운데가 비어 있어 색이 보인다) */
+      c.translate(x+cs/2, y+cs/2);
+      if(!Icons.draw(c,'color-swatch', cs, Paint.color===col)){
+        c.strokeStyle= Paint.color===col? PAL.gold : 'rgba(255,255,255,.5)';
+        c.lineWidth= Paint.color===col? 5:2;
+        c.beginPath(); c.arc(0,0,cs/2-3,0,TAU); c.stroke();
+      } else if(Paint.color===col){
+        c.strokeStyle=PAL.gold; c.lineWidth=4;
+        c.beginPath(); c.arc(0,0,cs/2+2,0,TAU); c.stroke();
+      }
+      c.restore();
+    });
+    /* 도구 */
+    const S=78;
+    /* ⚠ 도구가 7개로 늘면서 한 열에 다 안 들어갔다(실측):
+         7번(줄무늬)이 뒤로 버튼과 **완전히 같은 자리**에 겹쳤고
+         8번(붓 굵기)은 화면 밖 710~788 로 나갔다.
+       아이가 스탬프를 누르면 나가 버린다. 2열로 바꾼다.
+       [도구키, 코드아이콘, 실물어셋이름] */
+    const tools=[['brush','brush','brush-fat'],['bucket','bucket','bucket'],
+                 ['eraser','eraser','eraser'],['star','star','stamp-star'],
+                 ['heart','heart','stamp-heart'],['dot','dot','stamp-dot'],
+                 ['stripe','dot','stamp-stripe']];
+    const TC=2, TG=8, tTop=104;
+    tools.forEach((t,i)=>{
+      const on=Paint.tool===t[0];
+      const col=i%TC, row=(i/TC)|0;
+      UI.btn(c,'t:'+t[0], 20+col*(S+TG), tTop+row*(S+TG), S, S,
+        (g,r)=>{ if(!Icons.draw(g, t[2], S*0.78, on)) UI.icon[t[1]](g,r); }, on);
+    });
+    /* 붓 굵기 — 지금 굵기가 원으로 보인다. 도구 다음 칸에 */
+    const nRow=Math.ceil(tools.length/TC);
+    const szCol=tools.length%TC, szRow=(tools.length/TC)|0;
+    UI.btn(c,'size', 20+szCol*(S+TG), tTop+szRow*(S+TG), S, S, (g,r)=>{
+      const rr=[0.28,0.5,0.82][Paint.sizeIdx]*r;
+      g.fillStyle=Paint.color;
+      g.beginPath(); g.arc(0,0,rr,0,TAU); g.fill();
+      g.strokeStyle='rgba(255,255,255,.7)'; g.lineWidth=3; g.stroke();
+    });
+    UI.btn(c,'undo', VW-S-20, 116, S,S,
+      (g,r)=>{ if(!Icons.draw(g,'undo',S*0.72)) UI.icon.undo(g,r); });
+    UI.btn(c,'clear',VW-S-20, 116+S+10, S,S,
+      (g,r)=>{ if(!Icons.draw(g,'clear',S*0.72)) UI.icon.trash(g,r); });
+    UI.btn(c,'back', 20, VH-96, S,S, (g,r)=>{ if(!Icons.draw(g,'btn-back',S*0.72)) UI.icon.back(g,r); });
+    /* 제출 — 가장 크게 */
+    UI.btn(c,'submit', VW-330, VH-112, 300, 96, (g,r)=>{
+      if(Icons.draw(g,'btn-submit',280,true)){
+        g.font='700 28px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText(JUNGLE[Paint.spId]?'정글로!':'바다로!', 0, 12);
+      } else {
+        UI.icon.submit(g,r*0.8);
+        g.font='700 26px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText(JUNGLE[Paint.spId]?'정글로!':'바다로!', r*1.6, r*0.4);
+      }
+    }, true);
+  },
+
+  /* ── 축하 — 이 작품의 보상 순간 ─────────────────── */
+  drawCheer(c){
+    const k=Math.min(1,this.cheerT/18);
+    c.fillStyle=`rgba(6,20,36,${0.86*k})`; c.fillRect(0,0,VW,VH);
+    /* 합류 물보라 — 실물 시트 */
+    if(this.splashAt && this.splashAt.t<40)
+      FXA.draw(c,'fx-splash-in', VW/2, VH*0.30, 620, this.splashAt.t/40);
+    const pop=1+Math.sin(Math.min(this.cheerT,30)/30*Math.PI)*0.12;
+    c.save(); c.translate(VW/2, VH*0.16); c.scale(pop*k, pop*k);
+    c.font='700 62px Galmuri11, sans-serif'; c.textAlign='center';
+    c.fillStyle=PAL.gold;
+    c.fillText(this.joinC && JUNGLE[this.joinC.id] ? '정글로 왔어요!' : '바다로 갔어요!', 0, 0);
+    c.restore();
+    if(this.joinC){
+      const t=this.joinC.tex;
+      const w=460, h=w*TEX_H/TEX_W;
+      c.globalAlpha=k;
+      c.drawImage(t, VW/2-w/2, VH*0.40, w, h);
+      c.globalAlpha=1;
+    }
+    if(this.myName){
+      c.font='700 30px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle=PAL.white; c.fillText(this.myName+'의 물고기', VW/2, VH*0.74);
+    }
+    if(this.cheerT>40){
+      c.globalAlpha=0.6+0.4*Math.sin(this.cheerT*0.08);
+      c.font='600 24px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle=PAL.white; c.fillText('화면을 만져 주세요', VW/2, VH-64);
+      c.globalAlpha=1;
+    }
+  },
+  drawNameBack(c){
+    c.fillStyle='rgba(10,32,54,.72)'; c.fillRect(0,0,VW,VH);
+    c.font='700 40px Galmuri11, sans-serif'; c.textAlign='center';
+    c.fillStyle=PAL.gold; c.fillText('이름을 적어 주세요', VW/2, VH*0.30);
+    c.font='600 20px Galmuri11, sans-serif'; c.fillStyle=PAL.dim;
+    c.fillText('안 적어도 괜찮아요', VW/2, VH*0.30+38);
+  },
+  /* ⚠ 다른 기기에서 온 그림을 합류시킨다(큰 화면 전용).
+     내 것(mine)이 아니라 '누군가의 것'이다 — 이름표는 보이되
+     '내 것 찾기'에는 안 걸린다. */
+  adopt(rec){
+    const img=new Image();
+    /* ⚠ 이미지가 안 열리면 조용히 넘긴다. 큰 화면이 멈추면 안 된다. */
+    img.onerror=()=>{};
+    img.onload=()=>{
+      /* ⚠ 알파 없는 PNG 가 오면 검은 사각형으로 뜬다(실측).
+         정상 경로에서는 캔버스가 투명 PNG 를 만들지만, 다른 기기가
+         잘못 보낼 수 있다. 투명 화소가 거의 없으면 버린다. */
+      try{
+        const t=document.createElement('canvas'); t.width=TEX_W; t.height=TEX_H;
+        const x=t.getContext('2d'); x.drawImage(img,0,0,TEX_W,TEX_H);
+        const d=x.getImageData(0,0,TEX_W,TEX_H).data;
+        let clear=0;
+        for(let i=3;i<d.length;i+=4*13) if(d[i]<20) clear++;
+        if(clear < (d.length/(4*13))*0.10){ return; }   // 투명이 10% 미만 = 통짜 사각형
+      }catch(e){}
+      let c;
+      if(typeof JUNGLE!=='undefined' && JUNGLE[rec.sp]){
+        c=new Walker(img, rec.sp, rec.n||'', {join:true, y:JWorld.groundY()});
+        while(this.animals.length>=200) this.animals.shift();
+        this.animals.push(c);
+      } else if(SP_BY_ID[rec.sp]){
+        c=new Creature(img, rec.sp, rec.n||'', {join:true, x:-140});
+        while(this.creatures.length>=250) this.creatures.shift();
+        this.creatures.push(c);
+      } else return;
+      /* 합류 연출 — 큰 화면 앞의 아이들이 '누가 보냈다'를 알아챈다 */
+      FX.splash(c.x+120, c.y);
+      Sfx.join();
+      this.say((rec.n? rec.n+'의 ' : '') + '친구가 왔어요');
+    };
+    img.src=rec.d;
+  },
+
+  /* 생물의 종 이름 — 바다·정글 어느 쪽이든 안전하게
+     ⚠ Walker 는 spId 가 없고 id 를 쓴다. 확대 화면이 바다로만 가정해서
+       정글 동물을 누르면 터졌다(실측: reading 'ko' of undefined). */
+  kindName(x){
+    if(!x) return '';
+    const id = x.spId || x.id;
+    return (SP_BY_ID[id] && SP_BY_ID[id].ko)
+        || (typeof JUNGLE!=='undefined' && JUNGLE[id] && JUNGLE[id].ko)
+        || '친구';
+  },
+
+  /* ── 물고기 크게 보기 ───────────────────────────── */
+  drawZoom(c){
+    const z=this.zoomC; if(!z) return;
+    c.fillStyle='rgba(6,20,36,.88)'; c.fillRect(0,0,VW,VH);
+    const w=Math.min(VW*0.62, 620), h=w*TEX_H/TEX_W;
+    /* 크게 볼 때도 헤엄친다 — 정지 이미지면 재미가 없다 */
+    const sc=w/TEX_W;
+    if(z instanceof Walker){
+      /* 정글 동물은 걷는 모습 그대로 크게 */
+      c.save();
+      const keep={x:z.x, y:z.y, s:z.s};
+      z.x=VW/2; z.y=VH*0.44+TEX_H*sc*0.4; z.s=sc;
+      z.draw(c, JWorld);
+      z.x=keep.x; z.y=keep.y; z.s=keep.s;
+      c.restore();
+    } else {
+      const SL=44, sw=TEX_W/SL;
+      c.save(); c.translate(VW/2, VH*0.44); c.scale(sc,sc);
+      for(let i=0;i<SL;i++){
+        const u=i/SL;
+        const off=Math.sin(z.t*0.11+z.ph-u*3.0)*11*Math.pow(1-u,1.7);
+        c.drawImage(z.tex, i*sw,0,sw+1,TEX_H, i*sw-TEX_W/2, off-TEX_H/2, sw+1, TEX_H);
+      }
+      c.restore();
+    }
+    c.font='700 34px Galmuri11, sans-serif'; c.textAlign='center';
+    c.fillStyle=PAL.white;
+    const kn=this.kindName(z);
+    c.fillText(z.name ? z.name+'의 '+kn : kn, VW/2, VH*0.74);
+    c.font='600 20px Galmuri11, sans-serif'; c.fillStyle=PAL.dim;
+    c.fillText('화면을 만지면 돌아가요', VW/2, VH-56);
+  },
+  /* ── 도감 — 내가 만든 것 모아 보기 ──────────────── */
+  drawCodex(c){
+    c.fillStyle='#123047'; c.fillRect(0,0,VW,VH);
+    const mine=[...this.creatures,...this.animals].filter(x=>x.mine);
+    c.font='700 34px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.white;
+    c.fillText(mine.length? `내가 만든 ${mine.length}마리` : '아직 만든 것이 없어요', VW/2, 44);
+    const cols=5, cw=210, chh=150, x0=VW/2-cols*cw/2, y0=110;
+    const per=cols*3, page=this.codexPage%Math.max(1,Math.ceil(mine.length/per));
+    mine.slice(page*per,(page+1)*per).forEach((m,i)=>{
+      const x=x0+(i%cols)*cw, y=y0+((i/cols)|0)*chh;
+      c.fillStyle='rgba(255,255,255,.07)'; UI.round(c,x+6,y+6,cw-12,chh-12,14); c.fill();
+      c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=2; c.stroke();
+      const iw=cw-40, ih=iw*TEX_H/TEX_W;
+      c.drawImage(m.tex, x+20, y+16, iw, ih);
+      c.font='600 17px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.white;
+      c.fillText(m.name||this.kindName(m), x+cw/2, y+chh-22);
+    });
+    UI.btn(c,'back', 24, VH-112, 100,88, (g,r)=>{ if(!Icons.draw(g,'btn-back',76)) UI.icon.back(g,r); });
+    if(mine.length>per) UI.btn(c,'cpage', VW-124, VH-112, 100,88,
+      (g,r)=>{ if(Icons.draw(g,'btn-next',76)) return;
+        g.fillStyle=PAL.white; g.beginPath();
+        g.moveTo(-r*0.5,-r*0.6); g.lineTo(r*0.6,0); g.lineTo(-r*0.5,r*0.6); g.closePath(); g.fill(); });
+  },
+};
+
+/* ── 이름 입력 — 진짜 HTML input 을 쓴다.
+   ⚠ 캔버스에 한글 키보드를 그리는 건 아이에게 너무 어렵다.
+     태블릿에서는 OS 키보드가 뜨는 게 가장 자연스럽고 한글 조합도 정확하다. */
+const NameBox = {
+  el:null, done:undefined,
+  open(prev){
+    this.done=undefined;
+    if(!this.el){
+      const w=document.createElement('div');
+      w.id='namebox';
+      w.innerHTML=`<input id="nb-in" maxlength="8" placeholder="이름" autocomplete="off">
+        <div class="nb-row"><button id="nb-ok">보내기</button>
+        <button id="nb-skip">그냥 보내기</button></div>`;
+      document.body.appendChild(w);
+      this.el=w;
+      w.querySelector('#nb-ok').onclick=()=>{ this.done=w.querySelector('#nb-in').value.trim(); };
+      w.querySelector('#nb-skip').onclick=()=>{ this.done=''; };
+      w.querySelector('#nb-in').addEventListener('keydown',e=>{
+        if(e.key==='Enter') this.done=e.target.value.trim(); });
+    }
+    const inp=this.el.querySelector('#nb-in');
+    inp.value=prev||'';
+    this.el.style.display='flex';
+    setTimeout(()=>inp.focus(),50);
+  },
+  poll(){ return this.done===undefined ? null : this.done; },
+  close(){ if(this.el) this.el.style.display='none'; this.done=undefined; },
+};
+
+</script>
+<script>
+/* ===== js/80_admin.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   운영자 화면 — 전시장에서 하루를 운영하려면 반드시 필요한 것들.
+
+   ⚠ 아이가 절대 못 열어야 한다. 화면 구석을 정해진 순서로 눌러야 열린다.
+   ⚠ 지우기는 되돌릴 수 없다 — 반드시 두 번 묻는다.
+   운영자가 실제로 하는 일:
+     · 부적절한 낙서 하나만 지우기
+     · 하루가 끝나면 전부 비우기
+     · 오늘 만든 걸 파일로 내보내기 (기록·인쇄용)
+     · 지금 몇 장인지, 저장이 얼마나 찼는지 보기
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const Admin = {
+  open:false, page:0, sel:null, confirm:null, msg:'', msgT:0,
+  /* ⚠ 비밀 열기 — 처음엔 네 모서리 순서로 했는데 **왼쪽 아래가 '그리기' 버튼과
+     겹쳐서** 버튼이 먼저 먹었다(실측). 아이가 가장 많이 누르는 버튼이다.
+     왼쪽 위 모서리를 **3초 길게 누르기**로 바꾼다 — 거기엔 버튼이 없고,
+     아이는 길게 누르지 않는다. 키오스크의 표준 방식이기도 하다. */
+  holdT:0, HOLD:180, CORNER:120,
+
+  inCorner(){ return Input.down && Input.x<this.CORNER && Input.y<this.CORNER; },
+  /* 탱크 화면에서 매 프레임 부른다 */
+  watchHold(){
+    if(this.open) return;
+    if(this.inCorner()){
+      this.holdT++;
+      if(this.holdT>=this.HOLD){ this.holdT=0; this.enter(); }
+    } else this.holdT=0;
+  },
+  /* 누르는 동안 진행 표시 — 운영자가 되고 있는지 알아야 한다 */
+  drawHold(c){
+    if(this.open || this.holdT<20) return;
+    const k=this.holdT/this.HOLD;
+    c.save();
+    c.strokeStyle='rgba(255,201,74,.85)'; c.lineWidth=6;
+    c.beginPath(); c.arc(this.CORNER/2, this.CORNER/2, 34, -Math.PI/2, -Math.PI/2+TAU*k);
+    c.stroke(); c.restore();
+  },
+
+  enter(){ this.open=true; this.page=0; this.sel=null; this.confirm=null; Sfx.join(); },
+  close(){ this.open=false; this.confirm=null; Sfx.ui(); },
+  say(s){ this.msg=s; this.msgT=140; },
+
+  /* 지금 화면의 내 그림 목록 (바다+정글 합쳐서) */
+  all(){ return Game.creatures.concat(Game.animals).filter(b=>b.mine); },
+
+  /* ── 동작 ────────────────────────────────────────── */
+  deleteOne(b){
+    let i=Game.creatures.indexOf(b);
+    if(i>=0) Game.creatures.splice(i,1);
+    else { i=Game.animals.indexOf(b); if(i>=0) Game.animals.splice(i,1); }
+    Game.dropOrder();
+    /* 저장에서도 지운다 — 화면에서만 지우면 다시 켤 때 살아난다 */
+    const list=Save.data.creatures||[];
+    const idx=list.findIndex(r=>r.n===b.name && r.sp===(b.spId||b.id));
+    if(idx>=0){ if(typeof Net!=='undefined') Net.remove(list[idx].id); list.splice(idx,1); }
+    Save.write();
+    this.sel=null;
+    this.say('한 마리를 지웠어요');
+  },
+  clearAll(){
+    Game.creatures=Game.creatures.filter(c=>!c.mine);
+    Game.animals=Game.animals.filter(a=>!a.mine);
+    Save.data.creatures=[]; Save.data.made=0; Save.write();
+    Game.dropOrder();
+    if(typeof Net!=='undefined') Net.clear();
+    this.say('전부 비웠어요');
+  },
+  /* 오늘 만든 것을 한 장의 시트로 — 인쇄·기록용 */
+  exportSheet(){
+    const list=Save.data.creatures||[];
+    if(!list.length){ this.say('내보낼 게 없어요'); return; }
+    const cols=6, cw=200, ch=150, pad=16;
+    const rows=Math.ceil(list.length/cols);
+    const c=document.createElement('canvas');
+    c.width=cols*cw+pad*2; c.height=rows*ch+pad*2+56;
+    const x=c.getContext('2d');
+    x.fillStyle='#fdfaf3'; x.fillRect(0,0,c.width,c.height);
+    x.fillStyle='#12212e'; x.font='700 30px Galmuri11, sans-serif'; x.textAlign='left';
+    const d=new Date();
+    x.fillText(`그린바다 · ${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} · ${list.length}마리`, pad, pad+30);
+    let done=0;
+    list.forEach((rec,i)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const px=pad+(i%cols)*cw, py=pad+56+((i/cols)|0)*ch;
+        x.drawImage(img, px+8, py+6, cw-16, (cw-16)*TEX_H/TEX_W);
+        x.fillStyle='#12212e'; x.font='600 15px Galmuri11, sans-serif'; x.textAlign='center';
+        x.fillText(rec.n||'', px+cw/2, py+ch-10);
+        if(++done===list.length) this.download(c);
+      };
+      img.onerror=()=>{ if(++done===list.length) this.download(c); };
+      img.src=rec.d;
+    });
+  },
+  download(canvas){
+    try{
+      const a=document.createElement('a');
+      const d=new Date();
+      a.download=`greensea-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.png`;
+      a.href=canvas.toDataURL('image/png');
+      document.body.appendChild(a); a.click(); a.remove();
+      this.say('내려받았어요');
+    }catch(e){ this.say('내려받기 실패'); }
+  },
+  usage(){
+    let n=0;
+    try{ n=(localStorage.getItem(Save.key)||'').length; }catch(e){}
+    return { kb:Math.round(n/1024), pct:Math.min(100, Math.round(n/(5*1024*1024)*100)) };
+  },
+
+  /* ── 조작 ────────────────────────────────────────── */
+  update(){
+    if(!this.open) return;
+    if(this.msgT>0) this.msgT--;
+    const p=Input.takeTap(); if(!p) return;
+    const id=UI.hit(p);
+    if(this.confirm){
+      if(id==='yes'){ this.confirm.run(); this.confirm=null; }
+      else if(id==='no'){ this.confirm=null; Sfx.ui(); }
+      return;
+    }
+    if(id==='close'){ this.close(); return; }
+    if(id==='export'){ this.exportSheet(); Sfx.ui(); return; }
+    if(id==='clear'){
+      this.confirm={ text:`정말 ${this.all().length}마리를 전부 지울까요?`,
+                     run:()=>this.clearAll() };
+      Sfx.ui(); return; }
+    if(id==='pg'){ this.page++; Sfx.ui(); return; }
+    if(id && id.startsWith('d:')){
+      const b=this.all()[+id.slice(2)];
+      if(b) this.confirm={ text:`「${b.name||'이름 없음'}」을 지울까요?`, run:()=>this.deleteOne(b) };
+      Sfx.ui(); return;
+    }
+  },
+
+  /* ── 그리기 ──────────────────────────────────────── */
+  /* 서버에서 LAN 주소를 한 번 받아 둔다 */
+  fetchLan(){
+    if(this._lanAsked) return;
+    this._lanAsked=true;
+    fetch('api/health').then(r=>r.json()).then(j=>{
+      this.lan=j.lan||[]; this.port=j.port;
+    }).catch(()=>{ this.lan=[]; });
+  },
+  draw(c){
+    if(!this.open) return;
+    this.fetchLan();
+    c.fillStyle='rgba(8,14,24,.94)'; c.fillRect(0,0,VW,VH);
+    const u=this.usage();
+    c.font='700 30px Galmuri11, sans-serif'; c.textAlign='left'; c.fillStyle=PAL.gold;
+    c.fillText('운영자', 32, 26);
+    c.font='600 18px Galmuri11, sans-serif'; c.fillStyle=PAL.dim;
+    const list=this.all();
+    c.fillText(`화면 ${list.length}마리 · 저장 ${Save.data.creatures.length}장 · ${u.kb}KB (${u.pct}%)`, 32, 62);
+
+    /* 여러 기기로 쓰는 법 — ⚠ 전시장에서 제일 먼저 막히는 게 '주소를 모르는 것'이다.
+       localhost 는 다른 기기에서 안 열리므로 서버가 알려준 LAN 주소를 띄운다. */
+    const net=(typeof Net!=='undefined')?Net:null;
+    const role=net?net.role:'solo';
+    const host=(this.lan&&this.lan[0]) ? this.lan[0]+':'+(this.port||location.port) : null;
+    c.textAlign='right';
+    c.font='700 19px Galmuri11, sans-serif';
+    c.fillStyle = role==='solo' ? PAL.dim : PAL.green;
+    c.fillText('이 기기: '+(role==='paint'?'색칠용':role==='stage'?'큰 화면':'혼자 쓰기')
+               + (net&&net.on?' · 서버 연결됨':''), VW-32, 26);
+    c.font='600 16px Galmuri11, sans-serif'; c.fillStyle=PAL.dim;
+    if(host){
+      c.fillText('색칠 태블릿 →  '+host+'/?role=paint', VW-32, 50);
+      c.fillText('큰 화면 →  '+host+'/?role=stage', VW-32, 72);
+    } else {
+      c.fillText('주소를 받는 중…  (서버가 꺼져 있으면 혼자 쓰기)', VW-32, 50);
+    }
+    c.textAlign='left';
+
+    /* 격자 */
+    const cols=8, cw=142, chh=118, x0=32, y0=104, per=cols*3;
+    const page=this.page % Math.max(1, Math.ceil(list.length/per));
+    list.slice(page*per,(page+1)*per).forEach((b,i)=>{
+      const x=x0+(i%cols)*cw, y=y0+((i/cols)|0)*chh;
+      const gi=page*per+i;
+      UI.btn(c,'d:'+gi, x, y, cw-10, chh-10, (g,r)=>{
+        if(b.tex) g.drawImage(b.tex, -(cw-30)/2, -(chh-46)/2, cw-30, (cw-30)*TEX_H/TEX_W);
+        g.font='600 14px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText(b.name||'-', 0, chh/2-22);
+        /* 지우기 표시 */
+        g.fillStyle=PAL.red; g.font='700 16px Galmuri11, sans-serif';
+        g.fillText('✕', (cw-10)/2-14, -(chh-10)/2+4);
+      });
+    });
+    if(!list.length){
+      c.font='600 22px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.dim;
+      c.fillText('아직 만들어진 그림이 없어요', VW/2, VH*0.42);
+    }
+
+    /* 버튼 */
+    const S=86, y=VH-S-22;
+    UI.btn(c,'export', 32, y, 220, S, (g,r)=>{
+      g.font='700 22px Galmuri11, sans-serif'; g.textAlign='center';
+      g.fillStyle=PAL.white; g.fillText('내보내기', 0, -8);
+      g.font='600 13px Galmuri11, sans-serif'; g.fillStyle=PAL.dim;
+      g.fillText('오늘 그림 한 장으로', 0, 14);
+    });
+    UI.btn(c,'clear', 268, y, 220, S, (g,r)=>{
+      g.font='700 22px Galmuri11, sans-serif'; g.textAlign='center';
+      g.fillStyle=PAL.red; g.fillText('전부 비우기', 0, -8);
+      g.font='600 13px Galmuri11, sans-serif'; g.fillStyle=PAL.dim;
+      g.fillText('되돌릴 수 없어요', 0, 14);
+    });
+    if(list.length>per) UI.btn(c,'pg', 504, y, 120, S, (g,r)=>{
+      g.font='700 20px Galmuri11, sans-serif'; g.textAlign='center';
+      g.fillStyle=PAL.white; g.fillText('다음 장', 0, -4); });
+    UI.btn(c,'close', VW-172, y, 140, S, (g,r)=>{
+      g.font='700 22px Galmuri11, sans-serif'; g.textAlign='center';
+      g.fillStyle=PAL.white; g.fillText('닫기', 0, -4); });
+
+    /* 확인 — 지우기는 반드시 두 번 묻는다 */
+    if(this.confirm){
+      c.fillStyle='rgba(8,14,24,.9)'; c.fillRect(0,0,VW,VH);
+      c.font='700 30px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.white;
+      c.fillText(this.confirm.text, VW/2, VH*0.38);
+      UI.btn(c,'no', VW/2-250, VH*0.52, 220, 96, (g,r)=>{
+        g.font='700 26px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText('아니요', 0, -6); });
+      UI.btn(c,'yes', VW/2+30, VH*0.52, 220, 96, (g,r)=>{
+        g.font='700 26px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.red; g.fillText('네, 지울게요', 0, -6); });
+    }
+    if(this.msgT>0){
+      c.globalAlpha=Math.min(1,this.msgT/25);
+      c.font='700 24px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.green;
+      c.fillText(this.msg, VW/2, VH-140);
+      c.globalAlpha=1;
+    }
+  }
+};
+
+</script>
+<script>
+/* ===== js/85_selftest.js ===== */
+/* 자체 점검 — 주소 끝에 ?selftest=1 을 붙이면 돈다.
+   ⚠ 왜 있나: 2026-08-28 하루에 잡은 결함 2개가 전부 "눌러보지 않아서"였다.
+      · 바다↔정글 버튼이 찾기 버튼 안에 완전히 들어가 영영 안 눌렸다
+      · 종 고르기 40칸 중 22칸이 화면 밖이라 절반을 고를 수 없었다
+      둘 다 화면은 멀쩡해 보였다. 눈으로는 안 잡힌다 — 좌표로 잡아야 한다.
+   운영 전에 1분이면 끝난다. */
+const SelfTest = {
+  on:false, lines:[], t:0,
+
+  boot(){
+    if(!/[?&]selftest=1/.test(location.search)) return;
+    this.on=true;
+    setTimeout(()=>this.run(), 3500);      // 어셋 로딩을 기다린다
+  },
+
+  /* 한 화면을 그려 보고 버튼 배치를 검사한다 */
+  probe(label, setup){
+    const bad=[];
+    try{ setup(); }catch(e){ return [label+' — 진입 실패: '+e.message]; }
+    try{ Game.draw(); }catch(e){ return [label+' — 그리기 실패: '+e.message]; }
+    const bs=UI.btns.slice();
+    if(!bs.length) return [];
+    const S=Screen;
+    for(let i=0;i<bs.length;i++){
+      const a=bs[i];
+      if(a.x<-1||a.y<-1||a.x+a.w>VW+1||a.y+a.h>VH+1)
+        bad.push(`${label}: '${a.id}' 가 화면 밖 (${Math.round(a.x)},${Math.round(a.y)})`);
+      /* ⚠ 게임 좌표로만 보면 못 잡는다 — 화면 맞춤이 cover 였을 때
+         좌표상으론 멀쩡한데 실제로는 25% 가 잘려 나갔다.
+         실제 화면 픽셀로 환산해서 다시 본다. */
+      const ax=S.ox+a.x*S.scale, ay=S.oy+a.y*S.scale;
+      const zx=ax+a.w*S.scale,  zy=ay+a.h*S.scale;
+      if(ax<-1||ay<-1||zx>S.cssW+1||zy>S.cssH+1)
+        bad.push(`${label}: '${a.id}' 가 실제 화면 밖으로 잘린다`);
+      if(Math.min(a.w,a.h)*S.scale < 38)
+        bad.push(`${label}: '${a.id}' 가 ${Math.round(Math.min(a.w,a.h)*S.scale)}px — 아이 손가락에 작다`);
+      /* 가운데를 눌렀을 때 자기가 잡히는가 — 겹침보다 이게 본질이다 */
+      const hit=UI.hit({x:a.x+a.w/2, y:a.y+a.h/2});
+      if(hit!==a.id) bad.push(`${label}: '${a.id}' 를 눌러도 '${hit}' 가 잡힌다`);
+    }
+    return bad;
+  },
+
+  async run(){
+    const L=[]; const keep={state:Game.state, realm:Game.realm, page:Game.pickPage};
+    const push=a=>{ for(const x of a) L.push('✗ '+x); };
+
+    for(const realm of ['sea','jungle']){
+      push(this.probe(realm+' 수족관', ()=>{ Game.realm=realm; Game.state=ST.TANK; }));
+      /* 고르기는 페이지를 끝까지 넘겨 본다 — 마지막 페이지에서 깨지는 일이 많다 */
+      for(let p=0;p<6;p++){
+        const n=Game._pickPages||1;
+        if(p>=n && p>0) break;
+        push(this.probe(`${realm} 고르기 ${p+1}쪽`, ()=>{ Game.realm=realm; Game.state=ST.PICK; Game.pickPage=p; }));
+      }
+    }
+    push(this.probe('색칠', ()=>{ Paint.open('clownfish'); Game.state=ST.PAINT; }));
+    push(this.probe('도감', ()=>{ Game.state=ST.CODEX; }));
+
+    /* 도안이 실제로 준비됐는가 — 없으면 아이가 고를 수 없다.
+       ⚠ 아직 받는 중인 것을 '없다'고 세면 멀쩡한 어셋을 결함으로 보고한다.
+         못 채운 게 있으면 조금 더 기다렸다 다시 센다. */
+    const seaAll=SPECIES.filter(s=>!SEA_LIKE_JUNGLE[s.id]);
+    const junAll=Object.keys(JUNGLE);
+    let seaN=0, junN=0;
+    for(let tries=0; tries<6; tries++){
+      seaN=seaAll.filter(s=>Templates.get(s.id)).length;
+      junN=junAll.filter(id=>JTemplate.get(id)).length;
+      if(seaN===seaAll.length && junN===junAll.length) break;
+      await new Promise(r=>setTimeout(r,700));
+    }
+    L.push(`· 도안 준비 — 바다 ${seaN}/${seaAll.length} · 정글 ${junN}/${junAll.length}`);
+    if(seaN<seaAll.length)
+      L.push('✗ 바다 도안 ' + seaAll.filter(s=>!Templates.get(s.id)).map(s=>s.ko).join(' ') + ' 없음');
+    if(junN<junAll.length)
+      L.push('✗ 정글 도안 ' + junAll.filter(id=>!JTemplate.get(id)).map(id=>JUNGLE[id].ko).join(' ') + ' 없음');
+
+    /* 저장 용량 */
+    try{
+      const kb=((localStorage[Save.key]||'').length/1024);
+      L.push(`· 저장 ${(Save.data.creatures||[]).length}마리 ${kb.toFixed(0)}KB`);
+      if(kb>4000) L.push('✗ 저장 용량이 4MB 를 넘었다 — 오래된 것부터 지워질 수 있다');
+    }catch(e){}
+
+    /* 서버 */
+    try{
+      const r=await fetch('api/health'); const j=await r.json();
+      L.push(`· 서버 정상 (${j.n}마리 보관)`);
+    }catch(e){ L.push('· 서버 없음 — 혼자 쓰는 모드'); }
+
+    Game.state=keep.state; Game.realm=keep.realm; Game.pickPage=keep.page;
+    const fails=L.filter(x=>x[0]==='✗').length;
+    L.unshift(fails ? `✗ 문제 ${fails}건` : '✓ 이상 없음');
+    this.lines=L; this.t=0;
+    console.log('[자체 점검]\n'+L.join('\n'));
+  },
+
+  draw(c){
+    if(!this.on || !this.lines.length) return;
+    /* 결과를 읽었으면 아무 데나 눌러 닫는다 — 안 그러면 화면을 계속 가린다 */
+    if(this.t>30 && Input.tapped){ this.lines=[]; Input.tapped=null; return; }
+    this.t++;
+    const H=Math.min(VH-40, 44+this.lines.length*26);
+    c.save();
+    c.fillStyle='rgba(8,20,34,.92)';
+    UI.round(c, 20, 20, VW-40, H, 16); c.fill();
+    c.strokeStyle=this.lines[0][0]==='✓' ? '#7ddf7d' : '#ff8a8a';
+    c.lineWidth=3; c.stroke();
+    c.textAlign='left';
+    this.lines.forEach((s,i)=>{
+      c.font=(i===0?'700 24px':'600 19px')+' Galmuri11, sans-serif';
+      c.fillStyle = s[0]==='✗' ? '#ff9a9a' : (s[0]==='✓' ? '#9de89d' : 'rgba(255,255,255,.82)');
+      c.fillText(s, 40, 54+i*26);
+    });
+    c.restore();
+  },
+};
+
+</script>
+<script>
+/* ===== js/99_main.js ===== */
+'use strict';
+let _last=0;
+function frameStep(now){
+  let dt=(now-_last)/1000; if(!(dt>0)) dt=0.016; dt=Math.min(0.05,dt); _last=now;
+  Game.update(dt); Game.draw();
+}
+function loop(now){ frameStep(now); requestAnimationFrame(loop); }
+addEventListener('DOMContentLoaded',()=>{
+  Screen.init(); Input.init(); Save.load();
+  if(typeof Net!=='undefined') Net.init();
+  Sfx.on = Save.data.sound!==false;
+  Game.init(); Icons.prefetch(); BG.prefetch(); Props.prefetch(); FX.prefetch(); JWorld.prefetch(); JTemplate.prefetch();
+  const gate=document.getElementById('gate');
+  document.getElementById('go').onclick=()=>{
+    Sfx.unlock();
+    /* ⚠ 앰비언스는 사용자 제스처 뒤에만 시작할 수 있다(브라우저 정책) */
+    if(typeof Amb!=='undefined'){ Amb.init(Sfx); Amb.set(Game.realm); }
+    gate.remove();
+  };
+  if(typeof SelfTest!=='undefined') SelfTest.boot();
+  _last=performance.now(); requestAnimationFrame(loop);
+});
+
+</script>
+</body></html>
