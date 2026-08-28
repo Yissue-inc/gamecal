@@ -174,7 +174,8 @@ class DecathlonEvent {
       u.fillStyle='rgba(5,6,10,.78)'; u.fillRect(0,0,VW,VH);
       txt(u, K('%1번째 종목').replace('%1', this.slot+1), VW/2, 84, 11, PAL.dim,'center');
       txt(u, d.name, VW/2, 100, 24, PAL.gold,'center',700);
-      txt(u, '기준 '+(d.higher? d.qualify.toFixed(2)+'m' : fmtTime(d.qualify)),
+      /* ⚠ 단위를 'm 아니면 초'로 박아 뒀었다 — 근대5종의 사격(점)·펜싱이 m 로 나온다 */
+      txt(u, '기준 '+fmtRec(d, d.qualify)+(d.unit==='s'?K('초'):''),
           VW/2, 132, 11, PAL.white,'center');
       if(this.marks.length)
         txt(u, '지금까지 '+this.total+'점', VW/2, 150, 12, PAL.green,'center',700);
@@ -186,7 +187,7 @@ class DecathlonEvent {
         (r.status==='OK'||r.status==='MISSED_QUALIFY') ? r.value : 0);
       u.fillStyle='rgba(5,6,10,.72)'; u.fillRect(0, 74, VW, 62);
       txt(u, d.name, VW/2, 80, 10, PAL.dim,'center');
-      txt(u, d.higher? (r.value>0?r.value.toFixed(2):'—')+'m' : fmtTime(r.value),
+      txt(u, (d.higher && !(r.value>0)) ? '—' : fmtRec(d, r.value)+(d.unit==='s'?K('초'):''),
           VW/2, 94, 18, PAL.white,'center',700);
       txt(u, '+'+pts+'점', VW/2, 116, 15, PAL.gold,'center',700);
     }

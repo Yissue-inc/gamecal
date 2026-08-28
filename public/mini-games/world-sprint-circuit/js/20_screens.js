@@ -418,7 +418,7 @@ const G = {
       txt(u, (k+1)+'위', x+12, y+7, 12, k===0?PAL.gold:PAL.dim, 'left', 700);
       txt(u, 'P'+(r.i+1), x+46, y+7, 13, PARTY_COLOR[r.i], 'left', 700);
       const val = r.v===null ? '기록 없음'
-        : (def.higher ? r.v.toFixed(2)+def.unit : r.v.toFixed(2)+'초');
+        : fmtRec(def, r.v) + (def.unit==='s' ? K('초') : '');
       txt(u, val, x+w-12, y+6, 14, r.v===null?PAL.dim:PAL.white, 'right', 700);
     });
     txt(u, '확인 다시   ·   취소 종목 선택', VW/2, VH-16, 9, PAL.dim, 'center');
@@ -435,10 +435,17 @@ const G = {
     if(Input.pressed('up'))    { this.natSel=(this.natSel+N-cols)%N; Sfx.ui(); }
     if(Input.pressed('down'))  { this.natSel=(this.natSel+cols)%N; Sfx.ui(); }
     if(Input.pressed('action')){
+      /* ⚠ MG.newGame() 은 끝에서 곧바로 저장한다 — 기존 세이브가 **말없이 사라진다.**
+         쌓아 온 클럽이 오조작 한 번에 날아가면 안 된다. 세이브가 있으면 한 번 묻는다. */
+      if(MG.hasSave() && !this.natConfirm){ this.natConfirm=true; Sfx.beep(420,0.1,'square',0.12); return; }
+      this.natConfirm=false;
       MG.newGame(null, null, NATIONS[this.natSel].code);
       this.state=ST.MANAGER; Sfx.ui();
     }
-    if(Input.pressed('back')){ this.state=ST.TITLE; Sfx.ui(); }
+    if(Input.pressed('back')){
+      if(this.natConfirm){ this.natConfirm=false; Sfx.ui(); return; }
+      this.state=ST.TITLE; Sfx.ui();
+    }
   },
   drawNation(ctx,uctx){
     Track.drawBack(ctx, 40, 100);
@@ -457,6 +464,13 @@ const G = {
     txt(uctx, nationName(sel.code), VW/2, VH-42, 17, PAL.gold, 'center', 700);
     txt(uctx, sel.code, VW/2, VH-24, 10, PAL.dim, 'center');
     txt(uctx,'◀▶▲▼ 고르고 확인으로 시작   ·   취소 돌아가기', VW/2, VH-13, 9, PAL.dim,'center');
+    /* 덮어쓰기 경고 — 되돌릴 수 없는 일은 반드시 한 번 묻는다 */
+    if(this.natConfirm){
+      uctx.fillStyle='rgba(5,6,10,.88)'; uctx.fillRect(0,0,VW,VH);
+      txt(uctx,'이미 저장된 클럽이 있습니다', VW/2, 88, 14, PAL.red,'center',700);
+      txt(uctx,'새로 시작하면 그 클럽은 사라집니다', VW/2, 110, 12, PAL.white,'center');
+      txt(uctx,'확인 다시 누르면 새로 시작 · 취소로 돌아가기', VW/2, 140, 11, PAL.dim,'center');
+    }
   },
 
   updResult(){
@@ -607,35 +621,39 @@ const G = {
           on?PAL.gold:(ready?PAL.white:'#6a5a70'),'left',700);
       const bst=Save.data.best[e.id];
       if(bst!==undefined){
-        const t=e.higher? bst.toFixed(2)+e.unit : fmtTime(bst);
+        const t=fmtRec(e, bst);
         txt(uctx, t, x+cw-6, y+5, t.length>6?8:9, PAL.blue,'right');
       }
       txt(uctx, e.name, x+6, y+18, 9, ready?PAL.dim:'#5a4a60','left');
-      txt(uctx, K('기준')+' '+(e.higher? e.qualify.toFixed(2)+e.unit : fmtTime(e.qualify)),
+      txt(uctx, K('기준')+' '+fmtRec(e, e.qualify),
           x+6, y+30, 8, PAL.dim,'left');
       if(!ready) txt(uctx, K('준비 중'), x+cw-6, y+30, 8, PAL.red,'right',700);
     });
 
     /* 고른 종목 한 줄 요약 + 인원 */
     const def=list[this.sel];
-    plate(uctx, 0, VH-50, VW, 50, .84);
+    /* 조작 한 줄이 들어오면서 50→58 로 키웠다. 격자는 y=190 에서 끝나므로 안 겹친다. */
+    plate(uctx, 0, VH-58, VW, 58, .84);
     if(def){
-      txt(uctx, def.name, 10, VH-46, 13, PAL.gold,'left',700);
+      txt(uctx, def.name, 10, VH-55, 13, PAL.gold,'left',700);
       const bst=Save.data.best[def.id];
       txt(uctx, bst!==undefined
-            ? K('최고')+' '+(def.higher? bst.toFixed(2)+def.unit : fmtTime(bst))
+            ? K('최고')+' '+fmtRec(def, bst)
             : K('기록 없음'),
-          10, VH-31, 10, bst!==undefined?PAL.blue:PAL.dim,'left');
+          10, VH-42, 9, bst!==undefined?PAL.blue:PAL.dim,'left');
+      /* ⚠ 46종목이 각기 다른 조작인데 설명이 '시작한 뒤 잠깐 뜨는 한 줄'뿐이었다.
+         고르는 자리에서 미리 보여 준다 — 무엇을 누를지 모른 채 시작하게 두지 않는다. */
+      if(def.tip) txt(uctx, K(def.tip), 10, VH-30, 9, '#cfd6e8','left');
     }
     const n=Party.count;
     const mode = n>1 ? (Party.modeFor(def)==='versus' ? K('동시 대결') : K('턴제')) : '';
-    txt(uctx, `[ ] ${K('인원')}  ${n}${K('인')} ${mode}`, VW-10, VH-46, 11,
+    txt(uctx, `[ ] ${K('인원')}  ${n}${K('인')} ${mode}`, VW-10, VH-55, 11,
         n>1?PAL.gold:PAL.dim,'right', n>1?700:400);
     if(n>1){
       let px=VW-10;
       for(let p=n-1;p>=0;p--){
         const lab='P'+(p+1)+' '+PARTY_KEYS[p].label;
-        txt(uctx, lab, px, VH-31, 8, PARTY_COLOR[p],'right');
+        txt(uctx, lab, px, VH-42, 8, PARTY_COLOR[p],'right');
         px -= lab.length*4.6+10;
       }
     }
@@ -658,11 +676,13 @@ const G = {
       txt(uctx,'총성 전에 움직였습니다', VW/2, 88, 13, PAL.white,'center');
       txt(uctx,'총소리를 듣고 나서 두드리세요', VW/2, 108, 11, PAL.dim,'center');
     } else {
-      const unit = d.higher?'m':'초';
-      /* 거리 종목은 그대로, 시간 종목은 fmtTime 이 분:초 까지 책임진다 */
-      const shown = d.higher ? (r.value>0?r.value.toFixed(2):'--.--') : fmtTime(r.value);
-      txt(uctx, shown+unit, VW/2, 82, 30, PAL.gold,'center',700);
-      txt(uctx, '기준 '+(d.higher?d.qualify.toFixed(2):fmtTime(d.qualify))+unit, VW/2, 116, 11, PAL.dim,'center');
+      /* ⚠ 예전엔 단위를 '거리 아니면 초'로 갈랐다 — 다이빙 72.96점이 **72.96m** 로,
+         역도 210kg 이 210m 로 나왔다. 단위는 종목이 들고 있다. */
+      const sfx  = d.unit==='s' ? K('초') : '';      // fmtRec 은 시간에만 단위를 안 붙인다
+      const void_ = d.higher && !(r.value>0);      // 거리·점수 종목의 0 = 실패
+      const shown = void_ ? '--.--' : fmtRec(d, r.value);
+      txt(uctx, shown+(void_?'':sfx), VW/2, 82, 30, PAL.gold,'center',700);
+      txt(uctx, '기준 '+fmtRec(d, d.qualify)+sfx, VW/2, 116, 11, PAL.dim,'center');
       const p=ev.player;
       if(p){
         const line = `PERFECT ${p.judge.PERFECT}  ·  GOOD ${p.judge.GOOD}  ·  놓침 ${p.judge.EARLY+p.judge.LATE}`;

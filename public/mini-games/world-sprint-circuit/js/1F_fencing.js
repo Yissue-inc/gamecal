@@ -270,7 +270,7 @@ class FencingEvent {
   drawUI(u){
     if(!this._px) return;
     /* 피스트 위에 선다 — _g 를 그대로 쓰면 매트 아래에 서 있는 것처럼 보였다 */
-    const SP=['fox','lynx'], y=this._g-1;
+    const SP=FENCE_SP, y=this._g-1;
     this.fencers.forEach((f,i)=>{
       const lung = this.lunging(f);
       const face = i===0 ? 1 : -1;
@@ -323,3 +323,6 @@ class FencingEvent {
       txt(u, A.msg, VW/2, 54, 11, A.msgBad?PAL.red:PAL.green,'center',700);
   }
 }
+
+/* 등장 동물 — 이름이 틀리면 여기서 바로 터진다(폴백 사각형으로 조용히 넘어가지 않게) */
+const FENCE_SP = cast('펜싱', ['greyfox','lynx']);

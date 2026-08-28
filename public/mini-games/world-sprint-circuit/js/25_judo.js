@@ -204,11 +204,26 @@ class JudoEvent {
     /* 다다미 — 안쪽 경기장과 바깥 안전지대 */
     /* ⚠ 250x76 매트에 0.95배 선수 둘을 26px 떨어뜨려 놨더니 **맞붙은 걸로 안 보였다** —
        유도는 붙잡는 종목이라 둘이 닿아 있어야 한다. 매트를 줄이고 선수를 키워 붙인다. */
+    /* ⚠ 매트를 직사각형으로 그렸더니 실내 배경이 붙는 순간 **바닥에 놓인 게 아니라
+       공중에 붙인 판때기**로 보였다. 배경은 원근이 있는데 매트만 정면이었다.
+       사다리꼴로 그려 바닥에 눕힌다(먼 쪽을 좁게). */
     const cx=VW/2, cy=172, MW=186, MH=62;
-    ctx.fillStyle='#4a6b52'; ctx.fillRect(cx-MW/2-18, cy-MH/2-9, MW+36, MH+18);
-    ctx.fillStyle='#c8a86a'; ctx.fillRect(cx-MW/2, cy-MH/2, MW, MH);
-    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1;
-    ctx.strokeRect(cx-MW/2+.5, cy-MH/2+.5, MW-1, MH-1);
+    const trap=(halfW, halfH, colr)=>{
+      const yT=cy-halfH, yB=cy+halfH, wT=halfW*0.84, wB=halfW*1.20;
+      ctx.fillStyle=colr; ctx.beginPath();
+      ctx.moveTo(cx-wT, yT); ctx.lineTo(cx+wT, yT);
+      ctx.lineTo(cx+wB, yB); ctx.lineTo(cx-wB, yB); ctx.closePath(); ctx.fill();
+      return {wT, wB, yT, yB};
+    };
+    trap(MW/2+18, MH/2+9, '#4a6b52');
+    const m=trap(MW/2, MH/2, '#c8a86a');
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1; ctx.stroke();
+    /* 다다미 결 — 평면이라는 걸 눈에 알려 준다 */
+    ctx.strokeStyle='rgba(255,255,255,.10)';
+    for(let i=1;i<4;i++){
+      const k=i/4, y=m.yT+(m.yB-m.yT)*k, w=m.wT+(m.wB-m.wT)*k;
+      ctx.beginPath(); ctx.moveTo(cx-w, y); ctx.lineTo(cx+w, y); ctx.stroke();
+    }
     this._mat={cx, cy, MW, MH};
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.4})`; ctx.fillRect(0,0,VW,VH); }
   }

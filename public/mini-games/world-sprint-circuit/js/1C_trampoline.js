@@ -137,7 +137,8 @@ class TrampolineEvent {
   draw(ctx){
     /* ⚠ 트램폴린은 실내다. 밤 야외 경기장을 겹쳐 그리면 두 세계가 섞인다(역도와 같은 문제). */
     let groundY = 206;
-    if(!BG.tile(BG.ctx(),'hall-wall', 96, 78, 0)){
+    if(BG.tile(BG.ctx(),'hall-wall', 96, 78, 0)) BG.hallFloor(ctx, 96, 174);
+    else {
       const gt = Track.fieldBack(ctx, 20);
       groundY = Track.fieldGround(ctx,{grassTop:gt, surface:'#4a4550'}) - 8;
     }

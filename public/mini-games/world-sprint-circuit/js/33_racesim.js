@@ -104,12 +104,22 @@ function simulateMiddle(a, opt){
   const skill = execSkill(a, opt);
   const sigma = lerp(SimTune.sigmaWorst, SimTune.sigmaBest, clamp(skill,0,1)) * 1.25;
 
-  const r = new Runner(opt.lane??0, a.stats, false, trackM);
+  /* ⚠ 1/60초 간격으로 끝까지 돌리면 20km 경보 한 번에 **19초**가 걸린다
+        (62만 스텝). 대회 한 종목에 참가자 8명이면 브라우저가 2분 넘게 멈춘다.
+        그래서 **거리를 줄여 달리고 시간을 되돌려 곱한다** — 아케이드가 쓰는
+        시간 압축과 같은 수법이다(dt 가 아니라 거리를 줄인다).
+        피로·후반 붕괴는 '진행률'로 계산하므로 압축해도 곡선 모양이 같다.
+        단, 피로가 쌓이는 속도는 압축 배수만큼 올려야 같은 곡선이 나온다. */
+  const SIM_CAP = 3000;
+  const simM  = Math.min(trackM, SIM_CAP);
+  const zoom  = trackM / simM;                 // 결과 시간을 이만큼 되돌린다
+
+  const r = new Runner(opt.lane??0, a.stats, false, simM);
   r.reset(0);
   /* 페이스 — 거리가 길수록 느린 케이던스로 달린다 */
   /* 거리별 페이스·후반 붕괴. 세계기록 대비 90~100% 가 되도록 실측으로 맞춘 값이다.
      (400m 를 스프린트 물리로 돌렸더니 36초가 나왔다 — 세계기록이 43초다) */
-  const P = MidTune[trackM] || MidTune[800];
+  const P = MidTune[trackM] || MidTune[800];   // 표는 '실제 거리'로 고른다
   const paceMult = P.pace;
   r.speedMul = P.speed;
   const st = a.stats.stamina/100;
@@ -120,23 +130,25 @@ function simulateMiddle(a, opt){
   const targetIv = ()=> r.targetIntervalMs() / paceMult;
 
   /* ⚠ 상한이 600초 고정이라 5000m·20km 가 전부 미완주였다. 거리에 비례시킨다. */
-  const CAPM = Math.max(600000, trackM*520);
+  /* ⚠ 미완주 상한을 거리에만 걸었더니 **경보가 항상 DNF** 였다 — 걷는 종목은
+        같은 거리를 세 배 느리게 간다. 페이스 배수로 나눠 종목에 맞춘다. */
+  const CAPM = Math.max(600000, simM*520/P.speed);
   while(!r.finished && t < CAPM){
     t += DT*1000;
     if(t >= next){
       r.stride(side, Math.round(t), 'off'); side = -side;
       /* 후반 페이스 붕괴 — 지구력이 낮으면 크게 무너진다 */
-      const prog = r.distM/trackM;
+      const prog = r.distM/simM;
       const fade = prog>P.fadeAt ? 1 + (prog-P.fadeAt)*lerp(P.fadeHi,P.fadeLo,st) : 1;
       next = t + targetIv()*fade + gauss(rng)*sigma;
       if(next <= t + RULES.minInputIntervalMs) next = t + RULES.minInputIntervalMs + 4;
     }
     /* 장거리 피로는 따로 쌓는다 */
-    r.fatigue = Math.min(1, r.fatigue + DT*lerp(P.fatHi, P.fatLo, st));
+    r.fatigue = Math.min(1, r.fatigue + DT*lerp(P.fatHi, P.fatLo, st)*zoom);
     r.simulate(DT, Math.round(t));
   }
-  if(!r.finished) return { falseStart:false, dnf:true, timeS:9999, splits:r.splits, judge:r.judge };
-  return { falseStart:false, timeS:r.finishTimeS, splits:r.splits, judge:r.judge,
+  if(!r.finished) return { falseStart:false, dnf:true, timeS:DNF, splits:r.splits, judge:r.judge };
+  return { falseStart:false, timeS:+(r.finishTimeS*zoom).toFixed(3), splits:r.splits, judge:r.judge,
            reactionMs:r.reactionMs, sigma:+sigma.toFixed(1) };
 }
 
@@ -146,14 +158,21 @@ function simulateRelay(team, opt){
   opt = opt||{};
   const rng = opt.rng || makeRng((Date.now()^0x7ace)>>>0);
   /* ⚠ 구간 거리를 100m 로 못 박아 두면 4x400 이 4x100 과 같은 기록이 나온다(실측 486%). */
-  const legM = (opt.trackM || 400) / 4;
+  const nLeg = opt.legs || 4;
+  const legM = (opt.trackM || 400) / nLeg;
+  /* 계영은 달리는 계주가 아니다 — 구간 종목이 정해져 있으면 그걸로 헤엄친다.
+     ⚠ 예전엔 kind 로만 갈라서 계영이 '한 명이 400m 자유형' 으로 시뮬레이션됐다.
+        클럽 기록에 네 명이 아니라 한 명 이름이 남았다(실측: 계영 337.88s 정서아). */
+  const legDef = opt.legEvent ? EVENT_BY_ID[opt.legEvent] : null;
   const legs = [];
   let total = 0, drops = 0;
-  for(let i=0;i<4;i++){
+  for(let i=0;i<nLeg;i++){
     const a = team[i % team.length];
-    const res = legM > 150
-      ? simulateMiddle(a, Object.assign({}, opt, { rng, trackM:legM }))
-      : simulateSprint(a, Object.assign({}, opt, { rng, trackM:legM }));
+    const res = legDef
+      ? simulateOne(a, legDef, Object.assign({}, opt, { rng }))
+      : (legM > 150
+          ? simulateMiddle(a, Object.assign({}, opt, { rng, trackM:legM }))
+          : simulateSprint(a, Object.assign({}, opt, { rng, trackM:legM })));
     let legT = res.falseStart ? legM*0.135 : res.timeS;
     if(i>0){
       // 인계 — 기술·리듬이 좋을수록 손실이 적고, 실패하면 크게 잃는다
@@ -161,8 +180,10 @@ function simulateRelay(team, opt){
       const q = clamp(((a.stats.technique+prev.stats.technique)/2*0.6 +
                        (a.stats.rhythm+prev.stats.rhythm)/2*0.4)/100
                       * a.formScore(), 0.05, 1.15);
-      if(rng() < 0.035*(1.6-q)){ drops++; legT += 1.9 + rng()*1.4; }   // 바통 실수
-      else legT -= lerp(0.05, 0.42, q) * (legM/100);                  // 러닝 스타트 이득
+      /* 물에서는 바통을 떨어뜨릴 수 없다 — 대신 부정 출발(먼저 뛰기)이 실격이다.
+         여기서는 손실만 다루고 실격은 아케이드에서 판정한다. */
+      if(!legDef && rng() < 0.035*(1.6-q)){ drops++; legT += 1.9 + rng()*1.4; }
+      else legT -= lerp(0.05, legDef?0.28:0.42, q) * (legM/100);
     }
     legs.push({ athlete:a, timeS:+legT.toFixed(2) });
     total += legT;
@@ -222,15 +243,24 @@ function simulateSwim(a, opt){
 }
 
 /* 허들 — 스프린트에 허들 통과 판정을 얹는다 */
-function simulateHurdles(a, opt){
-  opt = Object.assign({}, opt, { trackM:110 });
+/* ⚠ 예전엔 `trackM:110` 과 `RULES.hurdleCount` 를 박아 놨다 — 허들 종목이 110m
+      하나뿐이던 시절의 코드다. 400m 허들·3000m 장애물을 넣자 **둘 다 110m 허들로
+      계산돼 15.87s · 16.29s** 로 나왔다(실제는 47초·420초). 아케이드에서는 각자
+      제 거리로 뛰는데 감독 모드만 그랬다 — 종목의 정의를 그대로 쓴다. */
+function simulateHurdles(a, opt, def){
+  const distM  = (def && def.distanceM) || opt.trackM || 110;
+  const hCount = (def && def.hurdle && def.hurdle.count) || RULES.hurdleCount;
+  opt = Object.assign({}, opt, { trackM:distM });
   const rng = opt.rng || makeRng(Date.now()>>>0);
-  const base = simulateSprint(a, Object.assign({}, opt, { rng }));
+  /* 800m 이상은 스프린트 모델이 못 낸다 — 중장거리로 달리고 허들 벌점만 얹는다 */
+  const base = distM > 600
+    ? simulateMiddle(a, Object.assign({}, opt, { rng }))
+    : simulateSprint(a, Object.assign({}, opt, { rng }));
   if(base.falseStart || base.dnf) return Object.assign(base, { hurdles:{clean:0,clip:0,crash:0} });
   const acc = clamp((a.stats.technique*0.55 + a.stats.rhythm*0.25 + a.stats.acceleration*0.20)/100
                     * a.formScore() * (1 + a.eff('hurdle')*0.5), 0.05, 1.2);
   let clean=0, clip=0, crash=0, penalty=0;
-  for(let i=0;i<RULES.hurdleCount;i++){
+  for(let i=0;i<hCount;i++){
     const roll = rng();
     const pClean = clamp(acc*0.92, 0.05, 0.97);
     const pClip  = clamp((1-pClean)*0.78, 0, 1);
@@ -363,7 +393,7 @@ function simulateTri(a, def, opt){
 function simulateOne(a, def, opt){
   const o = Object.assign({}, opt, { trackM:def.distanceM });
   if(def.kind==='sprint') return simulateSprint(a, o);
-  if(def.kind==='hurdles') return simulateHurdles(a, o);
+  if(def.kind==='hurdles') return simulateHurdles(a, o, def);
   if(def.kind==='middle' || def.kind==='walk') return simulateMiddle(a, o);
   if(def.kind==='swim') return simulateSwim(a, Object.assign({}, o, {stroke:def.stroke}));
   if(def.kind==='combined') return simulateCombined(a, def, opt);

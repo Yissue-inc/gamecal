@@ -18,6 +18,26 @@ function plate(ctx, x, y, w, h, a){
   ctx.fillStyle = `rgba(5,6,10,${a??0.62})`;
   ctx.fillRect(x, y, w, h);
 }
+/* 종목 기록 한 줄 — 단위를 보고 형식을 고른다.
+   ⚠ 예전엔 '높을수록 좋으면 숫자, 아니면 시간'으로 갈랐다. 낮을수록 좋은 종목이
+      전부 시간인 줄 알았던 것인데, 골프(타)·승마(벌점)가 생기자 **골프 기준기록
+      0타가 '--.--' 로** 나왔다(fmtTime(0)=기록없음). 방향이 아니라 단위로 가른다. */
+/* 단위는 언어별로 다르다. 조각 치환에 맡기면 '타'(스트로크)가 '스타트'·'타이밍'
+   같은 낱말 속에서도 바뀔 수 있다 — 종목 단위는 여기서 못 박는다.
+   ⚠ 실측: 영어판 종목 선택에서 '기준 60.00점'·'8.00벌점'이 한글로 나왔다. */
+const UNIT_EN = { 's':'s', 'm':'m', '점':' pts', 'kg':'kg', '타':' str', '벌점':' pen' };
+function unitOf(def){
+  const u = def.unit;
+  return (typeof LANG!=='undefined' && LANG==='en') ? (UNIT_EN[u]!==undefined ? UNIT_EN[u] : u) : u;
+}
+
+function fmtRec(def, v){
+  if(v===undefined || v===null || !isFinite(v) || v>=DNF) return '--.--';
+  if(def.unit==='s') return fmtTime(v);   // 초 단위는 부르는 쪽이 붙인다
+  /* 복합종목 점수는 네 자리다 — 소수 둘까지 쓰면 'Target 6500.00 pts' 가 칸을 넘는다 */
+  return (v>=1000 ? Math.round(v) : v.toFixed(2)) + unitOf(def);
+}
+
 function fmtTime(s){
   /* ⚠ '99 이상 = 기록 없음' 이라는 옛 규칙이 중장거리를 통째로 지웠다(1500m 기준 255초
      가 화면에 '--.--' 로 떴다). 1분을 넘으면 분:초 로 읽어 준다. */

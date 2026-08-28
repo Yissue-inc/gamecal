@@ -235,7 +235,7 @@ class ClimbEvent {
 
   drawUI(u){
     if(!this._wall) return;
-    const SP=['gecko','lynx','squirrel','monkey'];
+    const SP=CLIMB_SP;
     this.rivals.forEach((rv,i)=>{
       const x=this.xOf(rv.lane), y=this.yOf(rv.h);
       if(!CharHD.draw(u,'monkey',x,y,(this.t*0.006+i)%1,{rare:2,t:this.t,scale:0.62,crouch:true})){
@@ -287,3 +287,6 @@ class ClimbEvent {
       txt(u, me.msg, VW/2, 60, 12, me.msgBad?PAL.red:PAL.green,'center',700);
   }
 }
+
+/* 등장 동물 — 'gecko' 는 종족표에 없는 이름이었다(어셋도 없다) */
+const CLIMB_SP = cast('스피드 클라이밍', ['lemur','lynx','squirrel','monkey']);

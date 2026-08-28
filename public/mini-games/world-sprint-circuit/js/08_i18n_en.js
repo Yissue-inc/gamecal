@@ -43,7 +43,7 @@ const I18N_EN = {
   '장대높이뛰기': 'Pole Vault', '포환던지기': 'Shot Put', '원반던지기': 'Discus',
   '창던지기': 'Javelin', '해머던지기': 'Hammer Throw',
   '자유형 %1m': '%1m Freestyle', '배영 %1m': '%1m Backstroke',
-  '평영 %1m': '%1m Breaststroke', '접영 %1m': '%1m Butterfly',
+  '평영 %1m': '%1m Breast', '접영 %1m': '%1m Butterfly',
   '자유형': 'Freestyle', '배영': 'Backstroke', '평영': 'Breaststroke', '접영': 'Butterfly',
 
   /* ── 경기 중 ── */
@@ -340,7 +340,7 @@ const I18N_EN = {
   '목표 승점 %1 · 금 %2':'Target %1 pts · %2 gold',
   '%1 해':'%1 year',
 
-  '400m 허들':'400m Hurdles', '3000m 장애물':'3000m Steeplechase',
+  '400m 허들':'400m Hurdles', '3000m 장애물':'3000m Steeple',
   '허들 %1/%2 성공':'Hurdles %1/%2 clean',
 
   '다이빙':'Diving', '점':' pts', '%1점':'%1 pts',
@@ -382,7 +382,7 @@ const I18N_EN = {
   '총소리를 듣고 나서 두드리세요':'Wait for the gun, then tap',
   'SPACE: 다시  ·  Q: 종목 선택':'SPACE: Retry  ·  Q: Event list',
   '완벽':'Perfect', '어긋남':'Off', '성공!':'Made it!',
-  '세 번 모두 파울':'All three fouled', '기준 %1':'Standard %1',
+  '세 번 모두 파울':'All three fouled', '기준 %1':'Target %1',
   '나':'You', '상대':'Rival', '점수':'Score', '높이':'Height', '회차':'Bounce',
 
   /* 도약·투척 */
@@ -451,11 +451,11 @@ const I18N_EN = {
   '파리! 받아넘겼다 — 리포스트':'Parry! You turned it aside — riposte',
 
   /* 10종·철인3종 */
-  '계영 %1×%2m':'%1×%2m Free Relay', '%1번 주자':'Leg %1', '팀 기록':'Team time',
+  '계영 %1×%2m':'%1×%2m Free', '%1번 주자':'Leg %1', '팀 기록':'Team time',
   '인계 — 벽을 찍기 직전에 ▲':'Exchange — press ▲ just before the touch',
   '완벽한 인계!':'Perfect exchange!', '인계':'Exchange', '인계가 늦었다':'Late exchange',
   '너무 일찍 뛰었다 — 실격':'Left too early — disqualified',
-  '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '근대5종':'Modern Pentathlon', '개인혼영 %1m':'%1m Ind. Medley',
+  '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '근대5종':'Pentathlon', '개인혼영 %1m':'%1m IM',
 
   /* 탁구 */
   '탁구':'Table Tennis',
@@ -555,8 +555,108 @@ const I18N_EN = {
   '액션을 떼면 발사  ·  ▲ 다시 호흡':'Release to fire  ·  ▲ re-breathe',
   '더는 못 참는다':'Out of breath', '시간 초과 — 쏴야 한다':'Out of time — you must shoot',
   '완벽한 한 발!':'Perfect shot!', '좋다':'Good', '빗나갔다':'Off the mark',
-  '과녁을 벗어났다':'Missed the target', '%1초':'%1s', '정점에서 누르세요':'press at the peak', '액션':'Action', '확인':'OK',
+  '과녁을 벗어났다':'Missed the target', '%1초':'%1s', '정점에서 누르세요':'press at the peak', '액션':'Action', '확인':'OK', '취소':'Back', '기준':'Target',
   '%1년 뒤':'in %1 yr', '선두까지 %1점':'%1 pts to the lead',
   '%1위 · 선두 %2점 차':'#%1 · %2 pts behind the lead',
   '화면을 캡처해 공유하세요':'Capture the screen to share',
+
+  /* ── 종목 조작 한 줄 (선택 화면) ── */
+  '좌·우 번갈아 두드려 달린다 · 총성 전에 누르면 부정 출발':
+    'Alternate ◀ ▶ to run · pressing before the gun is a false start',
+  '좌·우 번갈아 · 곡선에서도 리듬을 잃지 않는다':
+    'Alternate ◀ ▶ · keep the rhythm through the bend',
+  '좌·우 번갈아 · 한 바퀴라 초반에 다 쓰면 무너진다':
+    'Alternate ◀ ▶ · a full lap — spend it all early and you fall apart',
+  '좌·우 번갈아 달리다 허들 앞에서 액션으로 넘는다':
+    'Alternate ◀ ▶, then Action to clear each hurdle',
+  '허들 10개 · 보폭이 흐트러지면 발이 안 맞는다':
+    'Ten hurdles · lose your stride pattern and you meet them wrong-footed',
+  '허들 + 물웅덩이 · 물 앞에서는 일찍 뛴다':
+    'Barriers + water jump · take off early at the water',
+  '▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회':
+    '▲▼ pace (easy · hold · push) · Action = one kick',
+  '▲▼ 페이스 배분이 전부 · 승부는 한 번뿐':
+    '▲▼ pace is everything · you only get one kick',
+  '▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다':
+    '▲▼ pace · it is long. Hold, then go on the last lap',
+  '▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격':
+    '▲▼ pace · too quick a cadence draws a warning — three and you are out',
+  '좌·우로 달리고 인계 구역에서 액션 · 속도가 비슷할 때 넘긴다':
+    'Run with ◀ ▶, Action in the exchange zone · hand over at matched speed',
+  '한 바퀴씩 네 명 · 인계 품질이 13초를 가른다':
+    'Four runners, a lap each · the handoffs decide 13 seconds',
+  '좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다':
+    '◀ ▶ to run, Action on the board · hold and release Action in the air',
+  '홉·스텝·점프 — 정점마다 액션':
+    'Hop, step, jump — Action at each peak',
+  '좌·우로 달려 액션으로 뛰고, 좌·우로 몸을 넘긴다':
+    '◀ ▶ to run, Action to take off, then ◀ ▶ to arch over',
+  '액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다':
+    'Action to plant the pole, ◀ ▶ to haul yourself up',
+  '액션을 눌러 힘을 모으고 가득 찼을 때 놓는다':
+    'Hold Action to build force, release when the gauge fills',
+  '좌·우 번갈아 회전을 올리고 액션으로 놓는다':
+    'Alternate ◀ ▶ to spin up, Action to release',
+  '좌·우로 달려 액션 · 릴리스 각도가 45°에 가까울수록 멀리 간다':
+    '◀ ▶ to run, then Action · the closer the release is to 45°, the farther it flies',
+  '좌·우 번갈아 회전 · 회전이 많을수록 멀리 가지만 놓치기 쉽다':
+    'Alternate ◀ ▶ to turn · more turns fly farther but are easier to lose',
+  '좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴':
+    'Alternate ◀ ▶ to stroke, Action to breathe on time, Action at the wall to turn',
+  '배영 · 숨은 자유롭지만 벽이 안 보인다':
+    'Backstroke · breathing is free, but you cannot see the wall',
+  '평영 · 느리지만 리듬 창이 넓다':
+    'Breaststroke · slower, but the rhythm window is wide',
+  '접영 · 가장 빠르게 지치니 호흡을 놓치지 말 것':
+    'Butterfly · it tires you fastest, so never miss a breath',
+  '좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다':
+    '◀ ▶ to bounce → Action to leave the board → ◀ ▶ to spin → Action to open',
+  '좌·우로 자세를 잡고 액션을 길게 눌러 든다 · 기우는 반대쪽을 누른다':
+    '◀ ▶ to set your stance, hold Action to lift · press against the way you tilt',
+  '액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사':
+    'Hold Action to draw · ◀ ▶ to aim · release to shoot',
+  '좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회':
+    '◀ ▶ to pedal · ▲▼ gears · Action = one attack',
+  '좌·우를 천천히 고르게 — 빠름이 아니라 일정함이 속도다':
+    '◀ ▶ slowly and evenly — speed comes from consistency, not haste',
+  '매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다':
+    'Action the moment you touch the bed · ◀ ▶ to spin · Action to open before landing',
+  '좌·우를 고르게 — 정확하면 빨라진다 · 액션 = 도약 1회':
+    '◀ ▶ evenly — accuracy is speed · Action = one dyno',
+  '← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다':
+    '← retreat · → advance · Action = lunge · retreat as they extend to parry',
+  '열 종목을 이어서 · 각 종목의 조작 그대로':
+    'Ten events back to back · each keeps its own controls',
+  '수영 → 사이클 → 달리기 · 앞 구간에서 쓴 힘이 뒤로 넘어간다':
+    'Swim → bike → run · what you spend early carries into the next leg',
+  '액션을 눌러 숨을 참고 가장 잔잔할 때 뗀다 · ▲ 다시 호흡':
+    'Hold Action to hold your breath, release at the stillest point · ▲ to breathe',
+  '일곱 종목을 이어서 · 각 종목의 조작 그대로':
+    'Seven events back to back · each keeps its own controls',
+  '접영→배영→평영→자유형 · 영법마다 리듬을 새로 잡는다':
+    'Fly → back → breast → free · find the rhythm again at every change',
+  '←→ 로 설 자리와 코스를 정하고, 공이 올 때 액션':
+    '←→ to place your feet and the course, Action as the ball arrives',
+  '좌·우 번갈아 깃 싸움 · 저울이 기울면 액션으로 메친다':
+    'Alternate ◀ ▶ for the grip · when the scale tips, Action to throw',
+  '좌·우로 달려 구름판, 도마에 닿을 때 다시 액션 · 좌·우 비틀기':
+    '◀ ▶ to run, Action on the board, Action again on the table · ◀ ▶ to twist',
+  '번갈아 저으면 빨라지고, 한쪽만 저으면 그 반대로 돈다':
+    'Alternate sides to go fast; paddling one side turns you the other way',
+  '←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)':
+    '←→ aim · ▲▼ club · Action three times (start · power · accuracy)',
+  '▲▼ 보폭 · 좌·우 한 걸음 · 도약대에 발이 맞으면 액션':
+    '▲▼ stride · ◀ ▶ one step · Action when the take-off lands right',
+  '좌·우로 흔들어 스윙을 키우고 액션으로 이탈 · 다시 액션으로 잡는다':
+    '◀ ▶ to build the swing, Action to release · Action again to catch',
+  '펜싱·수영·승마·사격·달리기 다섯 종목':
+    'Five events: fencing · swimming · riding · shooting · running',
+  '네 명이 이어 헤엄친다 · ▲ 인계는 벽을 찍기 직전에(먼저 뛰면 실격)':
+    'Four swimmers in turn · ▲ hands over just before the wall (early = DQ)',
+
+  /* ── 부팅 화면(HTML) · 화면 버튼 ── */
+  '좌·우를 번갈아 두드려 달린다': 'Alternate left and right to run',
+  '어떻게 조작할까요?': 'How do you want to play?',
+  '키보드로': 'Keyboard', 'A / D · Space': 'A / D · Space',
+  '화면 버튼으로': 'On-screen buttons', '손가락이나 마우스로': 'Finger or mouse',
 };

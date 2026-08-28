@@ -40,8 +40,19 @@ function frameStep(now){
   G.draw(Screen.ctx, Screen.uctx);
 }
 
+/* HTML 안의 글자는 캔버스 txt() 를 안 거친다 → K() 가 닿지 않는다.
+   ⚠ 그 결과 **영어판의 첫 화면(조작 선택)이 통째로 한국어**였다. 캔버스만 번역해
+      놓고 다 됐다고 본 것이다. 부팅 때 한 번 DOM 을 훑어 같은 표로 바꾼다. */
+function translateDom(){
+  if(LANG==='ko') return;
+  document.querySelectorAll('#gate .sub, #gate .cbtn b, #gate .cbtn i, .pbtn')
+    .forEach(el=>{ const t=el.textContent.trim(); if(t) el.textContent = K(t); });
+}
+
 function boot(){
   Screen.init(); Input.init(); Save.load(); Sfx.loadPrefs();
+  CharHD.verifyCasts();
+  translateDom();
   const gate=document.getElementById('gate');
   const bKey=document.getElementById('g-key'), bTouch=document.getElementById('g-touch');
   if(!Ctrl.load()) Ctrl.mode = Ctrl.suggested();

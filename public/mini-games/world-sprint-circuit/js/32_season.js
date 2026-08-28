@@ -45,6 +45,11 @@ const SPEC_OF_KIND = {
 /* 대회 등급 배율 — makeRivals·runRelay 가 같은 표를 본다.
    ⚠ 표를 두 벌 두면 한쪽만 고치게 된다. 실제로 그렇게 됐다. */
 const MEET_MULT = { regional:1.00, invitational:1.12, championship:1.26, olympics:1.42 };
+/* 팀 종목인가 — 구간(legs)이 여러 개면 팀이다.
+   ⚠ 예전엔 kind==='relay' 로만 봤다. 계영 4×100m 은 kind 가 'swim' 이라 개인 종목으로
+      새어 나갔고, **한 명이 400m 를 헤엄친 기록**이 클럽 기록에 남았다(실측 337.88s). */
+function isTeamEvent(ev){ return !!(ev && ev.legs >= 2); }
+
 function relayMult(kind){
   const m = MEET_MULT[kind];
   if(m===undefined) throw new Error('relayMult: 알 수 없는 대회 종류 '+kind);
@@ -204,7 +209,7 @@ class Season {
   entryLoad(entries){
     const load={};
     for(const id in entries){
-      const ev=EVENT_BY_ID[id]; const w = ev && ev.kind==='relay' ? 0.5 : 1;
+      const ev=EVENT_BY_ID[id]; const w = ev && isTeamEvent(ev) ? 0.5 : 1;
       for(const aid of entries[id]) load[aid]=(load[aid]||0)+w;
     }
     return load;
@@ -222,8 +227,8 @@ class Season {
         .map(a=>eventFitNow(a,ev)));
     const evs = this.meetEvents().slice().sort((A,B)=> bestFit(B)-bestFit(A));
     for(const ev of evs){
-      const need = ev.kind==='relay' ? 4 : info.entries;
-      const w = ev.kind==='relay' ? 0.5 : 1;
+      const need = isTeamEvent(ev) ? ev.legs : info.entries;
+      const w = isTeamEvent(ev) ? 0.5 : 1;
       const fit = this.club.squad.filter(a=>a.available && (load[a.id]||0)+w <= MAX_EVENTS_PER_ATHLETE)
         .map(a=>({a, s:eventFitNow(a, ev)}))     // 출전표는 '오늘 상태'로 고른다
         .sort((x,y)=>y.s-x.s)
@@ -245,9 +250,9 @@ class Season {
       const mine = (this.entries[ev.id]||[]).map(id=>this.club.byId(id))
         .filter(a=>a && a.available && (this._load[a.id]||0) < MAX_EVENTS_PER_ATHLETE);
       if(!mine.length) continue;
-      const w = ev.kind==='relay' ? 0.5 : 1;
+      const w = isTeamEvent(ev) ? 0.5 : 1;
       for(const a of mine) this._load[a.id]=(this._load[a.id]||0)+w;
-      if(ev.kind==='relay'){ this.runRelay(ev, mine, meet, info); continue; }
+      if(isTeamEvent(ev)){ this.runRelay(ev, mine, meet, info); continue; }
       const field = mine.concat(this.makeRivals(ev, kind, 8-mine.length));
       const rows = simulateMeetEvent(ev, field, { rng:this.rng, big:info.big });
       let evPts = 0;
@@ -305,16 +310,24 @@ class Season {
   runRelay(ev, mine, meet, info){
     /* ⚠ 여기에도 **올림픽이 빠진 배율 표**가 있었다(makeRivals 와 같은 버그, 두 번째 자리).
        올림픽 해에는 undefined 를 곱해 상대 팀 능력이 NaN 이 된다. 모르는 종류면 실패시킨다. */
-    if(mine.length < 4) return;                       // 4명이 안 되면 출전 불가
-    const team = mine.slice(0,4);
+    const nLeg = ev.legs || 4;
+    if(mine.length < nLeg) return;                    // 인원이 안 되면 출전 불가
+    const team = mine.slice(0, nLeg);
     /* ⚠ trackM 을 안 넘기면 simulateRelay 가 400m 로 기본값을 잡아
        4x400(1600m) 이 4x100 과 같은 기록을 낸다(실측 40.7s — 실제는 3분대). */
-    const ours = simulateRelay(team, { rng:this.rng, big:info.big, trackM:ev.distanceM });
+    const opt = { rng:this.rng, big:info.big, trackM:ev.distanceM,
+                  legs:nLeg, legEvent:ev.legEvent };
+    const ours = simulateRelay(team, opt);
     const rows = [{ athlete:team[0], team, res:ours, value:ours.timeS, isOurs:true }];
+    /* 상대 팀도 **그 종목의 선수**여야 한다 — 계영 상대를 스프린터로 만들면
+       달리기 능력으로 헤엄치는 팀이 나온다. */
+    const legDef = ev.legEvent ? EVENT_BY_ID[ev.legEvent] : EVENT_BY_ID.sprint100;
+    const spec = SPEC_OF_KIND[legDef.kind];
+    if(!spec) throw new Error('runRelay: 종목군을 모르는 kind '+legDef.kind);
     for(let i=0;i<5;i++){
-      const rteam=[]; for(let k=0;k<4;k++) rteam.push(this.rivalAt('sprint', EVENT_BY_ID.sprint100,
+      const rteam=[]; for(let k=0;k<nLeg;k++) rteam.push(this.rivalAt(spec, legDef,
         (LEAGUE_BASE*Math.pow(LEAGUE_GROWTH,this.year-1))*relayMult(this.meetKind)*(0.9+this.rng()*0.24)));
-      const r=simulateRelay(rteam,{rng:this.rng, trackM:ev.distanceM});
+      const r=simulateRelay(rteam, { rng:this.rng, trackM:ev.distanceM, legs:nLeg, legEvent:ev.legEvent });
       rows.push({ athlete:rteam[0], team:rteam, res:r, value:r.timeS });
     }
     rows.sort((a,b)=>a.value-b.value);

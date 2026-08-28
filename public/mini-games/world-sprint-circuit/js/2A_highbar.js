@@ -176,7 +176,8 @@ class HighBarEvent {
 
   draw(ctx){
     /* 실내 체조장 */
-    if(!BG.tile(BG.ctx(),'hall-wall', 90, 78, 0)){
+    if(BG.tile(BG.ctx(),'hall-wall', 90, 78, 0)) BG.hallFloor(ctx, 90, 168);
+    else {
       const gt=Track.fieldBack(ctx, 18);
       Track.fieldGround(ctx,{grassTop:gt, surface:'#4a4550'});
       ctx.fillStyle='rgba(8,10,16,.8)'; ctx.fillRect(0,0,VW,VH);

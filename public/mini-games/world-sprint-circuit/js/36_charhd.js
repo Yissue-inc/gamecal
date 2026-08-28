@@ -18,6 +18,20 @@ const CharHD = {
   /* 게임 좌표에서 캐릭터가 차지하는 높이(px). 32 이면 예전 픽셀과 같은 크기 */
   DRAW_H: 42,   // 레인 높이(42)에 꽉 차게 — 고해상도 어셋이라 키워도 안 뭉갠다
 
+  /* 종족 이름을 손으로 적는 자리(종목별 등장 동물)를 **파일이 실릴 때** 검사한다.
+     ⚠ 실측: 펜싱은 'fox'(진짜 이름은 greyfox), 스피드클라이밍은 'gecko'(아예 없는 종)를
+        적어 두었다. 화면에는 폴백 사각형이 나오고 콘솔엔 404 만 조용히 쌓였다 —
+        어셋 검사기도 '캐릭터 60/60 도착' 이라 통과시켰다(종족표만 봤으므로).
+        이제 이름을 잘못 적으면 게임이 아예 안 뜬다. */
+  verifyCasts(){
+    if(typeof SPECIES==='undefined' || typeof SPRITE_CASTS==='undefined') return;
+    const bad=[];
+    for(const where in SPRITE_CASTS)
+      for(const n of SPRITE_CASTS[where]) if(!SPECIES[n]) bad.push(`${where}:${n}`);
+    if(bad.length) throw new Error('없는 종족 이름 — '+bad.join(', ')+
+      ' (종족표 35_species.js 에 있는 이름만 쓴다)');
+  },
+
   get(name){
     if(this.cache[name]) return this.cache[name];
     if(this.missing[name]) return null;

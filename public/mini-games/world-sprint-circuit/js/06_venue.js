@@ -87,6 +87,32 @@ const BG = {
     return true;
   },
 
+  /* 벽 띠(hall-wall) 하나로 실내를 만들 때 위·아래를 메운다.
+     ⚠ 벽 어셋이 도착하자 **바닥과 천장이 통째로 검게** 남았다 — 폴백에서만
+        바닥을 칠하고 있었기 때문이다(철봉·트램폴린 실측). 벽이 오면 오히려
+        화면이 더 비는 셈이라, 벽을 쓰는 쪽이 바닥·천장을 같이 책임진다. */
+  hallFloor(ctx, wallTop, wallBottom, opt){
+    opt = opt||{};
+    /* 천장 — 그냥 검게 두면 화면 위 1/3 이 빈다. 트러스와 조명으로 공간을 만든다. */
+    const cg = ctx.createLinearGradient(0, 0, 0, wallTop);
+    cg.addColorStop(0, opt.ceil || '#070910'); cg.addColorStop(1, opt.ceilLow || '#141926');
+    ctx.fillStyle = cg; ctx.fillRect(0, 0, VW, wallTop);
+    ctx.fillStyle = 'rgba(150,168,200,.10)';
+    for(let y=Math.round(wallTop*0.34); y<wallTop-6; y+=Math.round(wallTop*0.30)) ctx.fillRect(0, y, VW, 1);
+    for(let x=28; x<VW; x+=84){
+      ctx.fillStyle='rgba(150,168,200,.08)'; ctx.fillRect(x, 0, 1, wallTop-4);
+      ctx.fillStyle='rgba(255,236,180,.16)'; ctx.fillRect(x-4, wallTop-9, 9, 3);   // 조명
+    }
+    const g = ctx.createLinearGradient(0, wallBottom, 0, VH);
+    const near = opt.floor || '#6b5b48', far = opt.floorFar || '#3a3126';
+    g.addColorStop(0, far); g.addColorStop(1, near);
+    ctx.fillStyle = g; ctx.fillRect(0, wallBottom, VW, VH-wallBottom);
+    /* 바닥 반사 — 벽 밑동이 바닥에 비친다 */
+    ctx.fillStyle = 'rgba(255,255,255,.05)';
+    ctx.fillRect(0, wallBottom, VW, 1);
+    return wallBottom;
+  },
+
   /* 오브젝트 — 바닥 중앙 기준 */
   obj(u, name, x, y, h){
     const img=this.get(name); if(!img) return false;

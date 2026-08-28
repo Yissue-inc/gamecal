@@ -168,14 +168,27 @@ class VaultEvent {
 
   draw(ctx){
     const gt=Track.fieldBack(ctx, 20);
-    const GROUND=Track.fieldGround(ctx,{grassTop:gt, surface:'#3d4250'});
-    this._g=GROUND-4;
     const mPerPx=0.085;
     const cam = Math.max(0, this.dist-14);
     const px=(m)=>Math.round((m-cam)/mPerPx);
     this._px=px;
-    /* 조주로 */
-    if(!BG.tile(BG.ctx(),'runway-strip', this._g-6, 12, cam/mPerPx)){
+    /* ⚠ 배경층(BG)은 게임 캔버스 **아래**에 있다. 여기서 fieldGround 로 바닥을
+       불투명하게 칠한 뒤 조주로·구름판·도마를 배경층에 그리고 있었다 — 즉
+       **도착한 어셋 3종을 그려 놓고 곧바로 덮었다**. 실측: 배경층에는 도마가
+       (158,158,160)로 있는데 그 자리 게임층이 불투명(61,66,80,255)이었다.
+       멀리뛰기(Venue.runway)가 쓰는 규칙을 따른다 — HD 가 있으면 바닥칠을 맡긴다. */
+    const hdR = BG.tile(BG.ctx(),'runway-strip', 180, 40, cam/mPerPx);
+    const GROUND = hdR ? 214 : Track.fieldGround(ctx,{grassTop:gt, surface:'#3d4250'});
+    /* ⚠ HD 조주로는 180~220 만 덮는다. 바닥칠을 통째로 건너뛰었더니 그 위아래
+       (160~178 · 220~240)가 **검은 띠**로 남았다 — 실측으로 잡았다. 잔디로 메운다. */
+    if(hdR){
+      ctx.fillStyle=PAL.grass;
+      ctx.fillRect(0, gt, VW, 180-gt); ctx.fillRect(0, 220, VW, VH-220);
+      ctx.fillStyle=PAL.grassLine;
+      for(let x=0;x<VW;x+=14){ ctx.fillRect(x, gt+2, 7, 2); ctx.fillRect(x, 222, 7, 2); }
+    }
+    this._g=GROUND-4;
+    if(!hdR){
       ctx.fillStyle='#8a5a3c'; ctx.fillRect(0, this._g-4, VW, 8);
       ctx.fillStyle='rgba(255,255,255,.10)';
       for(let m=0;m<=VAULT.runwayM;m+=1){ const x=px(m); if(x>=0&&x<VW) ctx.fillRect(x,this._g-4,1,8); }
@@ -193,10 +206,12 @@ class VaultEvent {
       ctx.fillStyle='#7a6440'; ctx.fillRect(tx-3, this._g-16, 6, 16);
       ctx.fillStyle='rgba(0,0,0,.3)'; ctx.fillRect(tx-18, this._g-17, 38, 2);
     }
-    /* 착지 매트 */
-    const lx=px(VAULT.tableAtM+3.2);
-    ctx.fillStyle='#3f5a86'; ctx.fillRect(lx-8, this._g-3, 96, 7);
-    ctx.fillStyle='rgba(255,255,255,.15)'; ctx.fillRect(lx-8, this._g-3, 96, 1);
+    /* 착지 매트 — 매트도 배경층에 둔다. 게임층에 그리면 그 아래 도마를 덮는다. */
+    const lx=px(VAULT.tableAtM+3.2), bgc=BG.ctx();
+    if(!BG.obj(bgc,'vault-mat', lx+40, this._g+4, 10)){
+      bgc.fillStyle='#3f5a86'; bgc.fillRect(lx-8, this._g-3, 96, 7);
+      bgc.fillStyle='rgba(255,255,255,.15)'; bgc.fillRect(lx-8, this._g-3, 96, 1);
+    }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.4})`; ctx.fillRect(0,0,VW,VH); }
   }
   drawUI(u){

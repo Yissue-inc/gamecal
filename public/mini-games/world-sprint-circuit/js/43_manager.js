@@ -87,16 +87,28 @@ const MG = {
   /* ── 저장 ── */
   save(){
     try{
+      /* ⚠ 시즌에서 저장하던 건 연차·주차·승점·메달뿐이었다. 불러오면 **리그 순위표·시즌
+         목표·국가 메달표가 통째로 사라져** 시즌 중간에 판이 리셋된 것처럼 보인다.
+         화면에 보이는 것은 전부 저장한다. */
       localStorage.setItem(MG_SAVE, JSON.stringify({
-        v:1, club:this.club, season:{ year:this.season.year, week:this.season.week,
-          points:this.season.points, medals:this.season.medals, results:this.season.results.length },
+        v:2, club:this.club, season:{
+          year:this.season.year, week:this.season.week,
+          points:this.season.points, medals:this.season.medals,
+          results:this.season.results.length,
+          leagueTable:this.season.leagueTable || null,
+          goal:this.season.goal || null,
+          nationMedals:this.season.nationMedals || null,
+          entries:this.season.entries || {},
+        },
       }));
     }catch(e){}
   },
   hasSave(){ try{ return !!localStorage.getItem(MG_SAVE); }catch(e){ return false; } },
   load(){
     try{
-      const d=JSON.parse(localStorage.getItem(MG_SAVE)); if(!d||d.v!==1) return false;
+      const d=JSON.parse(localStorage.getItem(MG_SAVE));
+      /* v1 세이브도 계속 열린다 — 없던 항목은 새로 만든다 */
+      if(!d || !(d.v===1 || d.v===2)) return false;
       const c=new Club(d.club.name, 1);
       Object.assign(c, d.club);
       c.squad = d.club.squad.map(o=>Object.assign(new Athlete(o), o));
@@ -105,6 +117,10 @@ const MG = {
       const S=new Season(c, (Date.now()^0x99)>>>0);
       S.market=new Market(c, (Date.now()^0xab)>>>0);
       S.year=d.season.year; S.week=d.season.week; S.points=d.season.points; S.medals=d.season.medals;
+      if(d.season.leagueTable) S.leagueTable=d.season.leagueTable;
+      if(d.season.goal) S.goal=d.season.goal;
+      if(d.season.nationMedals) S.nationMedals=d.season.nationMedals;
+      if(d.season.entries) S.entries=d.season.entries;
       this.season=S; this.focus={}; this.lastLog=[];
       this.stack=[new OfficeScreen(this)];
       return true;
