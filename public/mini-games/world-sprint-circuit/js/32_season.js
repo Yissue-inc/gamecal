@@ -29,9 +29,9 @@ const OLYMPIC_EVERY = 4;
 const SPEC_OF_KIND = {
   sprint:'sprint', hurdles:'hurdles', middle:'endure', walk:'endure', relay:'sprint',
   jump:'jump', throw:'throw', swim:'swim',
-  dive:'jump', tramp:'jump', climb:'jump',     // 폭발력·기술
+  dive:'jump', tramp:'jump', climb:'jump', gym:'jump',   // 폭발력·기술
   lift:'throw', aim:'throw', shoot:'throw', grap:'throw',   // 힘·정밀
-  cycle:'endure', row:'endure', tri:'endure',   // 지구력
+  cycle:'endure', row:'endure', tri:'endure', slalom:'endure',   // 지구력
   fence:'hurdles', rally:'hurdles',             // 반응·리듬
   combined:'sprint',                            // 10종은 만능 — 기준만 스프린트로
 };

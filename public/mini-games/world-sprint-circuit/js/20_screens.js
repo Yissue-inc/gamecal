@@ -10,6 +10,8 @@ const EVENT_GROUPS = [
   { key:'field', name:'필드',   kinds:['jump','throw'] },
   { key:'swim',  name:'수영',   kinds:['swim'] },
   { key:'combo', name:'복합',   kinds:['combined','tri'] },
+  /* ⚠ '그 외'가 13개가 되면서 잡동사니가 됐다 — 맞붙는 종목은 성격이 뚜렷하니 뗀다 */
+  { key:'duel',  name:'맞대결', kinds:['fence','rally','grap'] },
   { key:'other', name:'그 외',  kinds:null },   // 나머지 전부
 ];
 function groupOf(def){
@@ -29,7 +31,7 @@ const READY = ['sprint100','sprint200','sprint400','hurdles110','hurdles400','st
                'shotPut','discus','javelin','hammer','relay4x100',
                'swimFree100','swimBack100','swimBreast100','swimFly100','poleVault','diving','lifting','archery','cycling','rowing','trampoline',
                /* 이 다섯은 감독 모드에만 있고 플레이할 수 없었다 — 2026-08-28 아케이드 개방 */
-               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing','decathlon','triathlon','shooting','heptathlon','swimMedley200','tableTennis','judo'];
+               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing','decathlon','triathlon','shooting','heptathlon','swimMedley200','tableTennis','judo','vault','canoe'];
 
 const G = {
   state: ST.TITLE,
@@ -50,7 +52,7 @@ const G = {
       longJump:LongJumpEvent, tripleJump:TripleJumpEvent, highJump:HighJumpEvent,
       shotPut:ShotPutEvent, discus:DiscusEvent, javelin:JavelinEvent, hammer:HammerEvent,
       relay4x100:RelayEvent, relay4x400:RelayEvent,
-      swimFree100:SwimEvent, swimBack100:SwimEvent, swimBreast100:SwimEvent, swimFly100:SwimEvent, swimMedley200:SwimEvent, tableTennis:TableTennisEvent, judo:JudoEvent,
+      swimFree100:SwimEvent, swimBack100:SwimEvent, swimBreast100:SwimEvent, swimFly100:SwimEvent, swimMedley200:SwimEvent, tableTennis:TableTennisEvent, judo:JudoEvent, vault:VaultEvent, canoe:CanoeEvent,
       poleVault:PoleVaultEvent, diving:DivingEvent, lifting:LiftingEvent, archery:ArcheryEvent,
       cycling:CyclingEvent, rowing:RowingEvent, trampoline:TrampolineEvent,
       climbSpeed:ClimbEvent, fencing:FencingEvent, decathlon:DecathlonEvent, heptathlon:DecathlonEvent, triathlon:TriathlonEvent, shooting:ShootingEvent,

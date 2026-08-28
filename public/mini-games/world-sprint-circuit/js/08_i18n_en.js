@@ -456,12 +456,26 @@ const I18N_EN = {
   /* 탁구 */
   '탁구':'Table Tennis',
   '인원':'Players', '인':'P', '인원은 설정에서 (일시정지)':'Players: in Settings (pause)',
-  '트랙':'Track', '필드':'Field', '수영':'Swim', '복합':'Combined', '그 외':'Other',
+  '트랙':'Track', '필드':'Field', '수영':'Swim', '복합':'Combined', '맞대결':'Duel', '그 외':'Other',
   '◀▶ 고르기 · ▲▼ 줄·갈래 · 확인 시작 · 취소 뒤로':'◀▶ pick · ▲▼ row/group · Confirm start · Back',
   '준비 중':'Coming soon', '기록 없음':'No record', '최고':'Best', '동시 대결':'head-to-head', '턴제':'take turns',
 
   /* 유도 */
-  '유도':'Judo', '하지메':'Hajime', '깃 싸움':'Grip fight', '한판':'Ippon', '절반':'Waza-ari',
+  '유도':'Judo',
+
+  /* 도마 */
+  '도마':'Vault',
+  /* 카누 슬라럼 */
+  '카누 슬라럼':'Canoe Slalom', '문':' gates', '놓침':'Missed', '접촉':'Touched',
+  '봉을 건드렸다 +2초':'Touched a pole +2s', '문을 놓쳤다 +50초':'Missed a gate +50s',
+  '빨간 문 — 거슬러 올라간다':'Red gate — go back up through it',
+  '번갈아 저으면 빨라지고, 한쪽만 저으면 그 반대로 돈다':'Alternate to go fast; paddle one side to turn the other way', '손 짚기':'Block', '완벽한 손 짚기!':'Perfect block!',
+  '손을 못 짚었다':'Missed the block', '손이 미끄러졌다':'Hands slipped',
+  '구름판까지 %1m':'%1m to the board', '지금!':'Now!',
+  '구름판이 아직 멀다':'The board is still far', '구름판을 지나쳤다':'Ran past the board',
+  '그대로 떨어졌다':'Came straight down', '난도':'Difficulty', '수행':'Execution',
+  '%1차':'Att %1', '차':'', '바퀴':' turns',
+  '좌·우로 달려 구름판을 밟고, 도마에 닿을 때 다시 액션':'Run with left/right, hit the board, then action again on the table', '하지메':'Hajime', '깃 싸움':'Grip fight', '한판':'Ippon', '절반':'Waza-ari',
   '절반%1':'Waza-ari %1', '한판 선취':'First to ippon',
   '우세':'Ahead', '열세':'Behind', '역습 한판':'countered — ippon',
   '기술이 안 걸렸다':'The throw did not land', '걸리지 않았다':'No throw',

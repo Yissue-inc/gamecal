@@ -186,5 +186,9 @@ const EVENTS = [
   { id:'tableTennis',  name:'탁구',         short:'TT',    unit:'s', higher:false, qualify:140.0, parS:110.0, kind:'rally' },
   /* 유도 — 격투기가 통째로 비어 있었다. 붙잡고 버티다 한순간에 뒤집는 종목. */
   { id:'judo',         name:'유도',         short:'JUDO',  unit:'s', higher:false, qualify:45.0, parS:20.0, kind:'grap' },
+  /* 기계체조 도마 — 축은 **손 짚기**. 그 짧은 순간에 높이가 정해지고, 높이가 난도를 허락한다. */
+  { id:'vault',        name:'도마',         short:'VT',    unit:'점', higher:true,  qualify:11.50, parS:13.20, kind:'gym' },
+  /* 카누 슬라럼 — 이 게임에 없던 **가로 조종**. 기록 = 내려온 시간 + 벌점. */
+  { id:'canoe',        name:'카누 슬라럼',   short:'CSL',   unit:'s', higher:false, qualify:80.0, parS:70.0, kind:'slalom' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;
