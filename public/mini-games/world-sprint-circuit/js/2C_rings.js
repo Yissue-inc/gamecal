@@ -266,10 +266,11 @@ class RingsEvent {
 
     /* ⚠ '왜 감점됐는지'가 안 보이면 사람은 연타를 멈추지 않는다. 누른 횟수를 보여 준다. */
     const over = this.taps - RING.holds.length*3;
-    txt(u, K('되잡기 %1').replace('%1', this.taps), 8, VH-16, 9, over>0?PAL.red:PAL.dim);
-    if(over>0) txt(u, K('너무 자주 잡으면 몸이 출렁인다'), 8, VH-7, 8, PAL.red);
+    /* ⚠ 8px 글자를 VH-7 에 두면 아랫변(270)을 넘어 잘린다 — 실측으로 확인했다 */
+    txt(u, K('되잡기 %1').replace('%1', this.taps), 8, VH-19, 9, over>0?PAL.red:PAL.dim);
+    if(over>0) txt(u, K('너무 자주 잡으면 몸이 출렁인다'), 8, VH-9, 8, PAL.red);
 
-    txt(u, K('좌·우로 되잡아 흔들림을 0 에 둔다'), VW-8, VH-16, 9, PAL.dim, 'right');
+    txt(u, K('좌·우로 되잡아 흔들림을 0 에 둔다'), VW-8, VH-19, 9, PAL.dim, 'right');
 
     if(this.t-this.msgAt < 1400)
       txt(u, this.msg, VW/2, 44, 13, this.msgBad?PAL.red:PAL.green, 'center', 700);
