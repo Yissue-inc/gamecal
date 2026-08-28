@@ -190,5 +190,7 @@ const EVENTS = [
   { id:'vault',        name:'도마',         short:'VT',    unit:'점', higher:true,  qualify:11.50, parS:13.20, kind:'gym' },
   /* 카누 슬라럼 — 이 게임에 없던 **가로 조종**. 기록 = 내려온 시간 + 벌점. */
   { id:'canoe',        name:'카누 슬라럼',   short:'CSL',   unit:'s', higher:false, qualify:80.0, parS:70.0, kind:'slalom' },
+  /* 골프 — 유일하게 **여러 번에 나눠** 목표에 다가간다. 기록은 파 대비(적을수록 좋다). */
+  { id:'golf',         name:'골프 3홀',     short:'GOLF',  unit:'타', higher:false, qualify:0.0, parS:-3.0, kind:'golf' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;

@@ -465,6 +465,16 @@ const I18N_EN = {
 
   /* 도마 */
   '도마':'Vault',
+  /* 골프 */
+  '골프 3홀':'Golf (3 holes)', '%1번 홀':'Hole %1', '파':'Par', '타수':'Strokes',
+  '남은 거리':'To hole', '바람':'Wind', '라이':'Lie',
+  '페어웨이':'Fairway', '벙커':'Bunker', '러프':'Rough',
+  '드라이버':'Driver', '우드':'Wood', '아이언':'Iron', '웨지':'Wedge', '퍼터':'Putter',
+  '세기 — 액션으로 멈춤':'Power — action to stop', '정확도 — 초록에서 액션':'Accuracy — action on green',
+  '벙커에 빠졌다':'In the bunker', '러프다':'In the rough',
+  '이글!':'Eagle!', '버디!':'Birdie!', '보기':'Bogey', '더블 보기 이상':'Double bogey or worse',
+  '최대 타수':'Stroke limit', '홀 아웃':'Picked up',
+  '←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)':'←→ aim · ▲▼ club · action 3× (start, power, accuracy)',
   /* 카누 슬라럼 */
   '카누 슬라럼':'Canoe Slalom', '문':' gates', '놓침':'Missed', '접촉':'Touched',
   '봉을 건드렸다 +2초':'Touched a pole +2s', '문을 놓쳤다 +50초':'Missed a gate +50s',
