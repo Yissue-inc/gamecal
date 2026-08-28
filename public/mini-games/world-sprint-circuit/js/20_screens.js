@@ -3,6 +3,21 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* 종목 갈래 — 39종목을 가로 캐러셀로 두면 끝까지 38번을 눌러야 한다(실측).
+   ⚠ 14종목일 땐 괜찮았고 39종목에서 무너졌다. 갈래로 묶고 격자로 펼친다. */
+const EVENT_GROUPS = [
+  { key:'track', name:'트랙',   kinds:['sprint','middle','hurdles','walk','relay'] },
+  { key:'field', name:'필드',   kinds:['jump','throw'] },
+  { key:'swim',  name:'수영',   kinds:['swim'] },
+  { key:'combo', name:'복합',   kinds:['combined','tri'] },
+  { key:'other', name:'그 외',  kinds:null },   // 나머지 전부
+];
+function groupOf(def){
+  for(const g of EVENT_GROUPS) if(g.kinds && g.kinds.includes(def.kind)) return g.key;
+  return 'other';
+}
+function eventsInGroup(key){ return EVENTS.filter(e=>groupOf(e)===key); }
+
 const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4, CAREER:5, SETTINGS:6, NATION:7, SHARE:8 };
 /* 실제로 플레이 가능한 종목. 여기 없는 건 선택 화면에서 '준비 중'으로 잠근다.
    ⚠ 목록만 늘려놓고 구현이 없으면 플레이어는 빈 화면을 만난다. */
@@ -99,16 +114,39 @@ const G = {
     }
   },
 
+  selGroup: 0,
+  get selEvents(){ return eventsInGroup(EVENT_GROUPS[this.selGroup].key); },
+  /* this.sel 은 **갈래 안의 자리**다. 갈래를 바꾸면 범위 안으로 접는다. */
+  clampSel(){ const n=this.selEvents.length; if(n) this.sel=clamp(this.sel,0,n-1); else this.sel=0; },
   updSelect(){
-    const playable = EVENTS.filter(e=>READY.includes(e.id));
-    /* 인원 — ▲▼. 종목 고르는 자리에서 바로 정한다(따로 화면을 파면 아무도 안 들어간다) */
-    if(Input.pressed('up'))   { Party.count = Math.min(4, Party.count+1); Sfx.ui(); }
-    if(Input.pressed('down')) { Party.count = Math.max(1, Party.count-1); Sfx.ui(); }
-    if(Input.pressed('left')){ this.sel=(this.sel+EVENTS.length-1)%EVENTS.length; Sfx.ui(); }
-    if(Input.pressed('right')){ this.sel=(this.sel+1)%EVENTS.length; Sfx.ui(); }
+    const COLS=5;
+    const list=this.selEvents, n=list.length;
+    if(Input.pressed('left')){ this.sel=(this.sel+n-1)%n; Sfx.ui(); }
+    if(Input.pressed('right')){ this.sel=(this.sel+1)%n; Sfx.ui(); }
+    /* ▲▼ 는 격자의 위아래 줄. 맨 윗줄에서 ▲ 를 더 누르면 **앞 갈래**로 넘어간다 —
+       갈래 전환에 별도 키를 두면 아무도 안 쓴다(인원 조절이 ▲▼ 를 쓰던 자리라 Q/E 로 옮겼다). */
+    if(Input.pressed('up')){
+      if(this.sel>=COLS){ this.sel-=COLS; }
+      else { this.selGroup=(this.selGroup+EVENT_GROUPS.length-1)%EVENT_GROUPS.length;
+             this.sel=0; this.clampSel(); }
+      Sfx.ui();
+    }
+    if(Input.pressed('down')){
+      if(this.sel+COLS < n){ this.sel+=COLS; }
+      else { this.selGroup=(this.selGroup+1)%EVENT_GROUPS.length; this.sel=0; this.clampSel(); }
+      Sfx.ui();
+    }
+    /* 인원 — [ ] 로. 종목 고르는 자리에서 바로 정한다(따로 화면을 파면 아무도 안 들어간다).
+       ⚠ 처음엔 Q/E 로 뒀는데 **Q 가 '뒤로'와 겹쳐서**(map.back = Escape·KeyQ·Backspace)
+          인원을 줄이려다 화면이 통째로 나가 버렸다. 안 겹치는 키를 쓴다. */
+    if(Input.keys['BracketRight'] && !this._eLatch){ this._eLatch=true; Party.count=Math.min(4,Party.count+1); Sfx.ui(); }
+    if(!Input.keys['BracketRight']) this._eLatch=false;
+    if(Input.keys['BracketLeft'] && !this._qLatch){ this._qLatch=true; Party.count=Math.max(1,Party.count-1); Sfx.ui(); }
+    if(!Input.keys['BracketLeft']) this._qLatch=false;
+    this.clampSel();
     if(Input.pressed('action')){
-      const def = EVENTS[this.sel];
-      if(!playable.includes(def)){ this.toast('아직 준비 중인 종목입니다'); Sfx.beep(180,0.12,'sawtooth',0.12); return; }
+      const def=this.selEvents[this.sel]; if(!def) return;
+      if(!READY.includes(def.id)){ this.toast('아직 준비 중인 종목입니다'); Sfx.beep(180,0.12,'sawtooth',0.12); return; }
       Sfx.ui(); this.start(def);
     }
     if(Input.pressed('back')){ this.state=ST.TITLE; Sfx.ui(); }
@@ -286,6 +324,9 @@ const G = {
       { k:'mute', label:'음소거',   toggle:true },
       { k:'lang', label:'언어',     toggle:true },
       { k:'ctrl', label:'조작',     toggle:true },
+      /* ⚠ 종목 선택에서 인원은 [ ] 키로 바꾼다 — 화면 버튼에는 그 키가 없다.
+         터치로만 하는 사람이 2인 플레이를 아예 못 켜면 안 되므로 여기에도 둔다. */
+      { k:'party', label:'인원',    toggle:true },
       { k:'back', label:'돌아가기', action:true },
     ];
   },
@@ -303,6 +344,9 @@ const G = {
       if(r.k==='mute'){ Sfx.toggleMute(); }
       else if(r.k==='lang'){ if(typeof setLang==='function') setLang(LANG==='ko'?'en':'ko'); }
       else if(r.k==='ctrl'){ Ctrl.set(Ctrl.mode==='touch'?'keyboard':'touch'); }
+      else if(r.k==='party'){
+        Party.count = dLeft ? Math.max(1,Party.count-1) : Math.min(4,Party.count+1);
+      }
       else if(r.k==='back'){ this.state=ST.TITLE; }
       Sfx.ui();
     }
@@ -333,6 +377,9 @@ const G = {
         txt(uctx, LANG==='ko'?'한국어':'English', x+w-10, y+6, 11, PAL.blue,'right',700);
       } else if(r.k==='ctrl'){
         txt(uctx, Ctrl.mode==='touch'?'화면 버튼':'키보드', x+w-10, y+6, 11, PAL.blue,'right',700);
+      } else if(r.k==='party'){
+        txt(uctx, Party.count+K('인'), x+w-10, y+6, 11,
+            Party.count>1?PAL.gold:PAL.blue,'right',700);
       }
     });
     txt(uctx,'▲▼ 이동 · ◀▶ 조절 · 확인 전환 · 취소 돌아가기', VW/2, VH-16, 9, PAL.dim,'center');
@@ -523,46 +570,77 @@ const G = {
 
   drawSelect(ctx,uctx){
     Track.drawBack(ctx, 40, 100);
-    ctx.fillStyle='rgba(5,6,10,.72)'; ctx.fillRect(0,0,VW,VH);
-    txt(uctx,'종목 선택', VW/2, 18, 15, PAL.gold,'center',700);
-    const cw=140, gap=10, total=EVENTS.length;
-    for(let i=0;i<total;i++){
-      const e=EVENTS[i];
-      const rel=i-this.sel;
-      const x=VW/2 + rel*(cw+gap);
-      if(x<-cw || x>VW+cw) continue;
-      const on = i===this.sel;
-      const ready = READY.includes(e.id);
-      const y=64, h=112;
-      uctx.fillStyle = on?'rgba(255,215,94,.16)':'rgba(22,26,38,.8)';
-      uctx.fillRect(x-cw/2, y, cw, h);
-      uctx.strokeStyle = on?PAL.gold:'#3a4258'; uctx.lineWidth=2;
-      uctx.strokeRect(x-cw/2, y, cw, h);
-      txt(uctx, e.short, x, y+10, 20, on?PAL.gold:PAL.white,'center',700);
-      txt(uctx, e.name,  x, y+36, 12, PAL.white,'center');
-      txt(uctx, '기준 '+(e.higher? e.qualify.toFixed(2)+e.unit : e.qualify.toFixed(2)+'초'),
-          x, y+56, 9, PAL.dim,'center');
-      const b=Save.data.best[e.id];
-      txt(uctx, b!==undefined ? '최고 '+(e.higher?b.toFixed(2)+e.unit:b.toFixed(2)+'초') : '기록 없음',
-          x, y+70, 10, b!==undefined?PAL.blue:PAL.dim,'center');
-      if(!ready) txt(uctx,'준비 중', x, y+90, 10, PAL.red,'center',700);
+    ctx.fillStyle='rgba(5,6,10,.78)'; ctx.fillRect(0,0,VW,VH);
+    txt(uctx,'종목 선택', 10, 8, 13, PAL.gold,'left',700);
+
+    /* 갈래 탭 — 어디에 뭐가 있는지 한눈에 */
+    const tabY=26;
+    let tx=10;
+    EVENT_GROUPS.forEach((g,i)=>{
+      const on=i===this.selGroup, cnt=eventsInGroup(g.key).length;
+      const label=`${K(g.name)} ${cnt}`;
+      const w=Math.max(46, label.length*7+14);
+      uctx.fillStyle = on?'rgba(255,215,94,.18)':'rgba(22,26,38,.7)';
+      uctx.fillRect(tx, tabY, w, 16);
+      uctx.strokeStyle = on?PAL.gold:'#3a4258'; uctx.lineWidth=1;
+      uctx.strokeRect(tx+.5, tabY+.5, w-1, 15);
+      txt(uctx, label, tx+w/2, tabY+3, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
+      tx += w+4;
+    });
+
+    /* 격자 — 한 화면에 갈래 전체가 들어온다 */
+    const list=this.selEvents, COLS=5, cw=90, ch=42, gx=8, gy=52;
+    const gapX=(VW-16-COLS*cw)/(COLS-1);
+    list.forEach((e,i)=>{
+      const c=i%COLS, r=(i/COLS)|0;
+      const x=gx+c*(cw+gapX), y=gy+r*(ch+6);
+      if(y+ch>VH-52) return;                       // 넘치면 안 그린다(줄 수를 맞춰 뒀다)
+      const on=i===this.sel, ready=READY.includes(e.id);
+      uctx.fillStyle = on?'rgba(255,215,94,.18)':'rgba(20,24,36,.82)';
+      uctx.fillRect(x, y, cw, ch);
+      uctx.strokeStyle = on?PAL.gold:(ready?'#3a4258':'#2a2030'); uctx.lineWidth= on?2:1;
+      uctx.strokeRect(x+ (on?1:0.5), y+(on?1:0.5), cw-(on?2:1), ch-(on?2:1));
+      /* ⚠ 짧은 이름이 긴 종목(3000SC)은 기록과 글자가 겹쳤다 — 길면 글자를 줄인다 */
+      txt(uctx, e.short, x+6, y+4, e.short.length>5?9:11,
+          on?PAL.gold:(ready?PAL.white:'#6a5a70'),'left',700);
+      const bst=Save.data.best[e.id];
+      if(bst!==undefined){
+        const t=e.higher? bst.toFixed(2)+e.unit : fmtTime(bst);
+        txt(uctx, t, x+cw-6, y+5, t.length>6?8:9, PAL.blue,'right');
+      }
+      txt(uctx, e.name, x+6, y+18, 9, ready?PAL.dim:'#5a4a60','left');
+      txt(uctx, K('기준')+' '+(e.higher? e.qualify.toFixed(2)+e.unit : fmtTime(e.qualify)),
+          x+6, y+30, 8, PAL.dim,'left');
+      if(!ready) txt(uctx, K('준비 중'), x+cw-6, y+30, 8, PAL.red,'right',700);
+    });
+
+    /* 고른 종목 한 줄 요약 + 인원 */
+    const def=list[this.sel];
+    plate(uctx, 0, VH-50, VW, 50, .84);
+    if(def){
+      txt(uctx, def.name, 10, VH-46, 13, PAL.gold,'left',700);
+      const bst=Save.data.best[def.id];
+      txt(uctx, bst!==undefined
+            ? K('최고')+' '+(def.higher? bst.toFixed(2)+def.unit : fmtTime(bst))
+            : K('기록 없음'),
+          10, VH-31, 10, bst!==undefined?PAL.blue:PAL.dim,'left');
     }
-    /* 인원과 키 안내 */
-    {
-      const n=Party.count, def=EVENTS[this.sel];
-      const mode = n>1 ? (Party.modeFor(def)==='versus' ? '동시 대결' : '턴제') : '';
-      txt(uctx, `▲▼ 인원  ${n}인 ${mode}`, VW/2, 186, 11, n>1?PAL.gold:PAL.dim, 'center', n>1?700:400);
-      if(n>1){
-        for(let p=0;p<n;p++){
-          const x = VW/2 + (p-(n-1)/2)*112;
-          uctx.fillStyle = PARTY_COLOR[p]; uctx.fillRect(x-46, 202, 92, 2);
-          txt(uctx, 'P'+(p+1), x-42, 206, 9, PARTY_COLOR[p], 'left', 700);
-          txt(uctx, PARTY_KEYS[p].label, x+42, 206, 8, PAL.dim, 'right');
-        }
+    const n=Party.count;
+    const mode = n>1 ? (Party.modeFor(def)==='versus' ? K('동시 대결') : K('턴제')) : '';
+    txt(uctx, `[ ] ${K('인원')}  ${n}${K('인')} ${mode}`, VW-10, VH-46, 11,
+        n>1?PAL.gold:PAL.dim,'right', n>1?700:400);
+    if(n>1){
+      let px=VW-10;
+      for(let p=n-1;p>=0;p--){
+        const lab='P'+(p+1)+' '+PARTY_KEYS[p].label;
+        txt(uctx, lab, px, VH-31, 8, PARTY_COLOR[p],'right');
+        px -= lab.length*4.6+10;
       }
     }
-    txt(uctx, Ctrl.mode==='touch'?'◀ ▶ 로 고르고 액션으로 시작':'← → 로 고르고 SPACE 로 시작',
-        VW/2, VH-26, 11, PAL.white,'center');
+    txt(uctx, K('◀▶ 고르기 · ▲▼ 줄·갈래 · 확인 시작 · 취소 뒤로'), VW/2, VH-14, 9, PAL.dim,'center');
+    /* 화면 버튼에는 [ ] 가 없다 — 터치일 때는 인원 칸을 눌러 바꾸도록 안내한다 */
+    if(Ctrl.mode==='touch')
+      txt(uctx, K('인원은 설정에서 (일시정지)'), VW-10, VH-18, 8, PAL.dim,'right');
   },
 
   drawResult(uctx){

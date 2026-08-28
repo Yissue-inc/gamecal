@@ -455,6 +455,10 @@ const I18N_EN = {
 
   /* 탁구 */
   '탁구':'Table Tennis',
+  '인원':'Players', '인':'P', '인원은 설정에서 (일시정지)':'Players: in Settings (pause)',
+  '트랙':'Track', '필드':'Field', '수영':'Swim', '복합':'Combined', '그 외':'Other',
+  '◀▶ 고르기 · ▲▼ 줄·갈래 · 확인 시작 · 취소 뒤로':'◀▶ pick · ▲▼ row/group · Confirm start · Back',
+  '준비 중':'Coming soon', '기록 없음':'No record', '최고':'Best', '동시 대결':'head-to-head', '턴제':'take turns',
 
   /* 유도 */
   '유도':'Judo', '하지메':'Hajime', '깃 싸움':'Grip fight', '한판':'Ippon', '절반':'Waza-ari',
