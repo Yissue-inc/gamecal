@@ -184,5 +184,7 @@ const EVENTS = [
     distanceM:200, kind:'swim', stroke:'fly', medley:true },
   /* 탁구 — 이 게임에 없던 **랠리** 장르. 상대를 어디로 뛰게 만드느냐가 축이다. */
   { id:'tableTennis',  name:'탁구',         short:'TT',    unit:'s', higher:false, qualify:140.0, parS:110.0, kind:'rally' },
+  /* 유도 — 격투기가 통째로 비어 있었다. 붙잡고 버티다 한순간에 뒤집는 종목. */
+  { id:'judo',         name:'유도',         short:'JUDO',  unit:'s', higher:false, qualify:45.0, parS:20.0, kind:'grap' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;

@@ -454,7 +454,18 @@ const I18N_EN = {
   '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '개인혼영 %1m':'%1m Ind. Medley',
 
   /* 탁구 */
-  '탁구':'Table Tennis', '%1구째':'Rally %1', '받는 여유':'Reaction room',
+  '탁구':'Table Tennis',
+
+  /* 유도 */
+  '유도':'Judo', '하지메':'Hajime', '깃 싸움':'Grip fight', '한판':'Ippon', '절반':'Waza-ari',
+  '절반%1':'Waza-ari %1', '한판 선취':'First to ippon',
+  '우세':'Ahead', '열세':'Behind', '역습 한판':'countered — ippon',
+  '기술이 안 걸렸다':'The throw did not land', '걸리지 않았다':'No throw',
+  '지금! 한판이 걸린다':'Now — ippon is on', '절반은 걸린다':'Waza-ari is on',
+  '아직 얕다':'Grip is still shallow', '지금 지르면 역습당한다':'Throw now and you get countered',
+  '좌·우를 번갈아 두드려 깃을 잡고, 기울면 액션':'Alternate to win the grip, then action when it tips',
+  '시간 만료 — 기술이 나오지 않았다':'Time — no throw was scored',
+  '%1P — %2':'%1P — %2', '나 — %1':'You — %1', '상대 — %1':'Rival — %1', '2P — %1':'2P — %1', '%1구째':'Rally %1', '받는 여유':'Reaction room',
   '서브 — 액션':'Your serve — action', '상대 서브':'Rival serves',
   '←/→ 로 설 자리와 코스를 고른다':'←/→ set where you stand and where you aim',
   '완벽!':'Perfect!', '받지 못했다':'could not reach it',
