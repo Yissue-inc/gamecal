@@ -107,7 +107,8 @@ class TripleJumpEvent extends LongJumpEvent {
       ctx.fillStyle='rgba(5,6,10,.45)'; ctx.fillRect(x, GROUND-6, 1, 6);
       if(m%4===0){ ctx.fillStyle='rgba(5,6,10,.6)'; Track.num(ctx, x+2, GROUND-14, m); }
     }
-    if(!Art.blit(ctx,'board-takeoff',BX,GROUND)){
+    if(BG.obj(BG.ctx(),'takeoff-board-hd',BX,GROUND,14)){ /* HD */ }
+    else if(!Art.blit(ctx,'board-takeoff',BX,GROUND)){
       ctx.fillStyle=PAL.white; ctx.fillRect(BX-7, GROUND-7, 12, 7);
       ctx.fillStyle=PAL.red;   ctx.fillRect(BX+5,  GROUND-7, 3, 7);
     }
@@ -248,6 +249,7 @@ class ShotPutEvent extends JavelinEvent {
     else drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:true });
     // 포환
     const sx = this.phase==='CHARGE' ? CX+8 : px(this.px);
+    /* (해머 자리 — 폴은 아래 PoleVault 에서 따로 그린다) */
     const sy = this.phase==='CHARGE' ? GROUND-26 : GROUND - this.py/this.mPerPx;
     if(!Art.blit(ctx,'hammer',sx,Math.min(GROUND-2,Math.round(sy)),'center')){
       ctx.fillStyle='#c9cede'; ctx.beginPath();
@@ -359,6 +361,9 @@ class PoleVaultEvent extends FieldEvent {
       if(this.flightT >= this.flightDur){
         /* 높이 = 속도² 기여 + 꽂기 + 끌어올리기 */
         const v=this.takeoffSpeed;
+        /* ⚠ 한때 0.78/0.11 로 올렸다가 도달 7.49m 가 나왔다 — 실제 세계기록 6.26m 다.
+           "아무도 기준을 못 넘는다"는 관측이 사실은 **측정 창이 짧아서**였다
+           (바가 0.12m 씩 오르니 끝까지 가는 데 80초가 넘는다). 원래 값으로 되돌린다. */
         this.reach = 1.30 + (v*v)/(2*9.81)*0.72*lerp(0.62,1.0,this.plantQ)
                    + this.pulls*0.075;
         this.cleared = this.reach >= this.bar;
@@ -368,7 +373,7 @@ class PoleVaultEvent extends FieldEvent {
     } else if(this.phase==='RESULT'){
       if(this.t-this.resultAt>1600){
         if(this.cleared){ this.marks.push(this.bar); this.misses=0;
-          this.bar=+(this.bar+0.12).toFixed(2); this.newAttempt(); }
+          this.bar=+(this.bar+0.20).toFixed(2); this.newAttempt(); }   // 0.12 는 너무 잘아 한 판이 80초를 넘겼다
         else this.fail(true);
       }
     }
@@ -401,14 +406,20 @@ class PoleVaultEvent extends FieldEvent {
     const barY=GROUND-this.bar*PXPM;
     ctx.fillStyle='#c9cede'; ctx.fillRect(BOXX+18, barY-2, 3, GROUND-barY+2);
     ctx.fillRect(BOXX+100, barY-2, 3, GROUND-barY+2);
-    ctx.fillStyle = (this.phase==='RESULT'&&this.cleared===false)?PAL.red:PAL.gold;
-    ctx.fillRect(BOXX+20, barY, 82, 3);
+    if(!(function(){ const img=BG.get('crossbar-hd'); const bg=BG.ctx();
+      if(!img||!bg) return false; bg.drawImage(img, BOXX+20, barY-3, 82, 7); return true; })()){
+      ctx.fillStyle = (this.phase==='RESULT'&&this.cleared===false)?PAL.red:PAL.gold;
+      ctx.fillRect(BOXX+20, barY, 82, 3);
+    }
     /* 선수 + 폴 */
     let x,y=GROUND;
     if(this.phase==='RUNUP'){
       x=px(this.runner.distM);
-      ctx.strokeStyle='#d8d2c2'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(x+4, y-22); ctx.lineTo(x+30, y-30); ctx.stroke();
+      /* 손에 든 폴 — HD 어셋이 있으면 그쪽으로 */
+      if(!BG.obj(BG.ctx(), 'pole-hd', x+18, y-6, 30)){
+        ctx.strokeStyle='#d8d2c2'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(x+4, y-22); ctx.lineTo(x+30, y-30); ctx.stroke();
+      }
     } else {
       const p=clamp(this.flightT/this.flightDur,0,1);
       x = BOXX + p*84;

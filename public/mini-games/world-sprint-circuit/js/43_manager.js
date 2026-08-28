@@ -9,9 +9,13 @@ const MG = {
   club:null, season:null, stack:[], focus:{}, lastLog:[], t:0,
   toastMsg:'', toastAt:-1e9,
 
-  newGame(name, seed){
+  newGame(name, seed, nation){
     seed = seed || ((Date.now()^0x1f2e3d4c)>>>0);
-    this.club = Club.newClub(name||'서울 트랙 클럽', seed);
+    /* ⚠ 클럽은 한 나라를 대표한다. 국가 이름이 클럽 이름이 된다 —
+       LA 2028 을 겨냥한 소속감의 출발점. */
+    this.nation = nation || this.nation || 'KOR';
+    const nm = name || ((typeof nationName==='function' ? nationName(this.nation) : '') + ' 트랙 클럽');
+    this.club = Club.newClub(nm, seed, this.nation);
     this.season = new Season(this.club, seed);
     this.season.market = new Market(this.club, seed);
     this.focus = {}; this.lastLog = []; this.stack = [];
@@ -112,10 +116,16 @@ const MG = {
 class SeasonEndScreen extends Screen0 {
   constructor(mg){
     super(mg);
+    /* ⚠ 평가를 승점 절대값으로 매기면 클럽이 커질수록 저절로 S 가 된다.
+       **시즌 시작에 받은 목표**를 넘겼는지로 매긴다 — 감독을 평가하는 것이다. */
+    this.report = mg.season.gradeSeason ? mg.season.gradeSeason() : null;
     this.res = mg.club.endSeason(mg.season.rng);
     this.pts = mg.season.points; this.medals = mg.season.medals;
     this.year = mg.season.year;
-    this.grade = this.pts>=200?'S' : this.pts>=140?'A' : this.pts>=90?'B' : this.pts>=50?'C':'D';
+    this.olympic = !!mg.season.isOlympicYear;
+    this.grade = this.report
+      ? ({good:'S', ok:'B', bad:'D'})[this.report.grade]
+      : (this.pts>=200?'S' : this.pts>=140?'A' : this.pts>=90?'B' : this.pts>=50?'C':'D');
     Sfx.record();
   }
   update(now){
@@ -134,8 +144,13 @@ class SeasonEndScreen extends Screen0 {
     txt(u,'평가',VW/2,30,9,PAL.dim,'center');
     txt(u,this.grade,VW/2,40,30, this.grade==='S'?PAL.gold:this.grade==='D'?PAL.red:PAL.green,'center',700);
     txt(u,`승점 ${this.pts}  ·  금 ${this.medals.gold} 은 ${this.medals.silver} 동 ${this.medals.bronze}`,
-        VW/2,76,11,PAL.white,'center');
-    let y=96;
+        VW/2,72,11,PAL.white,'center');
+    if(this.report){
+      const g=this.report.goal;
+      txt(u,`목표 승점 ${g.points} · 금 ${g.gold}`, VW/2, 86, 9, PAL.dim, 'center');
+    }
+    if(this.olympic) txt(u, olympicName(this.year)+' 해', VW/2, 20, 10, PAL.gold, 'center', 700);
+    let y=100;
     if(this.res.retired.length){
       txt(u,'은퇴',12,y,9,PAL.dim); y+=11;
       for(const a of this.res.retired){ txt(u,`${a.name} (${a.age}세) — OVR ${a.overall}`,20,y,10,'#ffa04c'); y+=12; }

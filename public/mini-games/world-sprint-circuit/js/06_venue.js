@@ -39,6 +39,54 @@ const BG = {
     u.drawImage(img, 0, y, VW, h);
     return true;
   },
+  /* ── 대기 원근(depth cueing) ────────────────────────────
+     ⚠ 배경이 선수보다 밝으면 눈이 배경으로 간다. 실측: 담장 띠의 평균 밝기가
+        152 로 하늘(32)의 4.7배, 트랙(85)의 1.8배였다 — 화면에서 가장 밝은 게
+        경기장 담벼락이었다.
+     멀리 있는 띠일수록 밤공기를 한 겹 덧씌워 어둡고 흐리게 만든다.
+     어떤 배경 어셋이 와도 **선수가 가장 도드라진다**. 깊이감은 덤이다.
+     ⚠ 이 보정은 배경 층에만 건다 — 캐릭터(UI 층)는 손대지 않는다. */
+  haze(u, opt){
+    if(!u) return;
+    opt = opt || {};
+    const top = opt.top===undefined ? 0 : opt.top;
+    const bottom = opt.bottom===undefined ? VH : opt.bottom;
+    const h = bottom - top;
+    /* ① 곱연산으로 밝기를 '비례해' 눌러 놓는다.
+       ⚠ 덧칠(알파 블렌딩)만으로는 부족하다 — 담장 152 를 126 까지밖에 못 낮췄다.
+          밝은 어셋이 오면 또 화면을 지배한다. 곱연산은 어떤 어셋이 와도
+          그 띠 전체를 정해진 비율로 눌러 준다. */
+    const k = opt.gain===undefined ? 0.55 : opt.gain;      // 0~1, 낮을수록 어둡다
+    if(k < 1){
+      u.save();
+      u.globalCompositeOperation = 'multiply';
+      u.fillStyle = `rgb(${Math.round(255*k*0.94)},${Math.round(255*k*0.97)},${Math.round(255*k)})`;
+      u.fillRect(0, top, VW, h);
+      u.restore();
+    }
+    /* ② 그 위에 밤공기 한 겹 — 위(먼 곳)일수록 두껍게. 깊이감. */
+    const g = u.createLinearGradient(0, top, 0, bottom);
+    const tint = opt.tint || '11,16,38';
+    g.addColorStop(0,    `rgba(${tint},${opt.far===undefined?0.30:opt.far})`);
+    g.addColorStop(0.62, `rgba(${tint},${opt.mid===undefined?0.16:opt.mid})`);
+    g.addColorStop(1,    `rgba(${tint},${opt.near===undefined?0.04:opt.near})`);
+    u.fillStyle = g;
+    u.fillRect(0, top, VW, h);
+  },
+
+  /* 스프라이트 시트 한 장(가로 N프레임) — 연출용.
+     ⚠ 어셋이 없으면 아무것도 안 그린다(조용히 넘어간다). */
+  fx(u, name, x, y, h, prog, frames){
+    if(!u) return false;
+    const img=this.get(name); if(!img) return false;
+    const n = frames||4;
+    const fw = img.width/n, fh = img.height;
+    const f = clamp(Math.floor(prog*n), 0, n-1);
+    const w = h*(fw/fh);
+    u.drawImage(img, f*fw, 0, fw, fh, Math.round(x-w/2), Math.round(y-h), w, h);
+    return true;
+  },
+
   /* 오브젝트 — 바닥 중앙 기준 */
   obj(u, name, x, y, h){
     const img=this.get(name); if(!img) return false;
@@ -71,7 +119,8 @@ const Venue = {
         const x=Math.round((m-camM)/mPerPx);
         if(x<-8||x>VW+8) continue;
         for(let L=0;L<3;L++){
-          const hy=Track.LANE_Y[L]+Track.LANE_H-10;
+          const hy=Track.laneFoot(L);
+          if(BG.obj(BG.ctx(),'hurdle-hd',x,hy,Math.round(32*Track.laneScale(L)))) continue;
           if(Art.blit(ctx,'hurdle',x,hy)) continue;
           ctx.fillStyle='#e8e2d6'; ctx.fillRect(x-4,hy-13,9,2);
           ctx.fillStyle='#c9cede'; ctx.fillRect(x-3,hy-11,1,11); ctx.fillRect(x+3,hy-11,1,11);
@@ -85,11 +134,11 @@ const Venue = {
         const x0=Math.round((z0-camM)/mPerPx), x1=Math.round((z1-camM)/mPerPx);
         if(x1<0||x0>VW) continue;
         ctx.fillStyle='rgba(92,255,156,.12)';
-        for(const y of Track.LANE_Y) ctx.fillRect(x0,y,x1-x0,Track.LANE_H-6);
+        for(let i=0;i<Track.LANE_Y.length;i++) ctx.fillRect(x0,Track.LANE_Y[i],x1-x0,Track.laneH(i)-6);
       }
     }
     Track.drawFinish(ctx, camM, mPerPx, ev?ev.distanceM:100);
-    return { lanes:Track.LANE_Y.map(y=>y+Track.LANE_H-10), toX:(m)=>Math.round((m-camM)/mPerPx) };
+    return { lanes:Track.LANE_Y.map((_,i)=>Track.laneFoot(i)), toX:(m)=>Math.round((m-camM)/mPerPx) };
   },
 
   /* ── 수영장 ── */
@@ -206,7 +255,11 @@ const Venue = {
       ctx.fillStyle='#c9cede'; ctx.fillRect(BAR_X-2,barY-2,4,GROUND-barY+2); }
     if(!Art.blit(ctx,'highbar-stand',BAR_X+102,GROUND)){
       ctx.fillStyle='#c9cede'; ctx.fillRect(BAR_X+100,barY-2,4,GROUND-barY+2); }
-    ctx.fillStyle=PAL.gold; ctx.fillRect(BAR_X,barY,104,3);
+    /* 가로대 — HD 어셋이 있으면 그쪽으로 */
+    if(!(function(){ const img=BG.get('crossbar-hd'); if(!img) return false;
+      const bg=BG.ctx(); if(!bg) return false;
+      const h=8, w=104; bg.drawImage(img, BAR_X, barY-h/2, w, h); return true; })())
+      ctx.fillStyle=PAL.gold, ctx.fillRect(BAR_X,barY,104,3);
     /* 높이 눈금 */
     ctx.fillStyle='rgba(242,245,250,.35)';
     for(let m=1;m<=(ev&&ev.id==='poleVault'?7:3);m++){

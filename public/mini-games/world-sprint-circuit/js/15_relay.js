@@ -8,7 +8,10 @@
 'use strict';
 
 const RELAY = {
-  legM: 100,               // 한 구간
+  legM: 100,               /* 한 구간의 **기본값**.
+     ⚠ 상수로 박혀 있어서 4x400m 계주는 아예 열 수 없었다(감독 모드에만 있고 아케이드에
+        없던 마지막 종목). 이제 종목 정의에서 받아 this.legM 을 쓴다 — RELAY.legM 은
+        정의가 없을 때의 폴백이다. */
   zoneM: 20,               // 인계 구역 폭
   startAheadM: 8,          // 다음 주자가 앞에서 출발한다
   optOverlap: 0.72,        // 이 정도 속도비에서 넘기면 최적
@@ -20,13 +23,21 @@ class RelayEvent extends SprintEvent {
     this.phase='SET'; this.t=0;
     this.gunMs = 1400 + Math.random()*1600;
     this.setBeeps=0;
-    this.trackM = 400;
-    this.mPerPx = 0.30;
+    /* 구간 길이는 종목이 정한다 — 4x100 은 100m, 4x400 은 400m */
+    this.nLegs = this.def.legs || 4;
+    this.legM  = (this.def.distanceM || 400) / this.nLegs;
+    this.trackM = this.legM * this.nLegs;
+    /* 400m 구간을 100m 와 같은 배율로 그리면 화면 밖으로 나간다 */
+    this.mPerPx = 0.30 * (this.legM/100);
+    /* ⚠ 4x400 은 실시간이면 한 판이 **3.8분**이다. 시간을 압축하되, 속도 모델은
+       실시간 그대로 둔다 — 입력이 실시간이라 dt 를 늘리면 스트로크당 전진이 줄어
+       오히려 느려진다(중장거리에서 똑같이 데였다). 거리만 배로 적립한다. */
+    this.scale = Math.max(1, this.trackM/560);
     /* 우리 팀 4명 — 각자 자기 구간을 달린다 */
     this.legs=[];
     const spTeam=['cheetah','hound','rabbit','gazelle'];
-    for(let i=0;i<4;i++){
-      const r=new Runner(1,{},true, i===0 ? 400 : 400);   // 남은 거리는 인계 때 다시 잡는다
+    for(let i=0;i<this.nLegs;i++){
+      const r=new Runner(1,{},true, this.trackM);   // 남은 거리는 인계 때 다시 잡는다
       r.reset(this.gunMs); r.species=spTeam[i]; r.legIndex=i;
       this.legs.push(r);
     }
@@ -41,7 +52,9 @@ class RelayEvent extends SprintEvent {
     for(let i=0;i<2;i++){
       const skill=0.66+i*0.14+Math.random()*0.08;
       this.rivals.push({ lane:i===0?0:2, dist:0, speed:0, skill,
-        target: (RELAY.legM*4) / (44 - skill*7) });   // 목표 평균속도
+        /* 라이벌 목표 속도 — 기준 기록에서 끌어낸다. 예전엔 100m 구간을 전제로 한
+           고정식이라 4x400 에서는 말이 안 됐다. */
+        target: this.trackM / ((this.def.parS || this.def.qualify) * (1.04 + i*0.06)) });
     }
     this.doneAt=0; this.result=null; this.camM=0; this.flash=0;
     this.msg=''; this.msgAt=-1e9;
@@ -58,7 +71,7 @@ class RelayEvent extends SprintEvent {
     if(this.phase!=='RUN'){
       if(tMs < this.gunMs && tMs > this.gunMs-1200){
         this.legs[0].falseStart=true; this.phase='DONE'; this.doneAt=this.t;
-        this.result={ status:'FALSE_START', value:99.99, rank:3 }; Sfx.fail();
+        this.result={ status:'FALSE_START', value:DNF, rank:3 }; Sfx.fail();
       }
       return;
     }
@@ -70,9 +83,9 @@ class RelayEvent extends SprintEvent {
      ⚠ 판정은 '주자가 몇 m 달렸나'가 아니라 **팀이 트랙의 어디에 있나**로 한다.
         예전엔 인계할 때마다 100m 를 통째로 적립해서, 일찍 넘기면 거리를 공짜로
         건너뛰었다 — 엉성한 인계(32.67초)가 잘한 인계(33.46초)보다 빨랐다. */
-  zoneEnd(i){ return (i+1)*RELAY.legM; }          // i 번째 인계가 끝나야 하는 지점
+  zoneEnd(i){ return (i+1)*this.legM; }          // i 번째 인계가 끝나야 하는 지점
   onAction(tMs){
-    if(this.phase!=='RUN' || this.cur>=3) return;
+    if(this.phase!=='RUN' || this.cur>=this.nLegs-1) return;
     const end=this.zoneEnd(this.cur);
     const into = this.teamDist - (end - RELAY.zoneM);
     if(into < 0){ this.say('아직 인계 구역이 아니다', true); this.legs[this.cur].speed*=0.94; return; }
@@ -96,12 +109,15 @@ class RelayEvent extends SprintEvent {
     /* 좋은 인계는 '탄력'을 남긴다 — 몇 초 동안 목표 속도가 올라간다.
        나쁜 인계는 반대로 깎인다. 이게 계주가 개인기록 합보다 빠른/느린 이유다. */
     nxt.momentum = lerp(0.93, 1.09, q); nxt._mom0 = nxt.momentum; nxt.momentumT = 0;
+    nxt.momentumScale = this.scale;   // 거리를 압축한 만큼 탄력도 오래 간다
     nxt.flying = true;            // 이미 달리는 중이다 — 가속 구간을 건너뛴다
     nxt.distM = 0;
     nxt.lastInputMs = tMs;            // 리듬을 이어서 시작
     /* 실제로 달린 만큼만 적립한다. 남은 거리는 다음 주자가 뛴다. */
     this.baseM += r.distM;
-    nxt.trackM = Math.max(20, 400 - this.baseM);
+    /* ⚠ 400 이 박혀 있었다. 4x400(총 1600m)에서는 첫 인계 직후 남은 거리가 0 으로
+       계산돼 2번 주자가 **20m 만 뛰고 멈췄고**, 아무도 그를 깨우지 않아 경기가 얼어붙었다. */
+    nxt.trackM = Math.max(20, this.trackM - this.baseM);
     this.cur++;
     this.nextRunning=false; this.nextDist=0; this.nextSpeed=0;
     this.say(q>0.75? `완벽한 인계! ${Math.round(q*100)}%` :
@@ -119,27 +135,29 @@ class RelayEvent extends SprintEvent {
     }
     if(this.phase==='RUN'){
       const r=this.legs[this.cur];
+      const d0=r.distM;
       r.simulate(dt, now);
+      if(this.scale>1) r.distM += (r.distM-d0)*(this.scale-1);
       /* 다음 주자 — 구역이 가까워지면 스스로 달리기 시작한다 */
-      if(this.cur<3){
+      if(this.cur<this.nLegs-1){
         const left = this.zoneEnd(this.cur) - this.teamDist;
         if(!this.nextRunning && left < RELAY.zoneM + RELAY.startAheadM){
           this.nextRunning=true; this.nextSpeed=0; this.nextDist=0;
         }
         if(this.nextRunning){
           this.nextSpeed = Math.min(r.speed*1.15, this.nextSpeed + dt*7.5);
-          this.nextDist += this.nextSpeed*dt;
+          this.nextDist += this.nextSpeed*dt*this.scale;
         }
       }
       /* 구역을 벗어나면 실격 */
-      if(this.cur<3 && this.teamDist > this.zoneEnd(this.cur) + 2){
+      if(this.cur<this.nLegs-1 && this.teamDist > this.zoneEnd(this.cur) + 2){
         this.dq=true; this.phase='DONE'; this.doneAt=now;
-        this.result={ status:'DQ', value:99.99, rank:3 };
+        this.result={ status:'DQ', value:DNF, rank:3 };
         this.say('인계 구역을 놓쳤다 — 실격', true); Sfx.fail();
       }
       /* 마지막 주자 완주 */
-      if(this.cur===3 && r.finished){
-        const total=(now-this.gunMs)/1000 - (r.leanBonusS||0);
+      if(this.cur===this.nLegs-1 && r.finished){
+        const total=((now-this.gunMs)/1000 - (r.leanBonusS||0))*this.scale;
         this.phase='DONE'; this.doneAt=now;
         const pass = total<=this.qualify;
         this.result={ status: pass?'OK':'MISSED_QUALIFY', value:total, rank:this.rankOf() };
@@ -148,11 +166,11 @@ class RelayEvent extends SprintEvent {
       /* 상대 팀 */
       for(const rv of this.rivals){
         rv.speed += (rv.target - rv.speed)*Math.min(1, dt*1.6);
-        rv.dist += rv.speed*dt;
+        rv.dist += rv.speed*dt*this.scale;
       }
       if(this.elapsed > this.qualify + 14){
         this.phase='DONE'; this.doneAt=now;
-        this.result={ status:'TIMEOUT', value:99.99, rank:3 }; Sfx.fail();
+        this.result={ status:'TIMEOUT', value:DNF, rank:3 }; Sfx.fail();
       }
     }
     const focus=this.teamDist;
@@ -166,44 +184,47 @@ class RelayEvent extends SprintEvent {
     return r;
   }
   draw(ctx){
-    Track.drawBack(ctx, this.camM, 400);
+    Track.drawBack(ctx, this.camM, this.trackM);
     Track.drawLanes(ctx, this.camM, this.mPerPx);
     Track.drawMarks(ctx, this.camM, this.mPerPx);
     /* 인계 구역 표시 */
-    for(let i=1;i<4;i++){
-      const z0=i*RELAY.legM - RELAY.zoneM, z1=i*RELAY.legM;
+    for(let i=1;i<this.nLegs;i++){
+      const z0=i*this.legM - RELAY.zoneM, z1=i*this.legM;
       const x0=Math.round((z0-this.camM)/this.mPerPx), x1=Math.round((z1-this.camM)/this.mPerPx);
       if(x1<0||x0>VW) continue;
       ctx.fillStyle='rgba(92,255,156,.13)';
-      for(const y of Track.LANE_Y) ctx.fillRect(x0, y, x1-x0, Track.LANE_H-6);
+      for(let i=0;i<Track.LANE_Y.length;i++) ctx.fillRect(x0, Track.LANE_Y[i], x1-x0, Track.laneH(i)-6);
       ctx.fillStyle='rgba(92,255,156,.55)';
-      for(const y of Track.LANE_Y){ ctx.fillRect(x0, y, 1, Track.LANE_H-6); ctx.fillRect(x1, y, 1, Track.LANE_H-6); }
+      for(let i=0;i<Track.LANE_Y.length;i++){ const y=Track.LANE_Y[i], h=Track.laneH(i)-6; ctx.fillRect(x0, y, 1, h); ctx.fillRect(x1, y, 1, h); }
     }
     Track.drawFinish(ctx, this.camM, this.mPerPx, 400);
     const px=(m)=>Math.round((m-this.camM)/this.mPerPx);
     /* 상대 팀 */
     const col=['#5aaaff','#ffd75e','#ff6b8a'];
     this.rivals.forEach((rv,i)=>{
-      const y=Track.LANE_Y[rv.lane]+Track.LANE_H-10, x=px(rv.dist);
+      const y=Track.laneFoot(rv.lane), x=px(rv.dist);
       if(x<-20||x>VW+20) return;
       if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:'hound', x, y, ph:(this.t*0.004+i)%1,
-        o:{rare:3, moving:true, t:this.t}});
+        o:{rare:3, moving:true, t:this.t, scale:Track.laneScale(rv.lane)}});
       else drawRunner(ctx, x, y, (this.t*0.004+i)%1, col[rv.lane]);
     });
     /* 우리 주자 */
     const r=this.legs[this.cur];
-    const my=Track.LANE_Y[1]+Track.LANE_H-10;
+    const my=Track.laneFoot(1);
     const mx=px(this.teamDist);
+    /* 바통 — 지금 들고 뛰는 주자 손에. 이 종목의 주인공이다. */
+    BG.obj(BG.ctx(), 'baton-hd', mx+7, my-13, 10);
     if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:r.species, x:mx, y:my, ph:r.stridePhase,
       o:{rare:(SPECIES[r.species]&&SPECIES[r.species].rare)||3, moving:this.phase==='RUN', t:this.t,
-         crouch:this.phase==='SET'}});
+         crouch:this.phase==='SET', scale:Track.laneScale(1)}});
     else drawRunner(ctx, mx, my, r.stridePhase, '#ffd75e', {crouch:this.phase==='SET'});
     /* 다음 주자 — 앞에서 미리 달린다 */
-    if(this.nextRunning && this.cur<3){
-      const nx=px(this.baseM + RELAY.legM + this.nextDist - RELAY.startAheadM);
+    if(this.nextRunning && this.cur<this.nLegs-1){
+      const nx=px(this.baseM + this.legM + this.nextDist - RELAY.startAheadM);
       const n=this.legs[this.cur+1];
       if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:n.species, x:nx, y:my, ph:(this.t*0.005)%1,
-        o:{rare:(SPECIES[n.species]&&SPECIES[n.species].rare)||3, moving:true, t:this.t}});
+        o:{rare:(SPECIES[n.species]&&SPECIES[n.species].rare)||3, moving:true, t:this.t,
+           scale:Track.laneScale(1)}});
       else drawRunner(ctx, nx, my, (this.t*0.005)%1, '#a0e8ff');
     }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
@@ -233,7 +254,7 @@ class RelayEvent extends SprintEvent {
       const err = r.lastInputMs<-1e8?0:clamp(((now-r.lastInputMs)-tgt)/tgt,-1,1);
       HUD.rhythm(u,{nextSide:-r.lastSide||1, phaseErr:err, form:r.form});
       HUD.judge(u, r.lastJudge, now-r.lastJudgeMs);
-      if(this.cur<3){
+      if(this.cur<this.nLegs-1){
         const left = this.zoneEnd(this.cur) - this.teamDist;
         const inZone = left <= RELAY.zoneM;
         if(inZone){

@@ -120,6 +120,29 @@ const SPECIES = {
              bias:{speed:0.90,acceleration:1.15,stamina:0.95,technique:1.75,rhythm:1.10,power:1.40},best:['javelin']},
   walrus   :{name:'바다코끼리',tag:'투척',spec:'throw',rare:2,color:'#a08878',note:'상체만으로 던진다',
              bias:{speed:0.78,acceleration:0.85,stamina:1.25,technique:1.20,rhythm:0.88,power:1.80},best:['discus']},
+  /* ── 수영 (2차 발주 · 신설 계열) ─────────────────────────
+     ⚠ 수영 4종목이 있는데 특화 종이 0종이었다. 육상 종이 물에서 뛰고 있었고
+        eventFit 은 수영을 jump/throw 로 억지 매핑했다. */
+  orca     :{name:'범고래',tag:'수영',spec:'swim',rare:5,color:'#2a3550',note:'물에서는 상대가 없다',
+             bias:{speed:1.60,acceleration:1.30,stamina:1.45,technique:1.35,rhythm:1.20,power:1.55},best:['swimFree100']},
+  sealion  :{name:'바다사자',tag:'수영',spec:'swim',rare:3,color:'#7a6650',note:'상체로 물을 민다',
+             bias:{speed:1.25,acceleration:1.30,stamina:1.15,technique:1.20,rhythm:1.10,power:1.30},best:['swimFly100']},
+  otter    :{name:'수달',tag:'수영',spec:'swim',rare:2,color:'#6b5340',note:'물속에서 몸을 비튼다',
+             bias:{speed:1.20,acceleration:1.35,stamina:1.05,technique:1.30,rhythm:1.25,power:0.90},best:['swimBack100']},
+  penguin  :{name:'펭귄',tag:'수영',spec:'swim',rare:2,color:'#2c3340',note:'뭍에서와 물에서가 딴판이다',
+             bias:{speed:1.30,acceleration:1.25,stamina:1.20,technique:1.15,rhythm:1.15,power:1.00},best:['swimFree100']},
+  furseal  :{name:'물개',tag:'수영',spec:'swim',rare:2,color:'#5a4a3a',note:'앞지느러미가 노가 된다',
+             bias:{speed:1.20,acceleration:1.20,stamina:1.25,technique:1.10,rhythm:1.05,power:1.15},best:['swimBreast100']},
+  cormorant:{name:'가마우지',tag:'수영',spec:'swim',rare:2,color:'#2a2a33',note:'잠수해서 앞선다',
+             bias:{speed:1.25,acceleration:1.15,stamina:1.30,technique:1.20,rhythm:1.10,power:0.95},best:['swimFree100']},
+  beaver   :{name:'비버',tag:'수영',spec:'swim',rare:1,color:'#5a4030',note:'판자 꼬리로 민다',
+             bias:{speed:1.05,acceleration:1.10,stamina:1.25,technique:1.05,rhythm:1.00,power:1.20},best:['swimBreast100']},
+  swan     :{name:'백조',tag:'수영',spec:'swim',rare:3,color:'#e8e4dc',note:'수면 위는 고요하다',
+             bias:{speed:1.25,acceleration:1.10,stamina:1.30,technique:1.30,rhythm:1.25,power:0.95},best:['swimFree100']},
+  duck     :{name:'오리',tag:'수영',spec:'swim',rare:1,color:'#8a6a3a',note:'물갈퀴가 부지런하다',
+             bias:{speed:1.05,acceleration:1.20,stamina:1.15,technique:1.05,rhythm:1.20,power:0.90},best:['swimBack100']},
+  seaturtle:{name:'바다거북',tag:'수영',spec:'swim',rare:2,color:'#4a6a4a',note:'노처럼 저어 멀리 간다',
+             bias:{speed:1.10,acceleration:0.95,stamina:1.45,technique:1.20,rhythm:1.05,power:1.10},best:['swimFly100']},
 };
 const SPECIES_KEYS = Object.keys(SPECIES);
 

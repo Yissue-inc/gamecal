@@ -9,12 +9,15 @@
 /* 거리별 계수.
    pace  = 케이던스(1.0 이 판정에 가장 유리하다. 여기서 속도를 조절하지 않는다)
    speed = 순항 속도 배율 (여기서 조절한다) */
+/* ⚠ 이 표는 아케이드에 중장거리가 생기기 전 값이었다. 새 기준표(측정으로 잡은 것)와
+   맞춰 보니 **최고 선수가 5000m 기준(855초)에 939초로 못 닿고**, 반대로 20km 경보는
+   5527초로 기준(8650)을 36% 밑돌았다 — 아케이드와 감독 모드가 서로 다른 세계를 재고 있었다. */
 const MidTune = {
   400 : { pace:1.0, speed:0.99, fadeAt:0.35, fadeHi:1.1, fadeLo:0.30, fatHi:0.030, fatLo:0.010 },
   800 : { pace:1.0, speed:0.83, fadeAt:0.40, fadeHi:1.2, fadeLo:0.25, fatHi:0.018, fatLo:0.006 },
-  1500: { pace:1.0, speed:0.71, fadeAt:0.55, fadeHi:1.0, fadeLo:0.18, fatHi:0.010, fatLo:0.004 },
-  5000: { pace:1.0, speed:0.65, fadeAt:0.60, fadeHi:0.8, fadeLo:0.14, fatHi:0.005, fatLo:0.0018 },
-  20000:{ pace:1.0, speed:0.44, fadeAt:0.65, fadeHi:0.6, fadeLo:0.12, fatHi:0.0016,fatLo:0.0005 },
+  1500: { pace:1.0, speed:0.78, fadeAt:0.55, fadeHi:1.0, fadeLo:0.18, fatHi:0.010, fatLo:0.004 },
+  5000: { pace:1.0, speed:0.77, fadeAt:0.60, fadeHi:0.8, fadeLo:0.14, fatHi:0.005, fatLo:0.0018 },
+  20000:{ pace:1.0, speed:0.32, fadeAt:0.65, fadeHi:0.6, fadeLo:0.12, fatHi:0.0016,fatLo:0.0005 },
 };
 
 const SimTune = {
@@ -49,7 +52,7 @@ function simulateSprint(a, opt){
 
   /* 부정출발 — 잘하는 선수일수록 아슬아슬하게 붙어 가끔 튄다 */
   const fsChance = SimTune.falseStartBase * (0.4 + skill) * (opt.big?1.5:1) * (1 + Math.max(0,-a.eff('bigGame')));
-  if(rng() < fsChance) return { falseStart:true, timeS:99.99, splits:{}, judge:r.judge };
+  if(rng() < fsChance) return { falseStart:true, timeS:DNF, splits:{}, judge:r.judge };
 
   /* 반응 */
   let react = lerp(SimTune.reactWorst, SimTune.reactBest,
@@ -86,7 +89,7 @@ function simulateSprint(a, opt){
     }
     r.simulate(DT, Math.round(t));
   }
-  if(!r.finished) return { falseStart:false, dnf:true, timeS:99.99, splits:r.splits, judge:r.judge };
+  if(!r.finished) return { falseStart:false, dnf:true, timeS:DNF, splits:r.splits, judge:r.judge };
   return { falseStart:false, timeS:r.finishTimeS, splits:r.splits, judge:r.judge,
            reactionMs:r.reactionMs, sigma:+sigma.toFixed(1), skill:+skill.toFixed(3) };
 }
@@ -190,7 +193,13 @@ function simulateSwim(a, opt){
 
   /* ⚠ 예전 계수는 100m 를 14초에 끊었다 — 세계기록이 46.4초다(달리기 속도가 나왔다).
      물에서는 2m/s 안팎이다. 스탯99 ≈ 2.13 · 스탯50 ≈ 1.43 이 되게 잡았다. */
-  const base = S.speed * (3.6 + 4.6*eff + 1.4*pw);
+  /* ⚠ 힘 비중(1.4*pw)이 커서 **투척 종이 수영을 이겼다**(실측 62.4 대 64.1초).
+     적합도만 고치면 '누굴 내보낼까'만 바뀌고 기록은 그대로다 — 물리도 같이 고쳐야 한다.
+     물에서 사는 종에게 물잡기 보너스를 준다. */
+  let swimBonus = 1;
+  if(typeof SPECIES!=='undefined' && SPECIES[a.species] && SPECIES[a.species].spec==='swim')
+    swimBonus = 1.12;
+  const base = S.speed * (3.6 + 4.6*eff + 0.9*pw + 0.5*st) * swimBonus;
   let t=0, dist=0, turns=0;
   const DT=1/60;
   let sigma = lerp(0.26, 0.05, clamp(skill,0,1));
@@ -232,6 +241,8 @@ function simulateHurdles(a, opt){
   return Object.assign(base, { timeS: base.timeS + penalty, hurdles:{clean,clip,crash} });
 }
 
+const FIELD_KINDS = new Set(['longJump','tripleJump','highJump','poleVault',
+                             'shotPut','discus','javelin','hammer']);
 /* 필드 종목 — 거리는 파워·기술·컨디션에서 나온다. 3회 시기 중 최고. */
 function simulateField(a, kind, opt){
   opt = opt||{};
@@ -262,6 +273,48 @@ function simulateField(a, kind, opt){
 }
 
 /* 종목 하나를 통째로 — 출전 선수 전원을 돌리고 순위를 매긴다 */
+
+/* ── 기준 기록에 앵커를 건 종목들 ─────────────────────────────
+   ⚠ simulateMeetEvent 의 마지막 분기가 **무조건 simulateField** 였다. 필드 8종목의
+      계수 표에만 이름이 있어서, 다이빙·역도·양궁·사이클·조정·트램폴린이 들어오면
+      `K.foul` 을 undefined 에서 읽고 **감독 모드가 통째로 죽었다.**
+      (아케이드에서만 확인해서 놓쳤다 — 종목을 늘리면 시뮬레이터도 늘려야 한다.)
+
+   새 종목마다 계수 표를 손으로 채우는 대신 **기준 기록(parS/qualify)에 앵커**를 건다.
+   능력치가 par 를 얼마나 당기거나 미는지로 낸다 — 종목이 더 늘어도 표를 안 고쳐도 된다. */
+const ANCHOR = {
+  dive  : { w:{technique:.42, rhythm:.24, power:.20, speed:.14}, spread:.30, fail:.10, tries:3 },
+  lift  : { w:{power:.62, technique:.24, stamina:.14},           spread:.26, fail:.16, tries:3 },
+  aim   : { w:{technique:.52, rhythm:.34, stamina:.14},          spread:.22, fail:.04, tries:1 },
+  tramp : { w:{rhythm:.40, technique:.32, power:.18, speed:.10}, spread:.28, fail:.06, tries:1 },
+  cycle : { w:{speed:.38, power:.30, stamina:.20, rhythm:.12},   spread:.14, fail:.03, tries:1 },
+  row   : { w:{rhythm:.40, stamina:.32, power:.20, technique:.08},spread:.14, fail:.03, tries:1 },
+  climb : { w:{rhythm:.36, technique:.30, power:.22, acceleration:.12}, spread:.16, fail:.09, tries:1 },
+  fence : { w:{technique:.40, acceleration:.28, rhythm:.20, speed:.12}, spread:.20, fail:.14, tries:1 },
+};
+function simulateAnchored(a, def, opt){
+  opt = opt||{};
+  const rng = opt.rng || makeRng(Date.now()>>>0);
+  const A = ANCHOR[def.kind];
+  if(!A) throw new Error('simulateAnchored: 앵커 없는 종목 '+def.kind+' ('+def.id+')');
+  const par = def.parS || def.qualify;
+  let skill = 0;
+  for(const k in A.w) skill += (a.stats[k]||0)/100 * A.w[k];
+  const form = a.formScore();
+  const marks = [];
+  for(let i=0;i<A.tries;i++){
+    if(rng() < A.fail*(opt.big?1.15:1)){ marks.push(null); continue; }
+    /* higher 종목은 능력이 값을 밀어 올리고, 시간 종목은 끌어내린다 */
+    const k = def.higher ? (0.68 + A.spread*2*skill) : (1.00 + A.spread - A.spread*2*skill);
+    let v = par * k * (0.93 + form*0.11);
+    v += gauss(rng) * par * 0.022;
+    marks.push(Math.max(0.01, +v.toFixed(2)));
+  }
+  const valid = marks.filter(m=>m!==null);
+  if(def.higher) return { marks, best: valid.length? Math.max(...valid):0, allFoul: !valid.length };
+  return { marks, timeS: valid.length? Math.min(...valid) : DNF, dnf: !valid.length };
+}
+
 function simulateMeetEvent(eventDef, entries, opt){
   opt = opt||{};
   const rng = opt.rng || makeRng(Date.now()>>>0);
@@ -272,7 +325,11 @@ function simulateMeetEvent(eventDef, entries, opt){
     else if(eventDef.kind==='hurdles') res = simulateHurdles(a, o);
     else if(eventDef.kind==='middle' || eventDef.kind==='walk') res = simulateMiddle(a, o);
     else if(eventDef.kind==='swim') res = simulateSwim(a, Object.assign({}, o, {stroke:eventDef.stroke}));
-    else res = simulateField(a, eventDef.id, o);
+    else if(ANCHOR[eventDef.kind]) res = simulateAnchored(a, eventDef, o);
+    else if(FIELD_KINDS.has(eventDef.id)) res = simulateField(a, eventDef.id, o);
+    /* ⚠ 예전엔 여기가 '나머지는 전부 필드'였다. 모르는 종목을 조용히 필드로 보내면
+       계수 표에 없는 이름으로 undefined 를 읽고 죽는다 — 이름을 대며 실패한다. */
+    else throw new Error('simulateMeetEvent: 시뮬레이터 없는 종목 '+eventDef.id+' (kind='+eventDef.kind+')');
     const value = eventDef.higher ? (res.best??0) : res.timeS;
     return { athlete:a, res, value };
   });

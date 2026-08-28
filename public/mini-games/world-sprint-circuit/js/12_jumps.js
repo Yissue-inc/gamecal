@@ -152,7 +152,8 @@ class LongJumpEvent extends FieldEvent {
       if(m%2===0){ ctx.fillStyle='rgba(5,6,10,.6)'; Track.num(ctx, x+2, GROUND-14, m); }
     }
     // 구름판 — 발 라인에 딱 붙이고 빨간 파울 끝을 크게
-    if(!Art.blit(ctx,'board-takeoff',BX,GROUND)){
+    if(BG.obj(BG.ctx(),'takeoff-board-hd',BX,GROUND,14)){ /* HD */ }
+    else if(!Art.blit(ctx,'board-takeoff',BX,GROUND)){
       ctx.fillStyle=PAL.white; ctx.fillRect(BX-7, GROUND-7, 12, 7);
       ctx.fillStyle=PAL.red;   ctx.fillRect(BX+5,  GROUND-7, 3, 7);
     }

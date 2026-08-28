@@ -4,6 +4,12 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* 기록 없음(실격·시간초과·부정출발)의 정본 값.
+   ⚠ 예전엔 99.99 였고 화면은 '99 이상이면 기록 없음'으로 판정했다. 종목이 100초를
+      넘기 시작하자(조정 107초 · 1500m 237초) **멀쩡한 기록이 '--.--' 로 지워졌다.**
+      어떤 종목도 닿지 못할 값으로 올린다. */
+const DNF = 99999;
+
 const RULES = {
   /* ── 스트라이드 판정 ── */
   targetCadenceHz: 4.2,        // 목표 교대 속도. 1000/4.2 ≈ 238ms 간격
@@ -105,34 +111,64 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⚠ 기준 기록(qualify)은 실측으로 다시 잡았다(2026-08-27).
+   예전 값은 실제 주파 기록의 2배 가까이 느슨해서 **실력과 무관하게 100% 통과**했다
+   (100m: 사람이 10.3초를 뛰는데 기준이 13.6초, 수영 자유형은 40초에 기준 80초).
+   기준이 아무 의미가 없으면 '통과했다'가 아무 느낌도 아니다.
+   지금 기준 = **보통과 서툰의 중간값** — 능숙·보통은 통과하고 서툰은 자주 실패한다.
+   ⚠ 처음엔 보통x1.07 로 잡았는데 서툰이 0% 였다. 못하는 사람이 한 번도 못 넘으면
+      기준이 벽이 된다 — 가끔은 넘어야 다시 해 본다. */
 const EVENTS = [
   /* ── 트랙: 단거리 ── */
-  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:13.60, distanceM:100, kind:'sprint' },
-  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:25.50, distanceM:200, kind:'sprint' },
-  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:74.00, distanceM:400, kind:'middle' },
-  { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:15.90, distanceM:110, kind:'hurdles' },
+  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.30, distanceM:100, kind:'sprint' },
+  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:21.80, distanceM:200, kind:'sprint' },
+  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:44.50, distanceM:400, kind:'middle' },
+  { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:13.60, distanceM:110, kind:'hurdles',
+    hurdle:{ count:10, first:13.72, spacing:9.14 } },
+  /* 400m 허들 — 허들이 낮고 간격이 넓다. 지구력 종목에 가깝다. */
+  { id:'hurdles400', name:'400m 허들',    short:'400MH', unit:'s', higher:false, qualify:47.00, distanceM:400, kind:'hurdles',
+    hurdle:{ count:10, first:45.0, spacing:35.0 } },
+  /* 3000m 장애물 — 고정 장애물과 물웅덩이. 5번째마다 물이다. */
+  { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:420.0, distanceM:3000, kind:'hurdles',
+    hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } },
   /* ── 트랙: 중·장거리 ── */
-  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:190.0, distanceM:800,  kind:'middle' },
-  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:390.0, distanceM:1500, kind:'middle' },
-  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1400.0, distanceM:5000, kind:'middle' },
-  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:8000.0, distanceM:20000, kind:'walk' },
+  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:136.0, parS:127.0, distanceM:800,  kind:'middle' },
+  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:255.0, parS:238.0, distanceM:1500, kind:'middle' },
+  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:855.0, parS:792.0, distanceM:5000, kind:'middle' },
+  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:8650.0, parS:7800.0, distanceM:20000, kind:'walk' },
   /* ── 트랙: 계주 ── */
   { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:49.50, distanceM:400, kind:'relay', legs:4 },
-  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:300.0, distanceM:1600, kind:'relay', legs:4 },
+  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:210.0, parS:196.0, distanceM:1600, kind:'relay', legs:4 },
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump' },
-  { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:12.60, kind:'jump' },
+  { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump' },
   { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump' },
-  { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:4.30,  kind:'jump' },
+  { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump' },
   /* ── 필드: 투척 ── */
   { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:15.50, kind:'throw' },
   { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:48.00, kind:'throw' },
   { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:48.0,  kind:'throw' },
   /* ── 수영 ── */
-  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:80.0, distanceM:100, kind:'swim', stroke:'free'  },
-  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:88.0, distanceM:100, kind:'swim', stroke:'back'  },
-  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:93.0, distanceM:100, kind:'swim', stroke:'breast'},
-  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:82.0, distanceM:100, kind:'swim', stroke:'fly'   },
+  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, kind:'swim', stroke:'free'  },
+  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, kind:'swim', stroke:'back'  },
+  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:50.0, distanceM:100, kind:'swim', stroke:'breast'},
+  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, kind:'swim', stroke:'fly'   },
+  /* 다이빙 — 이 게임 유일의 '점수' 종목. 3시기 중 최고점. */
+  { id:'diving',       name:'다이빙',       short:'DIVE',  unit:'점', higher:true,  qualify:60.0, kind:'dive' },
+  /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
+  { id:'lifting',      name:'역도',         short:'LIFT',  unit:'kg', higher:true,  qualify:140.0, kind:'lift' },
+  /* 양궁 — 이 게임 유일의 '정지 조준'. 6발 합계 60점 만점. */
+  { id:'archery',      name:'양궁',         short:'ARCH',  unit:'점', higher:true,  qualify:42.0, kind:'aim' },
+  /* 트랙 사이클 — 기어 변속과 스퍼트가 핵심. */
+  { id:'cycling',      name:'트랙 사이클',   short:'CYCL',  unit:'s', higher:false, qualify:34.0, parS:29.0, distanceM:500, kind:'cycle' },
+  /* 조정 — 이 게임 유일의 '일정함' 종목. 빠름이 아니라 흔들리지 않음이 점수다. */
+  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:96.0, parS:86.0, distanceM:500, kind:'row' },
+  /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
+  { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:52.0, kind:'tramp' },
+  /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
+  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:6.30, parS:5.20, kind:'climb' },
+  /* 펜싱 — 이 게임에서 유일하게 '리듬'이 아니라 '거리'가 축인 종목. 5투셰 선취까지의 시간. */
+  { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, parS:42.0, kind:'fence' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;

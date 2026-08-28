@@ -27,8 +27,13 @@ const UI = {
       u.fillRect(x, ry, w, rowH-1);
       u.fillStyle='rgba(255,255,255,.07)'; u.fillRect(x, ry+rowH-1, w, 1);
       if(on){ u.fillStyle=PAL.gold; u.fillRect(x, ry, 2, rowH-1); }
-      txt(u, r.label, x+8, ry+2, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
-      if(r.sub)   txt(u, r.sub,   x+8, ry+13, 8, PAL.dim);
+      /* 국기 — 목록에서 소속이 바로 보여야 한다 */
+      let lx = x+8;
+      if(r.nation && typeof drawFlag==='function'){
+        drawFlag(u, x+7, ry+5, 13, 9, r.nation); lx = x+25;
+      }
+      txt(u, r.label, lx, ry+2, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
+      if(r.sub)   txt(u, r.sub,   lx, ry+13, 8, PAL.dim);
       if(r.right) txt(u, r.right, x+w-8, ry+4, 10, r.rightColor||PAL.white, 'right');
       if(r.right2)txt(u, r.right2,x+w-8, ry+15, 8, PAL.dim, 'right');
     }
@@ -45,10 +50,30 @@ const UI = {
     u.fillStyle = bg||'rgba(255,255,255,.12)'; u.fillRect(x,y,w,h);
     u.fillStyle = color; u.fillRect(x,y,Math.round(w*clamp(v/max,0,1)),h);
   },
+  /* 라벨 칸 폭 — 언어마다 글자 길이가 다르다.
+     ⚠ 42px 로 못 박아 뒀더니 영어판에서 'Acceleration' 이 막대를 파고들었다(실측).
+        지금 언어의 가장 긴 라벨을 재서 칸을 잡는다. */
+  /* ⚠ 캐시를 하나만 두면 스탯 칸과 상태 칸이 같은 폭을 쓴다. 목록별로 따로 잰다. */
+  _lw: {}, _lwLang: null,
+  labelW(u, names, size, min){
+    if(this._lwLang !== LANG){ this._lw = {}; this._lwLang = LANG; }
+    const ck = (size||9)+'|'+names.join('\u0001');
+    if(this._lw[ck] !== undefined) return this._lw[ck];
+    let m = min||42;
+    u.save(); u.font = `${size||9}px Galmuri11, monospace`;
+    for(const n of names){
+      const t = (typeof K==='function') ? K(n) : n;
+      m = Math.max(m, Math.ceil(u.measureText(t).width) + 6);
+    }
+    u.restore();
+    this._lw[ck] = m;
+    return m;
+  },
   /* 스탯 한 줄: 이름 · 현재/잠재 막대 */
   statRow(u, x, y, w, key, cur, pot){
     txt(u, STAT_NAME[key], x, y, 9, PAL.dim);
-    const bx = x+42, bw = w-42-30;
+    const LW = this.labelW(u, STAT_KEYS.map(k=>STAT_NAME[k]), 9, 42);
+    const bx = x+LW, bw = w-LW-30;
     u.fillStyle='rgba(255,255,255,.10)'; u.fillRect(bx,y+2,bw,7);
     u.fillStyle='rgba(90,170,255,.30)';  u.fillRect(bx,y+2,Math.round(bw*pot/100),7);  // 잠재
     const c = cur>=pot-0.5 ? PAL.green : PAL.gold;
@@ -110,7 +135,16 @@ class OfficeScreen extends Screen0 {
   cancel(){}
   draw(u){
     const S=this.mg.season, C=this.mg.club;
+    /* 국기 + 클럽 이름 — 우리가 어느 나라인지 매 화면에 있어야 한다 */
     UI.header(u, `${C.name}`, `${C.year}년차 · ${S.week} / 24주`);
+    if(C.nation && typeof drawFlag==='function') drawFlag(u, VW/2-11, 4, 22, 15, C.nation);
+    /* 올림픽 카운트다운 — 감독의 4년은 '다음 올림픽까지 남은 시간'이다 */
+    if(S.isOlympicYear){
+      txt(u, `${olympicName(C.year)} — 올해다`, VW/2, 40, 10, PAL.gold, 'center', 700);
+    } else {
+      txt(u, `${olympicName(C.year + S.yearsToOlympics)}까지 ${S.yearsToOlympics}년`,
+          VW/2, 40, 9, PAL.dim, 'center');
+    }
     // 주차 스트립 — 대회가 언제인지 한눈에
     const sx=8, sw=VW-16, cw=sw/24;
     for(let w=1;w<=24;w++){
@@ -120,6 +154,14 @@ class OfficeScreen extends Screen0 {
       u.fillRect(x+1, 28, cw-2, isMeet?9:6);
     }
     txt(u,'■ 대회 주',VW-8,39,8,PAL.green,'right');
+    /* 시즌 목표 — 감독이 무엇으로 평가받는지 늘 보여야 한다 */
+    if(S.goal){
+      const okP=S.points>=S.goal.points, okG=S.medals.gold>=S.goal.gold;
+      txt(u, `목표 승점 ${S.goal.points} · 금 ${S.goal.gold}`, 8, 40, 9,
+          (okP&&okG)?PAL.green:PAL.dim, 'left');
+      txt(u, `${S.points} / ${S.medals.gold}`, 108, 40, 9,
+          (okP&&okG)?PAL.green:(okP||okG)?PAL.gold:PAL.red, 'left', 700);
+    }
 
     // 요약 카드
     const avgC = C.squad.reduce((s,a)=>s+a.condition,0)/C.squad.length;
@@ -166,7 +208,7 @@ class TrainScreen extends Screen0 {
     return this.squad.map(a=>{
       const f=this.mg.focus[a.id];
       return {
-        label: `${a.speciesName} ${a.name}` + (a.injury?' (부상)':''),
+        label: (a.national?'★ ':'') + `${a.speciesName} ${a.name}` + (a.injury?' (부상)':''), nation:a.nation,
         sub: `${a.spec==='sprint'?'단거리':a.spec==='hurdles'?'허들':a.spec==='jump'?'도약':'투척'} · OVR ${a.overall} · 피로 ${Math.round(a.fatigue)}`,
         right: f ? FOCUS[f].name : '—',
         rightColor: f ? PAL.gold : PAL.dim,
@@ -243,7 +285,7 @@ class ProgramScreen extends Screen0 {
 /* ── 선수단 · 선수 상세 ──────────────────────────────────── */
 class SquadScreen extends Screen0 {
   get rows(){ return this.mg.club.squad.map(a=>({
-    label:`${UI.rareStars(a)} ${a.speciesName} ${a.name}`,
+    label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${a.speciesName} ${a.name}`, nation:a.nation,
     sub:`${a.age}세 · ${UI.rareName(a)} · ${GROWTH[a.growth].name} · ${a.traits.map(t=>TRAITS[t].name).join(', ')||'특성 없음'}`,
     right:`${a.overall} / ${a.potOverall}`, rightColor: a.overall>=a.potOverall-2?PAL.green:PAL.gold,
     right2: a.injury?`부상 ${a.injury.weeks}주`:UI.condName(a.condition),
@@ -260,8 +302,16 @@ class AthleteScreen extends Screen0 {
   update(now){ if(Input.pressed('back')||Input.pressed('action')) this.mg.pop(); }
   draw(u){
     const a=this.a;
-    UI.header(u, `${a.speciesName} ${a.name}`, `${a.age}세 · ${GROWTH[a.growth].name}`);
-    txt(u, UI.rareStars(a)+' '+UI.rareName(a), VW-8, 5, 9, UI.rareColor(a), 'right', 700);
+    /* ⚠ 예전엔 헤더의 오른쪽 문구와 등급 줄을 둘 다 VW-8, y≈5 에 우측정렬로 그려
+       서로 겹쳤다(한국어에서도 겹쳤고 영어에서 확연해졌다). 한 줄로 합친다. */
+    UI.header(u, `${a.speciesName} ${a.name}`, null);
+    /* 국기 + 국가명 — 누구를 위해 뛰는지 */
+    if(a.nation && typeof drawFlag==='function'){
+      drawFlag(u, 8, 26, 20, 14, a.nation);
+      txt(u, nationName(a.nation), 32, 28, 9, PAL.dim, 'left');
+    }
+    txt(u, `${UI.rareStars(a)} ${UI.rareName(a)} · ${a.age}세 · ${GROWTH[a.growth].name}`,
+        VW-8, 6, 9, UI.rareColor(a), 'right', 700);
     txt(u,`OVR ${a.overall}`,8,28,15,PAL.gold,'left',700);
     txt(u,`/ 잠재 ${a.potOverall}`,62,32,10,PAL.dim);
     const SP = (typeof SPECIES!=='undefined') ? SPECIES[a.species] : null;
@@ -272,12 +322,14 @@ class AthleteScreen extends Screen0 {
     }
 
     // 상태
-    txt(u,'컨디션',8,48,8,PAL.dim); UI.bar(u,44,50,86,6,a.condition,100,UI.cond(a.condition));
-    txt(u,UI.condName(a.condition),136,46,9,UI.cond(a.condition));
-    txt(u,'피로',8,60,8,PAL.dim);   UI.bar(u,44,62,86,6,a.fatigue,100, a.fatigue>65?PAL.red:a.fatigue>45?PAL.gold:PAL.green);
-    txt(u,Math.round(a.fatigue)+'',136,58,9,PAL.dim);
-    txt(u,'사기',8,72,8,PAL.dim);   UI.bar(u,44,74,86,6,a.morale,100, a.morale>65?PAL.green:a.morale>40?PAL.gold:PAL.red);
-    txt(u,Math.round(a.morale)+'',136,70,9,PAL.dim);
+    const SW = UI.labelW(u, ['컨디션','피로','사기'], 8, 36);
+    const sbx = 8+SW, sbw = 128-SW, snx = 8+SW+sbw+6;
+    txt(u,'컨디션',8,48,8,PAL.dim); UI.bar(u,sbx,50,sbw,6,a.condition,100,UI.cond(a.condition));
+    txt(u,UI.condName(a.condition),snx,46,9,UI.cond(a.condition));
+    txt(u,'피로',8,60,8,PAL.dim);   UI.bar(u,sbx,62,sbw,6,a.fatigue,100, a.fatigue>65?PAL.red:a.fatigue>45?PAL.gold:PAL.green);
+    txt(u,Math.round(a.fatigue)+'',snx,58,9,PAL.dim);
+    txt(u,'사기',8,72,8,PAL.dim);   UI.bar(u,sbx,74,sbw,6,a.morale,100, a.morale>65?PAL.green:a.morale>40?PAL.gold:PAL.red);
+    txt(u,Math.round(a.morale)+'',snx,70,9,PAL.dim);
     if(a.injury) txt(u,`부상: ${a.injury.name} — ${a.injury.weeks}주 남음`,8,84,10,PAL.red,'left',700);
 
     // 스탯

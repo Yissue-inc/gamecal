@@ -5,15 +5,43 @@
 
 const Sfx = {
   ac:null, master:null, crowdGain:null, crowdSrc:null, muted:false,
+  /* ⚠ 예전엔 켜기/끄기 하나뿐이었고 그마저 UI 가 없었다.
+     출시하려면 플레이어가 소리를 조절할 수 있어야 한다 — 기본기다.
+     효과음과 관중 웅성거림을 따로 둔다(이 게임의 유일한 지속음이 관중이다). */
+  vol: 0.9, ambVol: 1.0,
+  loadPrefs(){
+    try{
+      const v=localStorage.getItem('wsc_vol');   if(v!==null) this.vol   = clamp(parseFloat(v),0,1);
+      const a=localStorage.getItem('wsc_amb');   if(a!==null) this.ambVol= clamp(parseFloat(a),0,1);
+      const m=localStorage.getItem('wsc_muted'); if(m!==null) this.muted = m==='1';
+    }catch(_){}
+  },
+  savePrefs(){
+    try{
+      localStorage.setItem('wsc_vol', String(this.vol));
+      localStorage.setItem('wsc_amb', String(this.ambVol));
+      localStorage.setItem('wsc_muted', this.muted?'1':'0');
+    }catch(_){}
+  },
+  applyVol(){
+    if(this.master) this.master.gain.value = this.muted ? 0 : this.vol;
+    this._lastLevel = this._lastLevel||0;
+    if(this.crowdGain && this.ac)
+      this.crowdGain.gain.setTargetAtTime((0.03+this._lastLevel*0.16)*this.ambVol, this.ac.currentTime, 0.1);
+  },
+  setVol(v){ this.vol = Math.round(clamp(v,0,1)*20)/20; if(this.vol>0) this.muted=false; this.applyVol(); this.savePrefs(); },
+  setAmb(v){ this.ambVol = Math.round(clamp(v,0,1)*20)/20; this.applyVol(); this.savePrefs(); },
   unlock(){
     if(this.ac){ if(this.ac.state==='suspended') this.ac.resume(); return; }
     const AC = window.AudioContext||window.webkitAudioContext; if(!AC) return;
     this.ac = new AC();
-    this.master = this.ac.createGain(); this.master.gain.value=0.9;
+    this.master = this.ac.createGain(); this.master.gain.value = this.muted?0:this.vol;
     this.master.connect(this.ac.destination);
     this.startCrowd();
+    this.applyVol();
   },
-  setMuted(m){ this.muted=m; if(this.master) this.master.gain.value = m?0:0.9; },
+  setMuted(m){ this.muted=m; this.applyVol(); this.savePrefs(); },
+  toggleMute(){ this.setMuted(!this.muted); return this.muted; },
 
   /* 관중 웅성거림 — 필터링한 노이즈. 흥분도로 음량이 오른다 */
   startCrowd(){
@@ -26,7 +54,14 @@ const Sfx = {
     src.connect(bp); bp.connect(g); g.connect(this.master); src.start();
     this.crowdGain=g; this.crowdSrc=src;
   },
-  crowd(level){ if(this.crowdGain) this.crowdGain.gain.setTargetAtTime(0.03+level*0.16, this.ac.currentTime, 0.25); },
+  /* ⚠ 관중 '소리'만 있고 그림은 정지해 있었다. 17개 종목이 전부 이 함수를
+     부르므로, 여기 한 곳에서 그림 쪽 열기도 같이 올린다. */
+  crowd(level){
+    if(typeof Track!=='undefined' && Track.setHeat) Track.setHeat(level);
+    this._lastLevel = level;
+    if(this.crowdGain && this.ac)
+      this.crowdGain.gain.setTargetAtTime((0.03+level*0.16)*this.ambVol, this.ac.currentTime, 0.25);
+  },
 
   beep(freq, dur, type, vol, slideTo){
     if(!this.ac||this.muted) return;

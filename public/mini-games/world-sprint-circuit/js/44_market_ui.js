@@ -90,7 +90,7 @@ class ProspectScreen extends Screen0 {
   get rows(){
     return this.M.prospects.map(p=>{
       const a=p.athlete;
-      return { label:`${UI.rareStars(a)} ${a.speciesName} ${a.name} (${a.age})`,
+      return { label:`${UI.rareStars(a)} ${a.speciesName} ${a.name} (${a.age})`, nation:a.nation,
         color: UI.rareColor(a),
         sub:`${SPECIES[a.species]?SPECIES[a.species].best.map(id=>EVENT_BY_ID[id].short).join('·'):''} · ${fogOverall(a,p.level)} · ${GROWTH[a.growth].name}`,
         right:`${p.ask}`, rightColor: this.mg.club.budget>=p.ask?PAL.gold:PAL.red,
@@ -202,7 +202,7 @@ class OfferDetail extends Screen0 {
 class ReleaseScreen extends Screen0 {
   get rows(){
     return this.mg.club.squad.map(a=>({
-      label:a.name+` (${a.age})`,
+      label:a.name+` (${a.age})`, nation:a.nation,
       sub:`OVR ${a.overall} / 잠재 ${a.potOverall} · 주급 ${wageOf(a).toFixed(1)}`,
       right:`+${Math.round(valueOf(a)*0.25)}`, rightColor:PAL.dim,
       color: a.injury?PAL.red:PAL.white }));

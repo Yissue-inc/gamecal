@@ -98,7 +98,8 @@ class JavelinEvent extends FieldEvent {
       const jx = px(this.throwFrom + this.px), jy = GROUND - this.py/this.mPerPx;
       const ang = Math.atan2(-this.vy, this.vx);
       ctx.save(); ctx.translate(jx, Math.min(GROUND, jy)); ctx.rotate(-ang);
-      if(!Art.blit(ctx,'javelin',0,0,'center')){
+      if(BG.obj(BG.ctx(),'javelin-hd',0,0,16)){ /* 없으면 아래로 */ }
+      else if(!Art.blit(ctx,'javelin',0,0,'center')){
         ctx.fillStyle='#e8e2d6'; ctx.fillRect(-10,0,20,1);
         ctx.fillStyle=PAL.gold; ctx.fillRect(8,-1,4,2);
       }
@@ -237,11 +238,16 @@ class HammerEvent extends FieldEvent {
       const r=26, hx=CX+Math.cos(this.angle)*r, hy=GROUND-16-Math.sin(this.angle)*r*0.6;
       ctx.strokeStyle='#c9cede'; ctx.lineWidth=1; ctx.beginPath();
       ctx.moveTo(CX,GROUND-16); ctx.lineTo(hx,hy); ctx.stroke();
-      if(!Art.blit(ctx,'hammer',hx,hy,'center')){
+      if(BG.obj(BG.ctx(),'shot-hd',hx,hy+8,16)){ /* HD */ }
+      else if(!Art.blit(ctx,'hammer',hx,hy,'center')){
         ctx.fillStyle=PAL.gold; ctx.fillRect(Math.round(hx)-3,Math.round(hy)-3,6,6); }
     } else {
       const hx=px(this.px), hy=GROUND-this.py/this.mPerPx;
-      if(!Art.blit(ctx,'hammer',hx,Math.min(GROUND-2,Math.round(hy)),'center')){
+      /* 날아가는 물체 — 종목마다 다른 어셋 */
+      const flyName = (this.def.id==='discus') ? 'discus-hd'
+                    : (this.def.id==='shotPut') ? 'shot-hd' : null;
+      if(flyName && BG.obj(BG.ctx(), flyName, hx, Math.min(GROUND-2,Math.round(hy))+8, 16)){ /* HD */ }
+      else if(!Art.blit(ctx,'hammer',hx,Math.min(GROUND-2,Math.round(hy)),'center')){
         ctx.fillStyle=PAL.gold; ctx.fillRect(hx-3,Math.min(GROUND-2,Math.round(hy))-3,6,6); }
     }
   }

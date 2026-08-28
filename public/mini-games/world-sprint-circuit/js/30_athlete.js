@@ -60,6 +60,8 @@ class Athlete {
   constructor(o){
     Object.assign(this, {
       id: o.id, name: o.name, age: o.age ?? 18,
+      nation: o.nation || 'KOR',   // 소속 국가 — LA 2028 을 겨냥한 소속감
+      national: false,             // 국가대표로 뽑혔나
       growth: o.growth || 'normal',
       traits: o.traits || [],
       stats: Object.assign({}, o.stats),
@@ -155,12 +157,24 @@ function rollAthlete(rng, opt){
     const t=pool[(rng()*pool.length)|0];
     if(!traits.includes(t)) traits.push(t);
   }
-  const P = rng()<0.5 ? NAME_KO : NAME_EN;
-  const sep = P===NAME_KO ? '' : ' ';
-  const name = P===NAME_KO
-    ? P.last[(rng()*P.last.length)|0] + P.first[(rng()*P.first.length)|0]
-    : P.first[(rng()*P.first.length)|0] + sep + P.last[(rng()*P.last.length)|0];
-  return new Athlete({ id:'a'+Math.floor(rng()*1e9).toString(36), name, age, growth, traits,
+  /* ⚠ 예전엔 언어와 무관하게 50:50 이었다. 영어판에서 선수 절반이 한글 이름으로
+     나와 화면이 섞였다(수집한 미번역 문자열 389개 중 80개가 그냥 사람 이름이었다).
+     한국어판은 국제 대회 느낌으로 섞고, 영어판은 로마자 이름만 쓴다. */
+  /* ── 국적 ────────────────────────────────────────────
+     ⚠ 이름은 국적을 따라간다. 한국 국적인데 로마자 이름이면 소속감이 안 산다.
+        opt.nation 을 주면 그 나라, 없으면 40개국에서 고른다. */
+  const nation = opt.nation ||
+    (typeof NATIONS!=='undefined' ? NATIONS[(rng()*NATIONS.length)|0].code : 'KOR');
+  /* 이름은 국적을 따라간다 — 지역별 풀에서 뽑는다 */
+  let name = null;
+  if(nation!=='KOR' && typeof nationName2==='function') name = nationName2(nation, rng);
+  if(!name){
+    const P = (nation==='KOR') ? NAME_KO : NAME_EN;
+    name = (P===NAME_KO)
+      ? P.last[(rng()*P.last.length)|0] + P.first[(rng()*P.first.length)|0]
+      : P.first[(rng()*P.first.length)|0] + ' ' + P.last[(rng()*P.last.length)|0];
+  }
+  return new Athlete({ id:'a'+Math.floor(rng()*1e9).toString(36), name, nation, age, growth, traits,
                        stats:st, potential:pot, spec, species:speciesKey,
                        condition: 55+Math.round(rng()*30), morale: 50+Math.round(rng()*25) });
 }

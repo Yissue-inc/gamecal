@@ -57,8 +57,39 @@ const Track = {
   SKY_Y:30,  SKY_H:42,
   CROWD_Y:72, CROWD_H:26,
   WALL_Y:98,  WALL_H:16,
-  LANE_Y:[114, 156, 198],     // 3개 레인의 윗선
-  LANE_H:42,                  // 114+42*3 = 240
+  /* ── 레인 원근 ──────────────────────────────────────────
+     ⚠ 예전엔 세 레인이 전부 42px 로 같아서 평평한 띠 세 줄이었다 —
+        화면의 55% 를 먹으면서 깊이가 전혀 없었다.
+     먼 레인일수록 얇고, 가까운 레인일수록 두껍다. 합은 그대로 126.
+     ⚠ LANE_H 는 남겨 둔다 — 기존 호출부 20여 곳이 이 값을 쓴다(기준 높이).
+        레인별 값이 필요한 곳은 laneH(i)·laneFoot(i)·laneScale(i) 를 쓴다. */
+  LANE_Y:[114, 148, 190],     // 3개 레인의 윗선 (34+42+50 = 126)
+  LANE_HS:[34, 42, 50],       // 레인별 높이 — 뒤에서 앞으로
+  LANE_H:42,                  // 기준 높이(가운데 레인) — 옛 호출부 호환용
+  laneH(i){ return this.LANE_HS[i] !== undefined ? this.LANE_HS[i] : this.LANE_H; },
+  /* 그 레인에 선 선수의 '발이 닿는 y' */
+  laneFoot(i){ return this.LANE_Y[i] + this.laneH(i) - 10; },
+  /* 원근에 따른 선수 크기 배율 — 뒤는 작게, 앞은 크게 */
+  laneScale(i){ return this.laneH(i) / this.LANE_H; },
+  laneBottom(){ const n=this.LANE_Y.length-1; return this.LANE_Y[n] + this.laneH(n); },
+  /* 레인 수를 바꾼다 (3 또는 4). 위에서 아래로 점점 두꺼워지고 합은 항상 126.
+     ⚠ 사람이 4명이면 레인도 4개여야 한다 — 예전엔 3개로 못 박혀 있었다. */
+  setLanes(n){
+    n = clamp(n|0, 3, 4);
+    if(this.LANE_Y.length === n) return;
+    const TOP=114, SPAN=126;
+    /* 등차수열로 나눈다 — 뒤가 얇고 앞이 두껍다 */
+    const w=[]; let sum=0;
+    /* ⚠ 기울기 0.235 는 3레인일 때 예전 값 [34,42,50] 을 그대로 재현한다.
+       1인용 화면이 멀티 도입 때문에 바뀌면 안 된다. */
+    for(let i=0;i<n;i++){ const v = 1 + i*0.235; w.push(v); sum+=v; }
+    const hs=w.map(v=>Math.round(SPAN*v/sum));
+    /* 반올림 오차는 마지막 레인이 흡수한다 — 바닥선 240 이 흔들리면 안 된다 */
+    hs[n-1] += SPAN - hs.reduce((a,b)=>a+b,0);
+    const ys=[]; let y=TOP;
+    for(let i=0;i<n;i++){ ys.push(y); y+=hs[i]; }
+    this.LANE_Y = ys; this.LANE_HS = hs;
+  },
   GAUGE_Y:242, GAUGE_H:28,    // 242~270 리듬 게이지 전용 띠
 
   drawBack(ctx, camM, distTotal){
@@ -87,6 +118,8 @@ const Track = {
     }
     /* 지붕 실루엣 — 있으면 하늘 위에 얹는다 */
     BG.fill(BG.ctx(),'stadium-roof', 0, 30);
+    /* 대기 원근 — 하늘·관중·담장을 뒤로 물린다. 선수가 가장 도드라져야 한다. */
+    BG.haze(BG.ctx(), {top:0, bottom:this.LANE_Y[0], gain:0.50, far:0.34, mid:0.20, near:0.08});
   },
 
   floodlight(ctx,x,y){
@@ -102,47 +135,91 @@ const Track = {
     ctx.beginPath(); ctx.moveTo(x+9,y+10); ctx.lineTo(x-14,this.CROWD_Y); ctx.lineTo(x+32,this.CROWD_Y); ctx.fill();
   },
 
+  /* ── 관중 반응 ─────────────────────────────────────────
+     ⚠ 지금 관중은 소리만 반응하고(Audio2.crowd) 그림은 완전히 정지해 있다.
+        측정상 평균 밝기 35 로 화면에서 가장 눈에 안 띈다 — 사실상 없는 것이다.
+     ROAR(월드컵 응원 게임)에서 가져온 것: **관중이 주인공처럼 반응한다.**
+       · 열기(heat) 가 오르면 띠가 위로 들썩이고 밝아진다
+       · 파도타기가 화면을 훑고 지나간다
+       · 큰 순간(단계 상승·결승선)엔 한 번 크게 튄다
+     열기는 게임 쪽에서 Track.crowdHeat 로 넣는다. */
+  heat: 0, waveT: 0, pop: 0,
+  setHeat(v){ this.heat = clamp(v, 0, 1); },
+  cheer(power){ this.pop = Math.max(this.pop, power===undefined?1:power); },
+  crowdTick(){
+    this.waveT += 0.006 + this.heat*0.020;
+    if(this.pop > 0) this.pop = Math.max(0, this.pop - 0.035);
+  },
   crowd(ctx, off){
+    this.crowdTick();
     const bg=BG.ctx();
-    if(BG.tile(bg,'crowd-far', this.CROWD_Y, this.CROWD_H, off*8)){
-      /* 근경 관중 — 아래 40% 에 더 빠른 시차로 겹친다(깊이감) */
-      BG.tile(bg,'crowd-near', this.CROWD_Y+this.CROWD_H*0.55, this.CROWD_H*0.45, off*20);
+    /* 들썩임 — 열기가 높을수록 크고, 큰 순간엔 한 번 크게 */
+    const lift = -(this.heat*2.2 + this.pop*3.4);
+    if(BG.tile(bg,'crowd-far', this.CROWD_Y+lift*0.5, this.CROWD_H, off*8)){
+      BG.tile(bg,'crowd-near', this.CROWD_Y+this.CROWD_H*0.55+lift,
+              this.CROWD_H*0.45, off*20);
+      this.crowdWave(bg);
       return;
     }
     if(Art.tile(ctx,'crowd-tile',this.CROWD_Y,off*8)) return;
     ctx.fillStyle=PAL.crowdA; ctx.fillRect(0,this.CROWD_Y,VW,this.CROWD_H);
     const o = Math.round(-off*8);
     for(let row=0; row<3; row++){
-      const y = this.CROWD_Y + 2 + row*8;
+      const y0 = this.CROWD_Y + 2 + row*8;
       for(let i=-1;i<VW/7+2;i++){
         const x = ((i*7 + o + row*3) % (VW+14) + VW+14) % (VW+14) - 7;
         const h = (i*13+row*7) % 3;
+        /* 파도타기 — 화면을 훑고 지나가며 그 자리 관중만 일어선다 */
+        const phase = this.waveT*6 - x*0.035 - row*0.25;
+        const w = Math.max(0, Math.sin(phase));
+        const jump = Math.round(w*w * (2 + this.heat*4) + this.pop*4);
         ctx.fillStyle = h===0?PAL.crowdB : (h===1?PAL.crowdSkin:'#4d5480');
-        ctx.fillRect(x, y, 5, 6);
+        ctx.fillRect(x, y0 - jump, 5, 6);
       }
     }
+  },
+  /* HD 관중 위에 얹는 파도 — 어셋이 정지 그림이라 코드가 움직임을 만든다 */
+  crowdWave(bg){
+    if(!bg) return;
+    const y=this.CROWD_Y, h=this.CROWD_H;
+    const cx = ((this.waveT*0.9) % 1.6 - 0.3) * VW;
+    if(cx < -90 || cx > VW+90) return;
+    const g = bg.createLinearGradient(cx-70, 0, cx+70, 0);
+    g.addColorStop(0,   'rgba(255,238,190,0)');
+    g.addColorStop(0.5, `rgba(255,238,190,${0.08+this.heat*0.16})`);
+    g.addColorStop(1,   'rgba(255,238,190,0)');
+    bg.fillStyle=g; bg.fillRect(cx-70, y, 140, h);
   },
 
   /* 레인 — 3개만 보여준다(480px 폭에 8레인은 뭉갠다) */
   drawLanes(ctx, camM, mPerPx){
     for(let i=0;i<this.LANE_Y.length;i++){
-      const y=this.LANE_Y[i];
+      const y=this.LANE_Y[i], LH=this.laneH(i);
       /* HD 트랙면이 있으면 잔디·트랙면 전부 그 층이 맡는다.
          ⚠ 픽셀 캔버스가 위에 있으므로 여기서 칠하면 배경층이 통째로 가려진다 — 안 칠해야 한다.
          레인 번호·5m 눈금·결승선은 픽셀 층에 그대로 남긴다(정보라서 또렷해야 한다). */
-      const hd = BG.tile(BG.ctx(), 'track-surface', y-6, this.LANE_H, camM/mPerPx);
+      const hd = BG.tile(BG.ctx(), 'track-surface', y-6, LH, camM/mPerPx);
       if(!hd){
         ctx.fillStyle = PAL.grass; ctx.fillRect(0, y-6, VW, 6);
         ctx.fillStyle = PAL.grassLine;
         for(let x=(Math.round(-camM/mPerPx)%12+12)%12-12; x<VW; x+=12) ctx.fillRect(x,y-6,6,2);
-        ctx.fillStyle = PAL.track;     ctx.fillRect(0, y, VW, this.LANE_H-6);
-        ctx.fillStyle = PAL.trackDark; ctx.fillRect(0, y+this.LANE_H-10, VW, 4);
+        ctx.fillStyle = PAL.track;     ctx.fillRect(0, y, VW, LH-6);
+        ctx.fillStyle = PAL.trackDark; ctx.fillRect(0, y+LH-10, VW, 4);
         ctx.fillStyle = PAL.lane;      ctx.fillRect(0, y-1, VW, 1);
       }
       // 레인 번호 — 어느 줄이 내 줄인지 알 수 있어야 한다
       ctx.fillStyle='rgba(232,226,214,.55)';
       for(let x=(Math.round(-camM/mPerPx)%96+96)%96-96; x<VW; x+=96) this.digit(ctx, x+4, y+3, i+1);
     }
+    this.laneHaze();
+  },
+
+  /* 트랙 원근 — 위쪽(먼) 레인일수록 살짝 더 어둡게. 3개 레인이 평평해 보이지 않게. */
+  laneHaze(){
+    const bg=BG.ctx(); if(!bg) return;
+    /* 트랙은 밝기를 거의 유지하되(선수가 딛는 면), 먼 레인만 살짝 물린다 */
+    BG.haze(bg, {top:this.LANE_Y[0], bottom:this.laneBottom(),
+                 gain:1, far:0.30, mid:0.12, near:0.0});
   },
 
   /* 아주 작은 숫자 (3x5 픽셀) — 레인 번호용 */
@@ -163,7 +240,7 @@ const Track = {
     for(let m=first; m<camM + VW*mPerPx + 5; m+=5){
       const x = Math.round((m-camM)/mPerPx);
       if(x<-2||x>VW) continue;
-      for(const y of this.LANE_Y) ctx.fillRect(x, y+this.LANE_H-12, 1, 8);
+      for(let i=0;i<this.LANE_Y.length;i++) ctx.fillRect(x, this.LANE_Y[i]+this.laneH(i)-12, 1, 8);
     }
   },
 
@@ -220,15 +297,17 @@ const Track = {
     const x = Math.round((finishM-camM)/mPerPx);
     if(x < -20 || x > VW+20) return;
     // 트랙 면 안에만 그린다 — 예전엔 잔디까지 덮어 띠가 어긋나 보였다
-    for(const y of this.LANE_Y){
-      const h = this.LANE_H-6;
+    for(let li=0; li<this.LANE_Y.length; li++){
+      const y = this.LANE_Y[li];
+      const h = this.laneH(li)-6;
       for(let i=0;i*4<h;i++){
         ctx.fillStyle = i%2 ? PAL.white : PAL.black;
         ctx.fillRect(x-2, y + i*4, 4, Math.min(4, h - i*4));
       }
     }
     // 결승 테이프 기둥
-    if(!Art.blit(ctx,'finish-tape',x,this.LANE_Y[0])){
+    if(BG.obj(BG.ctx(),'finish-tape-hd',x,this.LANE_Y[0]+8,60)){ /* HD */ }
+    else if(!Art.blit(ctx,'finish-tape',x,this.LANE_Y[0])){
       ctx.fillStyle=PAL.white; ctx.fillRect(x-1, this.WALL_Y, 2, this.LANE_Y[0]-this.WALL_Y);
     }
   },

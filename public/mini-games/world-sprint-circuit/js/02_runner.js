@@ -17,6 +17,14 @@ class Runner {
     this.gunMs = gunMs;
     this.distM = 0; this.speed = 0;
     this.fatigue = 0; this.form = 1.0;
+    /* ── 콤보 단계 ──────────────────────────────────────────
+       ⚠ form 은 이미 '리셋이 아니라 감쇠'다(0.82~1.10). 문제는 **눈에 보이는
+          이정표가 없다**는 것 — 잘하고 있어도 계단을 밟는 느낌이 안 난다.
+       ROAR(월드컵 응원 게임)의 콤보 계단을 가져온다: 6/10/20/40/60 에서
+       단계가 오르고, 실수해도 통째로 리셋하지 않고 한 칸만 떨어진다.
+       ⚠ 배수를 곱하지는 않는다 — 이 게임은 기록 경기라 배수를 곱하면 세계기록이
+          무너진다. 대신 **판정 창을 넓혀** 잘하는 사람이 더 잘하게 만든다. */
+    this.combo = 0; this.tier = 0; this.tierUpAt = -9999;
     this.lastSide = 0; this.lastInputMs = -1e9;
     this.reactionMs = -1;
     this.finished = false; this.finishTimeS = 0;
@@ -49,6 +57,22 @@ class Runner {
     const cad = RULES.targetCadenceHz * lerp(0.92, 1.08, this.stats.rhythm/100);
     return 1000 / Math.max(cad, 0.1);
   }
+  /* 단계가 오르는 지점 — ROAR 과 같은 간격 */
+  get tierAt(){ return [6,10,20,40,60]; }
+  addCombo(){
+    this.combo++;
+    const t = this.tierAt.filter(n=>this.combo>=n).length;
+    if(t > this.tier){ this.tier = t; this.tierUpAt = this.combo; this.onTierUp && this.onTierUp(t); }
+  }
+  breakCombo(){
+    /* ⚠ 통째로 0으로 되돌리지 않는다 — 한 번 실수했다고 여태 쌓은 걸 다 잃으면
+       초보는 다시 안 잡는다. 한 단계만 내려간다(ROAR 의 tier decay). */
+    if(this.tier > 0){
+      this.tier--; this.combo = this.tierAt[Math.max(0,this.tier-1)] || 0;
+    } else this.combo = 0;
+  }
+  /* 단계가 높을수록 판정 창이 넓어진다 — 배수 대신 '쉬워진다'로 보상한다 */
+  get tierWiden(){ return this.tier * 0.010; }
   baseSpeed(){
     const mix = (this.stats.speed*0.65 + this.stats.acceleration*0.35)/100;
     return RULES.baseSpeed * lerp(0.85, 1.15, mix) * RULES.balanceScale * this.speedMul;
@@ -71,16 +95,17 @@ class Runner {
       j='SPAM'; this.fatigue = Math.min(1, this.fatigue + RULES.fatiguePerSpam*0.5);
     } else if(this.lastSide === side){
       j='REPEAT'; this.form = Math.max(RULES.formFloor, this.form - RULES.formLossRepeat);
+      this.breakCombo();
     } else if(first){
       j='GOOD';                                   // 첫 스트라이드는 비교 대상이 없다
     } else {
       const target = this.targetIntervalMs();
-      const widen = RULES.assistWidenPct[assist||'off'] || 0;
+      const widen = (RULES.assistWidenPct[assist||'off'] || 0) + this.tierWiden;
       const err = Math.abs(dt - target) / target;
-      if(err <= RULES.perfectWindowPct + widen){ j='PERFECT'; this.form = Math.min(RULES.formCeil, this.form + RULES.formGainPerfect); }
-      else if(err <= RULES.goodWindowPct + widen){ j='GOOD'; this.form = Math.min(RULES.formCeil, this.form + RULES.formGainGood); }
-      else if(dt < target){ j='EARLY'; this.form = Math.max(RULES.formFloor, this.form - RULES.formLossMiss); }
-      else { j='LATE'; this.form = Math.max(RULES.formFloor, this.form - RULES.formLossMiss); }
+      if(err <= RULES.perfectWindowPct + widen){ j='PERFECT'; this.form = Math.min(RULES.formCeil, this.form + RULES.formGainPerfect); this.addCombo(); }
+      else if(err <= RULES.goodWindowPct + widen){ j='GOOD'; this.form = Math.min(RULES.formCeil, this.form + RULES.formGainGood); this.addCombo(); }
+      else if(dt < target){ j='EARLY'; this.form = Math.max(RULES.formFloor, this.form - RULES.formLossMiss); this.breakCombo(); }
+      else { j='LATE'; this.form = Math.max(RULES.formFloor, this.form - RULES.formLossMiss); this.breakCombo(); }
     }
 
     this.judge[j]++;
@@ -142,7 +167,11 @@ class Runner {
       /* 탄력은 서서히 사라진다 */
       if(this.momentum !== 1){
         this.momentumT += dt;
-        const k = Math.exp(-this.momentumT/2.4);
+        /* ⚠ 감쇠를 실시간 2.4초로 두면, 거리를 압축하는 종목(4x400)에서는 그 사이에
+           트랙이 훨씬 많이 지나가 **인계 품질이 기록에 안 남는다**(실측: 엉성 198.8 vs
+           능숙 197.8 — 거의 동률). 감쇠 시간을 압축비만큼 늘려 '몇 미터 동안 유효한가'를
+           보존한다. */
+        const k = Math.exp(-this.momentumT/(2.4*(this.momentumScale||1)));
         this.momentum = 1 + (this._mom0-1)*k;
         if(Math.abs(this.momentum-1) < 0.004) this.momentum = 1;
       }

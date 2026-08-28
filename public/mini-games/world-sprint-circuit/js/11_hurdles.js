@@ -9,8 +9,15 @@ class HurdlesEvent extends SprintEvent {
     super.reset();
     /* ⚠ 이름을 marks 로 두면 필드 종목의 '시기별 기록'과 충돌해
        결과 화면이 허들 위치를 기록으로 찍는다(실측). */
+    /* ⚠ 예전엔 110m 허들 상수로 못 박혀 있었다. 종목 정의에서 읽어
+       400m 허들·3000m 장애물이 같은 코드로 돌게 한다. */
+    const H = this.def.hurdle || {};
+    this.hCount   = H.count   ?? RULES.hurdleCount;
+    this.hFirst   = H.first   ?? RULES.hurdleFirstM;
+    this.hSpacing = H.spacing ?? RULES.hurdleSpacingM;
+    this.waterAt  = H.waterEvery || 0;          // 3000m 장애물 물웅덩이 간격(번째)
     this.hurdleMarks = [];
-    for(let i=0;i<RULES.hurdleCount;i++) this.hurdleMarks.push(RULES.hurdleFirstM + i*RULES.hurdleSpacingM);
+    for(let i=0;i<this.hCount;i++) this.hurdleMarks.push(this.hFirst + i*this.hSpacing);
     this.cleared = new Map();               // runner → Set(index)
     for(const r of this.all){ this.cleared.set(r, new Set()); r.airUntil = 0; }
   }
@@ -90,17 +97,30 @@ class HurdlesEvent extends SprintEvent {
       const x = Math.round((m - this.camM)/this.mPerPx);
       if(x < -8 || x > VW+8) continue;
       for(let i=0;i<3;i++){
-        const y = Track.LANE_Y[i] + Track.LANE_H - 10;
+        const y = Track.laneFoot(i);
+        /* 허들도 원근을 탄다 — 선수만 작아지고 허들이 그대로면 어긋나 보인다 */
+        const k = Track.laneScale(i);
+        /* 3000m 장애물 — 정해진 번째마다 물웅덩이 */
+        const hi = this.hurdleMarks.indexOf(m);
+        if(this.waterAt && hi>=0 && (hi+1)%this.waterAt===0){
+          if(BG.obj(BG.ctx(),'waterjump-hd',x,y,Math.round(32*k))){ continue; }
+          ctx.fillStyle='#12507a'; ctx.fillRect(x-2, y-3, Math.round(26*k), 3);
+          ctx.fillStyle='#e8e2d6'; ctx.fillRect(x-Math.round(4*k), y-Math.round(13*k), Math.round(9*k), 2);
+          continue;
+        }
+        if(BG.obj(BG.ctx(),'steeple-barrier-hd',x,y,Math.round(32*k))) continue;
+        if(BG.obj(BG.ctx(),'hurdle-hd',x,y,Math.round(32*k))) continue;
         if(Art.blit(ctx,'hurdle',x,y)) continue;
-        ctx.fillStyle='#e8e2d6'; ctx.fillRect(x-4, y-13, 9, 2);
-        ctx.fillStyle='#c9cede'; ctx.fillRect(x-3, y-11, 1, 11); ctx.fillRect(x+3, y-11, 1, 11);
+        const bw=Math.round(9*k), bh=Math.round(13*k), lh=Math.round(11*k);
+        ctx.fillStyle='#e8e2d6'; ctx.fillRect(x-Math.round(4*k), y-bh, bw, 2);
+        ctx.fillStyle='#c9cede'; ctx.fillRect(x-Math.round(3*k), y-lh, 1, lh); ctx.fillRect(x+Math.round(3*k), y-lh, 1, lh);
       }
     }
     Track.drawFinish(ctx, this.camM, this.mPerPx, this.trackM);
     const laneColor=['#5aaaff','#ffd75e','#ff6b8a'];
     for(let i=0;i<3;i++){
       const r=this.all.find(a=>a.lane===i); if(!r) continue;
-      let y = Track.LANE_Y[i] + Track.LANE_H - 10;
+      let y = Track.laneFoot(i);
       // 도약 중이면 위로 띄운다
       if(r.airUntil > this.t){
         const p = 1 - (r.airUntil - this.t)/280;
@@ -108,7 +128,16 @@ class HurdlesEvent extends SprintEvent {
       }
       const x = Math.round((r.distM - this.camM)/this.mPerPx);
       if(x<-20||x>VW+20) continue;
-      drawRunner(ctx, x, y, r.stridePhase, laneColor[i],
+      /* ⚠ 이 종목만 옛 픽셀 스프라이트를 쓰고 있었다 — 달리기는 고해상도인데
+         허들만 각진 인형이라 같은 게임으로 안 보였다. */
+      if(CharHD.enabled){
+        const sp=['impala','springbok','serval'][i];
+        (this._hd=this._hd||[]).push({ sp, x, y, ph:r.stridePhase,
+          o:{ lean:r.leanDone && r.distM>RULES.leanWindowStartM, crouch:this.phase==='SET',
+              airborne:r.airUntil>this.t, scale:Track.laneScale(i),
+              rare:(SPECIES[sp]&&SPECIES[sp].rare)||1, moving:this.phase==='RUN', t:this.t } });
+      }
+      else drawRunner(ctx, x, y, r.stridePhase, laneColor[i],
         { lean:r.leanDone && r.distM>RULES.leanWindowStartM, crouch:this.phase==='SET' });
     }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
@@ -137,6 +166,6 @@ class HurdlesEvent extends SprintEvent {
       uctx.restore();
     }
     const p=this.player;
-    txt(uctx, `허들 ${p.hurdlesClean}/${RULES.hurdleCount} 성공`, 8, Track.GAUGE_Y-12, 9, PAL.dim);
+    txt(uctx, `허들 ${p.hurdlesClean}/${this.hCount} 성공`, 8, Track.GAUGE_Y-12, 9, PAL.dim);
   }
 }

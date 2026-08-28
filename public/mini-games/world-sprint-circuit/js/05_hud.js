@@ -4,7 +4,10 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* ⚠ 화면에 나가는 모든 글자가 이 함수를 지난다(호출 279곳, 직접 fillText 는 1곳).
+   그래서 다국어를 여기 한 곳에서 건다 — 호출부 699곳을 건드리지 않는다. */
 function txt(ctx, s, x, y, size, color, align, weight){
+  if(typeof K==='function') s = K(s);
   ctx.font = `${weight||400} ${size}px "Galmuri11","Nanum Gothic Coding",monospace`;
   ctx.textAlign = align||'left'; ctx.textBaseline='top';
   ctx.fillStyle = color||PAL.white;
@@ -15,7 +18,14 @@ function plate(ctx, x, y, w, h, a){
   ctx.fillStyle = `rgba(5,6,10,${a??0.62})`;
   ctx.fillRect(x, y, w, h);
 }
-function fmtTime(s){ return s>=99 ? '--.--' : s.toFixed(2); }
+function fmtTime(s){
+  /* ⚠ '99 이상 = 기록 없음' 이라는 옛 규칙이 중장거리를 통째로 지웠다(1500m 기준 255초
+     가 화면에 '--.--' 로 떴다). 1분을 넘으면 분:초 로 읽어 준다. */
+  if(!(s>0) || s>=9999) return '--.--';
+  if(s < 100) return s.toFixed(2);
+  const m=Math.floor(s/60), r=s-m*60;
+  return m+':'+(r<10?'0':'')+r.toFixed(2);
+}
 function fmtDist(m){ return m<=0 ? '--.--' : m.toFixed(2); }
 
 const HUD = {

@@ -65,7 +65,7 @@ class PickEntryScreen extends Screen0 {
       const fit=eventFitNow(a,this.ev);
       const pb=a.best[this.ev.id];
       const fav = (typeof speciesFavors==='function') && speciesFavors(a, this.ev.id);
-      return { label:(on?'● ':'○ ')+`${a.speciesName} ${a.name}`+(fav?' ★':'')+(a.injury?' (부상)':''),
+      return { label:(on?'● ':'○ ')+`${a.speciesName} ${a.name}`+(fav?' ★':'')+(a.injury?' (부상)':''), nation:a.nation,
         sub:`적합 ${Math.round(fit)} · 컨디션 ${UI.condName(a.condition)} · 피로 ${Math.round(a.fatigue)}`,
         right: pb!==undefined ? pb.toFixed(2)+this.ev.unit : '기록 없음',
         rightColor: pb!==undefined?PAL.gold:PAL.dim,
@@ -323,9 +323,19 @@ class MeetWatchScreen extends Screen0 {
 
 /* ── 대회 결과 ───────────────────────────────────────────── */
 class MeetResultScreen extends Screen0 {
-  constructor(mg, meet){ super(mg); this.meet=meet; }
-  update(now){ if(Input.pressed('action')||Input.pressed('back')){ Sfx.ui(); this.mg.afterMeet(); } }
+  constructor(mg, meet){
+    super(mg);
+    this.meet = meet;
+    this.page = 0;                 // 0=결과 · 1=국가별 메달
+  }
+  update(now){
+    /* ⚠ 메달표를 결과 위에 겹쳐 그렸더니 기록 열을 가렸다(실측). 페이지로 나눈다. */
+    if(Input.pressed('right')||Input.pressed('left')){ this.page = this.page?0:1; Sfx.ui(); return; }
+    if(Input.pressed('action')||Input.pressed('back')){ Sfx.ui(); this.mg.afterMeet(); }
+  }
   draw(u){
+    if(this.page===1) return this.drawMedals(u);
+    
     const m=this.meet, S=this.mg.season;
     UI.header(u, m.name+' 결과', `${m.week}주차`);
     txt(u,'획득 승점',VW/2,32,9,PAL.dim,'center');
@@ -348,5 +358,28 @@ class MeetResultScreen extends Screen0 {
     txt(u,`시즌 승점 ${S.points} · 금 ${S.medals.gold} 은 ${S.medals.silver} 동 ${S.medals.bronze}`,
         VW/2, VH-30, 10, PAL.white,'center');
     UI.footer(u,'확인 계속');
+    /* 메달표는 ▶ 로 넘어간다 — 겹쳐 그리면 결과 목록을 가린다(실측) */
+    txt(u, '▶ 국가별 메달', VW-8, VH-28, 9, PAL.gold, 'right');
   }
+  drawMedals(u){
+    const S=this.mg.season;
+    const tbl = (S.nationTable && S.nationTable()) || [];
+    UI.header(u, '국가별 메달', `${S.year}년차 · ${S.week}주차`);
+    txt(u, '금  은  동', VW-14, 28, 9, PAL.dim, 'right');
+    const rows = tbl.slice(0, 11);
+    rows.forEach((n,i)=>{
+      const y=42+i*17, mine = n.code===this.mg.club.nation;
+      u.fillStyle = mine ? 'rgba(255,215,94,.18)' : (i%2?'rgba(255,255,255,.045)':'rgba(0,0,0,.20)');
+      u.fillRect(14, y, VW-28, 16);
+      txt(u, String(i+1), 22, y+3, 10, i<3?PAL.gold:PAL.dim, 'left', 700);
+      if(typeof drawFlag==='function') drawFlag(u, 40, y+2, 18, 12, n.code);
+      txt(u, nationName(n.code), 64, y+3, 11, mine?PAL.gold:PAL.white, 'left', mine?700:400);
+      txt(u, String(n.g), VW-84, y+3, 11, '#ffd75e', 'right', 700);
+      txt(u, String(n.s), VW-52, y+3, 11, '#c9cede', 'right');
+      txt(u, String(n.b), VW-20, y+3, 11, '#c9884a', 'right');
+    });
+    if(!rows.length) txt(u, '아직 메달이 없습니다', VW/2, 90, 11, PAL.dim, 'center');
+    UI.footer(u, '◀ 결과로   ·   확인 계속');
+  }
+
 }

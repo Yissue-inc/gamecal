@@ -20,6 +20,20 @@ const SWIM = {
 };
 
 class SwimEvent {
+  /* 1번 선수의 상태를 this 위로 끌어올린다. 옛 코드가 this.dist 를 그대로 쓴다. */
+  static proxy(ev){
+    const KEYS=['dist','speed','lap','lastStroke','side','judge','lastJudge','lastJudgeMs',
+                'form','fatigue','breath','lastBreath','turns','turnDone','finished','finishTimeS','dq'];
+    for(const k of KEYS){
+      if(Object.getOwnPropertyDescriptor(ev, k)) continue;
+      Object.defineProperty(ev, k, {
+        configurable:true,
+        get(){ return this.swimmers[0][k]; },
+        set(v){ this.swimmers[0][k]=v; },
+      });
+    }
+  }
+
   constructor(def){
     this.def=def;
     this.strokeKey = def.stroke || 'free';
@@ -31,82 +45,97 @@ class SwimEvent {
     this.phase='SET'; this.t=0;
     this.gunMs = 1400 + Math.random()*1600;
     this.setBeeps=0;
-    this.dist=0; this.speed=0;
-    this.lap=0;                      // 0 → 1 (턴 한 번)
-    this.lastStroke=-1e9; this.side=0;
-    this.judge={PERFECT:0,GOOD:0,EARLY:0,LATE:0,REPEAT:0,SPAM:0};
-    this.lastJudge=''; this.lastJudgeMs=-1e9;
-    this.form=1.0; this.fatigue=0;
-    this.breath=1;                   // 1=충분, 0=숨참
-    this.lastBreath=0;
-    this.turns=[];                   // 턴 품질
-    this.turnDone=0;
+    /* ── 선수 상태를 사람 수만큼 ─────────────────────────
+       ⚠ 예전엔 dist·speed·form 같은 걸 this 에 직접 달아서 한 명만 헤엄칠 수 있었다.
+          객체로 묶고, this.<이름> 은 1번 선수를 가리키는 프록시로 남긴다 —
+          기존 그리기·판정 코드(88곳)를 한 줄도 안 고쳐도 그대로 돈다. */
+    const versus = (typeof Party!=='undefined') && Party.on && Party.modeFor(this.def)==='versus';
+    const humans = versus ? Party.count : 1;
+    const mk=(lane)=>({ lane, dist:0, speed:0, lap:0, lastStroke:-1e9, side:0,
+      judge:{PERFECT:0,GOOD:0,EARLY:0,LATE:0,REPEAT:0,SPAM:0},
+      lastJudge:'', lastJudgeMs:-1e9, form:1.0, fatigue:0, breath:1, lastBreath:0,
+      turns:[], turnDone:0, finished:false, finishTimeS:null, dq:false });
+    this.swimmers=[]; for(let p=0;p<humans;p++) this.swimmers.push(mk(p));
+    SwimEvent.proxy(this);           // this.dist → swimmers[0].dist
     this.doneAt=0; this.result=null;
     this.flash=0; this.msg=''; this.msgAt=-1e9;
     /* 상대 2명 */
+    const lanes = Math.max(3, humans);
+    if(typeof Track!=='undefined' && Track.setLanes) Track.setLanes(lanes);
     this.rivals=[];
-    for(let i=0;i<2;i++){
-      const sk=0.66+i*0.13+Math.random()*0.08;
-      this.rivals.push({ lane:i===0?0:2, dist:0, target:(this.trackM)/(this.def.qualify*(1.02-sk*0.16)) });
+    for(let i=humans;i<lanes;i++){
+      const sk=0.66+(i-humans)*0.13+Math.random()*0.08;
+      /* ⚠ 상대 속도를 qualify 로 계산하면 기준을 조일 때 상대까지 빨라진다.
+         상대는 '사람이 낼 만한 기록' 을 기준으로 잡는다 — 기준선과 분리한다. */
+      const parS = this.def.parS || this.def.qualify;
+      this.rivals.push({ lane:i, dist:0, target:(this.trackM)/(parS*(1.02-sk*0.16)) });
     }
     this.camNone=true;
   }
+  get people(){ return this.swimmers; }
   get qualify(){ return this.def.qualify; }
   get elapsed(){ return (this.t-this.gunMs)/1000; }
   get targetIv(){ return 1000/(3.1*this.S.speed); }
   say(m,bad){ this.msg=m; this.msgAt=this.t; this.msgBad=!!bad; }
 
-  onStride(side, tMs){
+  onStride(side, tMs, pIdx){
+    const S = this.swimmers[pIdx||0] || this.swimmers[0];
     if(this.phase==='DONE') return;
     if(this.phase!=='RUN'){
+      /* ⚠ 부정출발은 누른 사람만 — 여럿일 때 남의 실수로 내가 죽으면 안 된다 */
       if(tMs<this.gunMs && tMs>this.gunMs-1200){
-        this.phase='DONE'; this.doneAt=this.t;
-        this.result={status:'FALSE_START', value:99.99, rank:3}; Sfx.fail();
+        S.dq = true; Sfx.fail();
+        if(this.swimmers.length<2){
+          this.phase='DONE'; this.doneAt=this.t;
+          this.result={status:'FALSE_START', value:DNF, rank:3};
+        }
       }
       return;
     }
-    const dt=tMs-this.lastStroke;
+    if(S.dq || S.finished) return;
+    const dt=tMs-S.lastStroke;
     let j='GOOD';
-    if(dt < 70){ j='SPAM'; this.fatigue=Math.min(1,this.fatigue+0.02); }
-    else if(this.side===side){ j='REPEAT'; this.form=Math.max(0.6,this.form-0.07); }
-    else if(this.lastStroke<-1e8){ j='GOOD'; }
+    if(dt < 70){ j='SPAM'; S.fatigue=Math.min(1,S.fatigue+0.02); }
+    else if(S.side===side){ j='REPEAT'; S.form=Math.max(0.6,S.form-0.07); }
+    else if(S.lastStroke<-1e8){ j='GOOD'; }
     else {
       const err=Math.abs(dt-this.targetIv)/this.targetIv;
       /* 물에서는 창이 좁다 — 기술이 곧 물잡기다 */
-      if(err<=0.10){ j='PERFECT'; this.form=Math.min(1.12,this.form+0.028); }
-      else if(err<=0.22){ j='GOOD'; this.form=Math.min(1.12,this.form+0.01); }
-      else if(dt<this.targetIv){ j='EARLY'; this.form=Math.max(0.62,this.form-0.035); }
-      else { j='LATE'; this.form=Math.max(0.62,this.form-0.035); }
+      if(err<=0.10){ j='PERFECT'; S.form=Math.min(1.12,S.form+0.028); }
+      else if(err<=0.22){ j='GOOD'; S.form=Math.min(1.12,S.form+0.01); }
+      else if(dt<this.targetIv){ j='EARLY'; S.form=Math.max(0.62,S.form-0.035); }
+      else { j='LATE'; S.form=Math.max(0.62,S.form-0.035); }
     }
-    this.judge[j]++; this.lastJudge=j; this.lastJudgeMs=tMs;
-    this.side=side; this.lastStroke=tMs;
+    S.judge[j]++; S.lastJudge=j; S.lastJudgeMs=tMs;
+    S.side=side; S.lastStroke=tMs;
     Sfx.step(j);
     /* 추진 */
     const mult={PERFECT:1.0,GOOD:0.80,EARLY:0.62,LATE:0.62,REPEAT:0.40,SPAM:0.18}[j];
     /* ⚠ 2.35 로는 완벽하게 저어도 100m 62초였다(세계기록 46.4초).
        아케이드는 감독 모드와 별도 물리라 따로 맞춰야 한다. */
     const base = 2.72 * this.S.speed;
-    const target = base * this.form * (1-this.fatigue*0.3) * (0.6+this.breath*0.4) * mult;
-    this.speed = clamp(lerp(this.speed, target, 0.55), 0, 3.2);
+    const target = base * S.form * (1-S.fatigue*0.3) * (0.6+S.breath*0.4) * mult;
+    S.speed = clamp(lerp(S.speed, target, 0.55), 0, 3.2);
   }
   /* 액션 = 턴 (벽 앞) 또는 숨쉬기 */
-  onAction(tMs){
-    if(this.phase!=='RUN') return;
-    const wall = SWIM.poolM*(this.lap+1);
-    const left = wall - this.dist;
-    if(this.lap < Math.floor(this.trackM/SWIM.poolM)-1 && left <= SWIM.turnWindowM+1.2 && left > -0.6){
+  onAction(tMs, pIdx){
+    const S = this.swimmers[pIdx||0] || this.swimmers[0];
+    if(this.phase!=='RUN' || S.dq || S.finished) return;
+    const wall = SWIM.poolM*(S.lap+1);
+    const left = wall - S.dist;
+    if(S.lap < Math.floor(this.trackM/SWIM.poolM)-1 && left <= SWIM.turnWindowM+1.2 && left > -0.6){
       /* 턴 — 벽에 가까울수록 좋다 */
       const q = clamp(1 - Math.abs(left-0.5)/SWIM.turnWindowM, 0.1, 1);
-      this.turns.push(q);
-      this.lap++;
-      this.speed = lerp(this.speed*0.72, this.speed*1.55, q);
+      S.turns.push(q);
+      S.lap++;
+      S.speed = lerp(S.speed*0.72, S.speed*1.55, q);
       this.say(q>0.75?`완벽한 턴! ${Math.round(q*100)}%`:`턴 ${Math.round(q*100)}%`, q<0.45);
       Sfx.beep(q>0.75?1320:700, 0.12,'square',0.14);
       return;
     }
     /* 숨쉬기 */
-    this.breath=1; this.lastBreath=tMs;
-    this.speed *= (1 - 0.04*this.S.breath);     // 숨쉬면 살짝 느려진다
+    S.breath=1; S.lastBreath=tMs;
+    S.speed *= (1 - 0.04*this.S.breath);     // 숨쉬면 살짝 느려진다
     Sfx.beep(420,0.06,'sine',0.08);
   }
   update(dt){
@@ -116,33 +145,43 @@ class SwimEvent {
       const want=Math.min(3, Math.floor((this.gunMs-now>0? 3-(this.gunMs-now)/450 : 3)));
       if(want>this.setBeeps && want<=3){ this.setBeeps=want; Sfx.set(); }
       if(now>=this.gunMs){ this.phase='RUN'; Sfx.gun(); this.flash=1;
-        this.speed=1.9*this.S.speed; this.lastBreath=now; }   // 다이빙 입수
+        for(const S of this.swimmers){ if(S.dq) continue; S.speed=1.9*this.S.speed; S.lastBreath=now; } }
     }
     if(this.phase==='RUN'){
-      /* 숨 — 시간이 지나면 줄어든다 */
-      const since=now-this.lastBreath;
-      this.breath = clamp(1 - (since/SWIM.breathEvery)*this.S.breath, 0, 1);
-      this.speed = Math.max(0, this.speed - dt*0.55);     // 물 저항
-      this.fatigue = Math.min(1, this.fatigue + dt*0.0075);
-      this.dist += this.speed*dt;
-      /* 턴을 놓치면 벽에 부딪힌다 */
-      const wall=SWIM.poolM*(this.lap+1);
-      if(this.lap < Math.floor(this.trackM/SWIM.poolM)-1 && this.dist > wall+0.8){
-        this.lap++; this.turns.push(0.05);
-        this.speed*=0.35; this.say('턴을 놓쳤다', true); Sfx.beep(180,0.2,'sawtooth',0.14);
+      /* 선수마다 따로 굴린다 */
+      for(const S of this.swimmers){
+        if(S.dq || S.finished) continue;
+        const since=now-S.lastBreath;
+        S.breath = clamp(1 - (since/SWIM.breathEvery)*this.S.breath, 0, 1);
+        S.speed = Math.max(0, S.speed - dt*0.55);     // 물 저항
+        S.fatigue = Math.min(1, S.fatigue + dt*0.0075);
+        S.dist += S.speed*dt;
+        /* 턴을 놓치면 벽에 부딪힌다 */
+        const wall=SWIM.poolM*(S.lap+1);
+        if(S.lap < Math.floor(this.trackM/SWIM.poolM)-1 && S.dist > wall+0.8){
+          S.lap++; S.turns.push(0.05);
+          S.speed*=0.35;
+          if(S===this.swimmers[0]){ this.say('턴을 놓쳤다', true); Sfx.beep(180,0.2,'sawtooth',0.14); }
+        }
+        if(S.dist>=this.trackM){
+          S.dist=this.trackM; S.finished=true;
+          S.finishTimeS=(now-this.gunMs)/1000;
+        }
       }
-      if(this.dist>=this.trackM){
-        this.dist=this.trackM;
-        const total=(now-this.gunMs)/1000;
+      /* ⚠ 전원이 들어와야 끝난다 — 1등이 들어오자마자 끊으면 나머지가 기록을 못 본다 */
+      if(this.swimmers.every(S=>S.finished || S.dq)){
+        const me=this.swimmers[0];
+        const total = me.dq ? DNF : me.finishTimeS;
         this.phase='DONE'; this.doneAt=now;
-        const pass=total<=this.qualify;
-        this.result={status:pass?'OK':'MISSED_QUALIFY', value:total, rank:this.rankOf()};
+        const pass = !me.dq && total<=this.qualify;
+        this.result={status: me.dq?'FALSE_START':(pass?'OK':'MISSED_QUALIFY'),
+                     value:total, rank:this.rankOf()};
         pass?Sfx.finish():Sfx.fail();
       }
       for(const rv of this.rivals) rv.dist += rv.target*dt;
-      if(this.elapsed > this.qualify+12){
+      if(this.elapsed > this.qualify+20){   // 기준을 조였으니 종료 여유는 늘린다
         this.phase='DONE'; this.doneAt=now;
-        this.result={status:'TIMEOUT', value:99.99, rank:3}; Sfx.fail();
+        this.result={status:'TIMEOUT', value:DNF, rank:3}; Sfx.fail();
       }
     }
     this.flash=Math.max(0,this.flash-dt*4);
@@ -154,7 +193,9 @@ class SwimEvent {
   draw(ctx){
     /* 관중·벽 */
     Track.drawBack(ctx, 40, 100);
-    const LY=[118,158,198], LH=38;
+    /* 레인은 사람 수를 따라간다 */
+    const n=Math.max(3, this.swimmers.length);
+    const LH=Math.round(114/n), LY=[]; for(let i=0;i<n;i++) LY.push(118+i*LH);
     /* 물 */
     ctx.fillStyle='#0e3a5a'; ctx.fillRect(0, LY[0]-8, VW, VH-LY[0]+8);
     for(let i=0;i<3;i++){
@@ -187,9 +228,19 @@ class SwimEvent {
       const y=LY[rv.lane]+LH/2-4, x=posOf(Math.min(rv.dist,this.trackM));
       this.blob(ctx, x, y, '#7a9ab0', (this.t*0.006+i)%1);
     });
-    /* 나 */
-    const my=LY[1]+LH/2-4, mx=posOf(this.dist);
-    this.blob(ctx, mx, my, this.S.color, (this.t*0.008)%1, true);
+    /* 사람 선수들 — 각자 자기 레인, 자기 색 */
+    this.swimmers.forEach((S,p)=>{
+      const lane = Math.min(S.lane, LY.length-1);
+      const y=LY[lane]+LH/2-4, mx=posOf(Math.min(S.dist,this.trackM));
+      const col = (this.swimmers.length>1 && typeof PARTY_COLOR!=='undefined')
+        ? PARTY_COLOR[p] : this.S.color;
+      this.blob(ctx, mx, y, S.dq? '#5a5f70' : col, (this.t*0.008+p*0.3)%1, true);
+      /* 물보라 — 스트로크마다. 물을 젓고 있다는 게 보여야 한다. */
+      if(this.phase==='RUN' && S.speed>0.6)
+        BG.fx(BG.ctx(), 'water-splash', mx+6, y+8, 14, ((this.t - S.lastStroke)/260)%1, 4);
+      if(this.swimmers.length>1)
+        txt(Screen.uctx, 'P'+(p+1), mx, y-18, 8, col, 'center', 700);
+    });
 
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
   }
