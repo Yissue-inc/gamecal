@@ -31,7 +31,7 @@ const READY = ['sprint100','sprint200','sprint400','hurdles110','hurdles400','st
                'shotPut','discus','javelin','hammer','relay4x100',
                'swimFree100','swimBack100','swimBreast100','swimFly100','poleVault','diving','lifting','archery','cycling','rowing','trampoline',
                /* 이 다섯은 감독 모드에만 있고 플레이할 수 없었다 — 2026-08-28 아케이드 개방 */
-               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing','decathlon','triathlon','shooting','heptathlon','swimMedley200','tableTennis','judo','vault','canoe','golf'];
+               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing','decathlon','triathlon','shooting','heptathlon','swimMedley200','tableTennis','judo','vault','canoe','golf','equestrian'];
 
 const G = {
   state: ST.TITLE,
@@ -52,7 +52,7 @@ const G = {
       longJump:LongJumpEvent, tripleJump:TripleJumpEvent, highJump:HighJumpEvent,
       shotPut:ShotPutEvent, discus:DiscusEvent, javelin:JavelinEvent, hammer:HammerEvent,
       relay4x100:RelayEvent, relay4x400:RelayEvent,
-      swimFree100:SwimEvent, swimBack100:SwimEvent, swimBreast100:SwimEvent, swimFly100:SwimEvent, swimMedley200:SwimEvent, tableTennis:TableTennisEvent, judo:JudoEvent, vault:VaultEvent, canoe:CanoeEvent, golf:GolfEvent,
+      swimFree100:SwimEvent, swimBack100:SwimEvent, swimBreast100:SwimEvent, swimFly100:SwimEvent, swimMedley200:SwimEvent, tableTennis:TableTennisEvent, judo:JudoEvent, vault:VaultEvent, canoe:CanoeEvent, golf:GolfEvent, equestrian:EquestrianEvent,
       poleVault:PoleVaultEvent, diving:DivingEvent, lifting:LiftingEvent, archery:ArcheryEvent,
       cycling:CyclingEvent, rowing:RowingEvent, trampoline:TrampolineEvent,
       climbSpeed:ClimbEvent, fencing:FencingEvent, decathlon:DecathlonEvent, heptathlon:DecathlonEvent, triathlon:TriathlonEvent, shooting:ShootingEvent,

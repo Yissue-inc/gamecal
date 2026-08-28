@@ -192,5 +192,7 @@ const EVENTS = [
   { id:'canoe',        name:'카누 슬라럼',   short:'CSL',   unit:'s', higher:false, qualify:80.0, parS:70.0, kind:'slalom' },
   /* 골프 — 유일하게 **여러 번에 나눠** 목표에 다가간다. 기록은 파 대비(적을수록 좋다). */
   { id:'golf',         name:'골프 3홀',     short:'GOLF',  unit:'타', higher:false, qualify:0.0, parS:-3.0, kind:'golf' },
+  /* 승마 장애물 — 허들과 달리 간격이 제각각이다. 축은 **보폭 계산**(라인 보기). */
+  { id:'equestrian',   name:'승마 장애물',   short:'JUMP',  unit:'벌점', higher:false, qualify:8.0, parS:0.0, kind:'ride' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;

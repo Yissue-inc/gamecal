@@ -465,6 +465,14 @@ const I18N_EN = {
 
   /* 도마 */
   '도마':'Vault',
+  /* 승마 장애물 */
+  '승마 장애물':'Show Jumping', '보폭':'Stride', '짧게':'Short', '보통':'Even', '길게':'Long',
+  '남은 걸음':'Strides left', '지금 뛰어라!':'Jump now!',
+  '발이 맞는다':'The stride fits', '발이 어긋난다 — 보폭을 바꿔라':'The stride does not fit — change it',
+  '깨끗하게!':'Clear!', '막대를 떨어뜨렸다 +4':'Rail down +4',
+  '거부 +4 — 다시 접근':'Refusal +4 — approach again', '거부 3회 — 실격':'Three refusals — eliminated',
+  '아직 멀다':'Still too far', '벌점':'Faults', '낙마봉':'Rails', '거부':'Refusals', '리듬':'Rhythm',
+  '▲▼ 보폭 · 좌우 한 걸음 · 도약대에서 액션':'▲▼ stride · left/right to canter · action at the takeoff mark',
   /* 골프 */
   '골프 3홀':'Golf (3 holes)', '%1번 홀':'Hole %1', '파':'Par', '타수':'Strokes',
   '남은 거리':'To hole', '바람':'Wind', '라이':'Lie',

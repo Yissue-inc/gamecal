@@ -297,6 +297,7 @@ const ANCHOR = {
   gym   : { w:{technique:.40, power:.26, speed:.20, rhythm:.14}, spread:.24, fail:.12, tries:2 },
   slalom: { w:{technique:.42, rhythm:.28, power:.18, stamina:.12}, spread:.20, fail:.08, tries:1 },
   golf  : { w:{technique:.54, rhythm:.26, power:.20}, spread:.55, fail:.05, tries:1 },
+  ride  : { w:{rhythm:.40, technique:.34, speed:.16, power:.10}, spread:.60, fail:.10, tries:1 },
 };
 function simulateAnchored(a, def, opt){
   opt = opt||{};
