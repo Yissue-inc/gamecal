@@ -31,9 +31,17 @@ const Screen = {
   fit(){
     const wrap = document.getElementById('wrap');
     const w = wrap.clientWidth, h = wrap.clientHeight;
-    // 정수배로만 키운다 — 소수배는 픽셀이 고르지 않게 뭉개진다
+    /* ⚠ 리사이즈 도중 한 번이라도 0 으로 재면 배율이 0 으로 굳고 **화면이 통째로 검게** 남는다.
+       resize 이벤트는 다시 안 오므로 영구 고장이다(실측: 창 크기를 바꾸자 그대로 멈췄다).
+       모바일에서 회전·주소창 숨김에 그대로 일어난다. 0 이면 적용하지 않고 다음에 다시 잰다. */
+    if(!(w>0 && h>0)) return;
+    this._lastW = w; this._lastH = h;
+    /* 배율은 단계로만 키운다 — 아무 소수배나 쓰면 픽셀이 고르지 않게 뭉개진다.
+       ⚠ 그런데 0.5 단위만 쓰면 **폰 가로에서 화면의 40%를 버린다**:
+          812x375 는 1.39배가 들어가는데 1.0 으로 내려가 480x270 으로 그려졌다.
+          큰 화면(2배 이상)은 0.5 단위 그대로 두고, 작은 화면만 0.25 단위로 쪼갠다. */
     let s = Math.min(w/VW, h/VH);
-    s = s >= 1 ? Math.floor(s*2)/2 : s;
+    s = s >= 2 ? Math.floor(s*2)/2 : (s >= 1 ? Math.floor(s*4)/4 : s);
     this.scale = s;
     const cw = Math.round(VW*s), ch = Math.round(VH*s);
     for(const c of [this.cv, this.ui, this.bg]){ if(c){ c.style.width = cw+'px'; c.style.height = ch+'px'; } }
@@ -46,6 +54,15 @@ const Screen = {
       this.bctx.setTransform(this.dpr*s, 0, 0, this.dpr*s, 0, 0);
       this.bctx.imageSmoothingEnabled = true;
     }
+  },
+  /* 매 프레임 아주 싸게 확인한다 — 배율이 0 이거나 창이 달라졌으면 다시 맞춘다.
+     resize 이벤트만 믿으면 위 상황에서 복구할 길이 없다. */
+  ensure(){
+    const wrap = document.getElementById('wrap'); if(!wrap) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if(!(w>0 && h>0)) return;
+    if(this.scale>0 && w===this._lastW && h===this._lastH) return;
+    this.fit();
   },
   clearUI(){ this.uctx.save(); this.uctx.setTransform(1,0,0,1,0,0);
     this.uctx.clearRect(0,0,this.ui.width,this.ui.height); this.uctx.restore();
@@ -60,7 +77,9 @@ const Input = {
     left  : ['KeyA','ArrowLeft'],
     right : ['KeyD','ArrowRight'],
     up    : ['KeyW','ArrowUp'],
-    down  : ['KeyS','ArrowDown'],
+    /* ⚠ 첫 코드가 화면 버튼(▼)에 바인딩된다. KeyS 를 앞에 두면 그 코드가 예전 액션
+       매핑과 겹쳐 모바일에서 ▼ 가 액션까지 눌렀다. 겹치지 않는 KeyX 를 앞에 둔다. */
+    down  : ['KeyX','KeyS','ArrowDown'],
     action: ['Space','KeyK','Enter'],
     back  : ['Escape','KeyQ','Backspace'],
     pause : ['KeyP'],
@@ -142,6 +161,16 @@ const Ctrl = {
   load(){ let s=null; try{ s=localStorage.getItem(CTRL_KEY); }catch(_){}
     if(s==='keyboard'||s==='touch'){ this.mode=s; return true; } return false; },
   set(m){ this.mode=m; try{ localStorage.setItem(CTRL_KEY,m); }catch(_){} this.apply(); },
+  /* 경기 중 패드 — 좌우를 크게, 안 쓰는 위아래는 숨긴다.
+     ev 가 없으면(메뉴로 돌아가면) 원래 배치로 되돌린다. */
+  playPad(ev){
+    const pad=document.getElementById('pad'); if(!pad) return;
+    const act=document.getElementById('p-act');
+    if(!ev){ pad.classList.remove('play','noud'); if(act) act.textContent='확인'; return; }
+    pad.classList.add('play');
+    pad.classList.toggle('noud', !ev.onUp && !ev.onDown);
+    if(act) act.textContent = (typeof K==='function') ? K('액션') : '액션';
+  },
   suggested(){ return (('ontouchstart' in window) || (navigator.maxTouchPoints||0)>0 ||
     (matchMedia && matchMedia('(pointer:coarse)').matches)) ? 'touch' : 'keyboard'; },
   apply(){

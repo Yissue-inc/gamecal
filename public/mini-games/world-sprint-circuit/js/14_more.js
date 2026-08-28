@@ -154,7 +154,9 @@ class TripleJumpEvent extends LongJumpEvent {
       const err = this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tgt)/tgt,-1,1);
       HUD.rhythm(u,{nextSide:-this.runner.lastSide||1, phaseErr:err, form:this.runner.form});
     } else if(this.phase==='HOP'){
-      txt(u, `${names[this.hopPhase]} — 정점에서 누르세요`, VW/2, 44, 14, PAL.gold,'center',700);
+      /* ⚠ hopPhase 는 0=홉·1=스텝·2=점프 인데 HOP_NAMES[0] 은 **구름판**이다 —
+         두 인덱스는 한 칸 어긋나 있다. 그 관계를 여기 적어 둔다(hopName 하나로 통일). */
+      txt(u, K(hopName(this.hopPhase+1))+' — '+K('정점에서 누르세요'), VW/2, 44, 14, PAL.gold,'center',700);
       // 타이밍 막대
       plate(u,0,Track.GAUGE_Y,VW,Track.GAUGE_H,0.82);
       const w=200,x=(VW-w)/2,y=Track.GAUGE_Y+9;
@@ -166,13 +168,13 @@ class TripleJumpEvent extends LongJumpEvent {
          이름표를 3개만 두고 같은 인덱스로 읽어서 화면이 통째로 한 칸씩 밀려 있었다 —
          구름판을 '홉'이라 부르고 마지막 점프는 이름이 없어 `undefined 90%` 로 나갔다. */
       this.hops.forEach((q,i)=>{
-        txt(u, K(HOP_NAMES[i]||'')+' '+Math.round(q*100)+'%', 12, 44+i*11, 9,
+        txt(u, K(hopName(i))+' '+Math.round(q*100)+'%', 12, 44+i*11, 9,
             q>0.7?PAL.green:q>0.4?PAL.gold:PAL.red);
       });
     } else if(this.phase==='RESULT'){
       const m=this.pending;
       txt(u, m===null?'파울':m.toFixed(2)+'m', VW/2, 100, 28, m===null?PAL.red:PAL.gold,'center',700);
-      txt(u, this.hops.map((q,i)=>K(HOP_NAMES[i]||'')+' '+Math.round(q*100)+'%').join('  ·  '),
+      txt(u, this.hops.map((q,i)=>K(hopName(i))+' '+Math.round(q*100)+'%').join('  ·  '),
           VW/2, 132, 10, PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){
@@ -183,6 +185,7 @@ class TripleJumpEvent extends LongJumpEvent {
 }
 
 const HOP_NAMES = ['구름판','홉','스텝','점프'];   /* hops 배열과 **같은 순서** */
+function hopName(i){ return HOP_NAMES[i] || ''; }
 
 /* ── 포환던지기 ───────────────────────────────────────────
    조주가 없다. 서클 안에서 힘을 모아 각도를 맞춰 민다. */

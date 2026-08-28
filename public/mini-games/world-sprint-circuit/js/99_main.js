@@ -29,6 +29,7 @@ function installWatchdog(){
   }, 8);
 }
 function frameStep(now){
+  if(Screen.ensure) Screen.ensure();
   /* ⚠ 위쪽만 막고 아래쪽을 안 막았다. 시계가 뒤로 가면(탭 복귀·시계 보정·워치독과
      겹칠 때) dt 가 음수가 되고 경기 시간이 거꾸로 흐른다 — 총성이 영영 안 울린다.
      실측으로 잡았다: 경기 시각이 -22329ms 까지 갔다. */

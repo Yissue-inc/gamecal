@@ -19,10 +19,20 @@ const PARTY_KEYS = [
   { left:'Numpad4',    right:'Numpad6',     action:'Numpad5',   up:'Numpad8',    down:'Numpad2',   label:'숫자4 / 6 · 5' },
 ];
 /* 1인용 전용 — 예전 키를 전부 살려 둔다 */
+/* ⚠ 예전엔 action 에 KeyS·ArrowDown 이 같이 들어 있었다. 방향키가 그냥 '보조 액션'이던
+   시절의 값인데, 사이클 변속·중장거리 페이스·펜싱 등 **아래키가 뜻을 갖는 종목이 6개**
+   생기면서 ▼ 한 번에 '기어 내림 + 스퍼트'가 동시에 일어났다.
+   화면 버튼(▼)도 같은 코드를 쓰므로 모바일에서는 이걸 피할 방법이 아예 없었다. */
 const SOLO_KEYS = { left:['KeyA','ArrowLeft'], right:['KeyD','ArrowRight'],
-                    action:['Space','KeyK','Enter','KeyS','ArrowDown'],
-                    /* 사이클 변속 등 — 1인용은 W/S 와 ↑↓ 를 다 받는다 */
-                    up:['KeyW','ArrowUp'], down:['KeyX','KeyS'] };
+                    action:['Space','KeyK','Enter'],
+                    up:['KeyW','ArrowUp'], down:['KeyX','KeyS','ArrowDown'] };
+
+/* 겹치면 로드할 때 실패한다 — 조용히 두 동작이 같이 일어나는 건 화면만 봐서는 못 잡는다 */
+(function checkSoloKeyOverlap(){
+  const dir = new Set([...SOLO_KEYS.up, ...SOLO_KEYS.down]);
+  const bad = SOLO_KEYS.action.filter(c=>dir.has(c));
+  if(bad.length) throw new Error('SOLO_KEYS: 액션과 방향이 겹친다 — '+bad.join(' '));
+})();
 
 const PARTY_COLOR = ['#5aaaff','#ffd75e','#ff6b8a','#8affb0'];
 /* 종족은 플레이어마다 다르게 — 누가 누군지 한눈에 */

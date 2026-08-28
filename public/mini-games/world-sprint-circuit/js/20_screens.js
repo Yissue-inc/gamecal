@@ -49,12 +49,14 @@ const G = {
     const Klass = this.classFor(def);
     if(!Klass){ this.toast('아직 준비 중인 종목입니다'); this.state=ST.SELECT; return; }
     this.event = new Klass(def);
+    if(Ctrl.playPad) Ctrl.playPad(this.event);
     this.newRecord = false;
     /* 종목이 지금 누구 것인지 알려 준다 — 캐릭터·색을 그 사람 것으로 */
     this.event.pIndex = (Party.on && Party.modeFor(def)==='turn') ? Party.turn : 0;
     this.state = ST.PLAY;
   },
-  backToSelect(){ this.state=ST.SELECT; this.event=null; },
+  backToSelect(){
+    if(Ctrl.playPad) Ctrl.playPad(null); this.state=ST.SELECT; this.event=null; },
 
   /* ── 진행 ── */
   update(dt){
