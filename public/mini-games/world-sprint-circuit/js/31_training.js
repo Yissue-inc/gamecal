@@ -81,7 +81,10 @@ function trainWeek(a, program, focus, rng){
       if(room <= 0) continue;
       // 잠재치에 가까울수록 잘 안 는다(체감 성장)
       const near = clamp(room/22, 0.10, 1);
-      let g = TrainTune.baseGain * w/6 * fatiguePenalty * ageF * moraleF * near * (0.7+rng()*0.6);
+      /* 종 배율 — 치타는 스피드가 빨리 늘고 코끼리는 파워가 빨리 는다.
+         ⚠ 상한을 막지 않는다. 치타도 던지기를 배울 수 있다, 다만 오래 걸린다. */
+      const sb = (typeof speciesBias==='function') ? speciesBias(a, k) : 1;
+      let g = TrainTune.baseGain * w/6 * sb * fatiguePenalty * ageF * moraleF * near * (0.7+rng()*0.6);
       if(ageF < 0) g = Math.min(0, g);              // 전성기 이후엔 줄 수도 있다
       if(Math.abs(g) < 0.01) continue;
       const before = a.stats[k];

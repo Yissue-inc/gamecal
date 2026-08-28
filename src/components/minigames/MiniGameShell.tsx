@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Gamepad2 } from 'lucide-react'
+import { ArrowLeft, Gamepad2, RotateCw } from 'lucide-react'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { MiniGameFrame } from '@/components/minigames/MiniGameFrame'
 import { MiniGameResultPanel, type MiniGameResult, type MiniGameSaveState } from '@/components/minigames/MiniGameResultPanel'
@@ -40,6 +40,7 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
   const [result, setResult] = useState<MiniGameResult | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
   const [saveState, setSaveState] = useState<MiniGameSaveState>({ status: 'idle' })
+  const [needsLandscape, setNeedsLandscape] = useState(false)
   // The iframe URL must stay SSR-stable so hydration never reloads the game
   // mid-launch. The real session id is kept in a ref and used only by the APIs.
   const sessionId = 'guest'
@@ -98,6 +99,18 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
       .catch(() => {})
     return () => { cancelled = true }
   }, [eventId, game.slug, source, track])
+
+  useEffect(() => {
+    if (game.orientation !== 'landscape') {
+      setNeedsLandscape(false)
+      return
+    }
+    const query = window.matchMedia('(orientation: portrait)')
+    const sync = () => setNeedsLandscape(query.matches)
+    sync()
+    query.addEventListener('change', sync)
+    return () => query.removeEventListener('change', sync)
+  }, [game.orientation])
 
   const saveScore = useCallback(async (pending: MiniGameResult) => {
     setSaveState({ status: 'saving' })
@@ -271,10 +284,21 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
 
       <main className="mx-auto flex max-w-6xl flex-col gap-0 px-0 sm:px-4 sm:py-4">
         <section className="relative overflow-hidden bg-[#06182a] shadow-2xl sm:rounded-2xl sm:border sm:border-white/10" aria-label={`${game.title} game`}>
-          <div className="h-[calc(100dvh-58px)] min-h-[600px] max-h-[1040px] sm:h-[calc(100dvh-114px)]">
+          <div className={game.orientation === 'landscape'
+            ? 'aspect-video w-full'
+            : 'h-[calc(100dvh-58px)] min-h-[600px] max-h-[1040px] sm:h-[calc(100dvh-114px)]'}>
             <MiniGameFrame key={frameKey} ref={frameRef} src={frameSrc} title={game.title} onLoad={handleFrameLoad} />
           </div>
           {!bridgeReady ? <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#06182a] text-sm text-cyan-100">Preparing your journey…</div> : null}
+          {needsLandscape ? (
+            <div className="absolute inset-0 grid place-items-center bg-[#06182a]/95 p-6 text-center">
+              <div>
+                <RotateCw className="mx-auto size-8 text-cyan-200" aria-hidden="true" />
+                <p className="mt-3 text-base font-bold text-white">Rotate to landscape to race</p>
+                <p className="mt-1 text-sm text-slate-300">World Sprint Circuit is built for a wide track and two-thumb controls.</p>
+              </div>
+            </div>
+          ) : null}
         </section>
         {result ? (
           <MiniGameResultPanel

@@ -546,6 +546,37 @@ const TXT = {
   continueGame:   ['이어서 하기',            'Continue'],
   howToPlay:      ['조작법',                 'How to Play'],
   watchDemo:      ['관전하기 (자동 플레이)',  'Watch demo (auto-play)'],
+  mgMemoryTitle:  ['기억놀이',                'Memory'],
+  mgMemoryHint:   ['같은 무늬 둘을 찾으세요',  'Find the matching pairs'],
+  mgMemoryPeek:   ['잘 봐 두세요',            'Remember them'],
+  mgScaleTitle:   ['숫자 저울',               'The Scale'],
+  mgScaleHint:    ['숫자를 골라 왼쪽과 같게 만드세요','Pick numbers to match the left'],
+  mgScaleClear:   ['▼ 또는 X : 고른 것 지우기',  'Down or X : clear selection'],
+  mgThreadTitle:  ['빛의 실',                 'Thread of Light'],
+  t_mgFaith:      ['믿음이 자랐다 (최대 믿음 +2)','Your faith grew (max faith +2)'],
+  t_mgHp:         ['마음이 단단해졌다 (최대 체력 +2)','Your heart hardened (max HP +2)'],
+  t_mgCoin:       ['셈이 맞았다 (동전 +15)',   'The sum was right (+15 coins)'],
+  t_mgTry:        ['다음에 다시 해 보자',      'Try again next time'],
+  mgKnotTitle:    ['매듭 풀기',                'Untie the Knot'],
+  mgKnotHint:     ['다른 줄에 눌리지 않은 줄부터 당기세요','Pull the rope that nothing lies over'],
+  mgKnotTight:    ['조임',                    'Tightened'],
+  mgGuardTitle:   ['방패 막기',                'Raise the Shield'],
+  mgBurdenTitle:  ['짐 지고 언덕 오르기',        'Carry the Burden Uphill'],
+  mgBurdenHint:   ['짐이 쏠리는 반대쪽을 눌러 버틴다  ◀ ▶',
+                   'Press the opposite way to stay upright  ◀ ▶'],
+  mgBurdenDrop:   ['떨어뜨림',                  'Dropped'],
+  mgBurdenWin:    [(n)=>`짐을 지고 언덕을 올랐다. 떨어뜨린 횟수 ${n}.`,
+                   (n)=>`You carried it to the top. Dropped ${n} time(s).`],
+  mgBurdenLose:   ['짐이 굴러떨어졌다.',         'The burden rolled away.'],
+  mgTimeUp:       ['시간이 다 됐다.',           'Time ran out.'],
+  t_mgBurden:     ['등이 단단해졌다 (체력 +2)',  'Your back grew strong (HP +2)'],
+  mgGuardHint:    ['▲▼ 로 방패를 화살 높이에 맞추세요','Move the shield to meet each arrow'],
+  mgLanternTitle: ['등불 잇기',                'Light the Lanterns'],
+  mgLanternWatch: ['순서를 보세요',            'Watch the order'],
+  mgLanternGo:    ['같은 순서로 밟으세요',      'Now repeat it'],
+  t_mgDef:        ['방어가 단단해졌다 (방어 +1)','Your guard hardened (DEF +1)'],
+  t_mgLight:      ['어둠이 덜 무겁다 (최대 믿음 +3)','The dark weighs less (max faith +3)'],
+  t_mgBurden:     ['짐이 가벼워졌다 (최대 체력 +3)','The burden feels lighter (max HP +3)'],
   dlgNextKey:     ['[E] 또는 [Space] 로 계속', 'Press [E] or [Space]'],
   dlgNextTouch:   ['화면을 누르면 계속',        'Tap anywhere'],
   language:       ['한국어 / English',       'English / 한국어'],
@@ -5294,7 +5325,10 @@ const MiniGame = {
   active:false, kind:null, impl:null, onDone:null, outro:0, result:null,
   open(kind, onDone){
     this.kind=kind; this.onDone=onDone||null; this.outro=0; this.result=null;
-    this.impl = (kind==='seed')? SeedGarden : NarrowRun;
+    this.impl = { seed:SeedGarden, narrow:NarrowRun,
+                  memory:MemoryPairs, scale:NumberScale, thread:LightThread,
+                  knot:KnotUntie, guard:ShieldGuard, lantern:LanternSeq,
+                  burden:BurdenBalance }[kind] || NarrowRun;
     MGArt.prefetch();
     this.impl.start();
     this.active=true;
@@ -5969,6 +6003,660 @@ const NarrowRun = {
 
 </script>
 <script>
+/* ===== js/51_minigames2.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   미니게임 3종 추가 — 1~5장이 심심하지 않게.
+   ⚠ 기존 틀(MiniGame.open)에 그대로 얹는다. impl 은 start/update/draw 만 있으면 된다.
+     이야기와 억지로 엮지 않는다. 대신 **장의 정서에는 맞춘다.**
+       기억놀이(짝 맞추기) — 3장 세속 현자: "무엇을 기억하고 무엇을 잊었나"
+       숫자 저울        — 4장 좁은 문: "셈이 맞아야 문이 열린다"
+       빛의 실           — 2장 낙담의 늪: 길게 이어 늪을 건넌다 (지렁이)
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* ── 1. 기억놀이 (카드 짝 맞추기) ────────────────────────── */
+const MemoryPairs = {
+  /* ⚠ 예전엔 '시간초과' 말고 지는 길이 없어서 실력과 무관하게 100% 였다(실측).
+     뒤집기 횟수를 예산으로 만든다 — 완벽하면 8번, 보통은 12~14번 걸린다. */
+  cols:4, rows:4, cards:[], sel:0, open:[], matched:0, moves:0, t:0, lock:0,
+  budget:12,
+  start(){
+    const N=(this.cols*this.rows)/2;
+    const faces=[];
+    for(let i=0;i<N;i++){ faces.push(i,i); }
+    // 섞기
+    for(let i=faces.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [faces[i],faces[j]]=[faces[j],faces[i]]; }
+    this.cards=faces.map(f=>({face:f, up:false, done:false}));
+    this.sel=0; this.open=[]; this.matched=0; this.moves=0; this.t=0; this.lock=0;
+    /* ⚠ doomed 를 여기서 안 지우면 한 번 진 뒤로는 시작하자마자 계속 진다.
+       impl 이 모듈 하나를 재사용하는 구조라 상태가 판을 넘어 남는다(실측). */
+    this.doomed=false;
+    /* 시작할 때 잠깐 다 보여 준다 — 순수 운이 아니라 기억력이 되게 */
+    this.cards.forEach(c=>c.up=true);
+    this.peek=66;
+  },
+  update(){
+    this.t++;
+    if(this.peek>0){ this.peek--; if(this.peek===0) this.cards.forEach(c=>{ if(!c.done) c.up=false; }); return; }
+    if(this.lock>0){
+      this.lock--;
+      if(this.lock===0){
+        const [a,b]=this.open;
+        if(this.cards[a].face===this.cards[b].face){
+          this.cards[a].done=this.cards[b].done=true; this.matched++;
+          Audio2.sfx('confirm');
+          if(this.matched*2>=this.cards.length){
+            MiniGame.finish({win:true, msg:`${this.moves}번 만에 모두 맞췄다.`, moves:this.moves});
+          }
+        } else { this.cards[a].up=this.cards[b].up=false; Audio2.sfx('deny'); }
+        this.open=[];
+      }
+      return;
+    }
+    const C=this.cols, R=this.rows;
+    if(Input.pressed('left'))  this.sel=(this.sel+C*R-1)%(C*R);
+    if(Input.pressed('right')) this.sel=(this.sel+1)%(C*R);
+    if(Input.pressed('up'))    this.sel=(this.sel+C*R-C)%(C*R);
+    if(Input.pressed('down'))  this.sel=(this.sel+C)%(C*R);
+    if(Input.pressed('interact')||Input.pressed('jump')){
+      const c=this.cards[this.sel];
+      if(c.done||c.up) return;
+      c.up=true; this.open.push(this.sel); Audio2.sfx('select');
+      if(this.open.length===2){
+        this.moves++; this.lock=30;
+        /* 예산을 다 쓰면 진다. 짝을 맞춘 판이면 마지막 한 번은 봐준다 —
+           '딱 한 번 남았다' 에서 성공하는 맛이 이 게임의 전부다. */
+        if(this.moves>=this.budget && this.matched*2 < this.cards.length-2)
+          this.doomed=true;
+      }
+    }
+    if(this.doomed && this.lock===0)
+      MiniGame.finish({win:false, msg:`촛불이 다 탔다. ${this.matched}쌍까지 맞췄다.`});
+    if(this.t>60*90) MiniGame.finish({win:false, msg:'시간이 다 됐다.'});
+  },
+  draw(x,u){
+    x.fillStyle='#141020'; x.fillRect(0,0,VW,VH);
+    const C=this.cols,R=this.rows, cw=52, ch=40, gx=(VW-C*cw)/2, gy=48;
+    for(let i=0;i<C*R;i++){
+      const c=this.cards[i], cx=gx+(i%C)*cw, cy=gy+((i/C)|0)*ch;
+      const on=i===this.sel;
+      x.fillStyle = c.done? '#2a3a2a' : (c.up? '#e8dcc0' : '#3a3450');
+      x.fillRect(cx+3, cy+3, cw-6, ch-6);
+      x.strokeStyle = on? '#ffe08a' : '#5a5478'; x.lineWidth=on?2:1;
+      x.strokeRect(cx+3, cy+3, cw-6, ch-6);
+      if(c.up||c.done) MGArt2.symbol(x, cx+cw/2, cy+ch/2, c.face);
+    }
+    drawText(u, L('mgMemoryTitle'), 14, VW/2, 16, '#ffe08a', 'center');
+    drawText(u, L('mgMemoryHint'), 10, VW/2, 34, '#a8a0c0', 'center');
+    const leftM=Math.max(0,this.budget-this.moves);
+    drawText(u, `${this.matched} / ${(this.cols*this.rows)/2}`, 12, VW/2-46, VH-22, '#e8dcc0','center');
+    drawText(u, `남은 뒤집기 ${leftM}`, 12, VW/2+52, VH-22,
+      leftM<=2?'#ff8a8a':(leftM<=4?'#ffd75e':'#a8a0c0'),'center');
+    if(this.peek>0) drawText(u, L('mgMemoryPeek'), 11, VW/2, VH-38, '#8affb0','center');
+  }
+};
+
+/* ── 2. 숫자 저울 (더하기·빼기) ──────────────────────────── */
+const NumberScale = {
+  /* ⚠ 예전엔 전체 100초만 있어서 한 문제를 1초에 풀고 끝났다(실측 100%/1초).
+     문제마다 모래시계를 둔다 — 뒤로 갈수록 짧아진다. */
+  target:0, pool:[], picked:[], sel:0, round:0, need:6, t:0, wrong:0,
+  sand:0, sandMax:0,
+  start(){ this.round=0; this.wrong=0; this.t=0; this.newRound(); },
+  newRound(){
+    this.round++;
+    const n = 4 + Math.min(3, (this.round/2)|0);          // 숫자 개수가 점점 는다
+    this.pool=[]; for(let i=0;i<n;i++) this.pool.push(1+((Math.random()*11)|0));
+    /* 정답이 반드시 존재하도록 두세 개를 골라 목표를 만든다.
+       ⚠ 목표가 너무 크면 남은 수로 못 맞춘다 — 합의 절반 이하로 제한한다. */
+    const k = 2 + ((Math.random()*2)|0);
+    const idx=[...this.pool.keys()].sort(()=>Math.random()-0.5).slice(0,k);
+    this.target = idx.reduce((s,i)=>s+this.pool[i],0);
+    this.solution = idx.slice();
+    this.picked=[]; this.sel=0;
+    this.sandMax = Math.round(60 * (10.5 - (this.round-1)*0.7));  // 10.5초 → 7초
+    this.sand = this.sandMax;
+  },
+  get sum(){ return this.picked.reduce((s,i)=>s+this.pool[i],0); }, 
+  update(){
+    this.t++;
+    /* 모래시계 — 다 떨어지면 오답 하나로 친다 */
+    if(this.sand>0){
+      this.sand--;
+      if(this.sand===0){
+        this.wrong++; Audio2.sfx('deny'); this.picked=[];
+        if(this.wrong>=3){ MiniGame.finish({win:false, msg:'저울이 계속 기울었다.'}); return; }
+        this.newRound(); return;
+      }
+    }
+    if(Input.pressed('left'))  this.sel=(this.sel+this.pool.length-1)%this.pool.length;
+    if(Input.pressed('right')) this.sel=(this.sel+1)%this.pool.length;
+    /* ⚠ 되돌릴 길이 없으면 갇힌다. 고른 걸 지울 수 있어야 한다(벌점 없음).
+       실측: 이게 없어서 20판 중 19판이 끝나지 않았다. */
+    if(Input.pressed('down')||Input.pressed('attack')){
+      if(this.picked.length){ this.picked=[]; Audio2.sfx('select'); }
+    }
+    if(Input.pressed('interact')||Input.pressed('jump')){
+      const i=this.picked.indexOf(this.sel);
+      if(i>=0) this.picked.splice(i,1); else this.picked.push(this.sel);
+      Audio2.sfx('select');
+      const s=this.sum;
+      if(s===this.target){
+        Audio2.sfx('confirm');
+        if(this.round>=this.need){
+          MiniGame.finish({win:true, msg:`${this.need}문제를 모두 풀었다. 틀린 횟수 ${this.wrong}.`});
+        } else this.newRound();
+      } else if(s>this.target){
+        this.wrong++; Audio2.sfx('deny'); this.picked=[];
+        if(this.wrong>=3) MiniGame.finish({win:false, msg:'저울이 계속 기울었다.'});
+      }
+    }
+    if(this.t>60*100) MiniGame.finish({win:false, msg:'시간이 다 됐다.'});
+  },
+  draw(x,u){
+    x.fillStyle='#101828'; x.fillRect(0,0,VW,VH);
+    // 저울
+    const cx=VW/2, cy=70;
+    const diff = this.sum - this.target;
+    const tilt = clamp(diff/Math.max(1,this.target)*22, -22, 22);
+    x.strokeStyle='#8a8298'; x.lineWidth=2;
+    x.beginPath(); x.moveTo(cx,cy+26); x.lineTo(cx,cy-4); x.stroke();
+    x.save(); x.translate(cx,cy-4); x.rotate(tilt*Math.PI/180);
+    x.beginPath(); x.moveTo(-52,0); x.lineTo(52,0); x.stroke();
+    x.fillStyle='#c9a227'; x.fillRect(-58,0,12,8);
+    x.fillStyle='#7fc0ff'; x.fillRect(46,0,12,8);
+    x.restore();
+    drawText(u, String(this.target), 20, cx-64, cy-30, '#ffe08a','center');
+    drawText(u, String(this.sum),    20, cx+64, cy-30, this.sum===this.target?'#8affb0':'#7fc0ff','center');
+
+    // 숫자 카드
+    const cw=42, gx=(VW-this.pool.length*cw)/2, gy=126;
+    this.pool.forEach((v,i)=>{
+      const on=i===this.sel, taken=this.picked.includes(i);
+      x.fillStyle = taken? '#2e4a68' : '#242038';
+      x.fillRect(gx+i*cw+3, gy, cw-6, 34);
+      x.strokeStyle = on? '#ffe08a' : '#4a4460'; x.lineWidth=on?2:1;
+      x.strokeRect(gx+i*cw+3, gy, cw-6, 34);
+      drawText(u, String(v), 15, gx+i*cw+cw/2, gy+9, taken?'#8affb0':'#e8dcc0','center');
+    });
+    drawText(u, L('mgScaleTitle'), 14, VW/2, 14, '#ffe08a','center');
+    drawText(u, L('mgScaleHint'), 10, VW/2, 32, '#a8a0c0','center');
+    /* 모래시계 막대 — 압박이 보여야 압박이다 */
+    const bw=200, bx=VW/2-bw/2, by=VH-42, pr=this.sandMax? this.sand/this.sandMax : 0;
+    x.fillStyle='#2a2438'; x.fillRect(bx,by,bw,6);
+    x.fillStyle = pr<0.25? '#ff8a8a' : (pr<0.5? '#ffd75e' : '#8affb0');
+    x.fillRect(bx,by,Math.round(bw*pr),6);
+    drawText(u, `${this.round} / ${this.need}    ✕ ${this.wrong}/3`, 11, VW/2, VH-24,
+      this.wrong>=2?'#ff8a8a':'#e8dcc0','center');
+    drawText(u, L('mgScaleClear'), 9, VW/2, VH-12, '#8a8298','center');
+  }
+};
+
+/* ── 3. 빛의 실 (지렁이) ─────────────────────────────────── */
+const LightThread = {
+  grid:24, cell:9, snake:[], dir:{x:1,y:0}, next:{x:1,y:0}, food:null,
+  tick:0, speed:7, grow:0, len:4, need:15, t:0, dead:false, foodT:0,
+  start(){
+    const g=this.grid;
+    this.snake=[{x:6,y:12},{x:5,y:12},{x:4,y:12},{x:3,y:12}];
+    this.dir={x:1,y:0}; this.next={x:1,y:0};
+    this.len=4; this.tick=0; this.speed=7; this.t=0; this.dead=false; this.grow=0; this.foodT=0;
+    this.spawnFood();
+  },
+  spawnFood(){
+    const g=this.grid;
+    let p, guard=0;
+    do{ p={x:(Math.random()*g)|0, y:(Math.random()*g)|0}; guard++; }
+    while(guard<200 && this.snake.some(s=>s.x===p.x&&s.y===p.y));
+    this.food=p;
+  },
+  update(){
+    this.t++;
+    if(this.dead) return;
+    /* 방향 — 반대로는 못 꺾는다 */
+    if(Input.pressed('left')  && this.dir.x!==1)  this.next={x:-1,y:0};
+    if(Input.pressed('right') && this.dir.x!==-1) this.next={x:1,y:0};
+    if(Input.pressed('up')    && this.dir.y!==1)  this.next={x:0,y:-1};
+    if(Input.pressed('down')  && this.dir.y!==-1) this.next={x:0,y:1};
+
+    this.tick++;
+    if(this.tick < this.speed) return;
+    this.tick=0;
+    this.dir=this.next;
+    const g=this.grid;
+    const h=this.snake[0];
+    const nh={x:h.x+this.dir.x, y:h.y+this.dir.y};
+    /* 벽을 넘으면 반대편으로 — 실이 끊기지 않게 (아이가 하기 쉬워야 한다) */
+    if(nh.x<0) nh.x=g-1; if(nh.x>=g) nh.x=0;
+    if(nh.y<0) nh.y=g-1; if(nh.y>=g) nh.y=0;
+    if(this.snake.some(s=>s.x===nh.x&&s.y===nh.y)){
+      this.dead=true;
+      MiniGame.finish({win:false, msg:`실이 스스로 엉켰다. ${this.len}까지 이었다.`});
+      return;
+    }
+    /* 먹이가 오래 남으면 자리를 옮긴다 — 헤매면 실이 길어져 스스로 좁아진다 */
+    this.foodT++;
+    if(this.foodT > 190){ this.spawnFood(); this.foodT=0; }
+    this.snake.unshift(nh);
+    if(this.food && nh.x===this.food.x && nh.y===this.food.y){
+      this.len++; Audio2.sfx('coin'); this.foodT=0;
+      this.spawnFood();
+      if(this.len%3===0 && this.speed>3) this.speed--;      // 점점 빨라진다
+      if(this.len>=this.need){
+        MiniGame.finish({win:true, msg:`빛의 실을 ${this.len}까지 이었다.`, len:this.len});
+        return;
+      }
+    } else this.snake.pop();
+    if(this.t>60*120) MiniGame.finish({win:false, msg:'시간이 다 됐다.'});
+  },
+  draw(x,u){
+    x.fillStyle='#0c1420'; x.fillRect(0,0,VW,VH);
+    const g=this.grid, c=this.cell, ox=(VW-g*c)/2, oy=(VH-g*c)/2+6;
+    x.fillStyle='#111c2c'; x.fillRect(ox,oy,g*c,g*c);
+    x.strokeStyle='#22304a'; x.lineWidth=1; x.strokeRect(ox+.5,oy+.5,g*c-1,g*c-1);
+    // 먹이
+    if(this.food){
+      const fx=ox+this.food.x*c, fy=oy+this.food.y*c;
+      const pulse=1+Math.sin(this.t*0.16)*0.18;
+      x.fillStyle='#ffe08a';
+      x.fillRect(fx+c/2-2*pulse, fy+c/2-2*pulse, 4*pulse, 4*pulse);
+    }
+    // 실
+    this.snake.forEach((s,i)=>{
+      const a = 1 - i/(this.snake.length*1.5);
+      x.fillStyle = i===0? '#ffffff' : `rgba(160,220,255,${0.35+a*0.6})`;
+      x.fillRect(ox+s.x*c+1, oy+s.y*c+1, c-2, c-2);
+    });
+    drawText(u, L('mgThreadTitle'), 14, VW/2, 8, '#ffe08a','center');
+    drawText(u, `${this.len} / ${this.need}`, 12, VW/2, VH-18, '#a0dcff','center');
+  }
+};
+
+/* 카드 무늬 — 어셋 없이 코드로 */
+const MGArt2 = {
+  symbol(x, cx, cy, f){
+    const C=['#e8544e','#5cff9c','#5aaaff','#ffd75e','#b06bff','#ff9a4c'][f%6];
+    x.fillStyle=C;
+    switch(f%6){
+      case 0: x.fillRect(cx-7,cy-7,14,14); break;
+      case 1: x.beginPath(); x.arc(cx,cy,8,0,Math.PI*2); x.fill(); break;
+      case 2: x.beginPath(); x.moveTo(cx,cy-9); x.lineTo(cx+9,cy+7); x.lineTo(cx-9,cy+7); x.closePath(); x.fill(); break;
+      case 3: x.fillRect(cx-2,cy-9,4,18); x.fillRect(cx-9,cy-2,18,4); break;
+      case 4: x.beginPath(); x.moveTo(cx,cy-9); x.lineTo(cx+8,cy); x.lineTo(cx,cy+9); x.lineTo(cx-8,cy); x.closePath(); x.fill(); break;
+      default:
+        x.beginPath();
+        for(let i=0;i<5;i++){ const a=-Math.PI/2+i*Math.PI*2/5;
+          const r1=9, r2=4;
+          x.lineTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
+          x.lineTo(cx+Math.cos(a+Math.PI/5)*r2, cy+Math.sin(a+Math.PI/5)*r2); }
+        x.closePath(); x.fill();
+    }
+  }
+};
+
+</script>
+<script>
+/* ===== js/52_minigames3.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   미니게임 3종 — 실측으로 가장 빈 구간에 넣는다.
+     5장 십자가        공백 119타일(맵의 60%)  → 매듭 풀기
+     8장 겸손의 골짜기  이벤트 밀도 1.3 (최저)  → 방패 막기
+     9장 어둠의 골짜기  공백 88타일             → 등불 잇기
+   (참고: 6장 밀도 20.8 이 이 게임의 기준선이다. 8장은 그 1/16 이었다)
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* ── 1. 매듭 풀기 (5장) ──────────────────────────────────
+   짐을 묶은 줄이 서로 겹쳐 있다. **다른 줄에 눌리지 않은 줄**부터 당겨야 풀린다.
+   잘못 당기면 매듭이 더 조인다. */
+const KnotUntie = {
+  /* ⚠ 예전엔 풀 줄이 화면에 그대로 보여서 실패가 불가능했다(실측 100%/0초).
+     매듭이 스스로 조이게 한다 — 정답을 알아도 '빨리' 해야 한다. */
+  ropes:[], sel:0, tight:0, t:0, order:[], selfT:0, warn:0,
+  budget:5, selfEvery:260,          // 4.5초마다 저절로 조인다
+  start(){
+    const N=6;
+    this.ropes=[];
+    for(let i=0;i<N;i++){
+      this.ropes.push({ id:i, y:22+i*26, color:['#c96a4a','#5aaaff','#5cff9c','#ffd75e','#b06bff','#ff9a4c'][i],
+        under:[], done:false, shake:0 });
+    }
+    /* 겹침 관계 — i 번 줄은 under 에 있는 줄들에 눌려 있다 */
+    const perm=[...Array(N).keys()].sort(()=>Math.random()-0.5);
+    this.order=perm.slice();
+    perm.forEach((rid,k)=>{ this.ropes[rid].under = perm.slice(k+1); });
+    this.sel=0; this.tight=0; this.t=0; this.selfT=0; this.warn=0;
+  },
+  free(r){ return r.under.every(id=>this.ropes[id].done); },
+  update(){
+    this.t++;
+    if(this.warn>0) this.warn--;
+    /* 저절로 조이는 매듭 — 남은 줄이 적을수록 더 자주 조인다 */
+    const leftN=this.ropes.filter(r=>!r.done).length;
+    this.selfT++;
+    if(this.selfT >= this.selfEvery - (6-leftN)*22){
+      this.selfT=0; this.tight++; this.warn=26; Audio2.sfx('deny');
+      const any=this.ropes.filter(r=>!r.done); if(any.length) any[0].shake=14;
+      if(this.tight>=this.budget){ MiniGame.finish({win:false, msg:'매듭이 더 조여 버렸다.'}); return; }
+    }
+    for(const r of this.ropes) if(r.shake>0) r.shake--;
+    const alive=this.ropes.filter(r=>!r.done);
+    if(Input.pressed('left')||Input.pressed('up')){
+      do{ this.sel=(this.sel+this.ropes.length-1)%this.ropes.length; } while(this.ropes[this.sel].done);
+      Audio2.sfx('select');
+    }
+    if(Input.pressed('right')||Input.pressed('down')){
+      do{ this.sel=(this.sel+1)%this.ropes.length; } while(this.ropes[this.sel].done);
+      Audio2.sfx('select');
+    }
+    if(Input.pressed('interact')||Input.pressed('jump')){
+      const r=this.ropes[this.sel];
+      if(r.done) return;
+      if(this.free(r)){
+        r.done=true; Audio2.sfx('confirm');
+        if(this.ropes.every(x=>x.done))
+          MiniGame.finish({win:true, msg:`매듭을 다 풀었다. 조임 ${this.tight}회.`});
+        else { while(this.ropes[this.sel].done) this.sel=(this.sel+1)%this.ropes.length; }
+      } else {
+        this.tight++; r.shake=14; Audio2.sfx('deny');
+        if(this.tight>=this.budget) MiniGame.finish({win:false, msg:'매듭이 더 조여 버렸다.'});
+      }
+    }
+    if(this.t>60*100) MiniGame.finish({win:false, msg:'시간이 다 됐다.'});
+  },
+  draw(x,u){
+    x.fillStyle='#1a1420'; x.fillRect(0,0,VW,VH);
+    /* 짐 — 화면 왼쪽에 */
+    x.fillStyle='#5a4636'; x.fillRect(28, 92, 46, 56);
+    x.fillStyle='#6b5442'; x.fillRect(31, 95, 40, 50);
+    this.ropes.forEach((r,i)=>{
+      const y=r.y+ (r.shake>0? Math.sin(r.shake*1.6)*2 : 0);
+      const on=i===this.sel, freeNow=this.free(r);
+      x.globalAlpha = r.done? 0.18 : 1;
+      x.strokeStyle=r.color; x.lineWidth= on?4:3;
+      x.beginPath(); x.moveTo(74, 118);
+      x.bezierCurveTo(140, y, 260, y+ (i%2?14:-14), 400, y);
+      x.stroke();
+      /* 눌린 줄은 흐리게 + 위에 다른 줄이 지나간 표시 */
+      if(!r.done && !freeNow){
+        x.globalAlpha=0.85; x.strokeStyle='rgba(20,16,28,.75)'; x.lineWidth=6;
+        r.under.filter(id=>!this.ropes[id].done).forEach(id=>{
+          const oy=this.ropes[id].y;
+          x.beginPath(); x.moveTo(250, (y+oy)/2-8); x.lineTo(250, (y+oy)/2+8); x.stroke();
+        });
+      }
+      x.globalAlpha=1;
+      if(on && !r.done){ x.fillStyle='#ffe08a'; x.fillRect(404, y-3, 8, 6); }
+    });
+    drawText(u, L('mgKnotTitle'), 14, VW/2, 8, '#ffe08a','center');
+    drawText(u, L('mgKnotHint'), 10, VW/2, VH-30, '#a8a0c0','center');
+    drawText(u, `${this.ropes.filter(r=>r.done).length} / ${this.ropes.length}   ${L('mgKnotTight')} ${this.tight}/6`,
+      11, VW/2, VH-16, this.tight>=4?'#ff8a8a':'#e8dcc0','center');
+  }
+};
+
+/* ── 2. 방패 막기 (8장) ─────────────────────────────────
+   위·중간·아래에서 화살이 날아온다. 방패를 그 높이에 맞추면 막힌다. */
+const ShieldGuard = {
+  /* ⚠ 예전엔 화살이 1.6px/프레임 으로 날아와 방패까지 4.2초가 걸렸다 —
+     반응할 시간이 과해서 실력과 무관하게 100% 였다(실측). 1.4초로 줄인다. */
+  lanes:3, pos:1, arrows:[], t:0, hit:0, blocked:0, need:18, spawn:0, speed:4.9,
+  budget:3,
+  start(){ this.pos=1; this.arrows=[]; this.t=0; this.hit=0; this.blocked=0; this.spawn=0; this.speed=4.9; },
+  update(){
+    this.t++;
+    if(Input.pressed('up'))   { this.pos=Math.max(0,this.pos-1); Audio2.sfx('select'); }
+    if(Input.pressed('down')) { this.pos=Math.min(this.lanes-1,this.pos+1); Audio2.sfx('select'); }
+    /* 화살 생성 — 점점 빨라진다 */
+    this.spawn--;
+    if(this.spawn<=0){
+      const hot = Math.random()<0.24;
+      const lane = (Math.random()*this.lanes)|0;
+      this.arrows.push({ x:VW+10, lane, hot, mul: hot?1.45:1 });
+      /* 연사 — 9발부터는 가끔 두 발이 잇달아 다른 레인으로 온다.
+         하나 막고 곧장 옮겨야 해서 여기서 예산이 깎인다. */
+      if(this.blocked>=9 && Math.random()<0.22){
+        const other=(lane + 1 + ((Math.random()*(this.lanes-1))|0)) % this.lanes;
+        /* ⚠ 간격 34px = 약 108ms. 사람 반응속도(200ms 전후)로는 아예 불가능했다.
+           막을 수 있어야 아슬아슬한 것이지, 못 막으면 그냥 부당한 것이다. */
+        this.arrows.push({ x:VW+10+96, lane:other, hot:false, mul:1 });
+      }
+      this.spawn = Math.max(12, 36 - this.blocked*1.35);
+      this.speed = 4.9 + this.blocked*0.10;
+    }
+    const SX=86;                       // 방패 위치
+    for(const a of this.arrows.slice()){
+      a.x -= this.speed * (a.mul||1);
+      if(a.x <= SX && a.x > SX-this.speed*(a.mul||1)-1){
+        if(a.lane===this.pos){ this.blocked++; Audio2.sfx('confirm'); a.dead=true;
+          if(this.blocked>=this.need)
+            MiniGame.finish({win:true, msg:`${this.need}발을 다 막았다. 맞은 횟수 ${this.hit}.`});
+        } else { this.hit++; Audio2.sfx('deny'); a.dead=true;
+          if(this.hit>=this.budget) MiniGame.finish({win:false, msg:'너무 많이 맞았다.'});
+        }
+      }
+      if(a.x < -20) a.dead=true;
+    }
+    this.arrows=this.arrows.filter(a=>!a.dead);
+    if(this.t>60*100) MiniGame.finish({win:false, msg:'시간이 다 됐다.'});
+  },
+  draw(x,u){
+    x.fillStyle='#141018'; x.fillRect(0,0,VW,VH);
+    const LY=[86,132,178];
+    /* 레인 */
+    LY.forEach((y,i)=>{
+      x.fillStyle = i===this.pos? 'rgba(255,224,138,.10)' : 'rgba(255,255,255,.03)';
+      x.fillRect(0,y-18,VW,36);
+      x.fillStyle='rgba(255,255,255,.10)'; x.fillRect(0,y+18,VW,1);
+    });
+    /* 방패 */
+    const sy=LY[this.pos];
+    x.fillStyle='#c9cede'; x.fillRect(80, sy-16, 10, 32);
+    x.fillStyle='#8a90a6'; x.fillRect(82, sy-13, 6, 26);
+    /* 크리스천 */
+    x.fillStyle='#5aaaff'; x.fillRect(60, sy-14, 12, 28);
+    /* 화살 */
+    for(const a of this.arrows){
+      const y=LY[a.lane];
+      x.fillStyle = a.hot? '#ff8a4a' : '#e8dcc0';
+      x.fillRect(a.x, y-1, 16, 2);
+      x.fillStyle = a.hot? '#ffd75e' : '#c9cede';
+      x.fillRect(a.x-4, y-3, 5, 6);
+    }
+    drawText(u, L('mgGuardTitle'), 14, VW/2, 8, '#ffe08a','center');
+    drawText(u, L('mgGuardHint'), 10, VW/2, VH-30, '#a8a0c0','center');
+    drawText(u, `${this.blocked} / ${this.need}    ✕ ${this.hit}/${this.budget}`, 12, VW/2, VH-16,
+      this.hit>=this.budget-1?'#ff8a8a':'#8affb0','center');
+  }
+};
+
+/* ── 3. 등불 잇기 (9장) ─────────────────────────────────
+   어둠 속에서 등불이 순서대로 켜진다. 그 순서를 그대로 밟는다. */
+const LanternSeq = {
+  /* ⚠ 실수 3 은 낙차가 너무 급했다(능숙 100% / 보통 38% / 서툰 0%). */
+  seq:[], input:[], showing:true, si:0, showT:0, round:0, need:4, t:0, miss:0, budget:6,
+  KEYS:['left','up','right','down'],
+  start(){ this.round=0; this.miss=0; this.t=0; this.seq=[]; this.newRound(); },
+  newRound(){
+    this.round++;
+    this.seq.push((Math.random()*4)|0);
+    this.input=[]; this.showing=true; this.si=0; this.showT=0;
+  },
+  update(){
+    this.t++;
+    if(this.showing){
+      this.showT++;
+      if(this.showT>=34){
+        this.showT=0; this.si++;
+        if(this.si>=this.seq.length){ this.showing=false; this.si=-1; }
+        else Audio2.sfx('select');
+      }
+      return;
+    }
+    let p=-1;
+    this.KEYS.forEach((k,i)=>{ if(Input.pressed(k)) p=i; });
+    if(p<0) return;
+    this.input.push(p); Audio2.sfx('select');
+    const i=this.input.length-1;
+    if(this.input[i]!==this.seq[i]){
+      this.miss++; Audio2.sfx('deny');
+      if(this.miss>=this.budget){ MiniGame.finish({win:false, msg:`불이 꺼졌다. ${this.round-1}단계까지.`}); return; }
+      this.input=[]; this.showing=true; this.si=0; this.showT=0;
+      return;
+    }
+    if(this.input.length===this.seq.length){
+      Audio2.sfx('confirm');
+      if(this.round>=this.need)
+        MiniGame.finish({win:true, msg:`${this.need}단계를 다 이었다. 실수 ${this.miss}회.`});
+      else this.newRound();
+    }
+  },
+  draw(x,u){
+    x.fillStyle='#0a0c14'; x.fillRect(0,0,VW,VH);
+    const P=[[150,132],[240,68],[330,132],[240,196]];
+    const lit = this.showing && this.si>=0 && this.si<this.seq.length ? this.seq[this.si] : -1;
+    const justIn = !this.showing && this.input.length ? this.input[this.input.length-1] : -1;
+    P.forEach((p,i)=>{
+      const on = (i===lit) || (i===justIn && this.t%60<12);
+      /* 빛무리 */
+      if(on){ const g=x.createRadialGradient(p[0],p[1],2,p[0],p[1],44);
+        g.addColorStop(0,'rgba(255,224,138,.55)'); g.addColorStop(1,'rgba(255,224,138,0)');
+        x.fillStyle=g; x.beginPath(); x.arc(p[0],p[1],44,0,Math.PI*2); x.fill(); }
+      x.fillStyle = on? '#ffe08a' : '#3a3450';
+      x.beginPath(); x.arc(p[0],p[1], on?13:10, 0, Math.PI*2); x.fill();
+      x.strokeStyle= on? '#fff6c8':'#5a5478'; x.lineWidth=2; x.stroke();
+      drawText(u, ['◀','▲','▶','▼'][i], 12, p[0], p[1]-6, on?'#2a2010':'#8a84a0','center');
+    });
+    drawText(u, L('mgLanternTitle'), 14, VW/2, 8, '#ffe08a','center');
+    drawText(u, this.showing? L('mgLanternWatch') : L('mgLanternGo'), 11, VW/2, 26,
+      this.showing? '#a8a0c0':'#8affb0','center');
+    drawText(u, `${this.round} / ${this.need}    ✕ ${this.miss}/${this.budget}`, 11, VW/2, VH-18,
+      this.miss>=this.budget-1?'#ff8a8a':'#e8dcc0','center');
+  }
+};
+
+</script>
+<script>
+/* ===== js/53_minigames4.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   짐 지고 균형 잡기 — 1장.
+   ⚠ 실측으로 1장은 230타일 중 57타일(25%)이 비어 있었고, 미니게임이 하나도
+     없는 유일한 초반 장이었다. 하필 플레이어가 '계속할지' 정하는 자리다.
+   이 게임은 이 작품의 첫 미니게임이므로 **가르치는 역할**을 겸한다 —
+   좌우 두 개의 키만 쓰고, 규칙이 한 줄로 설명된다.
+   주제: 등에 진 짐이 한쪽으로 쏠린다. 반대쪽으로 버텨 언덕을 오른다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const BurdenBalance = {
+  /* tilt : -100(왼쪽으로 넘어짐) ~ +100(오른쪽으로 넘어짐) */
+  tilt:0, vel:0, push:0, pushT:0, climb:0, drops:0, t:0, shake:0, gust:0,
+  need: 60*21,            // 21초를 버티면 언덕 꼭대기 (떨어뜨리면 3초씩 밀린다)
+  budget: 3,              // 세 번 떨어뜨리면 진다
+  start(){
+    this.tilt=0; this.vel=0; this.push=0.16; this.pushT=0;
+    this.climb=0; this.drops=0; this.t=0; this.shake=0; this.gust=0; this.dir=1;
+  },
+  update(){
+    this.t++;
+    if(this.shake>0) this.shake--;
+    if(this.gust>0) this.gust--;
+
+    /* 짐이 쏠리는 방향은 일정 시간마다 바뀐다 — 예고 없이 바뀌면 부당하다.
+       바뀌기 전 24프레임(0.4초) 동안 흔들려서 알려 준다. */
+    this.pushT--;
+    if(this.pushT<=0){
+      this.dir = -this.dir;
+      this.pushT = 102 - Math.min(70, (this.climb/this.need)*70);   // 뒤로 갈수록 잦다
+      this.gust = 24;
+    }
+    /* 오를수록 가팔라진다 */
+    const steep = 0.155 + (this.climb/this.need)*0.32;
+    this.vel += this.dir * steep;
+
+    if(Input.down('left')  || Input.pressed('left'))  this.vel -= 0.62;
+    if(Input.down('right') || Input.pressed('right')) this.vel += 0.62;
+
+    this.vel *= 0.88;                       // 관성 — 즉시 멈추진 않는다
+    this.tilt = clamp(this.tilt + this.vel, -110, 110);
+
+    if(Math.abs(this.tilt) >= 100){         // 짐을 떨어뜨렸다
+      this.drops++; this.shake=18; Audio2.sfx('deny');
+      this.tilt=0; this.vel=0; this.climb=Math.max(0, this.climb - 60*3);  // 3초 미끄러진다
+      if(this.drops>=this.budget){
+        MiniGame.finish({win:false, msg:L('mgBurdenLose')}); return;
+      }
+    }
+    /* 기울수록 느리게 오른다 — 똑바로 서 있어야 나아간다 */
+    this.climb += 1 - Math.min(0.8, Math.abs(this.tilt)/125);
+    if(this.climb >= this.need){
+      MiniGame.finish({win:true, msg:L('mgBurdenWin', this.drops), drops:this.drops});
+    }
+    if(this.t > 60*100) MiniGame.finish({win:false, msg:L('mgTimeUp')});
+  },
+  draw(x,u){
+    /* 새벽 언덕 */
+    const g=x.createLinearGradient(0,0,0,VH);
+    g.addColorStop(0,'#1a1a30'); g.addColorStop(0.55,'#3a2c3e'); g.addColorStop(1,'#241c26');
+    x.fillStyle=g; x.fillRect(0,0,VW,VH);
+    const pr = clamp(this.climb/this.need, 0, 1);
+    /* 뒤로 흘러가는 언덕선 — 오르고 있다는 걸 보여 준다 */
+    x.strokeStyle='rgba(200,180,220,.16)'; x.lineWidth=2;
+    for(let i=0;i<5;i++){
+      const yy = 150 + i*22 + ((pr*260 + i*30) % 44);
+      x.beginPath(); x.moveTo(0, yy+18); x.lineTo(VW, yy-10); x.stroke();
+    }
+    const sx = VW/2 + (this.shake>0 ? Math.sin(this.shake*1.7)*4 : 0);
+    const gy = 186;
+    const ang = this.tilt/110 * 0.55;                 // 라디안
+    x.save(); x.translate(sx, gy); x.rotate(ang);
+    /* 다리·몸 */
+    x.fillStyle='#3a4a7a'; x.fillRect(-4, -34, 8, 34);
+    x.fillStyle='#5aaaff'; x.fillRect(-7, -52, 14, 20);
+    /* 머리 */
+    x.fillStyle='#e8c49a'; x.beginPath(); x.arc(0,-60,7,0,Math.PI*2); x.fill();
+    /* 짐 — 등 뒤에 얹혀 흔들린다 */
+    const bx = this.tilt*0.05;
+    x.fillStyle='#6b5442'; x.fillRect(-13+bx, -84, 26, 22);
+    x.fillStyle='#5a4636'; x.fillRect(-13+bx, -84, 26, 5);
+    x.strokeStyle='#8a6a4a'; x.lineWidth=2;
+    x.beginPath(); x.moveTo(-8,-62); x.lineTo(-8+bx,-74); x.stroke();
+    x.beginPath(); x.moveTo(8,-62);  x.lineTo(8+bx,-74);  x.stroke();
+    x.restore();
+
+    /* 기울기 눈금 — 위험할수록 붉게 */
+    const bw=224, bx0=VW/2-bw/2, by=214;
+    x.fillStyle='#221c2c'; x.fillRect(bx0,by,bw,10);
+    x.fillStyle='rgba(255,138,138,.22)';
+    x.fillRect(bx0,by,bw*0.14,10); x.fillRect(bx0+bw*0.86,by,bw*0.14,10);
+    const px2 = bx0 + bw/2 + (this.tilt/110)*(bw/2);
+    const dangerT = Math.abs(this.tilt)>72;
+    x.fillStyle = dangerT ? '#ff8a8a' : (Math.abs(this.tilt)>44 ? '#ffd75e' : '#8affb0');
+    x.fillRect(px2-4, by-3, 8, 16);
+    x.fillStyle='rgba(255,255,255,.35)'; x.fillRect(bx0+bw/2-1, by-3, 2, 16);
+
+    /* 바람 예고 — 방향이 바뀌기 직전 */
+    if(this.gust>0){
+      const a=this.gust/24;
+      x.fillStyle=`rgba(255,224,138,${0.30*a})`;
+      const wx = this.dir>0 ? VW-70 : 22;
+      for(let i=0;i<3;i++) x.fillRect(wx, 96+i*13, 48, 3);
+    }
+
+    /* 오르막 진행 */
+    const pw=VW-64, pxx=32, pyy=236;
+    x.fillStyle='#221c2c'; x.fillRect(pxx,pyy,pw,7);
+    x.fillStyle='#8affb0'; x.fillRect(pxx,pyy,Math.round(pw*pr),7);
+
+    drawText(u, L('mgBurdenTitle'), 14, VW/2, 10, '#ffe08a','center');
+    drawText(u, L('mgBurdenHint'), 10, VW/2, 30, '#c0b4d0','center');
+    drawText(u, `${L('mgBurdenDrop')} ${this.drops}/${this.budget}`, 12, VW/2, VH-18,
+      this.drops>=this.budget-1?'#ff8a8a':'#e8dcc0','center');
+  }
+};
+
+</script>
+<script>
 /* ===== js/60_story.js ===== */
 /* ============================================================
    60_story.js — 이야기 (한국어 / English)
@@ -6055,6 +6743,48 @@ ch1_burn:[
 ],
 
 /* ───────── 2장 · 낙담의 늪 ───────── */
+ch5_mini:[
+  nr('언덕 아래에서 크리스천은 걸음을 멈췄다. 짐이 유난히 무거웠다.',
+     'At the foot of the hill Christian stopped. The burden felt heavier than ever.'),
+  d('christian','크리스천','Christian','줄이 엉켰어. 이대로는 못 올라가겠는데.',
+    'The cords are tangled. I cannot climb like this.')
+],
+ch8_mini:[
+  nr('골짜기 건너편에서 화살이 날아오기 시작했다.',
+     'From across the valley, arrows began to fly.'),
+  d('christian','크리스천','Christian','방패다. 방패를 쓰라고 했었지.',
+    'The shield. They told me to use the shield.')
+],
+ch9_mini:[
+  nr('어둠 속에 등불 넷이 하나씩 켜졌다 꺼졌다.',
+     'In the dark, four lanterns lit and went out, one at a time.'),
+  d('christian','크리스천','Christian','순서가 있어. 저대로 밟으면 길이 되나 봐.',
+    'There is an order to it. If I follow it, maybe it becomes a path.')
+],
+ch1_mini:[
+  nr('언덕이 가팔라졌다. 등에 진 짐이 자꾸 한쪽으로 쏠린다.',
+     'The hill grew steep. The burden on his back kept pulling to one side.'),
+  d('christian','크리스천','Christian','쏠리는 쪽 반대로 버텨야 한다. 똑바로 서 있어야 앞으로 간다.',
+    'I must lean against it. Only standing straight will carry me forward.')
+],
+ch2_mini:[
+  nr('늪 한가운데, 물 위로 희미한 빛줄기가 떠 있었다.',
+     'In the middle of the swamp a faint thread of light floated on the water.'),
+  d('christian','크리스천','Christian','저 빛을 길게 이으면… 건널 수 있을 것 같은데.',
+    'If I can draw that light out long enough, I think we can cross.')
+],
+ch3_mini:[
+  nr('언덕을 오르자 이상하게 머리가 흐릿해졌다.',
+     'Climbing the hill, his head went strangely foggy.'),
+  d('christian','크리스천','Christian','내가 뭘 들고 왔더라. 뭘 잊은 것 같아.',
+    'What was I carrying? I feel like I have forgotten something.')
+],
+ch4_mini:[
+  nr('문 옆에 낡은 저울이 하나 놓여 있었다.',
+     'Beside the gate stood an old balance scale.'),
+  d('goodwill','선의','Goodwill','셈이 맞아야 열린다. 어렵진 않아, 천천히 해 보렴.',
+    'It opens when the sum is right. It is not hard — take your time.')
+],
 ch2_open:[
   nr('들판을 지나던 두 사람은 발밑이 물렁해지는 것을 느꼈다.',
      'Halfway across the field, the ground turned soft under their feet.'),
@@ -7094,6 +7824,13 @@ function buildCh1(){
   [110,118,134,144,158,166].forEach((tx,i)=> A.push(new Wisp(T(tx), T(6)+i*6, {hp:8})));
   A.push(new Trigger(T(2),0,T(5),T(17), ()=>G.say('ch1_open')));
   A.push(new Trigger(T(168),0,T(3),T(17), ()=>G.say('ch1_burn')));
+  /* 짐 지고 언덕 오르기 — 실측으로 1장은 168~225 타일 57칸(맵의 25%)이 통째로 비어 있었고,
+     미니게임이 없는 유일한 초반 장이었다. 이 작품의 첫 미니게임이라 규칙을 가장 쉽게 둔다. */
+  A.push(new Trigger(T(190),0,T(4),T(17), ()=>G.startMini('burden', {
+    intro:'ch1_mini',
+    rewardWin:()=>{ G.player.maxhp+=2; G.player.hp=G.player.maxhp; G.toast(L('t_mgBurden'),'#8affb0'); },
+    rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
+  }), {once:true}));
   A.push(new Trigger(T(225),0,T(5),T(17), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(11)}, actors:A};
 }
@@ -7121,6 +7858,12 @@ function buildCh2(){
   [44,58,72,86,104,118,132].forEach(tx=> A.push(new Mire(T(tx), T(12), {hp:10})));
   [64,96,124].forEach(tx=> A.push(new Wisp(T(tx), T(8))));
   A.push(new Trigger(T(2),0,T(5),T(17), ()=>G.say('ch2_open')));
+  /* 빛의 실 — 늪을 건너는 길을 잇는다. 이기면 믿음이 오른다. */
+  A.push(new Trigger(T(96),0,T(4),T(17), ()=>G.startMini('thread', {
+    intro:'ch2_mini',
+    rewardWin:()=>{ G.player.maxfaith+=2; G.player.faith=G.player.maxfaith; G.toast(L('t_mgFaith'),'#8affb0'); },
+    rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
+  }), {once:true}));
   A.push(new Trigger(T(205),0,T(5),T(17), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(11)}, actors:A};
 }
@@ -7152,6 +7895,12 @@ function buildCh3(){
   A.push(new NPC(T(184), T(11)-26, 'evangelist', {name:'전도자', dialog:'ch3_rebuke', face:-1, once:true, tag:'evang2'}));
   [70,92,120,140,164].forEach(tx=> A.push(new Imp(T(tx), T(19))));
   [104,132].forEach(tx=> A.push(new Wisp(T(tx), T(16))));
+  /* 기억놀이 — 세속 현자가 흐려 놓은 기억을 되짚는다. */
+  A.push(new Trigger(T(120),0,T(4),T(17), ()=>G.startMini('memory', {
+    intro:'ch3_mini',
+    rewardWin:()=>{ G.player.maxhp+=2; G.player.hp=G.player.maxhp; G.toast(L('t_mgHp'),'#8affb0'); },
+    rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
+  }), {once:true}));
   A.push(new Trigger(T(194),T(14),T(6),T(12), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(20)}, actors:A};
 }
@@ -7203,6 +7952,12 @@ function buildCh4(){
     })
   }));
   A.push(new Trigger(T(2),0,T(5),T(17), ()=>G.say('ch4_gate')));
+  /* 숫자 저울 — 셈이 맞아야 문이 열린다. */
+  A.push(new Trigger(T(150),0,T(4),T(17), ()=>G.startMini('scale', {
+    intro:'ch4_mini',
+    rewardWin:()=>{ G.player.coins+=15; G.toast(L('t_mgCoin'),'#8affb0'); },
+    rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
+  }), {once:true}));
   A.push(new Trigger(T(239),0,T(5),T(17), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(11)}, actors:A};
 }
@@ -7235,6 +7990,13 @@ function buildCh5(){
   [56,74,92,108].forEach((tx,i)=> A.push(new Imp(T(tx), T(24-i*3))));
   [66,86,102].forEach((tx,i)=> A.push(new Wisp(T(tx), T(20-i*3))));
   A.push(new Trigger(T(2),0,T(5),T(30), ()=>G.say('ch5_open')));
+  /* 매듭 풀기 — 십자가 앞. 짐을 벗기 전에 매듭부터 풀어야 한다.
+     이 장은 200타일 중 119타일이 이벤트 없이 비어 있었다(실측). */
+  A.push(new Trigger(T(62),0,T(4),T(30), ()=>G.startMini('knot', {
+    intro:'ch5_mini',
+    rewardWin:()=>{ G.player.maxhp+=3; G.player.hp=G.player.maxhp; G.toast(L('t_mgBurden'),'#8affb0'); },
+    rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
+  }), {once:true}));
   A.push(new Trigger(T(196),0,T(4),T(30), ()=>G.nextScene()));
   return {world, spawn:{x:T(4), y:T(24)}, actors:A};
 }
@@ -7353,6 +8115,13 @@ function buildCh8(){
   const A=[];
   [20,34,46].forEach((tx,i)=> A.push(new Imp(T(tx), T(8+i*3))));
   A.push(new Trigger(T(2),0,T(6),T(22), ()=>G.say('ch8_open')));
+  /* 방패 막기 — 아볼루온 앞. 이 장은 이벤트 밀도 1.3 으로 게임 최저였다(6장은 20.8).
+     보스 직전에 방어를 익히게 한다. */
+  A.push(new Trigger(T(30),0,T(4),T(22), ()=>G.startMini('guard', {
+    intro:'ch8_mini',
+    rewardWin:()=>{ G.player.def+=1; G.toast(L('t_mgDef'),'#8affb0'); },
+    rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
+  }), {once:true}));
   A.push(new Trigger(T(60),0,T(4),T(22), ()=>G.say('ch8_apollyon'), {once:true}));
   return {world, spawn:{x:T(3), y:T(4)}, actors:A, music:'journey', bossArena:{x:T(56), w:T(94)}};
 }
@@ -7392,6 +8161,12 @@ function buildCh9(){
     rewardLose:()=>{ G.player.doubt = Math.min(100, G.player.doubt+18);
       G.toast(LANG==='ko'?'혼자 남았다 — 의심이 짙어진다':'You are alone — doubt deepens', '#c88aa0'); },
     after:()=> G.say('ch9_run_end')
+  }), {once:true}));
+  /* 등불 잇기 — 어둠 속에서 순서를 기억해 길을 만든다. 공백 88타일 구간. */
+  A.push(new Trigger(T(165),0,T(4),T(20), ()=>G.startMini('lantern', {
+    intro:'ch9_mini',
+    rewardWin:()=>{ G.player.maxfaith+=3; G.player.faith=G.player.maxfaith; G.toast(L('t_mgLight'),'#8affb0'); },
+    rewardLose:()=>{ G.toast(L('t_mgTry'),'#c8a0a0'); }
   }), {once:true}));
   A.push(new Trigger(T(200),0,T(5),T(20), ()=>G.say('ch9_dawn'), {once:true}));
   A.push(new Trigger(T(225),0,T(5),T(20), ()=>G.nextScene()));

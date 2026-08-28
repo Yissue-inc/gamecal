@@ -5,8 +5,9 @@
 
 let lastT = 0;
 function frame(now){
-  frameStep(now);
-  requestAnimationFrame(frame);
+  try{ frameStep(now); }
+  catch(e){ if(!frame._warned){ frame._warned=true; console.error('frame error', e); } }
+  requestAnimationFrame(frame);      // 한 프레임이 죽어도 루프는 계속 돈다
 }
 
 /* 워치독 — 임베드(iframe)나 배경 탭에서 rAF 가 통째로 멎는 경우가 있다.
@@ -16,7 +17,15 @@ function installWatchdog(){
   let guard=0;
   setInterval(()=>{
     const now = performance.now();
-    if(now - lastT > 24 && guard < 10){ guard++; frameStep(now); guard--; }
+    if(now - lastT > 24 && guard < 10){
+      guard++;
+      /* ⚠ try/finally 가 없으면 프레임에서 예외가 한 번 날 때마다 guard 가 새고,
+         10번 쌓이면 워치독이 **영구히** 멎는다(실측: 383초 뒤 게임이 통째로 얼었다).
+         한 프레임 실패가 게임 전체를 죽이면 안 된다. */
+      try{ frameStep(now); }
+      catch(e){ if(!installWatchdog._warned){ installWatchdog._warned=true; console.error('frame error', e); } }
+      finally{ guard--; }
+    }
   }, 8);
 }
 function frameStep(now){

@@ -56,6 +56,13 @@ const UI = {
     txt(u, Math.round(cur)+'', x+w, y, 9, c, 'right');
   },
   cond(v){ return v>=80?PAL.green : v>=60?PAL.gold : v>=40?'#ffa04c' : PAL.red; },
+  /* 등급 — 색과 별로 표시한다. 숫자보다 눈에 먼저 들어와야 한다. */
+  rareColor(a){ const r=(typeof rarityOf==='function')?rarityOf(a):1;
+    return (typeof RARITY!=='undefined' && RARITY[r]) ? RARITY[r].color : PAL.dim; },
+  rareName(a){ const r=(typeof rarityOf==='function')?rarityOf(a):1;
+    return (typeof RARITY!=='undefined' && RARITY[r]) ? RARITY[r].name : ''; },
+  rareStars(a){ const r=(typeof rarityOf==='function')?rarityOf(a):1;
+    return '★'.repeat(r)+'☆'.repeat(5-r); },
   condName(v){ return v>=85?'최상' : v>=70?'좋음' : v>=55?'보통' : v>=40?'나쁨' : '최악'; },
 };
 
@@ -81,6 +88,7 @@ class OfficeScreen extends Screen0 {
       { label:'훈련 지시', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶' },
       { label:'선수단',   sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶' },
       { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶' },
+      { label:'선수 사무소', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶' },
       { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶' },
     ];
     if(S.isMeetWeek) r.push({ label:`▶ ${MEET_INFO[S.meetKind].name} 출전`, sub:'출전표를 짜고 경기를 본다',
@@ -94,8 +102,9 @@ class OfficeScreen extends Screen0 {
       case 0: this.mg.push(new TrainScreen(this.mg)); break;
       case 1: this.mg.push(new SquadScreen(this.mg)); break;
       case 2: this.mg.push(new ProgramScreen(this.mg)); break;
-      case 3: this.mg.push(new RecordScreen(this.mg)); break;
-      case 4: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
+      case 3: this.mg.push(new MarketScreen(this.mg)); break;
+      case 4: this.mg.push(new RecordScreen(this.mg)); break;
+      case 5: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
     }
   }
   cancel(){}
@@ -118,7 +127,8 @@ class OfficeScreen extends Screen0 {
     plate(u, 8, 50, VW-16, 28, .78);
     const inj=C.squad.filter(a=>a.injury);
     const cells=[
-      ['승점', String(S.points), PAL.gold],
+      ['자금', String(Math.round(C.budget)), C.budget<20?PAL.red:PAL.gold],
+      ['승점', String(S.points), PAL.white],
       ['메달', `${S.medals.gold}·${S.medals.silver}·${S.medals.bronze}`, PAL.white],
       ['컨디션', UI.condName(avgC), UI.cond(avgC)],
       ['피로', Math.round(avgF)+'', avgF>65?PAL.red:avgF>45?PAL.gold:PAL.green],
@@ -130,7 +140,7 @@ class OfficeScreen extends Screen0 {
       txt(u,c[1],cx,64,12,c[2],'left',700);
     });
 
-    UI.list(u, this.rows, this.sel, 8, 84, VW-16, 24, 5);
+    UI.list(u, this.rows, this.sel, 8, 82, VW-16, 22, 6);
     // 지난주 일지 — 비어 있으면 안내를 띄운다(빈 화면은 고장처럼 보인다)
     const log=this.mg.lastLog;
     plate(u, 8, VH-58, VW-16, 40, .55);
@@ -156,7 +166,7 @@ class TrainScreen extends Screen0 {
     return this.squad.map(a=>{
       const f=this.mg.focus[a.id];
       return {
-        label: a.name + (a.injury?' (부상)':''),
+        label: `${a.speciesName} ${a.name}` + (a.injury?' (부상)':''),
         sub: `${a.spec==='sprint'?'단거리':a.spec==='hurdles'?'허들':a.spec==='jump'?'도약':'투척'} · OVR ${a.overall} · 피로 ${Math.round(a.fatigue)}`,
         right: f ? FOCUS[f].name : '—',
         rightColor: f ? PAL.gold : PAL.dim,
@@ -233,10 +243,11 @@ class ProgramScreen extends Screen0 {
 /* ── 선수단 · 선수 상세 ──────────────────────────────────── */
 class SquadScreen extends Screen0 {
   get rows(){ return this.mg.club.squad.map(a=>({
-    label:a.name, sub:`${a.age}세 · ${GROWTH[a.growth].name} · ${a.traits.map(t=>TRAITS[t].name).join(', ')||'특성 없음'}`,
+    label:`${UI.rareStars(a)} ${a.speciesName} ${a.name}`,
+    sub:`${a.age}세 · ${UI.rareName(a)} · ${GROWTH[a.growth].name} · ${a.traits.map(t=>TRAITS[t].name).join(', ')||'특성 없음'}`,
     right:`${a.overall} / ${a.potOverall}`, rightColor: a.overall>=a.potOverall-2?PAL.green:PAL.gold,
     right2: a.injury?`부상 ${a.injury.weeks}주`:UI.condName(a.condition),
-    color: a.injury?PAL.red:PAL.white })); }
+    color: a.injury?PAL.red:UI.rareColor(a) })); }
   confirm(){ this.mg.push(new AthleteScreen(this.mg, this.mg.club.squad[this.sel])); }
   draw(u){
     UI.header(u,'선수단',`${this.mg.club.squad.length}명`);
@@ -249,10 +260,16 @@ class AthleteScreen extends Screen0 {
   update(now){ if(Input.pressed('back')||Input.pressed('action')) this.mg.pop(); }
   draw(u){
     const a=this.a;
-    UI.header(u, a.name, `${a.age}세 · ${GROWTH[a.growth].name}`);
+    UI.header(u, `${a.speciesName} ${a.name}`, `${a.age}세 · ${GROWTH[a.growth].name}`);
+    txt(u, UI.rareStars(a)+' '+UI.rareName(a), VW-8, 5, 9, UI.rareColor(a), 'right', 700);
     txt(u,`OVR ${a.overall}`,8,28,15,PAL.gold,'left',700);
     txt(u,`/ 잠재 ${a.potOverall}`,62,32,10,PAL.dim);
+    const SP = (typeof SPECIES!=='undefined') ? SPECIES[a.species] : null;
     txt(u,{sprint:'단거리',hurdles:'허들',jump:'도약',throw:'투척'}[a.spec],VW-8,28,11,PAL.blue,'right');
+    if(SP){
+      txt(u, '주 종목 ' + SP.best.map(id=>EVENT_BY_ID[id].short).join(' · '), VW-8, 40, 9, PAL.green, 'right');
+      txt(u, SP.note, VW-8, 51, 8, PAL.dim, 'right');
+    }
 
     // 상태
     txt(u,'컨디션',8,48,8,PAL.dim); UI.bar(u,44,50,86,6,a.condition,100,UI.cond(a.condition));
@@ -265,7 +282,15 @@ class AthleteScreen extends Screen0 {
 
     // 스탯
     let y=98;
-    for(const k of STAT_KEYS){ UI.statRow(u,8,y,168,k,a.stats[k],a.potential[k]); y+=13; }
+    for(const k of STAT_KEYS){
+      UI.statRow(u,8,y,168,k,a.stats[k],a.potential[k]);
+      // 종 성장 배율 — 어디를 키우면 잘 크는지 한눈에
+      const b = (typeof speciesBias==='function') ? speciesBias(a,k) : 1;
+      if(b>=1.3)      txt(u,'▲▲',180,y,8,PAL.green);
+      else if(b>=1.1) txt(u,'▲', 180,y,8,PAL.green);
+      else if(b<=0.85)txt(u,'▽', 180,y,8,PAL.dim);
+      y+=13;
+    }
 
     // 특성
     txt(u,'특성',192,48,8,PAL.dim);

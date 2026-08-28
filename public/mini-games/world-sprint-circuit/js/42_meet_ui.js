@@ -17,7 +17,7 @@ class EntryScreen extends Screen0 {
     const S=this.mg.season;
     const r = this.events.map(ev=>{
       const ids=S.entries[ev.id]||[];
-      const names=ids.map(id=>{ const a=this.mg.club.byId(id); return a? a.name : '?'; });
+      const names=ids.map(id=>{ const a=this.mg.club.byId(id); return a? `${a.speciesName} ${a.name}` : '?'; });
       const bad = ids.some(id=>{ const a=this.mg.club.byId(id); return !a || !a.available; });
       return { label:ev.name, sub: names.length? names.join(', ') : '출전 없음',
         right:`${ids.length} / ${this.info.entries}`,
@@ -46,7 +46,7 @@ class EntryScreen extends Screen0 {
   draw(u){
     const S=this.mg.season;
     UI.header(u, this.info.name, `${S.week}주차 · 종목당 ${this.info.entries}명`);
-    txt(u,'출전 선수를 고르세요. 컨디션이 나쁘면 기록이 크게 떨어집니다',8,27,9,PAL.dim);
+    txt(u,'★ 은 그 종목을 위해 태어난 종입니다. 컨디션이 나쁘면 기록이 크게 떨어집니다',8,27,9,PAL.dim);
     UI.list(u, this.rows, this.sel, 8, 40, VW-16, 24, 7);
     UI.footer(u,'확인 선택   취소 돌아가기');
   }
@@ -64,7 +64,8 @@ class PickEntryScreen extends Screen0 {
       const on=this.chosen.includes(a.id);
       const fit=eventFitNow(a,this.ev);
       const pb=a.best[this.ev.id];
-      return { label:(on?'● ':'○ ')+a.name+(a.injury?' (부상)':''),
+      const fav = (typeof speciesFavors==='function') && speciesFavors(a, this.ev.id);
+      return { label:(on?'● ':'○ ')+`${a.speciesName} ${a.name}`+(fav?' ★':'')+(a.injury?' (부상)':''),
         sub:`적합 ${Math.round(fit)} · 컨디션 ${UI.condName(a.condition)} · 피로 ${Math.round(a.fatigue)}`,
         right: pb!==undefined ? pb.toFixed(2)+this.ev.unit : '기록 없음',
         rightColor: pb!==undefined?PAL.gold:PAL.dim,
@@ -156,82 +157,118 @@ class MeetWatchScreen extends Screen0 {
     }
   }
   draw(ctx){
-    if(this.isTrack){
+    /* ⚠ 예전엔 전 종목을 같은 트랙으로 그렸다 — 수영도 던지기도 붉은 트랙 위였다.
+       종목마다 무대를 바꾼다(Venue). 아케이드와 같은 무대를 쓴다. */
+    const venue = Venue.kindOf(this.ev);
+    const t = this.t*1000;
+    this._hd = [];
+
+    if(venue==='track'){
       const camM = Math.max(0, Math.max(...this.lanes.map(l=>l.dist)) - VW*0.16*0.34);
-      Track.drawBack(ctx, camM, this.ev.distanceM);
-      Track.drawLanes(ctx, camM, 0.16);
-      Track.drawMarks(ctx, camM, 0.16);
-      /* 허들 종목이면 허들을 그린다 — 없으면 화면이 종목과 어긋난다(실측: 110mH 에 허들이 없었다) */
-      if(this.ev.id==='hurdles110'){
-        for(let i=0;i<RULES.hurdleCount;i++){
-          const m=RULES.hurdleFirstM+i*RULES.hurdleSpacingM;
-          const x=Math.round((m-camM)/0.16);
-          if(x<-8||x>VW+8) continue;
-          for(let L=0;L<3;L++){
-            const hy=Track.LANE_Y[L]+Track.LANE_H-10;
-            if(Art.blit(ctx,'hurdle',x,hy)) continue;
-            ctx.fillStyle='#e8e2d6'; ctx.fillRect(x-4,hy-13,9,2);
-            ctx.fillStyle='#c9cede'; ctx.fillRect(x-3,hy-11,1,11); ctx.fillRect(x+3,hy-11,1,11);
-          }
-        }
-      }
-      Track.drawFinish(ctx, camM, 0.16, this.ev.distanceM);
+      const V = Venue.track(ctx, camM, 0.16, this.ev);
       const col=['#5aaaff','#ffd75e','#ff6b8a'];
       this.lanes.forEach((l,i)=>{
-        const y=Track.LANE_Y[i]+Track.LANE_H-10;
-        const x=Math.round((l.dist-camM)/0.16);
-        if(x<-20||x>VW+20) return;
-        const mine=this.mg.club.has(l.row.athlete);
+        const y=V.lanes[i], x=V.toX(l.dist);
+        if(x<-24||x>VW+24) return;
         let ry=y, air=false;
         if(this.ev.id==='hurdles110'){
           for(let k=0;k<RULES.hurdleCount;k++){
-            const m=RULES.hurdleFirstM+k*RULES.hurdleSpacingM;
-            const d=l.dist-m;
-            if(d>-1.1 && d<1.1){ air=true; ry -= Math.cos(d/1.1*Math.PI/2)*15; break; }
+            const m=RULES.hurdleFirstM+k*RULES.hurdleSpacingM, d=l.dist-m;
+            if(d>-1.1&&d<1.1){ air=true; ry-=Math.cos(d/1.1*Math.PI/2)*15; break; }
           }
         }
-        drawRunner(ctx, x, ry, (this.raceT*4.2+i*0.3)%1, mine?'#ffd75e':col[i], { airborne:air });
-        if(mine){ ctx.fillStyle=PAL.gold; ctx.fillRect(x-4,ry-40,8,2); ctx.fillRect(x-1,ry-38,2,4); }
+        this.pushChar(l.row.athlete, x, ry, (this.raceT*4.2+i*0.3)%1, {airborne:air, moving:true, t});
       });
-    } else {
-      /* 필드 종목 — 시기별 기록을 실제로 보여준다.
-         예전엔 선수 하나만 서 있어서 무슨 일이 일어나는지 알 수 없었다. */
-      const gt=Track.fieldBack(ctx, 20);
-      const GROUND=Track.fieldGround(ctx,{grassTop:gt});
-      const marks=(this.mineRow.res.marks)||[];
-      const done=Math.min(this.attempt, 3);
-      const jump = this.ev.id==='longJump' || this.ev.id==='highJump';
-      const best=Math.max(this.ev.qualify*1.35, ...marks.filter(m=>m!==null));
-      const SX=64, SW=VW-96;
-      // 거리 자
-      ctx.fillStyle='rgba(242,245,250,.30)'; ctx.fillRect(SX, GROUND+4, SW, 1);
-      for(let i=1;i<=5;i++){
-        const x=SX+SW*i/5;
-        ctx.fillStyle='rgba(242,245,250,.35)'; ctx.fillRect(x,GROUND+4,1,5);
-        ctx.fillStyle='rgba(242,245,250,.55)'; Track.num(ctx, x+2, GROUND+7, Math.round(best*i/5));
-      }
-      // 확정된 시기 표시
-      marks.slice(0,done).forEach((m,i)=>{
-        if(m===null){ ctx.fillStyle=PAL.red; ctx.fillRect(SX-3, GROUND-8-i*7, 5, 5); return; }
-        const x=SX+SW*clamp(m/best,0,1);
-        ctx.fillStyle= m===this.mineRow.res.best ? PAL.gold : 'rgba(255,255,255,.55)';
-        ctx.fillRect(Math.round(x)-1, GROUND-10-i*7, 2, 8);
-        ctx.fillRect(Math.round(x)-3, GROUND-10-i*7, 6, 2);
+      return;
+    }
+
+    if(venue==='pool'){
+      const V = Venue.pool(ctx, t, this.ev);
+      this.lanes.forEach((l,i)=>{
+        const y=V.lanes[i], x=V.toX(Math.min(l.dist, this.ev.distanceM));
+        this.pushChar(l.row.athlete, x, y+6, (this.raceT*3.2+i*0.3)%1, {swim:true, moving:true, t});
+        /* 물보라 */
+        ctx.fillStyle='rgba(255,255,255,.32)';
+        for(let k=0;k<3;k++) ctx.fillRect(x-12-k*5, y-2+Math.sin((this.raceT*6+k))*3, 2, 2);
       });
-      // 진행 중인 시기 — 날아가는 궤적
-      if(this.phase==='RUN' && done<3){
-        const m=marks[done];
+      return;
+    }
+
+    if(venue==='throwField'){
+      const V = Venue.throwField(ctx, t, this.ev);
+      const m = this.mineRow;
+      const best = Math.max(this.ev.qualify*1.3, ...(m.res.marks||[]).filter(v=>v!==null));
+      /* 지금까지의 기록을 땅에 꽂아 둔다 */
+      (m.res.marks||[]).slice(0, Math.min(this.attempt,3)).forEach((v,k)=>{
+        if(v===null){ ctx.fillStyle=PAL.red; ctx.fillRect(V.cx-4, V.ground-10-k*6, 5, 5); return; }
+        const x=V.toX(v);
+        ctx.fillStyle = v===m.res.best ? PAL.gold : 'rgba(255,255,255,.55)';
+        ctx.fillRect(x-1, V.ground-12, 2, 12);
+      });
+      /* 날아가는 기구 */
+      if(this.phase==='RUN' && this.attempt<3){
+        const v=(m.res.marks||[])[this.attempt];
         const p=clamp(this.attemptT/1.2,0,1);
-        if(m!==null && m!==undefined){
-          const x=SX+SW*clamp(m/best,0,1)*p;
-          const y=GROUND-8 - Math.sin(p*Math.PI)*(jump?26:44);
-          ctx.fillStyle=PAL.gold; ctx.fillRect(Math.round(x)-2, Math.round(y)-2, 4, 4);
+        if(v!==null && v!==undefined){
+          const x=V.toX(v*p), y=V.ground-8-Math.sin(p*Math.PI)*46;
+          if(!Art.blit(ctx, this.ev.id==='javelin'?'javelin':'hammer', x, y, 'center')){
+            ctx.fillStyle=PAL.gold; ctx.fillRect(x-2,y-2,4,4); }
         }
       }
-      drawRunner(ctx, SX-14, GROUND, (this.t*3)%1, '#ffd75e', { throwing:!jump, airborne:jump&&this.phase==='RUN' });
+      this.pushChar(m.athlete, V.cx, V.ground, 0.25, {throwing:true, t});
+      return;
     }
+
+    if(venue==='runway'){
+      const V = Venue.runway(ctx, RULES.boardPositionM-24, 0.16, this.ev);
+      const m = this.mineRow;
+      const best=(m.res.marks||[]).filter(v=>v!==null);
+      best.forEach((v,k)=>{
+        const x=V.toX(RULES.boardPositionM+v);
+        ctx.fillStyle = v===m.res.best?PAL.gold:'rgba(255,255,255,.5)';
+        ctx.fillRect(x-1, V.ground-10-k*5, 2, 9);
+      });
+      if(this.phase==='RUN' && this.attempt<3){
+        const v=(m.res.marks||[])[this.attempt];
+        const p=clamp(this.attemptT/1.2,0,1);
+        if(v!==null && v!==undefined){
+          const x=V.toX(RULES.boardPositionM+v*p);
+          const y=V.ground - Math.sin(p*Math.PI)*30;
+          this.pushChar(m.athlete, x, y, 0.25, {airborne:true, t});
+        } else this.pushChar(m.athlete, V.board-30, V.ground, (t*0.003)%1, {moving:true, t});
+      } else this.pushChar(m.athlete, V.board-30, V.ground, 0.25, {t});
+      return;
+    }
+
+    /* vertical — 높이뛰기·장대 */
+    const m = this.mineRow;
+    const marks=(m.res.marks||[]).filter(v=>v!==null);
+    const bar = m.res.best || this.ev.qualify;
+    const V = Venue.vertical(ctx, t, this.ev, bar);
+    if(this.phase==='RUN' && this.attempt<3){
+      const p=clamp(this.attemptT/1.2,0,1);
+      const x=V.barX-40+p*100;
+      const y=V.ground - 4*bar*V.pxpm*p*(1-p);
+      this.pushChar(m.athlete, x, y, 0.25, {airborne:true, t});
+    } else this.pushChar(m.athlete, V.barX-70, V.ground, 0.25, {t});
   }
+
+  /* 캐릭터를 UI 레이어에 넘긴다(고해상도) */
+  pushChar(athlete, x, y, ph, o){
+    const sp = athlete.species;
+    const rare = (typeof SPECIES!=='undefined' && SPECIES[sp]) ? SPECIES[sp].rare : 1;
+    const mine = this.mg.club.has(athlete);
+    (this._hd=this._hd||[]).push({ sp, x, y, ph, mine, o:Object.assign({rare}, o) });
+  }
+
   drawUI(u){
+    if(this._hd){
+      for(const c of this._hd){
+        CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o);
+        if(c.mine){ u.fillStyle=PAL.gold; u.fillRect(c.x-4, c.y-48, 8, 2); u.fillRect(c.x-1, c.y-46, 2, 4); }
+      }
+      this._hd=null;
+    }
     const e=this.meet.events[this.idx]; if(!e) return;
     UI.header(u, this.ev.name, `${this.meet.name} · ${this.idx+1}/${this.meet.events.length}`);
     if(this.phase==='INTRO'){

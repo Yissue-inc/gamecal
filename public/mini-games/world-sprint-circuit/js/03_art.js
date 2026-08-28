@@ -63,10 +63,12 @@ const Track = {
 
   drawBack(ctx, camM, distTotal){
     // 하늘 — 야간 경기장
-    const g = ctx.createLinearGradient(0,this.SKY_Y,0,this.CROWD_Y);
-    g.addColorStop(0, PAL.sky1); g.addColorStop(1, PAL.sky2);
-    ctx.fillStyle=g; ctx.fillRect(0,0,VW,this.CROWD_Y);
-    Art.tile(ctx,'sky-stars',this.SKY_Y,camM*0.6);
+    if(!BG.tile(BG.ctx(),'night-sky', 0, this.CROWD_Y, camM*0.6)){
+      const g = ctx.createLinearGradient(0,this.SKY_Y,0,this.CROWD_Y);
+      g.addColorStop(0, PAL.sky1); g.addColorStop(1, PAL.sky2);
+      ctx.fillStyle=g; ctx.fillRect(0,0,VW,this.CROWD_Y);
+      Art.tile(ctx,'sky-stars',this.SKY_Y,camM*0.6);
+    }
     // 조명탑 — 하늘 안에만 둔다(예전엔 HUD 뒤로 들어가 부스러기처럼 보였다)
     for(let i=0;i<4;i++){
       const x = Math.round(((i*137 - camM*2.2) % 560 + 560) % 560) - 40;
@@ -75,16 +77,20 @@ const Track = {
     // 관중 — 카메라보다 훨씬 느리게 흐른다(원경)
     this.crowd(ctx, camM*0.25);
     // 담장
-    if(!Art.tile(ctx,'wall-tile',this.WALL_Y,camM*8)){
+    if(BG.tile(BG.ctx(),'stadium-wall', this.WALL_Y, this.WALL_H, camM*8)){ /* HD */ }
+    else if(!Art.tile(ctx,'wall-tile',this.WALL_Y,camM*8)){
       ctx.fillStyle=PAL.wallDark; ctx.fillRect(0,this.WALL_Y,VW,this.WALL_H);
       ctx.fillStyle=PAL.wall;     ctx.fillRect(0,this.WALL_Y,VW,this.WALL_H-4);
       const off = Math.round(-camM*8) % 64;
       ctx.fillStyle=PAL.wallLine;
       for(let x=off-64; x<VW+64; x+=64) ctx.fillRect(x, this.WALL_Y, 2, this.WALL_H);
     }
+    /* 지붕 실루엣 — 있으면 하늘 위에 얹는다 */
+    BG.fill(BG.ctx(),'stadium-roof', 0, 30);
   },
 
   floodlight(ctx,x,y){
+    if(BG.obj(BG.ctx(),'floodlight-tower', x+9, this.CROWD_Y, this.CROWD_Y-y)) return;
     ctx.fillStyle='#2b3352'; ctx.fillRect(x+7,y+10,3,this.CROWD_Y-y-10);
     if(!Art.blit(ctx,'floodlight',x+9,y+12)){
       ctx.fillStyle='#4a5580'; ctx.fillRect(x,y,18,10);
@@ -97,6 +103,12 @@ const Track = {
   },
 
   crowd(ctx, off){
+    const bg=BG.ctx();
+    if(BG.tile(bg,'crowd-far', this.CROWD_Y, this.CROWD_H, off*8)){
+      /* 근경 관중 — 아래 40% 에 더 빠른 시차로 겹친다(깊이감) */
+      BG.tile(bg,'crowd-near', this.CROWD_Y+this.CROWD_H*0.55, this.CROWD_H*0.45, off*20);
+      return;
+    }
     if(Art.tile(ctx,'crowd-tile',this.CROWD_Y,off*8)) return;
     ctx.fillStyle=PAL.crowdA; ctx.fillRect(0,this.CROWD_Y,VW,this.CROWD_H);
     const o = Math.round(-off*8);
@@ -115,12 +127,18 @@ const Track = {
   drawLanes(ctx, camM, mPerPx){
     for(let i=0;i<this.LANE_Y.length;i++){
       const y=this.LANE_Y[i];
-      ctx.fillStyle = PAL.grass; ctx.fillRect(0, y-6, VW, 6);
-      ctx.fillStyle = PAL.grassLine;
-      for(let x=(Math.round(-camM/mPerPx)%12+12)%12-12; x<VW; x+=12) ctx.fillRect(x,y-6,6,2);
-      ctx.fillStyle = PAL.track;     ctx.fillRect(0, y, VW, this.LANE_H-6);
-      ctx.fillStyle = PAL.trackDark; ctx.fillRect(0, y+this.LANE_H-10, VW, 4);
-      ctx.fillStyle = PAL.lane;      ctx.fillRect(0, y-1, VW, 1);
+      /* HD 트랙면이 있으면 잔디·트랙면 전부 그 층이 맡는다.
+         ⚠ 픽셀 캔버스가 위에 있으므로 여기서 칠하면 배경층이 통째로 가려진다 — 안 칠해야 한다.
+         레인 번호·5m 눈금·결승선은 픽셀 층에 그대로 남긴다(정보라서 또렷해야 한다). */
+      const hd = BG.tile(BG.ctx(), 'track-surface', y-6, this.LANE_H, camM/mPerPx);
+      if(!hd){
+        ctx.fillStyle = PAL.grass; ctx.fillRect(0, y-6, VW, 6);
+        ctx.fillStyle = PAL.grassLine;
+        for(let x=(Math.round(-camM/mPerPx)%12+12)%12-12; x<VW; x+=12) ctx.fillRect(x,y-6,6,2);
+        ctx.fillStyle = PAL.track;     ctx.fillRect(0, y, VW, this.LANE_H-6);
+        ctx.fillStyle = PAL.trackDark; ctx.fillRect(0, y+this.LANE_H-10, VW, 4);
+        ctx.fillStyle = PAL.lane;      ctx.fillRect(0, y-1, VW, 1);
+      }
       // 레인 번호 — 어느 줄이 내 줄인지 알 수 있어야 한다
       ctx.fillStyle='rgba(232,226,214,.55)';
       for(let x=(Math.round(-camM/mPerPx)%96+96)%96-96; x<VW; x+=96) this.digit(ctx, x+4, y+3, i+1);

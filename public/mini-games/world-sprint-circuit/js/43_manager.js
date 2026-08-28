@@ -13,6 +13,7 @@ const MG = {
     seed = seed || ((Date.now()^0x1f2e3d4c)>>>0);
     this.club = Club.newClub(name||'서울 트랙 클럽', seed);
     this.season = new Season(this.club, seed);
+    this.season.market = new Market(this.club, seed);
     this.focus = {}; this.lastLog = []; this.stack = [];
     this.push(new OfficeScreen(this));
     this.save();
@@ -98,6 +99,7 @@ const MG = {
       c.rng = makeRng((Date.now()^0x77)>>>0);
       this.club=c;
       const S=new Season(c, (Date.now()^0x99)>>>0);
+      S.market=new Market(c, (Date.now()^0xab)>>>0);
       S.year=d.season.year; S.week=d.season.week; S.points=d.season.points; S.medals=d.season.medals;
       this.season=S; this.focus={}; this.lastLog=[];
       this.stack=[new OfficeScreen(this)];
@@ -119,7 +121,9 @@ class SeasonEndScreen extends Screen0 {
   update(now){
     if(Input.pressed('action')){
       const seed=(Date.now()^0x3c5f)>>>0;
+      const prevMarket = this.mg.season.market;
       this.mg.season = new Season(this.mg.club, seed);
+      this.mg.season.market = prevMarket || new Market(this.mg.club, seed);
       this.mg.focus={}; this.mg.lastLog=[];
       this.mg.stack=[new OfficeScreen(this.mg)];
       this.mg.save(); Sfx.ui();

@@ -7,12 +7,12 @@
 'use strict';
 
 const VW = 480, VH = 270;                 // 내부 해상도 (16:9)
-const ASSET_VER = '1';
+const ASSET_VER = '1787882395';
 function assetUrl(p){ return `${p}?v=${ASSET_VER}`; }
 
 /* ── 화면 ────────────────────────────────────────────────── */
 const Screen = {
-  cv:null, ctx:null, ui:null, uctx:null, scale:1, dpr:1,
+  cv:null, ctx:null, ui:null, uctx:null, bg:null, bctx:null, scale:1, dpr:1,
   init(){
     this.cv = document.getElementById('game');
     this.cv.width = VW; this.cv.height = VH;
@@ -20,6 +20,11 @@ const Screen = {
     this.ctx.imageSmoothingEnabled = false;   // 픽셀은 뭉개지 않는다
     this.ui = document.getElementById('ui');
     this.uctx = this.ui.getContext('2d');
+    /* 배경 층 — 게임 캔버스 '아래'. 고해상도 배경 어셋 전용.
+       ⚠ UI 층(위)에 그리면 픽셀 요소(레인선·허들·결승선)를 통째로 덮는다.
+       어셋이 없는 부분은 이 층을 비워 두고, 게임 캔버스가 지금처럼 코드로 그린다. */
+    this.bg = document.getElementById('bg');
+    this.bctx = this.bg ? this.bg.getContext('2d') : null;
     addEventListener('resize', ()=>this.fit());
     this.fit();
   },
@@ -31,14 +36,21 @@ const Screen = {
     s = s >= 1 ? Math.floor(s*2)/2 : s;
     this.scale = s;
     const cw = Math.round(VW*s), ch = Math.round(VH*s);
-    for(const c of [this.cv, this.ui]){ c.style.width = cw+'px'; c.style.height = ch+'px'; }
+    for(const c of [this.cv, this.ui, this.bg]){ if(c){ c.style.width = cw+'px'; c.style.height = ch+'px'; } }
     this.dpr = Math.min(devicePixelRatio||1, 2);
     this.ui.width = Math.round(cw*this.dpr); this.ui.height = Math.round(ch*this.dpr);
     this.uctx.setTransform(this.dpr*s, 0, 0, this.dpr*s, 0, 0);   // UI 도 게임 좌표로 그린다
     this.uctx.imageSmoothingEnabled = true;
+    if(this.bg){
+      this.bg.width = Math.round(cw*this.dpr); this.bg.height = Math.round(ch*this.dpr);
+      this.bctx.setTransform(this.dpr*s, 0, 0, this.dpr*s, 0, 0);
+      this.bctx.imageSmoothingEnabled = true;
+    }
   },
   clearUI(){ this.uctx.save(); this.uctx.setTransform(1,0,0,1,0,0);
-    this.uctx.clearRect(0,0,this.ui.width,this.ui.height); this.uctx.restore(); },
+    this.uctx.clearRect(0,0,this.ui.width,this.ui.height); this.uctx.restore();
+    if(this.bctx){ this.bctx.save(); this.bctx.setTransform(1,0,0,1,0,0);
+      this.bctx.clearRect(0,0,this.bg.width,this.bg.height); this.bctx.restore(); } },
 };
 
 /* ── 입력 ────────────────────────────────────────────────── */

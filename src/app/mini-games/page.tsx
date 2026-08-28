@@ -23,6 +23,15 @@ export const metadata: Metadata = {
 }
 
 const gameCardDetails = {
+  'world-sprint-circuit': {
+    eyebrow: 'PIXEL ATHLETICS CIRCUIT',
+    image: '/mini-games/assets/world-sprint-circuit-card-v1.webp',
+    imageAlt: 'Key art of a sprinter charging through a neon-lit night stadium',
+    badge: 'NEW ARCADE',
+    accent: 'from-cyan-300 via-blue-500 to-orange-400',
+    label: 'Run World Sprint Circuit',
+    order: 1,
+  },
   'wave-village-fishing': {
     eyebrow: 'COZY COLLECTION ADVENTURE',
     image: '/mini-games/assets/wave-village-fishing-card-v1.webp',
@@ -30,7 +39,7 @@ const gameCardDetails = {
     badge: 'NEW',
     accent: 'from-cyan-300 via-sky-400 to-blue-600',
     label: 'Play fishing adventure',
-    order: 1,
+    order: 2,
   },
   'light-warrior': {
     eyebrow: 'GENTLE QUEST',
@@ -39,7 +48,7 @@ const gameCardDetails = {
     badge: 'STORY MODE',
     accent: 'from-amber-200 via-orange-400 to-rose-500',
     label: 'Play Warrior of Light',
-    order: 2,
+    order: 3,
   },
   'jonah-journey': {
     eyebrow: 'SEA STORY ADVENTURE',
@@ -48,7 +57,7 @@ const gameCardDetails = {
     badge: 'STORY MODE',
     accent: 'from-violet-300 via-indigo-500 to-cyan-500',
     label: 'Play Jonah’s Returning Journey',
-    order: 3,
+    order: 4,
   },
   'pilgrims-path': {
     eyebrow: 'CHOICE-DRIVEN JOURNEY',
@@ -57,7 +66,7 @@ const gameCardDetails = {
     badge: 'NEW STORY',
     accent: 'from-emerald-200 via-teal-400 to-sky-600',
     label: 'Play The Pilgrim’s Path',
-    order: 4,
+    order: 5,
   },
 } as const
 

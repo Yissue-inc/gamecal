@@ -6,7 +6,13 @@
 const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4 };
 /* 실제로 플레이 가능한 종목. 여기 없는 건 선택 화면에서 '준비 중'으로 잠근다.
    ⚠ 목록만 늘려놓고 구현이 없으면 플레이어는 빈 화면을 만난다. */
-const READY = ['sprint100','hurdles110','longJump','highJump','javelin','hammer'];
+/* 아케이드(직접 뛰기)에서 조작이 구현된 종목.
+   ⚠ 감독 모드는 14종목 전부 돌지만, 아케이드는 화면·조작이 있는 것만 연다.
+      목록만 늘리고 구현이 없으면 플레이어는 빈 화면을 만난다. */
+const READY = ['sprint100','sprint200','sprint400','hurdles110',
+               'longJump','tripleJump','highJump',
+               'shotPut','discus','javelin','hammer','relay4x100',
+               'swimFree100','swimBack100','swimBreast100','swimFly100','poleVault'];
 
 const G = {
   state: ST.TITLE,
@@ -20,8 +26,15 @@ const G = {
 
   start(def){
     this.def = def;
-    const Klass = { sprint100:SprintEvent, hurdles110:HurdlesEvent, longJump:LongJumpEvent,
-                    highJump:HighJumpEvent, javelin:JavelinEvent, hammer:HammerEvent }[def.id];
+    const Klass = { sprint100:SprintEvent, sprint200:SprintEvent, sprint400:SprintEvent,
+                    hurdles110:HurdlesEvent,
+                    longJump:LongJumpEvent, tripleJump:TripleJumpEvent, highJump:HighJumpEvent,
+                    shotPut:ShotPutEvent, discus:DiscusEvent,
+                    javelin:JavelinEvent, hammer:HammerEvent,
+                    relay4x100:RelayEvent,
+                    swimFree100:SwimEvent, swimBack100:SwimEvent,
+                    swimBreast100:SwimEvent, swimFly100:SwimEvent,
+                    poleVault:PoleVaultEvent }[def.id];
     if(!Klass){ this.toast('아직 준비 중인 종목입니다'); this.state=ST.SELECT; return; }
     this.event = new Klass(def);
     this.newRecord = false;
@@ -96,7 +109,11 @@ const G = {
 
   /* ── 그리기 ── */
   draw(ctx, uctx){
-    ctx.fillStyle=PAL.black; ctx.fillRect(0,0,VW,VH);
+    /* ⚠ 바탕칠은 '배경층'이 한다. 예전엔 여기서 게임 캔버스를 통째로 검게 칠했는데,
+       게임 캔버스가 배경층 위에 있어서 고해상도 배경이 무조건 가려졌다(실측).
+       게임 캔버스는 투명하게 비우고, 그 위에 픽셀 요소만 올린다. */
+    ctx.clearRect(0,0,VW,VH);
+    if(Screen.bctx){ Screen.bctx.fillStyle=PAL.black; Screen.bctx.fillRect(0,0,VW,VH); }
     switch(this.state){
       case ST.TITLE:  this.drawTitle(ctx,uctx); break;
       case ST.MANAGER: MG.draw(ctx,uctx); break;

@@ -15,6 +15,7 @@
   #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
   #stack{position:relative;line-height:0;}
   canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+  #bg{position:absolute;left:0;top:0;z-index:0;image-rendering:auto;}
   #game{position:relative;z-index:1;}
   #ui{position:absolute;left:0;top:0;z-index:2;pointer-events:none;}
 
@@ -53,6 +54,7 @@
 </head>
 <body>
 <div id="wrap"><div id="stack">
+  <canvas id="bg"></canvas>
   <canvas id="game"></canvas>
   <canvas id="ui"></canvas>
 </div></div>
@@ -83,24 +85,32 @@
   </div>
 </div>
 
-<script src="js/00_rules.js"></script>
-<script src="js/01_core.js"></script>
-<script src="js/02_runner.js"></script>
-<script src="js/03_art.js"></script>
-<script src="js/04_audio.js"></script>
-<script src="js/05_hud.js"></script>
-<script src="js/10_sprint.js"></script>
-<script src="js/11_hurdles.js"></script>
-<script src="js/12_jumps.js"></script>
-<script src="js/13_throws.js"></script>
-<script src="js/30_athlete.js"></script>
-<script src="js/31_training.js"></script>
-<script src="js/32_season.js"></script>
-<script src="js/33_racesim.js"></script>
-<script src="js/41_mgr_ui.js"></script>
-<script src="js/42_meet_ui.js"></script>
-<script src="js/43_manager.js"></script>
-<script src="js/20_screens.js"></script>
-<script src="js/99_main.js"></script>
+<script src="js/00_rules.js?v=1787880846"></script>
+<script src="js/01_core.js?v=1787883369"></script>
+<script src="js/02_runner.js?v=1787878681"></script>
+<script src="js/03_art.js?v=1787883711"></script>
+<script src="js/04_audio.js?v=1787809721"></script>
+<script src="js/05_hud.js?v=1787810187"></script>
+<script src="js/06_venue.js?v=1787883681"></script>
+<script src="js/10_sprint.js?v=1787873383"></script>
+<script src="js/11_hurdles.js?v=1787811879"></script>
+<script src="js/12_jumps.js?v=1787811879"></script>
+<script src="js/13_throws.js?v=1787811879"></script>
+<script src="js/14_more.js?v=1787880845"></script>
+<script src="js/15_relay.js?v=1787877428"></script>
+<script src="js/16_swim.js?v=1787880704"></script>
+<script src="js/35_species.js?v=1787870799"></script>
+<script src="js/36_charhd.js?v=1787882661"></script>
+<script src="js/30_athlete.js?v=1787870840"></script>
+<script src="js/31_training.js?v=1787857270"></script>
+<script src="js/32_season.js?v=1787882524"></script>
+<script src="js/33_racesim.js?v=1787878736"></script>
+<script src="js/34_market.js?v=1787880785"></script>
+<script src="js/41_mgr_ui.js?v=1787873351"></script>
+<script src="js/42_meet_ui.js?v=1787882366"></script>
+<script src="js/44_market_ui.js?v=1787873351"></script>
+<script src="js/43_manager.js?v=1787854256"></script>
+<script src="js/20_screens.js?v=1787883562"></script>
+<script src="js/99_main.js?v=1787855566"></script>
 </body>
 </html>

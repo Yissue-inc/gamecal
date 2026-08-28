@@ -29,6 +29,19 @@ class Runner {
     this.recoverUntilMs = 0;
     this.stridePhase = 0;                 // 다리 애니메이션용 0..1
     this.hurdlesClean = 0; this.hurdlesClip = 0; this.hurdlesCrash = 0;
+    /* 탄력 — 계주 인계처럼 '이미 달리던 상태'를 잠시 이어 주는 배율.
+       ⚠ 시작 속도만 올려서는 러닝스타트가 안 된다. strideLerp(0.75) 때문에
+          스트라이드 두 번이면 초기 속도가 지워진다(실측: 인계 품질이 기록에
+          거의 영향이 없었다). 목표 속도 자체를 잠시 올린다. */
+    this.momentum = 1; this.momentumT = 0;
+    /* 이미 달리고 있는 상태로 시작하는가 (계주 2~4번 주자).
+       ⚠ 이게 없으면 인계받은 주자도 가속 구간(0.85배)부터 시작한다 —
+          정지 출발 취급이라 러닝스타트가 통째로 사라진다(실측: 계주가 개인 4회 합보다 느렸다). */
+    this.flying = false;
+    /* 거리별 순항 속도 배율. 중·장거리는 스프린트보다 느리게 달린다.
+       ⚠ 예전엔 케이던스(paceMult)로 속도를 조절했는데, 그러면 판정 정확도까지
+          같이 바뀌어 단조롭지 않았다(5000m 페이스를 낮췄더니 오히려 빨라졌다). */
+    this.speedMul = 1;
   }
 
   /* 이 선수가 노리는 교대 간격(ms). 리듬 스탯이 좋을수록 빠른 케이던스를 감당한다 */
@@ -38,7 +51,7 @@ class Runner {
   }
   baseSpeed(){
     const mix = (this.stats.speed*0.65 + this.stats.acceleration*0.35)/100;
-    return RULES.baseSpeed * lerp(0.85, 1.15, mix) * RULES.balanceScale;
+    return RULES.baseSpeed * lerp(0.85, 1.15, mix) * RULES.balanceScale * this.speedMul;
   }
 
   /* 좌(-1) / 우(+1) 스트라이드. 판정 문자열을 돌려준다. */
@@ -83,24 +96,26 @@ class Runner {
     const altQ = (j === 'REPEAT') ? 0.7 : 1.0;
     const fatigueFactor = (1 - this.fatigue * lerp(0.35, 0.15, this.stats.stamina/100))
                         * (this.recoverUntilMs > this.lastInputMs ? 0.7 : 1);
-    const target = this.baseSpeed() * phaseAt(this.distM, this.trackM).mult
-                 * altQ * this.form * fatigueFactor * mult;
+    const ph = this.flying ? RULES.phase[2] : phaseAt(this.distM, this.trackM);
+    const target = this.baseSpeed() * ph.mult
+                 * altQ * this.form * fatigueFactor * mult * this.momentum;
     this.speed = clamp(lerp(this.speed, target, RULES.strideLerp), 0, RULES.maxSpeedCap * RULES.balanceScale);
   }
 
-  /* 피니시 린 */
+  /* 피니시 린 — 구간은 트랙 길이에 비례한다(400m 에서 92m 는 초반이다) */
   lean(){
     if(this.finished || this.falseStart) return '';
+    const k = this.trackM/100;
+    const lo = RULES.leanWindowStartM*k, hi = RULES.leanWindowEndM*k;
     const d = this.distM;
-    if(d >= RULES.leanWindowStartM && d <= RULES.leanWindowEndM && !this.leanDone){
+    if(d >= lo && d <= hi && !this.leanDone){
       this.leanDone = true;
-      const mid = (RULES.leanWindowStartM + RULES.leanWindowEndM)/2;
-      const half = (RULES.leanWindowEndM - RULES.leanWindowStartM)/2;
+      const mid=(lo+hi)/2, half=(hi-lo)/2;
       const q = 1 - clamp(Math.abs(d-mid)/half, 0, 1);
       this.leanBonusS = lerp(RULES.leanGainMinS, RULES.leanGainMaxS, q);
       return 'LEAN';
     }
-    if(d > 70 && d < RULES.leanWindowStartM){
+    if(d > 70*k && d < lo){
       this.speed *= (1 - RULES.leanEarlyPenalty);
       return 'LEAN_EARLY';
     }
@@ -123,7 +138,14 @@ class Runner {
       const idle = clamp(since / (this.targetIntervalMs()*2.2), 0, 1);
       const k = lerp(RULES.decayActive, RULES.decayIdle, idle);
       this.speed *= Math.exp(-k*dt);
-      this.speed = Math.min(this.speed, RULES.maxSpeedCap * (0.9 + this.stats.technique/500));
+      this.speed = Math.min(this.speed, RULES.maxSpeedCap * (0.9 + this.stats.technique/500) * Math.max(1, this.momentum));
+      /* 탄력은 서서히 사라진다 */
+      if(this.momentum !== 1){
+        this.momentumT += dt;
+        const k = Math.exp(-this.momentumT/2.4);
+        this.momentum = 1 + (this._mom0-1)*k;
+        if(Math.abs(this.momentum-1) < 0.004) this.momentum = 1;
+      }
       this.distM += this.speed * dt;
       this.fatigue = Math.min(1, this.fatigue + dt*0.01);
       this.stridePhase = (this.stridePhase + dt * this.speed * 0.35) % 1;

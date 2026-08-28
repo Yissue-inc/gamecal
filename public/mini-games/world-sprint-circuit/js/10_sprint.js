@@ -10,7 +10,9 @@ class SprintEvent {
   constructor(def){
     this.def = def;
     this.trackM = def.distanceM || 100;
-    this.mPerPx = 0.16;                       // 1px = 0.16m → 480px 창에 약 77m
+    /* 거리가 길수록 넓게 본다 — 400m 를 100m 축척으로 그리면 화면이 못 따라간다.
+       480px 창에 대략 트랙의 1/5 이 들어오게 잡는다. */
+    this.mPerPx = clamp(this.trackM/100 * 0.16, 0.16, 0.62);
     this.reset();
   }
   reset(){
@@ -37,6 +39,9 @@ class SprintEvent {
   }
 
   get qualify(){ return this.def.qualify; }
+  /* 린(피니시 젖히기) 구간은 거리에 비례한다 */
+  get leanStart(){ return this.trackM * (RULES.leanWindowStartM/100); }
+  get leanEnd(){   return this.trackM * (RULES.leanWindowEndM/100); }
   /* 지금 시각 기준 경과(초). 총성 전엔 음수 */
   get elapsed(){ return (this.t - this.gunMs)/1000; }
 
@@ -84,7 +89,7 @@ class SprintEvent {
         const passed = v <= this.qualify;
         this.result = { status: passed?'OK':'MISSED_QUALIFY', value:v, rank:this.rankOf(this.player) };
         passed ? Sfx.finish() : Sfx.fail();
-      } else if(this.elapsed > this.qualify + 8){
+      } else if(this.elapsed > this.qualify + Math.max(8, this.qualify*0.5)){
         // 기준기록을 크게 넘기면 경기 종료 — 무한정 끌지 않는다
         this.phase='DONE'; this.doneAt=now;
         this.result = { status:'TIMEOUT', value:99.99, rank:3 };
@@ -135,8 +140,15 @@ class SprintEvent {
       const x = Math.round((r.distM - this.camM)/this.mPerPx);
       if(x < -20 || x > VW+20) continue;
       if(this.phase==='SET') Art.blit(ctx,'block-start',x-6,y);
-      const leaning = r.leanDone && r.distM > RULES.leanWindowStartM;
-      drawRunner(ctx, x, y, r.stridePhase, laneColor[i],
+      const leaning = r.leanDone && r.distM > this.leanStart;
+      /* 고해상도 캐릭터는 UI 캔버스에 그린다 — 나중에 drawUI 에서 처리 */
+      if(CharHD.enabled){
+        const sp=['cheetah','elephant','kangaroo'][i];
+        (this._hd=this._hd||[]).push(
+        { sp, x, y, ph:r.stridePhase,
+          o:{ lean:leaning, crouch:this.phase==='SET',
+              rare:(SPECIES[sp]&&SPECIES[sp].rare)||1, moving:this.phase==='RUN', t:this.t } }); }
+      else drawRunner(ctx, x, y, r.stridePhase, laneColor[i],
         { lean:leaning, crouch:this.phase==='SET' });
     }
 
@@ -144,6 +156,8 @@ class SprintEvent {
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
   }
   drawUI(uctx){
+    // 캐릭터를 먼저 (HUD 아래에)
+    if(this._hd){ for(const c of this._hd) CharHD.draw(uctx, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
     HUD.race(uctx, {
       timeS: Math.max(0, this.elapsed),
       speed: this.player.speed,
@@ -166,7 +180,7 @@ class SprintEvent {
       HUD.rhythm(uctx, { nextSide: -this.player.lastSide||1, phaseErr: err, form:this.player.form });
       HUD.judge(uctx, this.player.lastJudge, now - this.player.lastJudgeMs);
       // 린 안내
-      if(this.player.distM >= RULES.leanWindowStartM && !this.player.leanDone){
+      if(this.player.distM >= this.leanStart && !this.player.leanDone){
         txt(uctx, '지금 액션! (LEAN)', VW/2, 56, 13, PAL.green, 'center', 700);
       }
     }

@@ -6,8 +6,16 @@
 
 /* 재현 가능한 난수 — 같은 시드면 같은 경기가 나와야 리플레이·검증이 된다 */
 function makeRng(seed){
-  let s = (seed>>>0) || 1;
-  return function(){ s ^= s<<13; s>>>=0; s ^= s>>17; s ^= s<<5; s>>>=0; return s/4294967296; };
+  /* ⚠ 시드를 그대로 쓰면 안 된다. xorshift 는 작은 시드에서 **첫 출력들이 계속 작게** 나온다.
+     실측: makeRng(100+i*31) 로 12번 돌렸더니 부정출발(확률 1.5%)이 5번(42%) 났다.
+     시드를 먼저 섞고(splitmix 계열) 몇 번 버려서 예열한다. */
+  let x = (seed>>>0) || 0x9e3779b9;
+  x ^= 0x9e3779b9; x = Math.imul(x ^ (x>>>16), 0x21f0aaad) >>> 0;
+  x = Math.imul(x ^ (x>>>15), 0x735a2d97) >>> 0;
+  let s = (x ^ (x>>>15)) >>> 0 || 1;
+  const step = ()=>{ s ^= s<<13; s>>>=0; s ^= s>>>17; s ^= s<<5; s>>>=0; return s/4294967296; };
+  for(let i=0;i<12;i++) step();          // 예열
+  return step;
 }
 /* 정규분포(박스-뮐러) — 실력의 흔들림은 균등분포가 아니다 */
 function gauss(rng){
@@ -65,6 +73,7 @@ class Athlete {
       best: {}, history: [],
       trainingWeeks: 0,
       spec: o.spec || 'sprint',       // 주 종목군: sprint | hurdles | jump | throw
+      species: o.species || 'cheetah',
     });
   }
   get overall(){
@@ -74,7 +83,8 @@ class Athlete {
       hurdles: { speed:.24, acceleration:.16, stamina:.14, technique:.24, rhythm:.18, power:.04 },
       jump   : { speed:.22, acceleration:.18, stamina:.06, technique:.24, rhythm:.10, power:.20 },
       throw  : { speed:.08, acceleration:.10, stamina:.06, technique:.26, rhythm:.10, power:.40 },
-    }[this.spec];
+      endure : { speed:.14, acceleration:.08, stamina:.42, technique:.12, rhythm:.20, power:.04 },
+    }[this.spec] || { speed:.2, acceleration:.15, stamina:.2, technique:.2, rhythm:.15, power:.1 };
     let s=0; for(const k of STAT_KEYS) s += this.stats[k]*W[k];
     return Math.round(s);
   }
@@ -101,12 +111,21 @@ class Athlete {
     const g=GROWTH[this.growth];
     return `${this.name} (${this.age}) ${this.overall}/${this.potOverall} ${g.name}`;
   }
+  get speciesName(){ return (typeof SPECIES!=='undefined' && SPECIES[this.species]) ? SPECIES[this.species].name : ''; }
 }
 
 /* ── 선수 생성 ───────────────────────────────────────────── */
 function rollAthlete(rng, opt){
   opt = opt||{};
-  const spec = opt.spec || ['sprint','sprint','hurdles','jump','throw'][(rng()*5)|0];
+  /* 종을 먼저 고른다 — 종이 주 종목군을 정한다.
+     opt.spec 이 지정되면 그 종목군의 종 중에서 고른다. */
+  let speciesKey = opt.species;
+  if(!speciesKey){
+    /* 희귀도 가중 추첨 — 좋은 스카우트일수록 상위 등급이 잘 나온다 */
+    speciesKey = pickSpecies(rng, { spec:opt.spec, rareLift:opt.rareLift||0 });
+  }
+  const SP = SPECIES[speciesKey];
+  const spec = SP ? SP.spec : (opt.spec || 'sprint');
   const age  = opt.age ?? (17 + ((rng()*5)|0));
   const growth = ['early','normal','normal','late'][(rng()*4)|0];
   const tier = opt.tier ?? (0.35 + rng()*0.5);       // 0~1 재능
@@ -116,9 +135,15 @@ function rollAthlete(rng, opt){
     hurdles: { technique:14, rhythm:10, speed:6,  stamina:2,  power:-6, acceleration:0 },
     jump   : { power:12, technique:10, acceleration:8, stamina:-10, speed:2, rhythm:-4 },
     throw  : { power:20, technique:12, speed:-12, acceleration:-8, stamina:-6, rhythm:-4 },
-  }[spec];
+    endure : { stamina:22, rhythm:10, speed:-2, technique:2, acceleration:-8, power:-12 },
+  }[spec] || {};
   for(const k of STAT_KEYS){
-    const base = 40 + tier*46 + (BIAS[k]||0) + gauss(rng)*7;
+    /* 종 특성을 잠재치에 반영하되 **깎지 않고 얹는 방향**으로 쓴다.
+       (bias 1.0 이 기준, 그 위로만 보너스를 준다 — '못하는 종'을 만들지 않는다) */
+    const sp = SP ? Math.max(0, (SP.bias[k]||1) - 1) * 13 : 0;
+    /* 희귀도 보정 — 전설종은 잠재치가 높다. 다만 bias 가 뾰족해서 '전부 잘하는' 건 아니다. */
+    const rb = SP ? (RARITY[SP.rare]?.potBonus || 0) : 0;
+    const base = 40 + tier*46 + (BIAS[k]||0) + sp + rb + gauss(rng)*7;
     pot[k] = clamp(Math.round(base + 6 + rng()*16), 30, 99);
     // 어릴수록 현재치가 잠재치에서 멀다
     const gap = clamp((26-age)/9, 0.12, 0.62) * (0.6 + rng()*0.6);
@@ -136,6 +161,6 @@ function rollAthlete(rng, opt){
     ? P.last[(rng()*P.last.length)|0] + P.first[(rng()*P.first.length)|0]
     : P.first[(rng()*P.first.length)|0] + sep + P.last[(rng()*P.last.length)|0];
   return new Athlete({ id:'a'+Math.floor(rng()*1e9).toString(36), name, age, growth, traits,
-                       stats:st, potential:pot, spec,
+                       stats:st, potential:pot, spec, species:speciesKey,
                        condition: 55+Math.round(rng()*30), morale: 50+Math.round(rng()*25) });
 }
