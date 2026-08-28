@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
-const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4, CAREER:5, SETTINGS:6, NATION:7 };
+const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4, CAREER:5, SETTINGS:6, NATION:7, SHARE:8 };
 /* 실제로 플레이 가능한 종목. 여기 없는 건 선택 화면에서 '준비 중'으로 잠근다.
    ⚠ 목록만 늘려놓고 구현이 없으면 플레이어는 빈 화면을 만난다. */
 /* 아케이드(직접 뛰기)에서 조작이 구현된 종목.
@@ -14,7 +14,7 @@ const READY = ['sprint100','sprint200','sprint400','hurdles110','hurdles400','st
                'shotPut','discus','javelin','hammer','relay4x100',
                'swimFree100','swimBack100','swimBreast100','swimFly100','poleVault','diving','lifting','archery','cycling','rowing','trampoline',
                /* 이 다섯은 감독 모드에만 있고 플레이할 수 없었다 — 2026-08-28 아케이드 개방 */
-               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing'];
+               'run800','run1500','run5000','walk20k','relay4x400','climbSpeed','fencing','decathlon','triathlon'];
 
 const G = {
   state: ST.TITLE,
@@ -26,20 +26,27 @@ const G = {
 
   toast(m){ this.toastMsg=m; this.toastAt=this.t; },
 
+  /* ⚠ 이 표는 **한 벌만** 있어야 한다. 10종 경기가 하위 종목을 직접 띄우면서 사본이
+     생길 뻔했는데, 오늘 이미 두 번(대회 배율 표·사람 목록 이름) 사본 때문에 한쪽만
+     고치는 사고를 냈다. 종목 → 클래스는 여기서만 정한다. */
+  classFor(def){
+    return def && { sprint100:SprintEvent, sprint200:SprintEvent, sprint400:SprintEvent,
+      hurdles110:HurdlesEvent, hurdles400:HurdlesEvent, steeple3000:HurdlesEvent,
+      longJump:LongJumpEvent, tripleJump:TripleJumpEvent, highJump:HighJumpEvent,
+      shotPut:ShotPutEvent, discus:DiscusEvent, javelin:JavelinEvent, hammer:HammerEvent,
+      relay4x100:RelayEvent, relay4x400:RelayEvent,
+      swimFree100:SwimEvent, swimBack100:SwimEvent, swimBreast100:SwimEvent, swimFly100:SwimEvent,
+      poleVault:PoleVaultEvent, diving:DivingEvent, lifting:LiftingEvent, archery:ArcheryEvent,
+      cycling:CyclingEvent, rowing:RowingEvent, trampoline:TrampolineEvent,
+      climbSpeed:ClimbEvent, fencing:FencingEvent, decathlon:DecathlonEvent, triathlon:TriathlonEvent,
+      run800:MiddleEvent, run1500:MiddleEvent, run5000:MiddleEvent, walk20k:MiddleEvent }[def.id];
+  },
+
   start(def, keepMatch){
     this.def = def;
     /* 새 대결이면 기록판을 비운다. 턴 넘김(keepMatch)이면 유지한다. */
     if(Party.on && !keepMatch) Party.startMatch();
-    const Klass = { sprint100:SprintEvent, sprint200:SprintEvent, sprint400:SprintEvent,
-                    hurdles110:HurdlesEvent, hurdles400:HurdlesEvent, steeple3000:HurdlesEvent,
-                    longJump:LongJumpEvent, tripleJump:TripleJumpEvent, highJump:HighJumpEvent,
-                    shotPut:ShotPutEvent, discus:DiscusEvent,
-                    javelin:JavelinEvent, hammer:HammerEvent,
-                    relay4x100:RelayEvent, relay4x400:RelayEvent,
-                    swimFree100:SwimEvent, swimBack100:SwimEvent,
-                    swimBreast100:SwimEvent, swimFly100:SwimEvent,
-                    poleVault:PoleVaultEvent, diving:DivingEvent, lifting:LiftingEvent, archery:ArcheryEvent, cycling:CyclingEvent, rowing:RowingEvent, trampoline:TrampolineEvent, climbSpeed:ClimbEvent, fencing:FencingEvent,
-                    run800:MiddleEvent, run1500:MiddleEvent, run5000:MiddleEvent, walk20k:MiddleEvent }[def.id];
+    const Klass = this.classFor(def);
     if(!Klass){ this.toast('아직 준비 중인 종목입니다'); this.state=ST.SELECT; return; }
     this.event = new Klass(def);
     this.newRecord = false;
@@ -61,6 +68,7 @@ const G = {
       case ST.CAREER:   this.updCareer(); break;
       case ST.SETTINGS: this.updSettings(); break;
       case ST.NATION: this.updNation(); break;
+      case ST.SHARE:  this.updShare(); break;
     }
     Input.flush();
   },
@@ -176,9 +184,43 @@ const G = {
   },
 
   updCareer(){
+    /* ⚠ 공유 카드(45_share.js)는 다 만들어 놓고 **어디에서도 닿을 수 없었다** —
+       스크립트 태그조차 없었다. 있는데 못 가는 건 없는 것과 같다. */
+    if(Input.pressed('up')||Input.pressed('down')){ this.openShare(); return; }
     if(Input.pressed('back')||Input.pressed('action')||Input.pressed('pause')){
       this.state=ST.TITLE; Sfx.ui();
     }
+  },
+  openShare(){
+    if(typeof Share==='undefined'){ this.toast('공유 카드를 불러오지 못했습니다'); return; }
+    try{ this.shareCv = Share.build(); }
+    catch(e){ this.toast('공유 카드를 만들지 못했습니다'); return; }
+    this.shareSaved = false; this.state = ST.SHARE; Sfx.ui();
+  },
+  updShare(){
+    if(Input.pressed('action')){
+      /* 내려받기는 **덤**이다 — iframe 안에서는 막힐 수 있어서 화면 카드가 주 경로다 */
+      const ok = Share.download();
+      this.shareSaved = true;
+      this.toast(ok ? '이미지를 내려받았습니다' : '화면을 캡처해 공유하세요');
+      Sfx.ui(); return;
+    }
+    if(Input.pressed('back')||Input.pressed('pause')){ this.state=ST.CAREER; Sfx.ui(); }
+  },
+  drawShare(ctx,uctx){
+    ctx.fillStyle='#05070c'; ctx.fillRect(0,0,VW,VH);
+    const cv=this.shareCv;
+    if(!cv){ txt(uctx,'카드를 만들지 못했습니다', VW/2, VH/2, 12, PAL.red,'center',700); return; }
+    /* 9:16 카드를 16:9 화면에 — 세로를 꽉 채우고 가운데 */
+    const h = VH-30, w = Math.round(h * cv.width/cv.height);
+    const x = Math.round(VW/2 - w/2), y = 8;
+    uctx.imageSmoothingEnabled = true;
+    uctx.drawImage(cv, x, y, w, h);
+    uctx.strokeStyle='rgba(255,215,94,.5)'; uctx.lineWidth=1;
+    uctx.strokeRect(x-.5, y-.5, w+1, h+1);
+    txt(uctx,'공유 카드', 10, 10, 11, PAL.gold,'left',700);
+    txt(uctx,'스크린샷으로 공유하세요', 10, 24, 9, PAL.dim,'left');
+    txt(uctx, '확인 내려받기  ·  취소 돌아가기', VW/2, VH-14, 9, PAL.dim,'center');
   },
   drawCareer(ctx,uctx){
     Track.drawBack(ctx, 40, 100);
@@ -228,6 +270,7 @@ const G = {
       uctx.restore();
     });
     txt(uctx,'취소 돌아가기', VW/2, VH-14, 9, PAL.dim,'center');
+    txt(uctx,'▲▼ 공유 카드   ·   확인/취소 돌아가기', VW/2, VH-12, 9, PAL.dim,'center');
   },
 
   /* ── 설정 ────────────────────────────────────────────
@@ -384,6 +427,7 @@ const G = {
       case ST.CAREER: this.drawCareer(ctx,uctx); break;
       case ST.SETTINGS: this.drawSettings(ctx,uctx); break;
       case ST.NATION: this.drawNation(ctx,uctx); break;
+      case ST.SHARE:  this.drawShare(ctx,uctx); break;
       case ST.SELECT: this.drawSelect(ctx,uctx); break;
       case ST.PLAY:   this.event.draw(ctx); this.event.drawUI(uctx); break;
       case ST.RESULT: this.event.draw(ctx);

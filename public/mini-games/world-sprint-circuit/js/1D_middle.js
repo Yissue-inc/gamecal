@@ -54,7 +54,9 @@ class MiddleEvent {
        (예전엔 3.2/26 을 눈대중으로 박았고, 5000m 는 6.7분을 뛰어도 14% 밖에 못 갔다). */
     /* 순항 속도는 **실측값**이다 — 최고속에서 계산하면 경보가 20km 를 200초 걸린다 */
     const cruise = this.walk ? MID.cruiseWalk : MID.cruiseRun;
-    this.scale = Math.max(1, this.trackM/(MID.targetWallSec*cruise));
+    /* 그릇 종목(철인3종)은 구간을 더 짧게 굴려야 한다 — def.wallSec 로 덮어쓴다 */
+    const wall = this.def.wallSec || MID.targetWallSec;
+    this.scale = Math.max(1, this.trackM/(wall*cruise));
     this.reset();
   }
   reset(){

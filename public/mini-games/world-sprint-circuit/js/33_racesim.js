@@ -315,21 +315,61 @@ function simulateAnchored(a, def, opt){
   return { marks, timeS: valid.length? Math.min(...valid) : DNF, dnf: !valid.length };
 }
 
+/* 10종 경기 — 하위 열 종목을 각자 돌리고 IAAF 표로 합산한다.
+   ⚠ 여기서 하위 종목 목록을 다시 적으면 사본이 된다. DECA(20_decathlon.js)를 그대로 쓴다. */
+function simulateCombined(a, def, opt){
+  if(typeof DECA==='undefined') throw new Error('simulateCombined: DECA 표가 없다');
+  let total=0; const marks=[];
+  for(const slot of DECA){
+    const sd = EVENT_BY_ID[slot.id];
+    const r = simulateOne(a, sd, opt);
+    const v = sd.higher ? (r.best??0) : (r.timeS??DNF);
+    const pts = decaPoints(slot, v);
+    marks.push({id:slot.id, value:v, pts}); total+=pts;
+  }
+  return { marks, best: total, allFoul:false };
+}
+/* 철인3종 — 구간을 이어 달리되 **피로가 넘어간다**.
+   ⚠ 구간 목록을 여기서 다시 적으면 사본이 된다. TRI.legs(21_triathlon.js)를 그대로 쓴다. */
+function simulateTri(a, def, opt){
+  if(typeof TRI==='undefined') throw new Error('simulateTri: TRI 표가 없다');
+  let total=0, carry=0; const splits=[];
+  for(const L of TRI.legs){
+    const sd=EVENT_BY_ID[L.id];
+    const r=simulateOne(a, sd, opt);
+    let s = (r.timeS!==undefined ? r.timeS : DNF);
+    if(!(s>0) || s>=DNF) s = sd.qualify*1.6;
+    s *= (1 + carry*0.34);                    // 지친 만큼 느려진다
+    splits.push({id:L.id, s}); total += s;
+    carry = Math.min(1, carry + TRI.fatiguePerLeg);
+    total += TRI.transitionMs/1000;           // 전환
+  }
+  total -= TRI.transitionMs/1000;             // 마지막 구간 뒤엔 전환이 없다
+  return { splits, timeS: total };
+}
+
+/* 종목 하나를 알맞은 시뮬레이터로 — 10종 경기와 개별 대회가 같은 길을 쓴다 */
+function simulateOne(a, def, opt){
+  const o = Object.assign({}, opt, { trackM:def.distanceM });
+  if(def.kind==='sprint') return simulateSprint(a, o);
+  if(def.kind==='hurdles') return simulateHurdles(a, o);
+  if(def.kind==='middle' || def.kind==='walk') return simulateMiddle(a, o);
+  if(def.kind==='swim') return simulateSwim(a, Object.assign({}, o, {stroke:def.stroke}));
+  if(def.kind==='combined') return simulateCombined(a, def, opt);
+  if(def.kind==='tri') return simulateTri(a, def, opt);
+  if(ANCHOR[def.kind]) return simulateAnchored(a, def, o);
+  if(FIELD_KINDS.has(def.id)) return simulateField(a, def.id, o);
+  throw new Error('simulateOne: 시뮬레이터 없는 종목 '+def.id+' (kind='+def.kind+')');
+}
+
 function simulateMeetEvent(eventDef, entries, opt){
   opt = opt||{};
   const rng = opt.rng || makeRng(Date.now()>>>0);
   const rows = entries.map(a=>{
     const o = { rng, big:opt.big, trackM:eventDef.distanceM };
-    let res;
-    if(eventDef.kind==='sprint') res = simulateSprint(a, o);
-    else if(eventDef.kind==='hurdles') res = simulateHurdles(a, o);
-    else if(eventDef.kind==='middle' || eventDef.kind==='walk') res = simulateMiddle(a, o);
-    else if(eventDef.kind==='swim') res = simulateSwim(a, Object.assign({}, o, {stroke:eventDef.stroke}));
-    else if(ANCHOR[eventDef.kind]) res = simulateAnchored(a, eventDef, o);
-    else if(FIELD_KINDS.has(eventDef.id)) res = simulateField(a, eventDef.id, o);
     /* ⚠ 예전엔 여기가 '나머지는 전부 필드'였다. 모르는 종목을 조용히 필드로 보내면
-       계수 표에 없는 이름으로 undefined 를 읽고 죽는다 — 이름을 대며 실패한다. */
-    else throw new Error('simulateMeetEvent: 시뮬레이터 없는 종목 '+eventDef.id+' (kind='+eventDef.kind+')');
+       계수 표에 없는 이름으로 undefined 를 읽고 죽는다 — simulateOne 이 이름을 대며 실패한다. */
+    const res = simulateOne(a, eventDef, o);
     const value = eventDef.higher ? (res.best??0) : res.timeS;
     return { athlete:a, res, value };
   });
