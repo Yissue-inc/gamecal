@@ -37,7 +37,10 @@ class SwimEvent {
   constructor(def){
     this.def=def;
     this.strokeKey = def.stroke || 'free';
-    this.S = SWIM.stroke[this.strokeKey];
+    /* ⚠ 예전엔 this.S 를 생성자에서 고정했다. 개인혼영은 **한 경기 안에서 영법이 세 번
+       바뀌므로** 고정할 수가 없다 — 선수의 현재 바퀴로 계산하는 게터로 바꾼다.
+       기존 7곳은 그대로 두고, 선수별로 달라야 하는 자리만 strokeFor(선수) 로 넘긴다. */
+    this.medley = !!def.medley;
     this.trackM = def.distanceM || 100;
     this.reset();
   }
@@ -73,9 +76,17 @@ class SwimEvent {
     this.camNone=true;
   }
   get people(){ return this.swimmers; }
+  /* 개인혼영 순서 — 접영 → 배영 → 평영 → 자유형 (실제 순서) */
+  strokeFor(sw){
+    if(!this.medley) return SWIM.stroke[this.strokeKey];
+    const lap = Math.min(3, Math.floor((sw ? sw.dist : 0) / SWIM.poolM));
+    return SWIM.stroke[['fly','back','breast','free'][lap]];
+  }
+  get S(){ return this.strokeFor(this.swimmers && this.swimmers[0]); }
   get qualify(){ return this.def.qualify; }
   get elapsed(){ return (this.t-this.gunMs)/1000; }
   get targetIv(){ return 1000/(3.1*this.S.speed); }
+  targetIvOf(sw){ return 1000/(3.1*this.strokeFor(sw).speed); }
   say(m,bad){ this.msg=m; this.msgAt=this.t; this.msgBad=!!bad; }
 
   onStride(side, tMs, pIdx){
@@ -99,11 +110,13 @@ class SwimEvent {
     else if(S.side===side){ j='REPEAT'; S.form=Math.max(0.6,S.form-0.07); }
     else if(S.lastStroke<-1e8){ j='GOOD'; }
     else {
-      const err=Math.abs(dt-this.targetIv)/this.targetIv;
+      /* 개인혼영에서는 사람마다 지금 영법이 다를 수 있다 — 자기 영법으로 판정한다 */
+      const iv=this.targetIvOf(S);
+      const err=Math.abs(dt-iv)/iv;
       /* 물에서는 창이 좁다 — 기술이 곧 물잡기다 */
       if(err<=0.10){ j='PERFECT'; S.form=Math.min(1.12,S.form+0.028); }
       else if(err<=0.22){ j='GOOD'; S.form=Math.min(1.12,S.form+0.01); }
-      else if(dt<this.targetIv){ j='EARLY'; S.form=Math.max(0.62,S.form-0.035); }
+      else if(dt<iv){ j='EARLY'; S.form=Math.max(0.62,S.form-0.035); }
       else { j='LATE'; S.form=Math.max(0.62,S.form-0.035); }
     }
     S.judge[j]++; S.lastJudge=j; S.lastJudgeMs=tMs;
@@ -113,7 +126,7 @@ class SwimEvent {
     const mult={PERFECT:1.0,GOOD:0.80,EARLY:0.62,LATE:0.62,REPEAT:0.40,SPAM:0.18}[j];
     /* ⚠ 2.35 로는 완벽하게 저어도 100m 62초였다(세계기록 46.4초).
        아케이드는 감독 모드와 별도 물리라 따로 맞춰야 한다. */
-    const base = 2.72 * this.S.speed;
+    const base = 2.72 * this.strokeFor(S).speed;
     const target = base * S.form * (1-S.fatigue*0.3) * (0.6+S.breath*0.4) * mult;
     S.speed = clamp(lerp(S.speed, target, 0.55), 0, 3.2);
   }
@@ -135,7 +148,7 @@ class SwimEvent {
     }
     /* 숨쉬기 */
     S.breath=1; S.lastBreath=tMs;
-    S.speed *= (1 - 0.04*this.S.breath);     // 숨쉬면 살짝 느려진다
+    S.speed *= (1 - 0.04*this.strokeFor(S).breath);   // 숨쉬면 살짝 느려진다
     Sfx.beep(420,0.06,'sine',0.08);
   }
   update(dt){
@@ -145,14 +158,14 @@ class SwimEvent {
       const want=Math.min(3, Math.floor((this.gunMs-now>0? 3-(this.gunMs-now)/450 : 3)));
       if(want>this.setBeeps && want<=3){ this.setBeeps=want; Sfx.set(); }
       if(now>=this.gunMs){ this.phase='RUN'; Sfx.gun(); this.flash=1;
-        for(const S of this.swimmers){ if(S.dq) continue; S.speed=1.9*this.S.speed; S.lastBreath=now; } }
+        for(const S of this.swimmers){ if(S.dq) continue; S.speed=1.9*this.strokeFor(S).speed; S.lastBreath=now; } }
     }
     if(this.phase==='RUN'){
       /* 선수마다 따로 굴린다 */
       for(const S of this.swimmers){
         if(S.dq || S.finished) continue;
         const since=now-S.lastBreath;
-        S.breath = clamp(1 - (since/SWIM.breathEvery)*this.S.breath, 0, 1);
+        S.breath = clamp(1 - (since/SWIM.breathEvery)*this.strokeFor(S).breath, 0, 1);
         S.speed = Math.max(0, S.speed - dt*0.55);     // 물 저항
         S.fatigue = Math.min(1, S.fatigue + dt*0.0075);
         S.dist += S.speed*dt;
@@ -233,7 +246,7 @@ class SwimEvent {
       const lane = Math.min(S.lane, LY.length-1);
       const y=LY[lane]+LH/2-4, mx=posOf(Math.min(S.dist,this.trackM));
       const col = (this.swimmers.length>1 && typeof PARTY_COLOR!=='undefined')
-        ? PARTY_COLOR[p] : this.S.color;
+        ? PARTY_COLOR[p] : this.strokeFor(this.swimmers[p]||this.swimmers[0]).color;
       this.blob(ctx, mx, y, S.dq? '#5a5f70' : col, (this.t*0.008+p*0.3)%1, true);
       /* 물보라 — 스트로크마다. 물을 젓고 있다는 게 보여야 한다. */
       if(this.phase==='RUN' && S.speed>0.6)

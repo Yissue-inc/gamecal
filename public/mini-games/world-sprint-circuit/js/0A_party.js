@@ -66,7 +66,7 @@ const Party = {
     /* ⚠ 계주는 뺐다 — 네 명이 이어 달리는 종목이라 한 사람이 네 구간을 다 뛴다.
        여기에 또 사람을 넣으면 누가 누구인지 알 수 없다. 팀끼리 겨루도록 턴제로. */
     /* 펜싱은 1대1 종목이라 **정확히 2인일 때만** 동시다. 3~4인은 순번제로 각자 AI와 붙는다. */
-    if(def.kind==='fence') return this.count===2 ? 'versus' : 'turn';
+    if(def.kind==='fence' || def.kind==='rally') return this.count===2 ? 'versus' : 'turn';
     return ['sprint','middle','hurdles','walk','swim','climb'].includes(def.kind)
       ? 'versus' : 'turn';
   },

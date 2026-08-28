@@ -451,7 +451,16 @@ const I18N_EN = {
   '파리! 받아넘겼다 — 리포스트':'Parry! You turned it aside — riposte',
 
   /* 10종·철인3종 */
-  '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '%1번째 종목':'Event %1 of 10',
+  '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '개인혼영 %1m':'%1m Ind. Medley',
+
+  /* 탁구 */
+  '탁구':'Table Tennis', '%1구째':'Rally %1', '받는 여유':'Reaction room',
+  '서브 — 액션':'Your serve — action', '상대 서브':'Rival serves',
+  '←/→ 로 설 자리와 코스를 고른다':'←/→ set where you stand and where you aim',
+  '완벽!':'Perfect!', '받지 못했다':'could not reach it',
+  '타이밍을 놓쳤다':'mistimed it', '헛스윙':'swung at air',
+  '%1P 득점 — %2':'%1P scores — %2', '상대 득점 — %1':'Rival scores — %1',
+  '나 득점 — %1':'You score — %1', '2P 득점 — %1':'2P scores — %1', '%1번째 종목':'Event %1 of 10',
   '지금까지 %1점':'%1 pts so far', '아무 키나 눌러 시작':'Press any key to start',
   '+%1점':'+%1 pts',
   '철인3종':'Triathlon', '수영':'Swim', '사이클':'Bike', '달리기':'Run',

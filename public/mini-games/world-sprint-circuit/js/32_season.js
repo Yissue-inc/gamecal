@@ -32,7 +32,7 @@ const SPEC_OF_KIND = {
   dive:'jump', tramp:'jump', climb:'jump',     // 폭발력·기술
   lift:'throw', aim:'throw', shoot:'throw',     // 힘·정밀
   cycle:'endure', row:'endure', tri:'endure',   // 지구력
-  fence:'hurdles',                              // 반응·리듬
+  fence:'hurdles', rally:'hurdles',             // 반응·리듬
   combined:'sprint',                            // 10종은 만능 — 기준만 스프린트로
 };
 /* 대회 등급 배율 — makeRivals·runRelay 가 같은 표를 본다.

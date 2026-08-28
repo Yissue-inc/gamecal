@@ -178,5 +178,11 @@ const EVENTS = [
   { id:'shooting',     name:'10m 공기소총', short:'AR10', unit:'점', higher:true,  qualify:95.0, parS:99.0, kind:'shoot' },
   /* 7종 경기 — 10종과 **같은 그릇**을 쓴다. 표(HEPTA)만 다르다. */
   { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:6800, parS:7300, kind:'combined' },
+  /* 개인혼영 — 한 경기 안에서 영법이 **세 번 바뀐다**. 리듬이 그때마다 새로 잡혀야 한다.
+     접영 → 배영 → 평영 → 자유형 (실제 순서) */
+  { id:'swimMedley200',name:'개인혼영 200m', short:'200IM', unit:'s', higher:false, qualify:126.0, parS:112.0,
+    distanceM:200, kind:'swim', stroke:'fly', medley:true },
+  /* 탁구 — 이 게임에 없던 **랠리** 장르. 상대를 어디로 뛰게 만드느냐가 축이다. */
+  { id:'tableTennis',  name:'탁구',         short:'TT',    unit:'s', higher:false, qualify:140.0, parS:110.0, kind:'rally' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;
