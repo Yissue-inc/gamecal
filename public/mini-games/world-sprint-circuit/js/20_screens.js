@@ -311,8 +311,9 @@ const G = {
       txt(uctx, got? b.desc : '???', x+20, y+16, 7, PAL.dim,'left');
       uctx.restore();
     });
-    txt(uctx,'취소 돌아가기', VW/2, VH-14, 9, PAL.dim,'center');
-    txt(uctx,'▲▼ 공유 카드   ·   확인/취소 돌아가기', VW/2, VH-12, 9, PAL.dim,'center');
+    /* ⚠ 안내 문구를 두 줄 겹쳐 그리고 있었다(VH-14 와 VH-12) — 화면에서 글자가 서로
+       뭉개져 '돌아가기'가 두 번 겹쳐 보였다. 한 줄이면 된다. */
+    txt(uctx,'▲▼ 공유 카드   ·   확인/취소 돌아가기', VW/2, VH-13, 9, PAL.dim,'center');
   },
 
   /* ── 설정 ────────────────────────────────────────────
@@ -701,7 +702,9 @@ const G = {
       }
       if(this.newRecord) txt(uctx,'★ 개인 최고기록!', VW/2, 168, 13, PAL.gold,'center',700);
     }
+    /* ⚠ 화면 버튼은 캔버스 위에 얹힌 DOM 이다. 안내를 VH-30 에 두면 가로 폰에서
+       오른쪽 아래 '액션' 버튼이 그 위에 앉는다(실측 812×375). 버튼 위로 올린다. */
     txt(uctx, Ctrl.mode==='touch'?'액션: 다시  ·  일시정지: 종목 선택':'SPACE: 다시  ·  Q: 종목 선택',
-        VW/2, VH-30, 11, PAL.white,'center');
+        VW/2, Ctrl.mode==='touch'? VH-54 : VH-30, 11, PAL.white,'center');
   },
 };

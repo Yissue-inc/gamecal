@@ -362,7 +362,7 @@ class AthleteScreen extends Screen0 {
     bs.slice(0,4).forEach(([k,v],i)=>{
       const ev=EVENT_BY_ID[k];
       txt(u,ev.short,192,120+i*11,9,PAL.white);
-      txt(u,v.toFixed(2)+ev.unit,VW-8,120+i*11,9,PAL.gold,'right');
+      txt(u,fmtRec(ev, v),VW-8,120+i*11,9,PAL.gold,'right');
     });
     UI.footer(u,'확인/취소 돌아가기');
   }
@@ -374,7 +374,7 @@ class RecordScreen extends Screen0 {
     return EVENTS.map(ev=>{
       const r=this.mg.club.records[ev.id];
       return { label:ev.name, sub: r?`${r.name} · ${r.year}년차`:'기록 없음',
-        right: r? r.value.toFixed(2)+ev.unit : '—', rightColor: r?PAL.gold:PAL.dim };
+        right: r? fmtRec(ev, r.value) : '—', rightColor: r?PAL.gold:PAL.dim };
     });
   }
   update(now){
@@ -383,7 +383,7 @@ class RecordScreen extends Screen0 {
     if(Input.pressed('back')||Input.pressed('action')) this.mg.pop();
   }
   draw(u){
-    UI.header(u,'클럽 기록',`${this.mg.club.year}년차`);
+    UI.header(u,'클럽 기록',`${this.mg.season.year}년차`);
     UI.list(u,this.rows,this.sel,8,28,VW-16,24,6);
     const rs=this.mg.season.results;
     txt(u,'대회 이력',8,VH-56,8,PAL.dim);
@@ -411,7 +411,9 @@ class LeagueScreen extends Screen0 {
   update(now){ if(Input.pressed('back')||Input.pressed('action')) this.mg.pop(); }
   draw(u){
     const S=this.mg.season;
-    UI.header(u, '리그 순위표', `${S.club.year}년차 · ${S.week} / 24주`);
+    /* ⚠ club.year 를 보고 있었다. 시즌 마감이 club.year 를 먼저 올리므로 종료 화면
+       근처에서 **리그표만 1년 앞선 해**를 보여 준다. 시즌의 해는 시즌이 안다. */
+    UI.header(u, '리그 순위표', `${S.year}년차 · ${S.week} / ${SEASON_WEEKS}주`);
     if(typeof RivalLeague==='undefined' || !S.leagueTable){
       txt(u,'리그 정보가 없습니다', VW/2, VH/2, 12, PAL.dim,'center'); return;
     }

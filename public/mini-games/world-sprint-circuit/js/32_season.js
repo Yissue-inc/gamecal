@@ -478,6 +478,16 @@ function eventFit(a, ev){
 }
 function eventFitNow(a, ev){ return eventFit(a, ev) * a.formScore(); }
 
+/* 다음 시즌을 연다 — **연차를 올리는 곳은 여기 하나뿐이다.**
+   ⚠ 예전엔 Club.endSeason() 안에서 올렸다. 마감이 연차를 먼저 올리는 바람에
+      종료 화면이 떠 있는 동안 club.year 와 season.year 가 1년 어긋났고,
+      리그표·기록실만 다음 해를 가리켰다. 화면(43_manager)과 검증 하네스(tools/)가
+      **같은 함수**를 쓰게 해서 두 경로가 갈라지지 않게 한다. */
+function startNextSeason(club, seed){
+  club.year++;
+  return new Season(club, seed);
+}
+
 /* ── 클럽 ─────────────────────────────────────────────────── */
 class Club {
   constructor(name, seed){
@@ -526,7 +536,10 @@ class Club {
       const a = rollAthlete(rng, { age:17+((rng()*2)|0), tier:0.3+rng()*0.42 });
       this.squad.push(a); out.joined.push(a);
     }
-    this.year++;
+    /* ⚠ 여기서 year++ 를 했었다. 시즌 마감은 '지난 시즌을 닫는 일'인데 연차를 먼저
+       올려 버려서, 종료 화면이 떠 있는 동안 club.year(2)와 season.year(1)이 어긋났다
+       — 리그표·기록실은 2년차, 종료 화면은 1년차를 말했다. 연차는 **새 시즌을 열 때**
+       오른다(SeasonEndScreen → startNextSeason). 그래야 둘이 절대 안 갈라진다. */
     return out;
   }
 }

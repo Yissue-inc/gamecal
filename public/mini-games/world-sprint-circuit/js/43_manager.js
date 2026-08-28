@@ -41,12 +41,33 @@ const MG = {
     this.focus = {};
     S.week++;
     if(S.week > SEASON_WEEKS){
-      this.stack=[new SeasonEndScreen(this)];
+      this.stack=[this.seasonEndScreen()];
     } else {
       this.stack=[new OfficeScreen(this)];
     }
     this.save();
   },
+
+  /* 시즌 마감 — **딱 한 번만** 돈다.
+     ⚠ 예전엔 SeasonEndScreen 의 생성자가 club.endSeason() 을 불렀다. 화면을 만드는 일이
+        은퇴·신인·연차 증가를 일으킨 것이다. 그래서 시즌 종료 화면에서 게임을 껐다 켜면
+        (그 시점에 자동 저장된다) 불러오기는 사무소 화면을 띄우고, 다음 주로 넘길 때
+        **오프시즌이 한 번 더 돌았다** — 선수가 또 은퇴하고 연차가 2년 뛰었다.
+        결과를 시즌에 적어 두고, 화면은 그걸 읽기만 한다. */
+  endSeasonOnce(){
+    const S=this.season;
+    if(S.ended) return S.endReport;
+    const res = this.club.endSeason(S.rng);
+    S.ended = true;
+    S.endReport = {
+      grade: S.gradeSeason ? S.gradeSeason() : null,
+      points: S.points, medals: S.medals, year: S.year, olympic: !!S.isOlympicYear,
+      retired: res.retired.map(a=>({name:a.name, age:a.age, overall:a.overall})),
+      joined:  res.joined.map(a=>({name:a.name, age:a.age, overall:a.overall, potOverall:a.potOverall})),
+    };
+    return S.endReport;
+  },
+  seasonEndScreen(){ return new SeasonEndScreen(this, this.endSeasonOnce()); },
 
   update(dt){
     this.t += dt*1000;
@@ -91,7 +112,7 @@ const MG = {
          목표·국가 메달표가 통째로 사라져** 시즌 중간에 판이 리셋된 것처럼 보인다.
          화면에 보이는 것은 전부 저장한다. */
       localStorage.setItem(MG_SAVE, JSON.stringify({
-        v:2, club:this.club, season:{
+        v:3, club:this.club, season:{
           year:this.season.year, week:this.season.week,
           points:this.season.points, medals:this.season.medals,
           results:this.season.results.length,
@@ -99,6 +120,7 @@ const MG = {
           goal:this.season.goal || null,
           nationMedals:this.season.nationMedals || null,
           entries:this.season.entries || {},
+          ended:!!this.season.ended, endReport:this.season.endReport || null,
         },
       }));
     }catch(e){}
@@ -108,7 +130,7 @@ const MG = {
     try{
       const d=JSON.parse(localStorage.getItem(MG_SAVE));
       /* v1 세이브도 계속 열린다 — 없던 항목은 새로 만든다 */
-      if(!d || !(d.v===1 || d.v===2)) return false;
+      if(!d || !(d.v===1 || d.v===2 || d.v===3)) return false;
       const c=new Club(d.club.name, 1);
       Object.assign(c, d.club);
       c.squad = d.club.squad.map(o=>Object.assign(new Athlete(o), o));
@@ -122,7 +144,12 @@ const MG = {
       if(d.season.nationMedals) S.nationMedals=d.season.nationMedals;
       if(d.season.entries) S.entries=d.season.entries;
       this.season=S; this.focus={}; this.lastLog=[];
-      this.stack=[new OfficeScreen(this)];
+      /* 시즌이 이미 끝난 상태로 저장됐으면 **그 화면으로 돌아간다** — 사무소를 띄우면
+         플레이어는 평가를 못 보고, 다음 주로 넘기는 순간 오프시즌이 두 번 돈다. */
+      if(d.season.ended && d.season.endReport){
+        S.ended = true; S.endReport = d.season.endReport;
+        this.stack=[new SeasonEndScreen(this, S.endReport)];
+      } else this.stack=[new OfficeScreen(this)];
       return true;
     }catch(e){ return false; }
   },
@@ -130,15 +157,16 @@ const MG = {
 
 /* ── 시즌 종료 ───────────────────────────────────────────── */
 class SeasonEndScreen extends Screen0 {
-  constructor(mg){
+  constructor(mg, rep){
     super(mg);
     /* ⚠ 평가를 승점 절대값으로 매기면 클럽이 커질수록 저절로 S 가 된다.
        **시즌 시작에 받은 목표**를 넘겼는지로 매긴다 — 감독을 평가하는 것이다. */
-    this.report = mg.season.gradeSeason ? mg.season.gradeSeason() : null;
-    this.res = mg.club.endSeason(mg.season.rng);
-    this.pts = mg.season.points; this.medals = mg.season.medals;
-    this.year = mg.season.year;
-    this.olympic = !!mg.season.isOlympicYear;
+    if(!rep) throw new Error('SeasonEndScreen: 시즌 마감 보고서 없이 열 수 없다 (MG.seasonEndScreen 을 쓸 것)');
+    this.report = rep.grade;
+    this.res = { retired: rep.retired, joined: rep.joined };
+    this.pts = rep.points; this.medals = rep.medals;
+    this.year = rep.year;
+    this.olympic = rep.olympic;
     this.grade = this.report
       ? ({good:'S', ok:'B', bad:'D'})[this.report.grade]
       : (this.pts>=200?'S' : this.pts>=140?'A' : this.pts>=90?'B' : this.pts>=50?'C':'D');
@@ -148,7 +176,7 @@ class SeasonEndScreen extends Screen0 {
     if(Input.pressed('action')){
       const seed=(Date.now()^0x3c5f)>>>0;
       const prevMarket = this.mg.season.market;
-      this.mg.season = new Season(this.mg.club, seed);
+      this.mg.season = startNextSeason(this.mg.club, seed);  // 연차는 이 함수 안에서만 오른다
       this.mg.season.market = prevMarket || new Market(this.mg.club, seed);
       this.mg.focus={}; this.mg.lastLog=[];
       this.mg.stack=[new OfficeScreen(this.mg)];

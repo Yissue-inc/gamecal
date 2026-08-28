@@ -659,4 +659,5 @@ const I18N_EN = {
   '어떻게 조작할까요?': 'How do you want to play?',
   '키보드로': 'Keyboard', 'A / D · Space': 'A / D · Space',
   '화면 버튼으로': 'On-screen buttons', '손가락이나 마우스로': 'Finger or mouse',
+  '%1종목 더': '%1 more events',
 };

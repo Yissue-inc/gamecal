@@ -12,24 +12,39 @@ class EntryScreen extends Screen0 {
     if(!S.entries || !Object.keys(S.entries).length) S.entries = S.autoEntries();
     this.events = S.meetEvents();
   }
-  get info(){ return MEET_INFO[this.mg.season.meetKind]; }
+  get info(){
+    /* 대회 주가 아니면 meetKind 가 null 이라 여기서 undefined.name 으로 죽는다.
+       지금은 OfficeScreen 이 isMeetWeek 로 막고 있지만, 막이 하나 걷히면
+       '무엇이 undefined 인지' 모를 오류만 남는다 — 무엇이 틀렸는지 말하게 한다. */
+    const i = MEET_INFO[this.mg.season.meetKind];
+    if(!i) throw new Error('출전표는 대회 주에만 연다 (지금 '+this.mg.season.week+'주차)');
+    return i;
+  }
+  /* ⚠ '경기 시작' 을 목록 **맨 뒤**에 뒀더니 한 화면(7줄)에 안 들어왔다 — 지역대회가
+     딱 7종목이라 시작 버튼이 스크롤 아래로 숨었고, 올림픽(종목 15개)에서는 훨씬 멀다.
+     시작하는 법을 찾으려고 스크롤해야 하는 화면은 잘못된 화면이다. 앞으로 옮긴다. */
   get rows(){
     const S=this.mg.season;
+    const head = [
+      { label:'▶ 경기 시작', sub:'출전표를 확정하고 경기를 본다', color:PAL.green, right:'!' },
+      { label:'자동 편성', sub:'컨디션과 적합도로 자동으로 짠다', right:'↻' },
+    ];
     const r = this.events.map(ev=>{
       const ids=S.entries[ev.id]||[];
       const names=ids.map(id=>{ const a=this.mg.club.byId(id); return a? `${a.speciesName} ${a.name}` : '?'; });
       const bad = ids.some(id=>{ const a=this.mg.club.byId(id); return !a || !a.available; });
+      /* ⚠ 계주의 분모까지 대회 인원 제한(2)을 쓰고 있었다 — 화면에 '4 / 2' 가
+         초록색으로 떠서 규칙을 어긴 것처럼 보였다. 팀 종목은 구간 수가 정원이다. */
+      const cap = (typeof isTeamEvent==='function' && isTeamEvent(ev)) ? ev.legs : this.info.entries;
       return { label:ev.name, sub: names.length? names.join(', ') : '출전 없음',
-        right:`${ids.length} / ${this.info.entries}`,
+        right:`${ids.length} / ${cap}`,
         rightColor: bad?PAL.red : ids.length?PAL.green:PAL.dim };
     });
-    r.push({ label:'▶ 경기 시작', sub:'출전표를 확정하고 경기를 본다', color:PAL.green, right:'!' });
-    r.push({ label:'자동 편성', sub:'컨디션과 적합도로 자동으로 짠다', right:'↻' });
-    return r;
+    return head.concat(r);
   }
   confirm(){
     const S=this.mg.season;
-    if(this.sel === this.events.length){          // 경기 시작
+    if(this.sel === 0){                            // 경기 시작
       const any = this.events.some(ev=>(S.entries[ev.id]||[]).length);
       if(!any){ this.mg.toast('출전 선수가 없습니다'); Sfx.fail(); return; }
       // 부상 선수 제거
@@ -39,8 +54,8 @@ class EntryScreen extends Screen0 {
       this.mg.replace(new MeetWatchScreen(this.mg, meet));
       return;
     }
-    if(this.sel === this.events.length+1){ S.entries=S.autoEntries(); Sfx.ui(); this.mg.toast('자동 편성했습니다'); return; }
-    this.mg.push(new PickEntryScreen(this.mg, this.events[this.sel]));
+    if(this.sel === 1){ S.entries=S.autoEntries(); Sfx.ui(); this.mg.toast('자동 편성했습니다'); return; }
+    this.mg.push(new PickEntryScreen(this.mg, this.events[this.sel-2]));
   }
   cancel(){ this.mg.pop(); }
   draw(u){
@@ -65,8 +80,15 @@ class PickEntryScreen extends Screen0 {
     this.cands = mg.club.squad.slice().sort((a,b)=>eventFitNow(b,this.ev)-eventFitNow(a,this.ev));
   }
   get chosen(){ return this.mg.season.entries[this.ev.id] || (this.mg.season.entries[this.ev.id]=[]); }
+  /* ⚠ 정원을 대회 인원 제한 하나로만 봤다 — 계주는 4명이 필요한데 손으로 편집하면
+     2명에서 막혔고, 그 상태로 대회를 열면 **계주가 조용히 빠졌다**(runRelay 가
+     인원 미달로 return). 팀 종목의 정원은 구간 수다. */
+  get cap(){
+    return (typeof isTeamEvent==='function' && isTeamEvent(this.ev))
+      ? this.ev.legs : MEET_INFO[this.mg.season.meetKind].entries;
+  }
   get rows(){
-    const max=MEET_INFO[this.mg.season.meetKind].entries;
+    const max=this.cap;
     return this.cands.map(a=>{
       const on=this.chosen.includes(a.id);
       const fit=eventFitNow(a,this.ev);
@@ -74,13 +96,13 @@ class PickEntryScreen extends Screen0 {
       const fav = (typeof speciesFavors==='function') && speciesFavors(a, this.ev.id);
       return { label:(on?'● ':'○ ')+`${a.speciesName} ${a.name}`+(fav?' ★':'')+(a.injury?' (부상)':''), nation:a.nation,
         sub:`적합 ${Math.round(fit)} · 컨디션 ${UI.condName(a.condition)} · 피로 ${Math.round(a.fatigue)}`,
-        right: pb!==undefined ? pb.toFixed(2)+this.ev.unit : '기록 없음',
+        right: pb!==undefined ? fmtRec(this.ev, pb) : '기록 없음',
         rightColor: pb!==undefined?PAL.gold:PAL.dim,
         color: a.injury?PAL.red:(on?PAL.green:PAL.white), dim:!a.available };
     }).concat([{label:`— 확정 (${this.chosen.length}/${max})`, color:PAL.blue}]);
   }
   confirm(){
-    const max=MEET_INFO[this.mg.season.meetKind].entries;
+    const max=this.cap;
     if(this.sel>=this.cands.length){ this.mg.pop(); return; }
     const a=this.cands[this.sel];
     if(!a.available){ this.mg.toast('부상 중인 선수는 출전할 수 없습니다'); Sfx.fail(); return; }
@@ -90,7 +112,7 @@ class PickEntryScreen extends Screen0 {
     Sfx.ui();
   }
   draw(u){
-    UI.header(u, this.ev.name, `기준 ${this.ev.qualify.toFixed(2)}${this.ev.unit}`);
+    UI.header(u, this.ev.name, `기준 ${fmtRec(this.ev, this.ev.qualify)}`);
     txt(u,'적합도는 컨디션까지 반영한 값입니다',8,27,9,PAL.dim);
     UI.list(u,this.rows,this.sel,8,40,VW-16,24,7);
     UI.footer(u,'확인 선택/해제   취소 돌아가기');
@@ -281,7 +303,8 @@ class MeetWatchScreen extends Screen0 {
     if(this.phase==='INTRO'){
       plate(u,VW/2-100,VH/2-22,200,44,.8);
       txt(u,this.ev.name,VW/2,VH/2-16,15,PAL.gold,'center',700);
-      const mine=this.results.filter(r=>this.mg.club.has(r.athlete)).map(r=>r.athlete.name).join(', ');
+      const mine=this.results.filter(r=>this.mg.club.has(r.athlete))
+        .flatMap(r=>r.team ? r.team.map(a=>a.name) : [r.athlete.name]).join(', ');
       txt(u,mine?`출전: ${mine}`:'출전 선수 없음',VW/2,VH/2+4,10,PAL.white,'center');
       UI.footer(u,'확인 건너뛰기');
       return;
@@ -305,7 +328,7 @@ class MeetWatchScreen extends Screen0 {
       for(let i=0;i<3;i++){
         const v=i<this.attempt ? marks[i] : undefined;
         txt(u, `${i+1}차`, 11, 42+i*11, 9, PAL.dim);
-        txt(u, v===undefined?'—':(v===null?'파울':v.toFixed(2)+this.ev.unit),
+        txt(u, v===undefined?'—':(v===null?'파울':fmtRec(this.ev, v)),
             152, 42+i*11, 9, v===null?PAL.red:(v===undefined?PAL.dim:PAL.white),'right');
       }
     }
@@ -317,9 +340,10 @@ class MeetWatchScreen extends Screen0 {
         const y=44+i*15;
         if(mine){ u.fillStyle='rgba(255,215,94,.14)'; u.fillRect(10,y-2,VW-20,14); }
         txt(u, String(r.rank), 16, y, 10, r.rank===1?PAL.gold:PAL.white,'left',700);
-        txt(u, r.athlete.name, 34, y, 10, mine?PAL.gold:PAL.white, 'left', mine?700:400);
+        txt(u, r.team ? r.team.map(a=>a.name).join('·') : r.athlete.name,
+            34, y, 10, mine?PAL.gold:PAL.white, 'left', mine?700:400);
         const bad = r.res.falseStart?'부정출발' : r.res.dnf?'실격' : r.res.allFoul?'파울' : null;
-        txt(u, bad || (r.value.toFixed(2)+this.ev.unit), VW-56, y, 10, bad?PAL.red:PAL.white,'right');
+        txt(u, bad || fmtRec(this.ev, r.value), VW-56, y, 10, bad?PAL.red:PAL.white,'right');
         if(r.isPB) txt(u,'PB',VW-38,y,9,PAL.green,'left',700);
         if(r.isCR) txt(u,'CR',VW-20,y,9,PAL.gold,'left',700);
       });
@@ -334,10 +358,18 @@ class MeetResultScreen extends Screen0 {
     super(mg);
     this.meet = meet;
     this.page = 0;                 // 0=결과 · 1=국가별 메달
+    this.top = 0;                  // 스크롤 시작 종목
+    this._drawn = 0; this._total = 0;
   }
   update(now){
     /* ⚠ 메달표를 결과 위에 겹쳐 그렸더니 기록 열을 가렸다(실측). 페이지로 나눈다. */
     if(Input.pressed('right')||Input.pressed('left')){ this.page = this.page?0:1; Sfx.ui(); return; }
+    /* 종목이 한 화면을 넘으면 스크롤한다 — 올림픽은 14종목이다 */
+    if(this.page===0){
+      const last = this.top + this._drawn;         // 지금 화면의 마지막 다음
+      if(Input.repeat('down', now) && last < this._total){ this.top++; Sfx.ui(); return; }
+      if(Input.repeat('up', now)   && this.top > 0)       { this.top--; Sfx.ui(); return; }
+    }
     if(Input.pressed('action')||Input.pressed('back')){ Sfx.ui(); this.mg.afterMeet(); }
   }
   draw(u){
@@ -347,23 +379,37 @@ class MeetResultScreen extends Screen0 {
     UI.header(u, m.name+' 결과', `${m.week}주차`);
     txt(u,'획득 승점',VW/2,32,9,PAL.dim,'center');
     txt(u,String(m.points),VW/2,42,26,PAL.gold,'center',700);
-    let y=76;
-    for(const e of m.events){
-      const mine=e.rows.filter(r=>this.mg.club.has(r.athlete));
-      if(!mine.length) continue;
+    /* ⚠ 예전엔 그린 **뒤에** 넘쳤는지 봤다 — 마지막 종목이 하단 문구를 덮었고(실측),
+       화면을 넘는 종목은 아무 말 없이 사라졌다(올림픽 15종목). 그리기 전에 재고,
+       못 담은 만큼은 몇 종목인지 말한 뒤 ▲▼ 로 넘긴다. */
+    const shown = m.events.map(e=>({ e, mine:e.rows.filter(r=>this.mg.club.has(r.athlete)) }))
+                          .filter(x=>x.mine.length);
+    const BOT = VH-42;
+    let y=76, drawn=0;
+    for(let k=this.top; k<shown.length; k++){
+      const {e, mine} = shown[k];
+      if(y + mine.length*11 > BOT) break;
       txt(u, e.ev.short, 12, y, 9, PAL.blue,'left',700);
       mine.forEach((r,i)=>{
         const bad = r.res.falseStart?'부정출발':r.res.dnf?'실격':r.res.allFoul?'파울':null;
-        txt(u, `${r.rank}위 ${r.athlete.name}`, 48, y+i*11, 9, r.rank<=3?PAL.gold:PAL.white);
-        txt(u, bad || r.value.toFixed(2)+e.ev.unit, VW-46, y+i*11, 9, bad?PAL.red:PAL.white,'right');
+        /* ⚠ 계주는 rows 에 대표 한 명(team[0])만 담긴다 — 화면에도 한 명만 나와
+           '4×100m 계주 6위 서건우' 처럼 혼자 뛴 것처럼 보였다. 팀이면 팀을 적는다. */
+        const who = r.team ? r.team.map(a=>a.name).join('·') : r.athlete.name;
+        txt(u, `${r.rank}위 ${who}`, 48, y+i*11, 9, r.rank<=3?PAL.gold:PAL.white);
+        txt(u, bad || fmtRec(e.ev, r.value), VW-46, y+i*11, 9, bad?PAL.red:PAL.white,'right');
         if(r.isPB) txt(u,'PB',VW-28,y+i*11,8,PAL.green,'left',700);
         if(r.isCR) txt(u,'CR',VW-12,y+i*11,8,PAL.gold,'left',700);
       });
-      y += Math.max(1,mine.length)*11 + 4;
-      if(y>VH-40) break;
+      y += mine.length*11 + 4;
+      drawn++;
     }
+    /* ⚠ '몇 종목 더'를 화면에 그린 수로만 셌더니 아무리 내려도 숫자가 그대로였다.
+       위치를 말한다 — 몇 번째부터 몇 번째까지 보고 있는지가 사람이 알고 싶은 것이다. */
+    this._drawn = drawn; this._total = shown.length;
+    if(shown.length > drawn)
+      txt(u, `▲▼ ${this.top+1}–${this.top+drawn} / ${shown.length}`, 12, VH-30, 9, PAL.gold,'left');
     txt(u,`시즌 승점 ${S.points} · 금 ${S.medals.gold} 은 ${S.medals.silver} 동 ${S.medals.bronze}`,
-        VW/2, VH-30, 10, PAL.white,'center');
+        VW/2, VH-30, 9, PAL.white,'center');
     UI.footer(u,'확인 계속');
     /* 메달표는 ▶ 로 넘어간다 — 겹쳐 그리면 결과 목록을 가린다(실측) */
     txt(u, '▶ 국가별 메달', VW-8, VH-28, 9, PAL.gold, 'right');
