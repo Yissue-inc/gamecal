@@ -330,6 +330,8 @@ const G = {
       { k:'vol',  label:'효과음',   get:()=>Sfx.vol,    set:(v)=>Sfx.setVol(v) },
       { k:'amb',  label:'관중 소리', get:()=>Sfx.ambVol, set:(v)=>Sfx.setAmb(v) },
       { k:'mute', label:'음소거',   toggle:true },
+      /* 박자 안내 — 리듬을 익힌 사람에겐 잔소리다. 끌 수 있어야 한다. */
+      { k:'metro', label:'박자 소리', toggle:true },
       { k:'lang', label:'언어',     toggle:true },
       { k:'ctrl', label:'조작',     toggle:true },
       /* ⚠ 종목 선택에서 인원은 [ ] 키로 바꾼다 — 화면 버튼에는 그 키가 없다.
@@ -350,6 +352,7 @@ const G = {
     }
     if(Input.pressed('action')||((dLeft||dRight)&&r.toggle)){
       if(r.k==='mute'){ Sfx.toggleMute(); }
+      else if(r.k==='metro'){ Sfx.metroOn = !(Sfx.metroOn!==false); Sfx.savePrefs(); }
       else if(r.k==='lang'){ if(typeof setLang==='function') setLang(LANG==='ko'?'en':'ko'); }
       else if(r.k==='ctrl'){ Ctrl.set(Ctrl.mode==='touch'?'keyboard':'touch'); }
       else if(r.k==='party'){
@@ -367,26 +370,35 @@ const G = {
     txt(uctx,'설정', 8, 5, 13, PAL.gold,'left',700);
     const rows=this.settingRows;
     const x=64, w=VW-128;
+    /* ⚠ 줄 간격 28px 는 7줄 기준이었다 — '박자 소리'를 넣자 마지막 줄이 하단
+       안내와 겹쳤다. 줄 수에 맞춰 간격을 계산한다(항목이 또 늘어도 안 겹친다). */
+    const top=40, bot=VH-24;
+    const gap=Math.min(28, Math.floor((bot-top)/rows.length));
+    const rh=gap-4;
     rows.forEach((r,i)=>{
-      const y=44+i*28, on=i===this.setSel;
+      const y=top+i*gap, on=i===this.setSel;
       uctx.fillStyle = on?'rgba(255,215,94,.16)':'rgba(22,26,38,.7)';
-      uctx.fillRect(x,y,w,24);
+      uctx.fillRect(x,y,w,rh);
       uctx.strokeStyle = on?PAL.gold:'#3a4258'; uctx.lineWidth=1;
-      uctx.strokeRect(x+.5,y+.5,w-1,23);
-      txt(uctx, r.label, x+10, y+6, 11, on?PAL.gold:PAL.white,'left',on?700:400);
+      uctx.strokeRect(x+.5,y+.5,w-1,rh-1);
+      const ty=y+Math.round((rh-11)/2)-1;
+      txt(uctx, r.label, x+10, ty, 11, on?PAL.gold:PAL.white,'left',on?700:400);
       if(r.set){
-        const bw=120, bx=x+w-bw-40, by=y+9, v=r.get();
+        const bw=120, bx=x+w-bw-40, by=y+Math.round(rh/2)-3, v=r.get();
         uctx.fillStyle='rgba(255,255,255,.14)'; uctx.fillRect(bx,by,bw,6);
         uctx.fillStyle=Sfx.muted?PAL.dim:PAL.green; uctx.fillRect(bx,by,Math.round(bw*v),6);
-        txt(uctx, Math.round(v*100)+'%', x+w-10, y+6, 10, PAL.dim,'right');
+        txt(uctx, Math.round(v*100)+'%', x+w-10, ty, 10, PAL.dim,'right');
       } else if(r.k==='mute'){
-        txt(uctx, Sfx.muted?'켜짐':'꺼짐', x+w-10, y+6, 11, Sfx.muted?PAL.red:PAL.dim,'right',700);
+        txt(uctx, Sfx.muted?'켜짐':'꺼짐', x+w-10, ty, 11, Sfx.muted?PAL.red:PAL.dim,'right',700);
+      } else if(r.k==='metro'){
+        txt(uctx, Sfx.metroOn!==false?'켜짐':'꺼짐', x+w-10, ty, 11,
+            Sfx.metroOn!==false?PAL.green:PAL.dim,'right',700);
       } else if(r.k==='lang'){
-        txt(uctx, LANG==='ko'?'한국어':'English', x+w-10, y+6, 11, PAL.blue,'right',700);
+        txt(uctx, LANG==='ko'?'한국어':'English', x+w-10, ty, 11, PAL.blue,'right',700);
       } else if(r.k==='ctrl'){
-        txt(uctx, Ctrl.mode==='touch'?'화면 버튼':'키보드', x+w-10, y+6, 11, PAL.blue,'right',700);
+        txt(uctx, Ctrl.mode==='touch'?'화면 버튼':'키보드', x+w-10, ty, 11, PAL.blue,'right',700);
       } else if(r.k==='party'){
-        txt(uctx, Party.count+K('인'), x+w-10, y+6, 11,
+        txt(uctx, Party.count+K('인'), x+w-10, ty, 11,
             Party.count>1?PAL.gold:PAL.blue,'right',700);
       }
     });
@@ -669,6 +681,28 @@ const G = {
       txt(uctx, K('인원은 설정에서 (일시정지)'), VW-10, VH-18, 8, PAL.dim,'right');
   },
 
+  /* ⚠ 처음 하는 사람이 최대 속도로 연타하면 **100m 를 완주조차 못 한다**(실측:
+     EARLY 136 · PERFECT 0 · 시간 초과). 그런데 결과 화면은 '시간 초과' 네 글자만
+     보여 줬다 — 무엇을 고쳐야 하는지 한마디도 없이. 이 게임은 하이퍼 올림픽처럼
+     보이지만 연타 게임이 아니다(목표 간격 238ms ±43ms). 그 사실을 **실패한 그
+     자리에서** 알려 주지 않으면 사람은 같은 실패를 반복하다 그만둔다.
+     판정 기록이 이미 답을 갖고 있다 — 읽어서 말해 준다. */
+  diagnose(ev){
+    const p = ev.player || (ev.runners && ev.runners[0]);
+    const j = p && p.judge; if(!j) return null;
+    const total = (j.PERFECT|0)+(j.GOOD|0)+(j.EARLY|0)+(j.LATE|0)+(j.REPEAT|0)+(j.SPAM|0);
+    if(total < 6) return null;
+    if((j.SPAM|0) > total*0.15)   return '연타는 오히려 느려집니다 — 리듬을 맞추세요';
+    if((j.REPEAT|0) > total*0.15) return '같은 쪽을 연달아 눌렀습니다 — 좌·우를 번갈아';
+    const early=j.EARLY|0, late=j.LATE|0, good=(j.PERFECT|0)+(j.GOOD|0);
+    if(early > total*0.4 && early > late*2)
+      return '너무 빨리 두드렸습니다 — 아래 게이지의 초록 칸에 맞추세요';
+    if(late > total*0.4 && late > early*2)
+      return '조금씩 늦습니다 — 게이지보다 살짝 먼저 누르세요';
+    if(good > total*0.7) return null;      // 잘하고 있다 — 잔소리 금지
+    return '아래 게이지의 초록 칸에서 두드리면 빨라집니다';
+  },
+
   drawResult(uctx){
     const ev=this.event, r=ev.result, d=this.def;
     uctx.fillStyle='rgba(5,6,10,.82)'; uctx.fillRect(0,0,VW,VH);
@@ -688,7 +722,9 @@ const G = {
       txt(uctx,'총소리를 듣고 나서 두드리세요', VW/2, 108, 11, PAL.dim,'center');
     }
     else if(r.status==='DQ' || r.status==='TIMEOUT'){
-      txt(uctx, RESULT_TITLE[r.status], VW/2, 88, 13, PAL.white,'center');
+      /* ⚠ 여기서 제목을 다시 찍고 있었다 — 화면에 '시간 초과'가 두 번 나왔다 */
+      const why = this.diagnose(ev);
+      txt(uctx, why || K('완주하지 못했습니다'), VW/2, 88, 13, PAL.white,'center');
     }
     else {
       /* ⚠ 예전엔 단위를 '거리 아니면 초'로 갈랐다 — 다이빙 72.96점이 **72.96m** 로,
@@ -716,6 +752,10 @@ const G = {
             VW/2, 138, 10, PAL.white,'center');
       }
       if(this.newRecord) txt(uctx,'★ 개인 최고기록!', VW/2, 168, 13, PAL.gold,'center',700);
+      else if(r.status==='MISSED_QUALIFY'){
+        const why = this.diagnose(ev);
+        if(why) txt(uctx, why, VW/2, 168, 11, PAL.gold,'center');
+      }
     }
     /* ⚠ 화면 버튼은 캔버스 위에 얹힌 DOM 이다. 안내를 VH-30 에 두면 가로 폰에서
        오른쪽 아래 '액션' 버튼이 그 위에 앉는다(실측 812×375). 버튼 위로 올린다. */

@@ -8,12 +8,13 @@ const Sfx = {
   /* ⚠ 예전엔 켜기/끄기 하나뿐이었고 그마저 UI 가 없었다.
      출시하려면 플레이어가 소리를 조절할 수 있어야 한다 — 기본기다.
      효과음과 관중 웅성거림을 따로 둔다(이 게임의 유일한 지속음이 관중이다). */
-  vol: 0.9, ambVol: 1.0,
+  vol: 0.9, ambVol: 1.0, metroOn: true,
   loadPrefs(){
     try{
       const v=localStorage.getItem('wsc_vol');   if(v!==null) this.vol   = clamp(parseFloat(v),0,1);
       const a=localStorage.getItem('wsc_amb');   if(a!==null) this.ambVol= clamp(parseFloat(a),0,1);
       const m=localStorage.getItem('wsc_muted'); if(m!==null) this.muted = m==='1';
+      const mt=localStorage.getItem('wsc_metro'); if(mt!==null) this.metroOn = mt==='1';
     }catch(_){}
   },
   savePrefs(){
@@ -21,6 +22,7 @@ const Sfx = {
       localStorage.setItem('wsc_vol', String(this.vol));
       localStorage.setItem('wsc_amb', String(this.ambVol));
       localStorage.setItem('wsc_muted', this.muted?'1':'0');
+      localStorage.setItem('wsc_metro', this.metroOn?'1':'0');
     }catch(_){}
   },
   applyVol(){
@@ -98,4 +100,20 @@ const Sfx = {
   fail(){ [330,262,196].forEach((f,i)=>setTimeout(()=>this.beep(f,0.24,'sawtooth',0.13),i*130)); },
   ui(){ this.beep(880,0.05,'square',0.09); },
   record(){ [1046,1318,1568,2093].forEach((f,i)=>setTimeout(()=>this.beep(f,0.3,'square',0.15),i*100)); },
+
+  /* 박자 — 이 게임의 핵심은 '얼마나 빨리'가 아니라 '얼마나 고르게'다(목표 238ms).
+     ⚠ 그런데 그 박자를 **눈으로만** 알려 주고 있었다: 화면 맨 아래 게이지 하나.
+        경기 중에 사람은 선수를 본다. 실측 — 처음 하는 사람이 최대 속도로 연타하면
+        100m 를 완주조차 못 한다(EARLY 136 · PERFECT 0). 리듬 게임은 소리로 가르친다.
+     아주 작고 짧게 — 듣고 따라가되 거슬리지 않게. */
+  metro(){
+    if(!this.ac || this.muted) return;
+    const t=this.ac.currentTime;
+    const o=this.ac.createOscillator(), g=this.ac.createGain();
+    o.type='square'; o.frequency.value=1600;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.06*this.vol, t+0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.045);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t+0.05);
+  },
 };

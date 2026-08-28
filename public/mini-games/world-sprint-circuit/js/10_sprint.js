@@ -103,10 +103,20 @@ class SprintEvent {
       // "제자리에" 신호음 3번
       const want = Math.min(3, Math.floor((this.gunMs - now > 0 ? 3 - (this.gunMs-now)/450 : 3)));
       if(want > this.setBeeps && want<=3){ this.setBeeps=want; Sfx.set(); }
-      if(now >= this.gunMs){ this.phase='RUN'; Sfx.gun(); this.flash=1; }
+      if(now >= this.gunMs){ this.phase='RUN'; Sfx.gun(); this.flash=1; this._metroAt=now; }
     }
 
     if(this.phase==='RUN'){
+      /* 박자 안내 — 목표 간격마다 딸깍. 설정에서 끌 수 있다(Sfx.metroOn).
+         ⚠ 잘 치는 사람에게는 잔소리다 — **콤보가 붙으면 스스로 물러난다**.
+            (박자를 이미 아는 사람에게 계속 울리면 그게 방해다) */
+      if(Sfx.metroOn !== false && this._metroAt !== undefined){
+        const iv = this.player.targetIntervalMs();
+        while(now >= this._metroAt){
+          this._metroAt += iv;
+          if((this.player.combo||0) < 8) Sfx.metro();
+        }
+      }
       this.aiStep(now);
       for(const r of this.all) r.simulate(dt, now);
       /* ⚠ 여러 명이면 **전원이 들어와야** 끝난다. 1등이 들어오자마자 끊으면

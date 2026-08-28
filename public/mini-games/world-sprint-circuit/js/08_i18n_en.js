@@ -655,7 +655,7 @@ const I18N_EN = {
     'Four swimmers in turn · ▲ hands over just before the wall (early = DQ)',
 
   /* ── 부팅 화면(HTML) · 화면 버튼 ── */
-  '좌·우를 번갈아 두드려 달린다': 'Alternate left and right to run',
+  '좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게': 'Alternate ◀ ▶ at a steady beat — even, not fast',
   '어떻게 조작할까요?': 'How do you want to play?',
   '키보드로': 'Keyboard', 'A / D · Space': 'A / D · Space',
   '화면 버튼으로': 'On-screen buttons', '손가락이나 마우스로': 'Finger or mouse',
@@ -691,4 +691,22 @@ const I18N_EN = {
   '인계 부정 출발 — 벽을 찍기 전에 뛰었습니다': 'Early exchange — you left before the wall was touched',
   '미끄러졌습니다 — 리듬이 어긋나면 손이 빠집니다': 'You slipped — a broken rhythm loses the hold',
   '제한 시간 안에 완등하지 못했습니다': 'You did not top out inside the time limit',
+  '연타는 오히려 느려집니다 — 리듬을 맞추세요': 'Mashing makes you slower — match the rhythm',
+  '같은 쪽을 연달아 눌렀습니다 — 좌·우를 번갈아': 'You pressed the same side twice — alternate ◀ ▶',
+  '너무 빨리 두드렸습니다 — 아래 게이지의 초록 칸에 맞추세요':
+    'Too fast — land your taps in the green band on the gauge below',
+  '조금씩 늦습니다 — 게이지보다 살짝 먼저 누르세요': 'A touch late — press just before the marker',
+  '아래 게이지의 초록 칸에서 두드리면 빨라집니다': 'Tap inside the green band below to go faster',
+  '완주하지 못했습니다': 'You did not finish',
+  '좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발':
+    'Alternate ◀ ▶ at a steady beat — even, not fast · pressing before the gun is a false start',
+  '좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다':
+    'Alternate ◀ ▶ at a steady beat — keep it through the bend',
+  '좌·우를 일정한 박자로 — 한 바퀴다. 초반에 다 쓰면 무너진다':
+    'Alternate ◀ ▶ at a steady beat — one full lap; spend it early and you fall apart',
+  '좌·우를 일정한 박자로 달리다 허들 앞에서 액션':
+    'Alternate ◀ ▶ at a steady beat, then Action at each hurdle',
+  '좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)':
+    'Steady beat with ◀ ▶ · Action in the exchange zone, at matched speed',
+  '박자 소리': 'Beat cue',
 };

@@ -133,11 +133,11 @@ function phaseAt(distM, trackM){
       기준이 벽이 된다 — 가끔은 넘어야 다시 해 본다. */
 const EVENTS = [
   /* ── 트랙: 단거리 ── */
-  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.30, distanceM:100, kind:'sprint', tip:'좌·우 번갈아 두드려 달린다 · 총성 전에 누르면 부정 출발' },
-  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:21.80, distanceM:200, kind:'sprint', tip:'좌·우 번갈아 · 곡선에서도 리듬을 잃지 않는다' },
-  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:44.50, distanceM:400, kind:'middle', tip:'좌·우 번갈아 · 한 바퀴라 초반에 다 쓰면 무너진다' },
+  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.30, distanceM:100, kind:'sprint', tip:'좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발' },
+  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:21.80, distanceM:200, kind:'sprint', tip:'좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다' },
+  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:44.50, distanceM:400, kind:'middle', tip:'좌·우를 일정한 박자로 — 한 바퀴다. 초반에 다 쓰면 무너진다' },
   { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:13.60, distanceM:110, kind:'hurdles',
-    hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우 번갈아 달리다 허들 앞에서 액션으로 넘는다' },
+    hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우를 일정한 박자로 달리다 허들 앞에서 액션' },
   /* 400m 허들 — 허들이 낮고 간격이 넓다. 지구력 종목에 가깝다. */
   { id:'hurdles400', name:'400m 허들',    short:'400MH', unit:'s', higher:false, qualify:47.00, distanceM:400, kind:'hurdles',
     hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'허들 10개 · 보폭이 흐트러지면 발이 안 맞는다' },
@@ -156,7 +156,7 @@ const EVENTS = [
     parS:7900, distanceM:42195, kind:'middle',
     tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
-  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:49.50, distanceM:400, kind:'relay', legs:4, tip:'좌·우로 달리고 인계 구역에서 액션 · 속도가 비슷할 때 넘긴다' },
+  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:49.50, distanceM:400, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
   { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:210.0, parS:196.0, distanceM:1600, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다' },
