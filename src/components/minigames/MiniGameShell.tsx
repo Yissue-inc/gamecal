@@ -294,8 +294,8 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
             <div className="absolute inset-0 grid place-items-center bg-[#06182a]/95 p-6 text-center">
               <div>
                 <RotateCw className="mx-auto size-8 text-cyan-200" aria-hidden="true" />
-                <p className="mt-3 text-base font-bold text-white">Rotate to landscape to race</p>
-                <p className="mt-1 text-sm text-slate-300">World Sprint Circuit is built for a wide track and two-thumb controls.</p>
+                <p className="mt-3 text-base font-bold text-white">Rotate to landscape to play</p>
+                <p className="mt-1 text-sm text-slate-300">{game.title} is built for a wide screen.</p>
               </div>
             </div>
           ) : null}
