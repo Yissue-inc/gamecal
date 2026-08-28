@@ -194,5 +194,9 @@ const EVENTS = [
   { id:'golf',         name:'골프 3홀',     short:'GOLF',  unit:'타', higher:false, qualify:0.0, parS:-3.0, kind:'golf' },
   /* 승마 장애물 — 허들과 달리 간격이 제각각이다. 축은 **보폭 계산**(라인 보기). */
   { id:'equestrian',   name:'승마 장애물',   short:'JUMP',  unit:'벌점', higher:false, qualify:8.0, parS:0.0, kind:'ride' },
+  /* 철봉 — 이 게임에서 유일하게 **놓았다가 다시 잡는** 종목. 스윙이 난도를 허락한다. */
+  { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym' },
+  /* 근대5종 — 펜싱·수영·승마·사격·달리기. 다섯 종목이 이미 다 있어서 그릇만 얹었다. */
+  { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2600, parS:3500, kind:'combined' },
 ];
 const EVENT_BY_ID = {}; for(const e of EVENTS) EVENT_BY_ID[e.id]=e;

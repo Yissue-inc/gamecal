@@ -27,7 +27,19 @@ const DECA = [
 ];
 
 function decaPoints(slot, value){
-  if(!(value>0) || value>=DNF) return 0;
+  if(value>=DNF) return 0;
+  /* ⚠ 근대5종처럼 IAAF 표가 없는 종목(펜싱·사격·승마)은 **기준 기록 대비**로 매긴다.
+     0벌점처럼 값이 0 일 수 있으므로 off 로 밀어 나눗셈이 터지지 않게 한다. */
+  if(slot.anchor){
+    const off = slot.off || 0;
+    const v = value + off, par = slot.par + off;
+    if(!(v>0) || !(par>0)) return 0;
+    const ratio = slot.higher ? (v/par) : (par/v);
+    /* ⚠ 비율에 지수를 씌우면 **상한이 없다** — 비정상적으로 좋은 값 하나가 폭발한다
+       (실측: 수영 한 종목에 40641점). 실제 근대5종도 종목당 1300점 언저리가 끝이다. */
+    return clamp(Math.round(1000 * Math.pow(ratio, slot.k || 1.6)), 0, 1400);
+  }
+  if(!(value>0)) return 0;
   const v = slot.cm ? value*100 : value;
   const x = slot.track ? (slot.B - v) : (v - slot.B);
   if(x <= 0) return 0;
@@ -45,7 +57,18 @@ const HEPTA = [
   { id:'javelin',    A:15.9803,  B:3.80, C:1.04              },
   { id:'run800',     A:0.11193,  B:254,  C:1.88,  track:true },
 ];
-const COMBINED_TABLES = { decathlon:DECA, heptathlon:HEPTA };
+/* 근대5종 — 올림픽을 상징하는 종목이고, 마침 다섯 종목이 전부 이미 있다.
+   IAAF 표가 없는 종목들이라 **기준 기록 대비**(anchor)로 매긴다. 1000점이 기준선. */
+/* ⚠ par 는 **실측값**이어야 한다. 펜싱을 42초로 잡았더니 19초 승리가 곧바로 상한(1400)을
+   쳤다 — 실제로는 능숙한 플레이가 10~16초에 이긴다. 승마는 무결점(0벌점)이 기준선이다. */
+const PENTA = [
+  { id:'fencing',      anchor:true, par:14,   off:6,  k:1.5 },   // 5투셰까지의 시간
+  { id:'swimFree100',  anchor:true, par:43,   off:8,  k:2.0 },
+  { id:'equestrian',   anchor:true, par:0,    off:10, k:1.8 },   // 벌점 — 0 이 기준선
+  { id:'shooting',     anchor:true, par:95,   off:0,  k:2.4, higher:true },
+  { id:'run800',       anchor:true, par:127,  off:20, k:2.2 },
+];
+const COMBINED_TABLES = { decathlon:DECA, heptathlon:HEPTA, pentathlon:PENTA };
 function combinedTable(def){
   const t = COMBINED_TABLES[def && def.id];
   if(!t) throw new Error('combinedTable: 표가 없는 복합 종목 '+(def&&def.id));
@@ -81,8 +104,10 @@ class DecathlonEvent {
   /* 하위 종목이 끝났다 — 점수를 매기고 다음으로 */
   scoreSlot(){
     const r=this.sub.result, slot=this.cur;
-    const val = (r && r.status!=='FALSE_START' && r.status!=='DQ' && r.status!=='TIMEOUT')
-              ? r.value : 0;
+    /* ⚠ 실패를 0 으로 넘겼더니, **작을수록 좋은 종목에서 0 이 최고 기록**으로 읽혔다
+       (수영 실격이 1400점 만점). 실패는 기록 없음(DNF)이다. */
+    const bad = !r || r.status==='FALSE_START' || r.status==='DQ' || r.status==='TIMEOUT';
+    const val = bad ? DNF : r.value;
     const pts = decaPoints(slot, val);
     this.marks.push({ id:slot.id, value:val, pts });
     this.total += pts;

@@ -451,7 +451,7 @@ const I18N_EN = {
   '파리! 받아넘겼다 — 리포스트':'Parry! You turned it aside — riposte',
 
   /* 10종·철인3종 */
-  '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '개인혼영 %1m':'%1m Ind. Medley',
+  '10종 경기':'Decathlon', '7종 경기':'Heptathlon', '근대5종':'Modern Pentathlon', '개인혼영 %1m':'%1m Ind. Medley',
 
   /* 탁구 */
   '탁구':'Table Tennis',
@@ -465,6 +465,15 @@ const I18N_EN = {
 
   /* 도마 */
   '도마':'Vault',
+  /* 철봉 */
+  '철봉':'Horizontal Bar', '스윙':'Swing', '이탈':'Release', '이탈!':'Release!',
+  '이탈 가능':'Ready to release', '더 흔들어라':'Swing higher', '스윙이 얕다':'Swing is too shallow',
+  '놓는 때가 어긋났다':'Released off the top', '잡기':'Catch', '잡았다':'Caught it',
+  '완벽하게 잡았다!':'Perfect catch!', '봉을 놓쳤다 — 추락':'Missed the bar — fall',
+  '그냥 떨어졌다':'Came straight down', '스윙이 죽었다':'The swing died',
+  '내리기':'Dismount', '내려서기':'Dismount', '이제 내려서세요':'Now dismount',
+  '연기 시간 초과':'Routine time over', '추락':'Fall', '착지':'Landing',
+  '좌·우를 리듬에 맞춰 — 스윙이 커지면 액션으로 이탈':'Alternate in rhythm — action to release once the swing is big',
   /* 승마 장애물 */
   '승마 장애물':'Show Jumping', '보폭':'Stride', '짧게':'Short', '보통':'Even', '길게':'Long',
   '남은 걸음':'Strides left', '지금 뛰어라!':'Jump now!',

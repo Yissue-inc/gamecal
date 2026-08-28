@@ -325,11 +325,15 @@ function simulateAnchored(a, def, opt){
 /* 10종 경기 — 하위 열 종목을 각자 돌리고 IAAF 표로 합산한다.
    ⚠ 여기서 하위 종목 목록을 다시 적으면 사본이 된다. DECA(20_decathlon.js)를 그대로 쓴다. */
 function simulateCombined(a, def, opt){
-  if(typeof DECA==='undefined') throw new Error('simulateCombined: DECA 표가 없다');
+  /* ⚠ DECA 를 직접 돌고 있었다 — 7종·근대5종을 넣어도 **10종 종목을 뛰었다**
+     (실측: 근대5종인데 멀리뛰기·원반이 나왔다). 종목 정의에서 표를 고른다. */
+  if(typeof combinedTable!=='function') throw new Error('simulateCombined: 표 함수가 없다');
+  const table = combinedTable(def);
   let total=0; const marks=[];
-  for(const slot of DECA){
+  for(const slot of table){
     const sd = EVENT_BY_ID[slot.id];
     const r = simulateOne(a, sd, opt);
+    /* 위와 같은 이유 — 실패는 0 이 아니라 DNF 다 */
     const v = sd.higher ? (r.best??0) : (r.timeS??DNF);
     const pts = decaPoints(slot, v);
     marks.push({id:slot.id, value:v, pts}); total+=pts;
