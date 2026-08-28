@@ -109,7 +109,7 @@ class EquestrianEvent {
     if(this.refusals>=EQU.maxRefusals){
       this.phase='DONE'; this.doneAt=this.t;
       this.say('거부 3회 — 실격', true); Sfx.fail();
-      this.result={status:'DQ', value:DNF, rank:2};
+      this.result={status:'DQ', value:DNF, rank:2, reason:'거부 3회 — 말이 장애물 앞에서 멈췄습니다'};
       return;
     }
     this.dist = Math.max(0, (f.m-EQU.takeoffAt) - EQU.refuseSetback);

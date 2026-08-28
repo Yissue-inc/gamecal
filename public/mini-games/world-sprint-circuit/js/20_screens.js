@@ -20,6 +20,10 @@ function groupOf(def){
 }
 function eventsInGroup(key){ return EVENTS.filter(e=>groupOf(e)===key); }
 
+/* 결과 화면 제목 — RESULT_STATUS(00_rules)를 전부 덮어야 한다(부팅 때 검사) */
+const RESULT_TITLE = { OK:'통과', MISSED_QUALIFY:'기준기록 미달', FALSE_START:'부정 출발',
+                       DQ:'실격', TIMEOUT:'시간 초과', ALL_FOUL:'세 번 모두 파울' };
+
 const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4, CAREER:5, SETTINGS:6, NATION:7, SHARE:8 };
 /* 실제로 플레이 가능한 종목. 여기 없는 건 선택 화면에서 '준비 중'으로 잠근다.
    ⚠ 목록만 늘려놓고 구현이 없으면 플레이어는 빈 화면을 만난다. */
@@ -420,7 +424,7 @@ const G = {
       txt(u, (k+1)+'위', x+12, y+7, 12, k===0?PAL.gold:PAL.dim, 'left', 700);
       txt(u, 'P'+(r.i+1), x+46, y+7, 13, PARTY_COLOR[r.i], 'left', 700);
       const val = r.v===null ? '기록 없음'
-        : fmtRec(def, r.v) + (def.unit==='s' ? K('초') : '');
+        : (v=>v + (def.unit==='s' && needsSec(v) ? K('초') : ''))(fmtRec(def, r.v));
       txt(u, val, x+w-12, y+6, 14, r.v===null?PAL.dim:PAL.white, 'right', 700);
     });
     txt(u, '확인 다시   ·   취소 종목 선택', VW/2, VH-16, 9, PAL.dim, 'center');
@@ -668,23 +672,33 @@ const G = {
   drawResult(uctx){
     const ev=this.event, r=ev.result, d=this.def;
     uctx.fillStyle='rgba(5,6,10,.82)'; uctx.fillRect(0,0,VW,VH);
-    const title = { OK:'통과', MISSED_QUALIFY:'기준기록 미달', FALSE_START:'부정 출발',
-                    TIMEOUT:'시간 초과', ALL_FOUL:'세 번 모두 파울' }[r.status] || r.status;
+    const title = RESULT_TITLE[r.status] || r.status;
     const col   = r.status==='OK' ? PAL.green : PAL.red;
     txt(uctx, title, VW/2, 30, 20, col,'center',700);
     txt(uctx, d.name, VW/2, 56, 12, PAL.dim,'center');
 
-    if(r.status==='FALSE_START'){
+    /* 종목이 사유를 실어 보내면 그걸 그대로 보여 준다 — 화면이 종목 규칙을 다시
+       적으면 규칙이 바뀔 때 한쪽만 고치게 된다. */
+    if(r.reason && r.status!=='OK' && r.status!=='MISSED_QUALIFY'){
+      txt(uctx, r.reason, VW/2, 88, 13, PAL.white,'center');
+      if(r.status==='FALSE_START') txt(uctx,'총소리를 듣고 나서 두드리세요', VW/2, 108, 11, PAL.dim,'center');
+    }
+    else if(r.status==='FALSE_START'){
       txt(uctx,'총성 전에 움직였습니다', VW/2, 88, 13, PAL.white,'center');
       txt(uctx,'총소리를 듣고 나서 두드리세요', VW/2, 108, 11, PAL.dim,'center');
-    } else {
+    }
+    else if(r.status==='DQ' || r.status==='TIMEOUT'){
+      txt(uctx, RESULT_TITLE[r.status], VW/2, 88, 13, PAL.white,'center');
+    }
+    else {
       /* ⚠ 예전엔 단위를 '거리 아니면 초'로 갈랐다 — 다이빙 72.96점이 **72.96m** 로,
          역도 210kg 이 210m 로 나왔다. 단위는 종목이 들고 있다. */
       const sfx  = d.unit==='s' ? K('초') : '';      // fmtRec 은 시간에만 단위를 안 붙인다
       const void_ = d.higher && !(r.value>0);      // 거리·점수 종목의 0 = 실패
       const shown = void_ ? '--.--' : fmtRec(d, r.value);
-      txt(uctx, shown+(void_?'':sfx), VW/2, 82, 30, PAL.gold,'center',700);
-      txt(uctx, '기준 '+fmtRec(d, d.qualify)+sfx, VW/2, 116, 11, PAL.dim,'center');
+      const q = fmtRec(d, d.qualify);
+      txt(uctx, shown + (needsSec(shown)?sfx:''), VW/2, 82, 30, PAL.gold,'center',700);
+      txt(uctx, '기준 '+q+(needsSec(q)?sfx:''), VW/2, 116, 11, PAL.dim,'center');
       const p=ev.player;
       if(p){
         const line = `PERFECT ${p.judge.PERFECT}  ·  GOOD ${p.judge.GOOD}  ·  놓침 ${p.judge.EARLY+p.judge.LATE}`;

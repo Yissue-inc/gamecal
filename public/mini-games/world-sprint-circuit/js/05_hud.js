@@ -31,6 +31,10 @@ function unitOf(def){
   return (typeof LANG!=='undefined' && LANG==='en') ? (UNIT_EN[u]!==undefined ? UNIT_EN[u] : u) : u;
 }
 
+/* '초'를 붙여도 되는 표기인가 — 45.20초는 자연스럽지만 2:24:10초는 아니다.
+   ⚠ 실격 화면이 '--.--초' 로 나왔다(기록이 없는데 단위가 붙었다). */
+function needsSec(str){ return str.indexOf(':')<0 && str!=='--.--'; }
+
 function fmtRec(def, v){
   if(v===undefined || v===null || !isFinite(v) || v>=DNF) return '--.--';
   if(def.unit==='s') return fmtTime(v);   // 초 단위는 부르는 쪽이 붙인다

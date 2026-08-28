@@ -224,7 +224,12 @@ class MiddleEvent {
     const total = bad ? 99999 : r0.finishTimeS;
     const status = r0.falseStart ? 'FALSE_START' : r0.dq ? 'DQ' : r0.timedOut ? 'TIMEOUT'
                  : (total<=this.qualify ? 'OK' : 'MISSED_QUALIFY');
-    this.result={status, value:total, rank:this.rankOf()};
+    /* ⚠ '실격' 세 글자만 뜨고 왜인지 안 나왔다 — 경보는 경고 3회로 실격되는데
+       그 규칙을 모르는 사람은 무엇을 잘못했는지 영영 모른다. 사유를 같이 보낸다. */
+    const reason = r0.falseStart ? '총성 전에 움직였습니다'
+                 : r0.dq ? (this.walk ? '케이던스 경고 3회 — 걷기를 유지해야 합니다' : '실격되었습니다')
+                 : r0.timedOut ? '제한 시간 안에 들어오지 못했습니다' : null;
+    this.result={status, value:total, rank:this.rankOf(), reason};
     if(status!=='OK') Sfx.fail();
     /* 다인전 기록판 — 완주 시각 순 */
     if(this.humanCount>1 && typeof Party!=='undefined' && Party.on){
@@ -243,6 +248,9 @@ class MiddleEvent {
     const mPerPx=0.26;
     Track.drawBack(ctx, this.camM*0.3, this.trackM);
     Track.drawLanes(ctx, this.camM, mPerPx, this.trackM);
+    /* 마라톤·경보는 도로 경기다 — 붉은 우레탄 트랙 위를 42km 도는 그림은 틀렸다.
+       도로 어셋이 오면 레인 위에 깔아 덮는다(없으면 지금처럼 트랙 그대로). */
+    if(this.road) BG.tile(BG.ctx(), 'road-marathon', Track.LANE_Y[0]-6, 40, this.camM/mPerPx);
     const px=(m)=>Math.round((m-this.camM)/mPerPx);
     Track.drawFinish(ctx, this.camM, mPerPx, this.trackM);
     this._hd=[];

@@ -152,7 +152,7 @@ class RelayEvent extends SprintEvent {
       /* 구역을 벗어나면 실격 */
       if(this.cur<this.nLegs-1 && this.teamDist > this.zoneEnd(this.cur) + 2){
         this.dq=true; this.phase='DONE'; this.doneAt=now;
-        this.result={ status:'DQ', value:DNF, rank:3 };
+        this.result={ status:'DQ', value:DNF, rank:3, reason:'인계 구역을 벗어났습니다' };
         this.say('인계 구역을 놓쳤다 — 실격', true); Sfx.fail();
       }
       /* 마지막 주자 완주 */

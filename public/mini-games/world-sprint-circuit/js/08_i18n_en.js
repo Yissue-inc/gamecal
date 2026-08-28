@@ -682,4 +682,13 @@ const I18N_EN = {
   '안정 %1%  ·  무너짐 %2': 'Steady %1%  ·  Collapses %2',
   '좌·우로 흔들림을 되잡아 버틴다 — 많이 누를수록 감점':
     '◀ ▶ to steady yourself — every correction costs you',
+  '실격': 'Disqualified',
+  '케이던스 경고 3회 — 걷기를 유지해야 합니다': 'Three cadence warnings — you must keep walking',
+  '제한 시간 안에 들어오지 못했습니다': 'You did not finish inside the time limit',
+  '실격되었습니다': 'You were disqualified',
+  '인계 구역을 벗어났습니다': 'You left the exchange zone',
+  '거부 3회 — 말이 장애물 앞에서 멈췄습니다': 'Three refusals — your horse stopped at the fence',
+  '인계 부정 출발 — 벽을 찍기 전에 뛰었습니다': 'Early exchange — you left before the wall was touched',
+  '미끄러졌습니다 — 리듬이 어긋나면 손이 빠집니다': 'You slipped — a broken rhythm loses the hold',
+  '제한 시간 안에 완등하지 못했습니다': 'You did not top out inside the time limit',
 };

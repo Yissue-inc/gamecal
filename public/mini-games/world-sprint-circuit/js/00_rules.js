@@ -15,6 +15,11 @@ const DNF = 99999;
       사각형이 나오고 콘솔에 404 만 쌓인다. 실측: 펜싱 'fox'(진짜는 greyfox) ·
       스피드클라이밍 'gecko'(아예 없는 종). 어셋 검사기도 종족표만 봐서 통과시켰다.
       여기 등록하면 부팅 때 한 번에 검사한다(99_main.js verifyCasts). */
+/* 경기 결과 상태의 정본. 화면(20_screens)의 제목표가 이걸 전부 덮는지 부팅 때 검사한다.
+   ⚠ 'DQ' 가 제목표에 없어서 실격 화면에 **영문 enum 'DQ' 가 그대로** 떴다(20km 경보).
+      표에 없으면 원문이 나가는 구조라 조용히 새어 나간다. */
+const RESULT_STATUS = ['OK','MISSED_QUALIFY','FALSE_START','DQ','TIMEOUT','ALL_FOUL'];
+
 const SPRITE_CASTS = {};
 function cast(where, list){ SPRITE_CASTS[where] = list; return list; }
 

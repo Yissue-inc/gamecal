@@ -45,6 +45,11 @@ function frameStep(now){
      · READY 에만 있으면 → 골랐을 때 '아직 준비 중입니다' 토스트만 뜨고 안 시작한다
      · classFor 에만 있으면 → 만들어 놓고 아무도 못 고른다
    ⚠ 마라톤을 넣으면서 실제로 전자를 겪었다. 부팅 때 대조해 바로 터뜨린다. */
+function verifyStatuses(){
+  const miss = RESULT_STATUS.filter(k=>!RESULT_TITLE[k]);
+  if(miss.length) throw new Error('결과 제목이 없는 상태 — '+miss.join(', ')+' (20_screens RESULT_TITLE)');
+}
+
 function verifyReady(){
   const bad=[];
   for(const id of READY) if(!G.classFor(EVENT_BY_ID[id])) bad.push('READY 에만: '+id);
@@ -65,6 +70,7 @@ function boot(){
   Screen.init(); Input.init(); Save.load(); Sfx.loadPrefs();
   CharHD.verifyCasts();
   verifyReady();
+  verifyStatuses();
   translateDom();
   const gate=document.getElementById('gate');
   const bKey=document.getElementById('g-key'), bTouch=document.getElementById('g-touch');

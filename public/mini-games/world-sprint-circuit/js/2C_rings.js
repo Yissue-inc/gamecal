@@ -198,11 +198,13 @@ class RingsEvent {
     /* 매트 */
     ctx.fillStyle='#3f5a86'; ctx.fillRect(cx-72, floorY-4, 144, 10);
     ctx.fillStyle='rgba(255,255,255,.14)'; ctx.fillRect(cx-72, floorY-4, 144, 1);
-    /* 지주와 상단 프레임 */
-    ctx.fillStyle='#4d5768';
-    ctx.fillRect(cx-74, topY, 4, floorY-topY);
-    ctx.fillRect(cx+70, topY, 4, floorY-topY);
-    ctx.fillStyle='#d8d2c4'; ctx.fillRect(cx-76, topY-3, 152, 4);
+    /* 지주와 상단 프레임 — HD 어셋이 오면 그걸 쓴다(배경층: 선수보다 뒤) */
+    if(!BG.obj(BG.ctx(),'rings-frame', cx, floorY+4, floorY-topY+8)){
+      ctx.fillStyle='#4d5768';
+      ctx.fillRect(cx-74, topY, 4, floorY-topY);
+      ctx.fillRect(cx+70, topY, 4, floorY-topY);
+      ctx.fillStyle='#d8d2c4'; ctx.fillRect(cx-76, topY-3, 152, 4);
+    }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.4})`; ctx.fillRect(0,0,VW,VH); }
   }
   drawUI(u){
@@ -215,8 +217,11 @@ class RingsEvent {
     for(const rx of [ax,bx]){
       u.beginPath(); u.moveTo(rx, V.topY);
       u.lineTo(rx+sway, V.topY+ropeLen); u.stroke();
-      u.strokeStyle='#d8b45e'; u.lineWidth=2;
-      u.beginPath(); u.arc(rx+sway, V.topY+ropeLen+5, 5, 0, 6.284); u.stroke();
+      /* 링 한 개 — 흔들림에 맞춰 움직여야 해서 배경이 아니라 여기서 그린다 */
+      if(!BG.obj(u, 'rings-hd', rx+sway, V.topY+ropeLen+11, 12)){
+        u.strokeStyle='#d8b45e'; u.lineWidth=2;
+        u.beginPath(); u.arc(rx+sway, V.topY+ropeLen+5, 5, 0, 6.284); u.stroke();
+      }
       u.strokeStyle='rgba(220,225,235,.8)'; u.lineWidth=1.5;
     }
     /* 선수 */

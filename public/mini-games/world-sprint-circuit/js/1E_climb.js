@@ -180,7 +180,11 @@ class ClimbEvent {
     const total = bad ? DNF : c0.finishTimeS;
     const status = c0.falseStart ? 'FALSE_START' : c0.fell ? 'DQ'
                  : c0.timedOut ? 'TIMEOUT' : (total<=this.qualify ? 'OK':'MISSED_QUALIFY');
-    this.result={ status, value:total, rank:this.rankOf() };
+    /* ⚠ '실격'만 뜨고 왜인지 안 나오면 다음 판에 같은 실수를 한다 */
+    const reason = c0.falseStart ? '총성 전에 움직였습니다'
+                 : c0.fell ? '미끄러졌습니다 — 리듬이 어긋나면 손이 빠집니다'
+                 : c0.timedOut ? '제한 시간 안에 완등하지 못했습니다' : null;
+    this.result={ status, value:total, rank:this.rankOf(), reason };
     if(status!=='OK') Sfx.fail();
     if(this.humanCount>1 && typeof Party!=='undefined' && Party.on){
       this.humanResults = this.climbers.map((c,i)=>({

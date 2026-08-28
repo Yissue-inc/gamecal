@@ -80,7 +80,7 @@ class SwimRelayEvent extends SwimEvent {
   update(dt){
     if(this.teamDq && this.phase!=='DONE'){
       this.phase='DONE'; this.doneAt=this.t;
-      this.result={status:'DQ', value:DNF, rank:3};
+      this.result={status:'DQ', value:DNF, rank:3, reason:'인계 부정 출발 — 벽을 찍기 전에 뛰었습니다'};
       return;
     }
     const wasDone = this.phase==='DONE';
