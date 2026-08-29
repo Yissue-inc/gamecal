@@ -26,8 +26,8 @@ export const MINI_GAMES: MiniGameManifest[] = [
   {
     slug: 'paint-world',
     title: 'Paint World',
-    description: 'Colour a fish or an animal, send it in, and watch your drawing swim and walk in a living aquarium and jungle. 40 sea creatures, 39 jungle animals.',
-    version: '1.0.0',
+    description: 'Colour a creature, send it in, and watch your drawing come alive — swimming, walking, flying. Five worlds and 229 creatures: sea, jungle, dinosaurs, robots and bugs. Open treasure chests for hats and 10-second powers, feed everyone, and watch the world grow as more children play.',
+    version: '1.1.0',
     entry: '/mini-games/paint-world/index.html',
     thumbnail: '/mini-games/assets/paint-world-card-v1.webp',
     orientation: 'landscape',
