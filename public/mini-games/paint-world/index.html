@@ -2556,7 +2556,7 @@ const JWorld = {
   perchYAt(x){
     let best=null, bd=1e9;
     for(const p of this.perches){
-      if(p.n==='liana-loop'||p.n==='tree-hole') continue;   // 매달리는 것·구멍은 발판이 아니다
+      if(p.n==='liana-loop'||p.n==='tree-hole'||p.n==='leaf-cluster'||p.n==='moss-patch') continue;
       const px=((p.x - this.scroll*1.9*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
       const halfW=(p.h*2.4)/2;                              // 가지 폭의 절반(대략)
       const d=Math.abs(px-x);
@@ -2582,13 +2582,25 @@ const JWorld = {
        어셋(P15 branch-*)이 오면 Props.draw 가 실물로 대체한다. */
     this.perches=[];
     const B=[['branch-thick',300],['branch-fork',270],['branch-thin',240],
-             ['liana-loop',150],['tree-hole',130]];
+             ['liana-loop',150],['tree-hole',130],['leaf-cluster',210],['moss-patch',180]];
     for(let i=0;i<9;i++){
       const b=B[i%B.length];
       this.perches.push({n:b[0], w:b[1]*(0.85+rnd()*0.4),
-        h:(b[0]==='liana-loop'?150:b[0]==='tree-hole'?96:104)*(0.82+rnd()*0.42),
+        h:(b[0]==='liana-loop'?150:b[0]==='tree-hole'?96:b[0]==='leaf-cluster'?72:b[0]==='moss-patch'?46:104)*(0.82+rnd()*0.42),
         x:rnd()*VW*1.5, depth:0.5+rnd()*0.5,
         y:this.layerY(1)+(rnd()-0.4)*46});
+    }
+    /* 나무 위 장식 — 위에서 늘어진다. 아이 그림을 가리지 않게 화면 위쪽만 */
+    this.hangers=[];
+    /* ⚠ canopy-gap 은 뺐다 — 발주는 '가운데가 뚫려 하늘이 보인다'였는데
+       실제 어셋은 **가운데가 흰 불투명**이고 투명 영역이 19% 뿐이다.
+       화면 위쪽을 흰 사각형 세 개가 덮었다. 어셋이 고쳐지면 되살린다. */
+    const H=[['hanging-leaf',150],['flower-vine',210]];
+    for(let i=0;i<7;i++){
+      const h=H[i%H.length];
+      this.hangers.push({n:h[0], h:h[1]*(0.8+rnd()*0.5),
+        x:rnd()*VW*1.5, depth:0.35+rnd()*0.4,
+        y:-14+rnd()*40});
     }
     /* 물가 층 — 수련잎·돌 */
     this.bankProps=[];
@@ -2735,6 +2747,17 @@ const JWorld = {
       if(px<-260||px>VW+260) continue;
       Props.draw(c,p.n,px,p.y,p.h);
     }
+    /* 물가 동물 발치의 잔물결 — 물에 서 있다는 신호 */
+    const rip=Props.get('water-ripple');
+    if(rip && Game.animals){
+      c.save(); c.globalAlpha=0.5;
+      for(const a of Game.animals){
+        if((a.layer|0)!==3) continue;
+        const w=Math.max(70, a.w*0.5);
+        c.drawImage(rip, a.x-w/2, a.y-6, w, w*0.28);
+      }
+      c.restore();
+    }
     /* 물가 소품 */
     for(const p of this.bankProps){
       const px=((p.x - this.scroll*3.2*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
@@ -2757,6 +2780,17 @@ const JWorld = {
       c.restore();
     }
     BG.tile(c,'jungle-tree-near',VH*0.06, VH*0.70, this.scroll*3.6);
+    /* 나뭇잎 사이로 내리는 빛 — 바다의 lightrays 에 해당한다.
+       아주 옅게. 아이 그림 위를 지나므로 진하면 색이 죽는다. */
+    const sb=Props.get('sunbeam-jungle');
+    if(sb){
+      c.save(); c.globalAlpha=0.16; c.globalCompositeOperation='lighter';
+      for(let i=0;i<3;i++){
+        const bx=((i*470 - this.scroll*1.2)%(VW+520)+VW+520)%(VW+520)-260;
+        c.drawImage(sb, bx, -40, 300, VH*0.92);
+      }
+      c.restore();
+    }
   },
   /* 동물 뒤가 아니라 '앞'에 오는 것들 */
   drawFront(c){
@@ -2769,6 +2803,12 @@ const JWorld = {
     /* ⚠ 앞 층을 동물 위에 겹겹이 깔았더니 밝기가 46% 손실됐다(실측).
        아이 그림이 주인공인데 숲에 파묻힌다.
        덩굴·나뭇잎지붕은 동물이 없는 '위쪽'에만 그리고, 앞 풀만 발치에 남긴다. */
+    /* 위에서 늘어진 잎·꽃덩굴 — 화면 위쪽에만 */
+    for(const p of (this.hangers||[])){
+      const px=((p.x - this.scroll*2.0*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
+      if(px<-260||px>VW+260) continue;
+      Props.draw(c,p.n,px,p.y+p.h,p.h);
+    }
     BG.tile(c,'jungle-grass-front', VH-VH*0.13, VH*0.13, this.scroll*4.4);
     c.save(); c.beginPath(); c.rect(0,0,VW,VH*0.42); c.clip();
     BG.tile(c,'jungle-vines',  0, VH*0.42, this.scroll*2.2);
@@ -2801,7 +2841,10 @@ const JWorld = {
   prefetch(){ ['jungle-sky','jungle-mountain','jungle-mist','jungle-tree-far',
     'jungle-tree-mid','jungle-tree-near','jungle-ground','jungle-grass-front',
     'jungle-canopy','jungle-vines','jungle-river','jungle-rock-near','vignette'].forEach(n=>BG.get(n));
-    ['fruit-tree','bush','log','stump','flower-patch','mushroom','rock-perch','pond','nest','fruit']
+    ['fruit-tree','bush','log','stump','flower-patch','mushroom','rock-perch','pond','nest','fruit',
+     'branch-thick','branch-thin','branch-fork','liana-loop','leaf-cluster','tree-hole','moss-patch',
+     'lilypad','reeds','river-stone','mud-bank','water-ripple',
+     'canopy-gap','flower-vine','hanging-leaf','sunbeam-jungle']
       .forEach(n=>Props.get(n)); }
 };
 
