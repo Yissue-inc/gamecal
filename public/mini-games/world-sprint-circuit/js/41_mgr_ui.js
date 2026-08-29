@@ -87,7 +87,21 @@ const UI = {
                           : Math.max(2, Math.round((rowH-1-11)/2));
       txt(u, r.label, lx, ry+pad, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
       if(showSub) txt(u, r.sub,   lx, ry+pad+11, 8, PAL.dim);
-      if(r.right) txt(u, r.right, x+w-8, ry+pad+(twoLine?2:0), 10, r.rightColor||PAL.white, 'right');
+      /* 상태 배지 — `!` `●3` 같은 짧은 표시는 글자만 떠 있으면 안 걸린다.
+         chip-bg(9-slice)가 오면 그 뒤에 칩을 깐다.
+         ⚠ 긴 값(4,605 · 클럽 경기력)에는 안 깐다 — 칩은 **짧은 상태**용이다.
+            숫자에까지 칩을 두르면 목록이 알약밭이 된다. */
+      if(r.right){
+        const rt = String(r.right), ry2 = ry+pad+(twoLine?2:0);
+        if(rt.length<=3 && typeof UIK!=='undefined'){
+          u.font='700 10px "Galmuri11","Nanum Gothic Coding",monospace';
+          const cw2 = Math.max(16, Math.ceil(u.measureText(rt).width)+10);
+          u.save(); u.globalAlpha=0.55;
+          UIK.nine(u, 'chip-bg', x+w-8-cw2, ry2-2, cw2, 14, 8);
+          u.restore();
+        }
+        txt(u, rt, x+w-8, ry2, 10, r.rightColor||PAL.white, 'right');
+      }
       if(r.right2) txt(u, r.right2,x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
     }
     if(rows.length > maxRows){
