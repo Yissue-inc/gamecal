@@ -5106,6 +5106,20 @@ const Game = {
                            .map(sp=>({id:sp.id, ko:sp.ko, jungle:false})))
       ).filter(sp => sp.jungle ? !!JTemplate.get(sp.id) : !!Templates.get(sp.id));
     }
+    /* 아직 오는 중이면 그렇다고 말한다.
+       ⚠ 도안은 네트워크로 1,200장을 받는다(라이브 실측: 정글이 다 차는 데 8초).
+         그 사이 목록은 **조용히 짧다** — 아이는 자기가 찾는 동물이 없다고 생각하고
+         떠난다. 막지는 않되(팝업은 CK 가 싫어한다) 오고 있다는 것은 보여 준다. */
+    {
+      const tot = MODES[this.realm] ? MODES[this.realm].list().length
+                : this.realm==='jungle' ? Object.keys(JUNGLE).length
+                : SPECIES.filter(sp=>!inJungle(sp.id)).length;
+      if(choices.length < tot){
+        c.font='700 20px Galmuri11, sans-serif'; c.textAlign='center';
+        c.fillStyle='rgba(255,255,255,.62)';
+        c.fillText(`친구들이 더 오고 있어요 · ${choices.length}/${tot}`, VW/2, 86);
+      }
+    }
     /* 첫 칸은 언제나 '백지' — 도안 없이 제 마음대로 그린다.
        도안 색칠만 있으면 아이는 '주어진 것을 채우는 일'만 하게 된다. */
     choices=[{id:'__free__', ko:'내 마음대로', free:true}].concat(choices);
@@ -5853,11 +5867,19 @@ const SelfTest = {
          못 채운 게 있으면 조금 더 기다렸다 다시 센다. */
     const seaAll=SPECIES.filter(s=>!SEA_LIKE_JUNGLE[s.id]);
     const junAll=Object.keys(JUNGLE);
-    let seaN=0, junN=0;
-    for(let tries=0; tries<6; tries++){
+    /* ⚠ 6번×0.7초는 **로컬 기준**이었다. 라이브(gamerclock)에서 같은 검사를 돌리니
+       멀쩡한 배포를 '정글 0/39 · 공룡 0/50' 으로 4건 실패 처리했다 — 1,200장을
+       네트워크로 받는 중이었을 뿐이다(정글이 다 차는 데 8초).
+       멀쩡한 것을 결함으로 세는 검사기는 검사기가 아니다.
+       숫자가 **더 이상 늘지 않을 때까지** 기다린다 — 로컬은 그대로 빠르다. */
+    let seaN=0, junN=0, still=0;
+    for(let tries=0; tries<40; tries++){
+      const a=seaN, b=junN;
       seaN=seaAll.filter(s=>Templates.get(s.id)).length;
       junN=junAll.filter(id=>JTemplate.get(id)).length;
       if(seaN===seaAll.length && junN===junAll.length) break;
+      still = (seaN===a && junN===b) ? still+1 : 0;
+      if(still>=4) break;                       // 3초 동안 하나도 안 늘면 진짜 없는 것
       await new Promise(r=>setTimeout(r,700));
     }
     L.push(`· 도안 준비 — 바다 ${seaN}/${seaAll.length} · 정글 ${junN}/${junAll.length}`);
@@ -5868,12 +5890,15 @@ const SelfTest = {
 
     /* 새 세 모드는 실물 파일과 부위 anchor가 모두 있어야만 고르기·제출이 성립한다. */
     if(typeof MODES!=='undefined') for(const mode of ['dino','robot','bug']){
-      const all=MODES[mode].list(); let loaded=0, anchored=0;
-      for(let tries=0;tries<6;tries++){
+      const all=MODES[mode].list(); let loaded=0, anchored=0, still=0;
+      for(let tries=0;tries<40;tries++){
         MTemplate.prefetch(mode);
+        const a=loaded, b=anchored;
         loaded=all.filter(s=>MTemplate.get(mode,s.id)).length;
         anchored=all.filter(s=>!s.part || !!MAnchor.of(mode,s.id,s.part)).length;
         if(loaded===all.length && anchored===all.length) break;
+        still = (loaded===a && anchored===b) ? still+1 : 0;
+        if(still>=4) break;                     // 늘지 않으면 진짜 없는 것
         await new Promise(r=>setTimeout(r,700));
       }
       L.push(`· ${MODES[mode].ko} 준비 — 도안 ${loaded}/${all.length} · 부위 anchor ${anchored}/${all.length}`);
