@@ -180,7 +180,7 @@ class GrowScreen extends Screen0 {
         const d=p.def, race=d.branch==='race';
         const rr=(typeof RARITY!=='undefined'&&RARITY[d.tier])?RARITY[d.tier]:null;
         return {
-          label: d.name, icon: d.icon,
+          label: d.name, icon: d.icon, subAlways:true,
           sub: p.known ? d.desc
              : (p.why===null ? `${d.desc} · 포인트 ${d.cost}` : `${d.desc} · ${p.why}`),
           right: p.known ? (p.on?'ON':'OFF') : (p.why===null ? `−${d.cost}` : '잠김'),
@@ -618,7 +618,7 @@ class CoachScreen extends Screen0 {
                          : K('부상 %1% · 피로 회복 +%2').replace('%1', Math.round(c.hurt*100)).replace('%2', c.rest.toFixed(1));
       /* ⚠ COACHES 에 icon 이 있는데 줄로 안 넘기고 있었다 — 초상 6종이 도착해도
          화면엔 안 나왔다. '사람을 뽑는 화면인데 얼굴이 없다'가 그대로였다. */
-      return { label:(on?'● ':'○ ')+c.name, sub:eff, icon:c.icon,
+      return { label:(on?'● ':'○ ')+c.name, sub:eff, icon:c.icon, subAlways:true,
         right: on ? K('주급 %1').replace('%1', c.wage) : K('계약금 %1').replace('%1', c.wage*4),
         rightColor: on?PAL.green:PAL.gold,
         color: on?PAL.green:PAL.white, _c:c, _on:on };
@@ -1219,7 +1219,7 @@ class FacilityScreen extends Screen0 {
     return FACIL.ids().map(id=>{
       const K=FACIL.KINDS[id], l=FACIL.lv(C,id), cost=FACIL.nextCost(C,id);
       const max = l>=FACIL.MAX;
-      return { label:`${K.name}  ${'●'.repeat(l)}${'○'.repeat(FACIL.MAX-l)}`, icon:K.icon,
+      return { label:`${K.name}  ${'●'.repeat(l)}${'○'.repeat(FACIL.MAX-l)}`, icon:K.icon, subAlways:true,
         sub: l ? `${K.line(l)}${max?'':`  →  ${K.line(l+1)}`}` : K.desc,
         right: max ? '최대' : `−${cost}`,
         rightColor: max ? PAL.green : ((C.budget>=cost) ? PAL.gold : PAL.dim),

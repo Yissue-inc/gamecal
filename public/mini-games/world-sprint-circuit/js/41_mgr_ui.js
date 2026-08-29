@@ -37,7 +37,9 @@ const UI = {
       /* 줄 아이콘 — 사무실 메뉴처럼 줄마다 성격이 다른 목록에서 글을 읽기 전에 구분된다.
          ⚠ 국기와 같은 자리를 쓴다(둘 다 있는 목록은 없다). 어셋이 없으면 폭 0. */
       if(r.icon && typeof BG!=='undefined'){
-        const im = BG.get(r.icon);
+        /* 전용 아이콘이 아직 안 왔으면 빌려 쓰던 범용 아이콘으로 물러난다.
+           ⚠ 발주서(ASSET_ORDER_UX)와 이 표가 어긋나면 그림이 와도 안 붙는다. */
+        const im = BG.get(r.icon) || (UI.ICON_FALLBACK[r.icon] ? BG.get(UI.ICON_FALLBACK[r.icon]) : null);
         /* ⚠ 13px 고정이라 시설처럼 **줄이 큰 목록에서도 아이콘만 작았다** —
            128×128 아이소메트릭을 13px 로 줄이면 뭘 그렸는지 안 보인다.
            줄 높이에 비례하되 24 에서 멈춘다(그 이상은 글자를 밀어낸다). */
@@ -51,11 +53,27 @@ const UI = {
       }
       /* ⚠ 위쪽에 붙여 그리면 줄 높이가 커질 때(시설 화면 36) 아래가 텅 빈다.
          두 줄 묶음을 줄 한가운데에 놓는다 — 26 일 때는 예전과 같은 자리다. */
-      const pad = Math.max(2, Math.round((rowH-1-19)/2));
+      /* ⛔ 챕터 1 — **부제는 보고 있는 줄에만.**
+         예전엔 모든 줄이 label+sub+right+right2 넷을 다 그려서, 여섯 줄이면
+         텍스트 24조각이 한 화면에 깔렸다. 눈이 어디를 봐야 할지 알 수가 없다.
+         ⚠ 정보를 버리는 게 아니다 — 커서를 올리면 그 줄의 부제가 나온다.
+            `!` `●3` 같은 **상태 배지(right)는 모든 줄에 남긴다** —
+            "어디에 할 일이 있나"는 한눈에 보여야 하기 때문이다.
+         ⛔ 규칙: 부제가 **설명**이면 숨기고, **데이터**면 남긴다(subAlways).
+            설명 = "코인을 영구 성장으로 바꿉니다" (메뉴가 뭘 하는지)
+            데이터 = "17세 · 우수 · 표준 · 강골" (그 줄 자체의 값)
+            지금 subAlways: 시설 · 스킬 · 코치 · 기록실 · 선수단 */
+      /* ⚠ right2 는 **긴 설명이 아니라 단위**다('클럽 경기력' · '경기/육성' · ◆◆◆).
+         이걸 같이 숨겼더니 선수단 줄이 `4,189` 만 남아 무슨 숫자인지 알 수 없었다.
+         숨기는 건 sub(설명) 하나뿐이다. */
+      const showSub = (on || r.subAlways) && !!r.sub;
+      const twoLine = showSub || !!r.right2;
+      const pad = twoLine ? Math.max(2, Math.round((rowH-1-19)/2))
+                          : Math.max(2, Math.round((rowH-1-11)/2));
       txt(u, r.label, lx, ry+pad, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
-      if(r.sub)   txt(u, r.sub,   lx, ry+pad+11, 8, PAL.dim);
-      if(r.right) txt(u, r.right, x+w-8, ry+pad+2,  10, r.rightColor||PAL.white, 'right');
-      if(r.right2)txt(u, r.right2,x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
+      if(showSub) txt(u, r.sub,   lx, ry+pad+11, 8, PAL.dim);
+      if(r.right) txt(u, r.right, x+w-8, ry+pad+(twoLine?2:0), 10, r.rightColor||PAL.white, 'right');
+      if(r.right2) txt(u, r.right2,x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
     }
     if(rows.length > maxRows){
       const th = Math.max(8, (maxRows/rows.length)*(rowH*maxRows));
@@ -90,6 +108,10 @@ const UI = {
     return m;
   },
   /* 스탯 한 줄: 이름 · 현재/잠재 막대 */
+  /* 전용 아이콘이 오기 전까지 빌려 쓸 것 — 오는 즉시 전용으로 바뀐다 */
+  ICON_FALLBACK: { 'ic-develop':'icon-levelup', 'ic-facility':'icon-gear',
+                   'ic-hall':'icon-xp', 'ic-codex':'icon-medal',
+                   'ic-league':'ic-medal', 'ic-points':'icon-medal' },
   /* 스탯마다 아이콘 하나 — 이름을 읽지 않아도 어느 줄인지 안다.
      ⚠ 어셋이 없으면 폭 0 이라 예전 자리 그대로다(아이콘은 8종 다 와야 켜진다). */
   STAT_ICON: { speed:'ic-speed', acceleration:'ic-accel', stamina:'ic-stamina',
@@ -238,7 +260,7 @@ class OfficeScreen extends Screen0 {
              const inv=(this.mg.club.inventory||[]).length;
              /* 켤 수 있는데 안 켠 스킬이 있으면 알려 준다 — 배우고 안 켜는 게 함정이다 */
              const idle = (typeof SKILL==='undefined') ? 0 : C_squadIdleSkills(this.mg.club);
-             return { label:'육성', icon:'icon-levelup',
+             return { label:'육성', icon:'ic-develop',
                       sub:`훈련 포인트 ${tp} · 창고 ${inv}개`
                           + (idle? ` · 안 켠 스킬 ${idle}개` : ''),
                       right: (tp>0||idle)?'●'+(tp||idle):'▶',
@@ -258,7 +280,7 @@ class OfficeScreen extends Screen0 {
       (()=>{ const C=this.mg.club;
              const can=(typeof FACIL!=='undefined') &&
                FACIL.ids().some(id=>FACIL.canBuild(C,id)===null);
-             return { label:'시설', icon:'icon-gear',
+             return { label:'시설', icon:'ic-facility',
                       sub:(typeof FACIL!=='undefined')?FACIL.summary(C):'—',
                       right: can?'!':'▶', rightColor: can?PAL.gold:PAL.dim,
                       color: can?PAL.gold:undefined,
@@ -281,7 +303,7 @@ class OfficeScreen extends Screen0 {
              const t=(typeof DEPTH!=='undefined')?DEPTH.legacyTotal(this.mg.club):0;
              return { label:'명예의 전당',
                       sub: h.length? `${h.length}명 · 유산 ${t}` : '아직 비어 있습니다',
-                      right:'▶', icon:'icon-xp', go:()=>new HallScreen(this.mg) }; })(),
+                      right:'▶', icon:'ic-hall', go:()=>new HallScreen(this.mg) }; })(),
       /* 종족 도감(4D_codex) — 5단계 등급에 '모을 것'을 준다 */
       (()=>{ const T=(typeof Codex!=='undefined')?Codex.totals():{owned:0,total:0};
              const claim=(typeof Codex!=='undefined') && Codex.hasClaim();
@@ -289,12 +311,12 @@ class OfficeScreen extends Screen0 {
              return { label:'종족 도감',
                       sub:`등록 ${T.owned} / ${T.total} · 성장 +${gb}%` + (claim?' · 받을 보상이 있습니다':''),
                       right: claim?'!':`${T.owned}/${T.total}`,
-                      rightColor: claim?PAL.gold:PAL.dim,
+                      icon:'ic-codex', rightColor: claim?PAL.gold:PAL.dim,
                       color: claim?PAL.gold:undefined,
                       go:()=>new CodexScreen(this.mg) }; })(),
       { label:'기록실',   icon:'ic-record', sub:'클럽 기록과 대회 이력', right:'▶',
         go:()=>new RecordScreen(this.mg) },
-      { label:'리그 순위표', icon:'ic-medal', sub:leagueSub(S), right:'▶',
+      { label:'리그 순위표', icon:'ic-league', sub:leagueSub(S), right:'▶',
         go:()=>new LeagueScreen(this.mg) },
     ]);
     if(S.isMeetWeek) r.push({ label:`▶ ${MEET_INFO[S.meetKind].name} 출전`, icon:'ic-meet',
@@ -344,12 +366,21 @@ class OfficeScreen extends Screen0 {
          들어가지만 영어 'Target 220 pts · 2 gold' 는 넘어가 **글자가 겹쳤다.**
          라벨을 재서 그 뒤에 놓는다 — 이 코드베이스가 언어 때문에 여러 번 물린 자리다
          (UI.labelW 도 같은 이유로 생겼다). */
-      const gl = K(`목표 승점 ${S.goal.points} · 금 ${S.goal.gold}`);
-      txt(u, gl, 8, 40, 9, (okP&&okG)?PAL.green:PAL.dim, 'left');
-      u.font = '400 9px "Galmuri11","Nanum Gothic Coding",monospace';
-      const gw = Math.ceil(u.measureText(gl).width);
-      txt(u, `${S.points} / ${S.medals.gold}`, 8+gw+10, 40, 9,
-          (okP&&okG)?PAL.green:(okP||okG)?PAL.gold:PAL.red, 'left', 700);
+      /* ⛔ 챕터 1 — 문장 두 덩이("목표 승점 220 · 금 2" + "0 / 0")를 **막대 하나**로.
+         "얼마나 왔나"는 숫자를 읽는 것보다 길이를 보는 게 빠르다.
+         ⚠ 숫자를 없애지 않는다 — 막대 옆에 현재/목표를 짧게 남긴다. */
+      const bx=8, bw=96, by=41;
+      u.fillStyle='rgba(255,255,255,.12)'; u.fillRect(bx, by, bw, 5);
+      u.fillStyle = okP?PAL.green:PAL.gold;
+      u.fillRect(bx, by, Math.round(bw*clamp(S.points/Math.max(1,S.goal.points),0,1)), 5);
+      txt(u, `${S.points}/${S.goal.points}`, bx+bw+6, 39, 8,
+          okP?PAL.green:PAL.dim, 'left', 700);
+      /* 금메달 목표는 메달 아이콘 + 개수로 */
+      const mx = bx+bw+46;
+      const mi = BG.get('icon-medal');
+      if(mi) u.drawImage(mi, mx, 38, 9, 9);
+      txt(u, `${S.medals.gold}/${S.goal.gold}`, mx+(mi?11:0), 39, 8,
+          okG?PAL.green:PAL.dim, 'left', 700);
     }
 
     // 요약 카드
@@ -360,22 +391,24 @@ class OfficeScreen extends Screen0 {
     /* ⚠ 예전엔 배열 세 칸([라벨, 값, 색])이었다. 아이콘을 네 번째 칸으로 붙였더니
        어셋 검사기가 못 읽었다(이름 붙은 icon: 만 읽는다). 객체로 바꾼다 —
        칸이 늘어도 자리로 세지 않아도 되고 검사기도 읽는다. */
+    /* ⛔ 챕터 1 — **아이콘이 라벨을 대신한다.**
+       예전엔 칸마다 아이콘 + 라벨 + 값 셋을 다 그렸다(텍스트 12조각).
+       아이콘이 있으면 라벨을 안 그린다 — 없으면 예전처럼 라벨이 나온다.
+       ⚠ 정보를 지우는 게 아니라 **중복을 지운다.** 값은 그대로 다 있다. */
     const cells=[
       { k:'자금', v:String(Math.round(C.budget)), c:C.budget<20?PAL.red:PAL.gold, icon:'ic-coin' },
-      { k:'승점', v:String(S.points), c:PAL.white },
-      { k:'메달', v:`${S.medals.gold}·${S.medals.silver}·${S.medals.bronze}`, c:PAL.white },
-      { k:'컨디션', v:UI.condName(avgC), c:UI.cond(avgC) },
-      { k:'피로', v:Math.round(avgF)+'', c:avgF>65?PAL.red:avgF>45?PAL.gold:PAL.green },
-      { k:'부상', v:inj.length?`${inj.length}명`:'없음', c:inj.length?PAL.red:PAL.green },
+      { k:'승점', v:String(S.points), c:PAL.white, icon:'ic-points' },
+      { k:'메달', v:`${S.medals.gold}·${S.medals.silver}·${S.medals.bronze}`, c:PAL.white, icon:'icon-medal' },
+      { k:'컨디션', v:UI.condName(avgC), c:UI.cond(avgC), icon:'ic-condition' },
+      { k:'피로', v:Math.round(avgF)+'', c:avgF>65?PAL.red:avgF>45?PAL.gold:PAL.green, icon:'ic-fatigue' },
+      { k:'부상', v:inj.length?`${inj.length}명`:'없음', c:inj.length?PAL.red:PAL.green, icon:'ic-injury' },
     ];
     cells.forEach((c,i)=>{
       const cx=16+i*Math.floor((VW-32)/cells.length);
-      /* 아이콘이 있는 칸은 라벨 앞에 — 어셋이 없으면 폭 0 이라 예전 자리 그대로다 */
-      let lx=cx;
-      if(c.icon){ const im=BG.get(c.icon);
-                  if(im){ u.drawImage(im, cx, 53, 8, 8); lx=cx+10; } }
-      txt(u,c.k,lx,54,8,PAL.dim);
-      txt(u,c.v,cx,64,12,c.c,'left',700);
+      const im = c.icon ? BG.get(c.icon) : null;
+      if(im){ u.drawImage(im, cx, 53, 11, 11); }
+      else    txt(u, c.k, cx, 54, 8, PAL.dim);        // 아이콘이 아직 없으면 라벨로
+      txt(u, c.v, cx, 66, 12, c.c, 'left', 700);
     });
 
     UI.list(u, this.rows, this.sel, 8, 82, VW-16, 22, 6);
@@ -526,6 +559,9 @@ function drawSweat(u, a, x, y){
 class SquadScreen extends Screen0 {
   get rows(){ return this.mg.club.squad.map(a=>({
     label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${a.speciesName} ${a.name}`, nation:a.nation,
+    /* 로스터는 표다 — 나이·등급·성장형·특성을 훑을 수 있어야 한다.
+       ⛔ 챕터 1 규칙: 부제가 **설명**이면 숨기고 **데이터**면 남긴다. */
+    subAlways:true,
     sub:`${a.age}세 · ${UI.rareName(a)} · ${GROWTH[a.growth].name} · ${a.traits.map(t=>TRAITS[t].name).join(', ')||'특성 없음'}`,
     /* ⚠ 목록의 큰 글씨도 경기력으로 바꾼다. OVR 만 보이면 Lv30 에 전설 장비를
        끼운 선수와 신인이 같은 숫자로 나란히 선다 — 누굴 내보낼지 알 수가 없다. */
@@ -672,7 +708,8 @@ class RecordScreen extends Screen0 {
   get rows(){
     return EVENTS.map(ev=>{
       const r=this.mg.club.records[ev.id];
-      return { label:ev.name, sub: r?`${r.name} · ${r.year}년차`:'기록 없음',
+      /* 부제가 곧 데이터다(누가·몇 년차) — 숨기면 표가 아니라 목록이 된다 */
+      return { label:ev.name, subAlways:true, sub: r?`${r.name} · ${r.year}년차`:'기록 없음',
         right: r? fmtRec(ev, r.value) : '—', rightColor: r?PAL.gold:PAL.dim };
     });
   }
