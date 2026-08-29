@@ -75,7 +75,7 @@ const VW = 1280, VH = 720;
      '배포했는데 화면은 그대로'가 된다. 실측: 고릴라 파일을 지웠는데도
      브라우저가 캐시에서 줘서 검사가 통과했다.
    stamp.py 가 어셋 폴더의 최신 수정 시각으로 갈아 끼운다. */
-const AREV = '1787992622';
+const AREV = '1788012380';
 
 const PAL = {
   ink:'#12212e',
@@ -775,6 +775,18 @@ const Sfx = {
       case 'shake':   [0,60,120,180].forEach(d=>T(300,0.05,'square',0.05,240,d)); break;
       case 'curlup':  T(600,0.22,'sine',0.09,220); break;
       case 'yawn':    T(160,0.38,'sine',0.11,300); break;
+      /* 새 모드(공룡·로봇·곤충) — ⚠ 여기가 비어 있어 150종이 전부 같은 '삐' 소리였다.
+         종이 다른 걸 귀로는 알 수 없었다. */
+      case 'stomp':   T(90,0.26,'sine',0.15,52); T(70,0.20,'sine',0.10,45,140); break;   // 쿵
+      case 'chomp':   T(240,0.05,'square',0.10,140); T(200,0.05,'square',0.09,120,110); break;
+      case 'whirl':   T(300,0.34,'triangle',0.10,1200); break;                            // 빙그르르
+      case 'snap':    T(1400,0.04,'square',0.08,700); break;                              // 딱
+      case 'flutter': [0,55,110,165].forEach(d=>T(300,0.05,'triangle',0.05,250,d)); break;
+      case 'roll':    T(120,0.40,'sawtooth',0.09,420); break;                             // 데굴데굴
+      case 'splash':  [420,620,880].forEach((f,i)=>T(f,0.16,'sine',0.09,f*1.4,i*55)); break;
+      case 'wave':    [520,640,760].forEach((f,i)=>T(f,0.14,'sine',0.08,f*1.1,i*80)); break;
+      case 'wiggle':  T(620,0.10,'sine',0.08,780); T(700,0.08,'sine',0.06,860,90); break;
+      case 'nod':     T(380,0.10,'sine',0.09,320); T(340,0.09,'sine',0.07,300,110); break;
       default:        T(560,0.12,'sine',0.09,760);
     }
   },
@@ -1245,16 +1257,44 @@ const Items = {
 
   /* 그림 위에 얹는다. 자리마다 위치가 다르다.
      ⚠ 생물마다 크기가 달라 절대 좌표를 쓰면 큰 것에서 떠 버린다 — 몸 크기에 비례시킨다. */
+  /* 머리 쪽 꼭대기 — ⚠ 그림 전체의 맨 위(top)에 모자를 얹었더니, 등이 높고
+     머리가 가운데 있는 종(바다거북·게·복어)은 **모자가 허공에 떴다.**
+     머리가 있는 띠(오른쪽 0.10~0.36폭)만 훑어 그 꼭대기를 찾는다. */
+  headCache:new WeakMap(),
+  headTop(tex){
+    let v=this.headCache.get(tex); if(v!==undefined) return v;
+    v=null;
+    try{
+      const cv=document.createElement('canvas'); cv.width=TEX_W; cv.height=TEX_H;
+      const x=cv.getContext('2d',{willReadFrequently:true}); x.drawImage(tex,0,0);
+      const d=x.getImageData(0,0,TEX_W,TEX_H).data;
+      /* ⚠ 텍스처 폭의 0.60~0.88 을 훑었더니 바다거북은 **등껍질**이 그 띠에
+         걸려 등 꼭대기를 머리로 착각했다. 그림이 실제로 차지하는 범위를 먼저
+         찾고, 그 **오른쪽 끝 20%** 만 본다 — 도안 규격상 머리는 오른쪽이다. */
+      let L=TEX_W, R=-1;
+      for(let px=0;px<TEX_W;px++)
+        for(let y=0;y<TEX_H;y+=2)
+          if(d[((y*TEX_W+px)*4)+3]>40){ if(px<L)L=px; if(px>R)R=px; break; }
+      if(R<0){ this.headCache.set(tex,null); return null; }
+      const x0=Math.max(L, Math.floor(R-(R-L)*0.20)), x1=R+1;
+      outer: for(let y=0;y<TEX_H;y++)
+        for(let px=x0;px<x1;px++)
+          if(d[((y*TEX_W+px)*4)+3]>40){ v=y; break outer; }
+    }catch(e){}
+    this.headCache.set(tex,v); return v;
+  },
   draw(c, being){
     const id=being.item; if(!id) return;
     const def=ITEM_BY_ID[id] || {slot:(FALLBACK[id]?FALLBACK[id].slot:'head')};
-    const w=being.w, h=being.h;
-    const dir=being.dir||1;
+    /* 생물이 자기 틀을 알려 주면 그걸 쓴다 — 종류마다 기준점이 다르다 */
+    const F = (typeof being.itemFrame==='function') ? being.itemFrame() : being;
+    const w=F.w, h=F.h;
+    const dir=F.dir||1;
     /* ⚠ 텍스처 높이(h)로 위치를 잡으면 **여백까지 세어** 모자가 머리 위 허공에 뜬다.
        그림이 실제로 차지하는 범위를 재서 그 가장자리에 붙인다. */
     let top=-h*0.5, bot=h*0.5, mid=0;
     try{
-      const f=(typeof BodyFit!=='undefined' && being.tex) ? BodyFit.of(being.tex) : null;
+      const f=(typeof BodyFit!=='undefined' && F.tex) ? BodyFit.of(F.tex) : null;
       if(f){
         const sc=h/TEX_H;
         top=(f.top-TEX_H/2)*sc; bot=(f.bot-TEX_H/2)*sc; mid=(top+bot)/2;
@@ -1263,18 +1303,24 @@ const Items = {
     const bh=Math.max(20, bot-top);
     /* ⚠ 머리는 **진행 방향 쪽**이다(도안 규격: 머리가 오른쪽).
        0.16 으로 뒀더니 왕관이 꼬리 쪽에 앉았다. */
+    /* 머리 쪽 꼭대기를 알면 그걸 쓴다(없으면 전체 꼭대기) */
+    let headY=top;
+    try{
+      const hy=(F.tex) ? this.headTop(F.tex) : null;
+      if(hy!==null && hy!==undefined) headY=(hy-TEX_H/2)*(h/TEX_H);
+    }catch(e){}
     const P={
-      head:[ w*0.30*dir, top - bh*0.14, w*0.30 ],   // 머리 바로 위
-      face:[ w*0.32*dir, mid - bh*0.12, w*0.22 ],   // 눈 언저리
+      head:[ w*0.30*dir, headY - bh*0.10, w*0.30 ],  // 머리 바로 위
+      face:[ w*0.32*dir, headY + bh*0.16, w*0.22 ],  // 눈 언저리 — 머리 기준
       body:[ w*0.02*dir, mid + bh*0.12, w*0.34 ],
       hold:[-w*0.30*dir, mid + bh*0.20, w*0.26 ],   // 꼬리 쪽에 들고
       pet: [-w*0.44*dir, top - bh*0.06, w*0.20 ],
     }[def.slot] || [w*0.30*dir, top-bh*0.14, w*0.28];
     const [ox,oy,size]=P;
     c.save();
-    c.translate(being.x+ox, being.y+oy);
+    c.translate(F.x+ox, F.y+oy);
     if(def.slot==='pet'){                    // 따라다니는 것은 살랑인다
-      c.translate(Math.sin(being.t*0.06)*w*0.05, Math.cos(being.t*0.05)*h*0.05);
+      c.translate(Math.sin(F.t*0.06)*w*0.05, Math.cos(F.t*0.05)*h*0.05);
     }
     const img=this.get(id);
     if(img){
@@ -1656,6 +1702,15 @@ class Creature {
   }
 
   /* 무리 짓기 — 가벼운 근사. 격자에서 이웃만 꺼낸다 */
+  /* 꾸미기를 어디에 얹을지 — 그린 몸의 화면상 위치·크기.
+     ⚠ Items 가 '텍스처 한가운데가 곧 (x,y)' 라고 가정하고 있었다. 물고기는 맞지만
+       Walker(정글)는 **발이 기준점**이라 몸이 y 위로 올라가 있다 —
+       모자가 배 한가운데에 붙었다(실측: 그려진 범위 y 192~366, 기준점 360).
+       각자가 자기 틀을 알려 준다. */
+  itemFrame(){
+    const g=(typeof growth==='function')?growth(this.born):1;
+    return { x:this.x, y:this.y, w:this.w*g, h:this.h*g, dir:this.dir, tex:this.tex, t:this.t };
+  }
   flock(world){
     const near=world.neighbors(this.x, this.y, this);
     if(!near.length) return;
@@ -1743,9 +1798,26 @@ class Creature {
      세로 띠로 잘라 띠마다 밀어 그린다. 움직임마다 미는 방식이 다르다. */
   draw(c, world){
     const tex=this.tex; if(!tex) return;
+    /* 화면 밖은 그리지 않는다.
+       ⚠ 한 마리에 8~44번씩 잘라 그린다(LOD). 하루가 쌓여 200마리가 되면
+         프레임당 4천 번이 넘고, 그중 일부는 **화면 밖에서** 그려지고 있었다.
+         이름표·표시까지 통째로 건너뛴다. (실측 배경: 200마리 draw 8.2ms) */
+    const half=this.w*0.75+60;
+    if(this.x+half < 0 || this.x-half > VW) return;
     const onW=this.w;
     /* LOD — 작게 보이면 띠를 줄인다(실측 2.3배) */
-    const SL = onW<70?8 : onW<130?16 : onW<220?28 : 44;
+    /* LOD — 띠 수는 크기가 아니라 **움직임**이 정한다.
+       실측(같은 그림을 띠 수만 바꿔 그려 픽셀 비교, 폭 130~180):
+         undulate 28띠 16.2% · 16띠 25.6%  ← 파도가 많아 띠가 진짜 필요하다
+         bob      28띠  4.2% · 16띠  6.1%
+         swim·glide·jet·flap·pulse·seahorse — 10띠에서도 3% 이하
+       크기만 보고 28~44 를 주고 있었다. 200마리면 프레임당 5,372번을 그린다.
+       움직임별 상한을 두면 보이는 건 그대로고 그리는 횟수만 준다. */
+    const SLCAP = { undulate:44, bob:28, swim:20, dart:20, jet:20,
+                    glide:16, flap:16, seahorse:16, pulse:12, crawl:12, scuttle:12 };
+    const cap = SLCAP[this.motion] || 20;
+    const SL = (typeof window!=='undefined' && window.__SL) ? window.__SL
+             : Math.max(6, Math.min(cap, onW<70?8 : onW<130?16 : onW<220?28 : 44));
     let s=this.s*growth(this.born);
     let alpha=1, extraY=0, sx=1, sy=1, rot=0;
     /* 보물상자의 10초짜리 효과 — 몸이 잠깐 변한다 */
@@ -2428,6 +2500,14 @@ class Walker {
     if(this.x<-this.w) this.x=VW+this.w;
     if(this.x>VW+this.w) this.x=-this.w;
     if(rnd()<0.0012) this.dir*=-1;
+  }
+  /* 정글 동물은 발이 기준점이다 — 텍스처 한가운데는 y 보다 위에 있다 */
+  itemFrame(){
+    const g=(typeof growth==='function')?growth(this.born):1;
+    const s=this.s*g;
+    const fit=WalkFit.of(this.tex);
+    return { x:this.x, y:this.y - fit.botOff*s, w:TEX_W*s, h:TEX_H*s,
+             dir:this.dir, tex:this.tex, t:this.t };
   }
   draw(c, world){
     if(!this.tex) return;
@@ -4348,6 +4428,10 @@ const REACT_SAY = {
   swing:'대롱대롱 매달려요', flap:'날개를 퍼덕여요', fan:'꼬리를 활짝 폈어요',
   stretch:'목을 쭉 늘여요', shake:'몸을 털어요', curlup:'동그랗게 웅크려요',
   yawn:'입을 크게 벌려요', nod:'고개를 끄덕여요',
+  /* 새 모드 — ⚠ 없어서 150종이 전부 '안녕!' 이었다 */
+  stomp:'쿵쿵 발을 굴러요', chomp:'입을 앙 다물어요', whirl:'빙그르르 돌아요',
+  snap:'딱 하고 부딪쳐요', flutter:'날개를 파르르 떨어요', roll:'데굴데굴 굴러가요',
+  splash:'첨벙 튀겼어요', wave:'인사를 해요',
 };
 
 const Game = {
@@ -4620,6 +4704,10 @@ const Game = {
       this.realm=mode;
       if(typeof Amb!=='undefined') Amb.set((MODES[mode]||{}).amb||'jungle');
       this.joinC=c; this.joinT=110;
+      /* ⚠ 상자는 50~90초마다 나온다. 그런데 아이는 그림을 넣고 곧 자리를 뜬다 —
+         정작 자기 그림을 꾸며 줄 상자를 못 보고 가는 일이 생긴다.
+         **막 합류한 직후**에는 곧 나오게 당긴다(이미 떠 있으면 그대로 둔다). */
+      if(!this.chest) this.chestCd = Math.min(this.chestCd, 60*12);
       this.state=ST.CHEER; this.cheerT=0;
       FX.splash(VW*0.2, c.y); FX.confetti(VW/2, VH*0.4);
       this.splashAt={x:VW*0.2, y:c.y, t:0};
@@ -4675,6 +4763,8 @@ const Game = {
       this.creatures.push(c);
     }
     this.joinC=c; this.joinT=110;
+    /* 새 모드와 같은 이유 — 방금 그림을 넣은 아이가 상자를 보고 가게 한다 */
+    if(!this.chest) this.chestCd = Math.min(this.chestCd, 60*12);
     /* 2단계 — 축하 화면. 이 순간이 이 작품의 보상이다 */
     this.state=ST.CHEER; this.cheerT=0;
     FX.splash(VW*0.2, c.y); FX.confetti(VW/2, VH*0.4);
@@ -5649,9 +5739,10 @@ const Game = {
     }
     /* 받은 꾸미기도 함께 — 기념품에 남아야 한다 */
     if(z.item && typeof Items!=='undefined'){
-      const keep={x:z.x,y:z.y,w:z.w,h:z.h,dir:z.dir};
-      const sc2=(Math.min(VW*0.72,760))/TEX_W*0.82;
-      const proxy={ x:VW/2, y:VH*0.36, w:TEX_W*sc2, h:TEX_H*sc2,
+      /* ⚠ 액자 폭(760)으로 자리를 잡고 있었는데 그림은 620×0.82=508 로 그린다 —
+         22% 어긋나 **모자가 거북이 머리가 아니라 허공에** 떠 있었다.
+         기념 카드는 부모가 사진으로 찍어 가는 화면이다. 같은 값을 쓴다. */
+      const proxy={ x:VW/2, y:VH*0.36, w:w*0.82, h:h*0.82,
                     dir:1, t:z.t, item:z.item, tex:z.tex };
       Items.draw(c, proxy);
     }
@@ -6157,6 +6248,27 @@ const SelfTest = {
       L.push(`· ${MODES[mode].ko} 준비 — 도안 ${loaded}/${all.length} · 부위 anchor ${anchored}/${all.length}`);
       if(loaded<all.length && !fail) L.push(`· ${MODES[mode].ko} 도안 ${all.length-loaded}종이 아직 오는 중 (404 는 없다)`);
       if(anchored<all.length) L.push(`✗ ${MODES[mode].ko} 움직이는 부위 anchor 일부가 없다`);
+    }
+
+    /* 만졌을 때 — **종마다 다른 소리와 말**이 붙어 있는가.
+       ⚠ 새 모드 150종이 반응 8가지를 쓰는데 소리도 말도 없어서, 전부 같은 '삐' 와
+         '안녕!' 이었다. 종이 다른 걸 귀로도 글로도 알 수 없었다.
+         새 반응을 만들면 여기서 걸린다. */
+    {
+      const kinds=new Set();
+      try{
+        if(typeof SEA_REACT!=='undefined') Object.values(SEA_REACT).forEach(k=>kinds.add(k));
+        if(typeof JUNGLE_REACT!=='undefined') Object.values(JUNGLE_REACT).forEach(k=>kinds.add(k));
+        if(typeof MODES!=='undefined') for(const m of ['dino','robot','bug'])
+          if(MODES[m]) MODES[m].list().forEach(D=>kinds.add(D.react||'wiggle'));
+        const src=Sfx.creature.toString();
+        const noSfx=[...kinds].filter(k=>!src.includes("case '"+k+"'"));
+        const noSay=[...kinds].filter(k=>!REACT_SAY[k]);
+        if(noSfx.length) L.push('✗ 소리 없는 반응 — '+noSfx.join(' '));
+        if(noSay.length) L.push('✗ 말 없는 반응 — '+noSay.join(' '));
+        if(!noSfx.length && !noSay.length)
+          L.push(`· 만졌을 때 반응 ${kinds.size}가지 — 소리·말 모두 있음`);
+      }catch(e){ L.push('✗ 반응 검사 중 오류 — '+e.message); }
     }
 
     /* 세계마다 먹이·찾기가 **다음 프레임까지 살아 있는가.**

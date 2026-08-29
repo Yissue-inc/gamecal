@@ -62,6 +62,12 @@ P0–P16의 에셋 생산은 완료됐다. 정글은 `check_shape.py` **36/36**,
 `js/37_modeworld.js`에 로봇 전용 asset revision을 추가해 같은 파일명으로 교체된 P24 PNG가 이전 브라우저
 캐시 대신 로드되도록 했다. 수동 anchor와 도시 배경은 보존했다.
 
+**P25 — 산호 소품 교체 + 로봇 팔·anchor 보정: 완료 ✓** → `prompts/P25_소품_산호_교체.md`
+
+`coral-branch`는 서로 다른 높이의 7갈래 부채형 가지로, `anemone`은 바닥 돔과 7개 촉수·끝점으로
+교체했다. 로봇 `arm`은 좌우 팔 한 쌍 형태로 재작업했고, 39개 부위 anchor를 종별 몸통 실루엣에서
+재산출했다. 노출 보정 13개는 정식 `_anchor.json`에 합쳐 `_anchor_fix.json`은 빈 상태로 통과했다.
+
 **P21 — 로봇 50종 + 로봇도시 배경 12종: 완료 ✓** → `prompts/P21_로봇50종.md`
 
 `assets/robot/`에 몸통 ink/mask·마스터 SVG 50종, 분리 부위 ink/mask 39종, `_anchor.json` 39개,
