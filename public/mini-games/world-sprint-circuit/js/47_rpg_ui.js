@@ -613,7 +613,9 @@ class CoachScreen extends Screen0 {
       const on = DEPTH.isHired(C, c.id);
       const eff = c.stat ? K('%1 성장 +%2%').replace('%1', STAT_NAME[c.stat]).replace('%2', Math.round(c.grow*100))
                          : K('부상 %1% · 피로 회복 +%2').replace('%1', Math.round(c.hurt*100)).replace('%2', c.rest.toFixed(1));
-      return { label:(on?'● ':'○ ')+c.name, sub:eff,
+      /* ⚠ COACHES 에 icon 이 있는데 줄로 안 넘기고 있었다 — 초상 6종이 도착해도
+         화면엔 안 나왔다. '사람을 뽑는 화면인데 얼굴이 없다'가 그대로였다. */
+      return { label:(on?'● ':'○ ')+c.name, sub:eff, icon:c.icon,
         right: on ? K('주급 %1').replace('%1', c.wage) : K('계약금 %1').replace('%1', c.wage*4),
         rightColor: on?PAL.green:PAL.gold,
         color: on?PAL.green:PAL.white, _c:c, _on:on };
@@ -636,7 +638,11 @@ class CoachScreen extends Screen0 {
     const n=DEPTH.hired(C).length, bill=DEPTH.wageBill(C);
     txt(u, K('%1 / 3 명 · 주급 합계 %2').replace('%1',n).replace('%2',bill),
         8, 20, 9, bill>0?PAL.gold:PAL.dim);
-    UI.list(u, this.rows, this.sel, 8, 32, VW-16, 24, 7);
+    /* ⚠ 24px 7줄로 못 박아 뒀더니 코치는 6명뿐이라 화면 아래 40% 가 비었다.
+       줄 수에 맞춰 높이를 잡는다 — 초상(96×96)도 그만큼 크게 나온다. */
+    const n2 = this.rows.length, top = 32, bot = VH - 22;
+    const rowH = Math.max(20, Math.min(34, Math.floor((bot-top)/n2)));
+    UI.list(u, this.rows, this.sel, 8, top, VW-16, rowH, n2);
     UI.footer(u, '확인 영입/해고   취소 돌아가기');
   }
 }
