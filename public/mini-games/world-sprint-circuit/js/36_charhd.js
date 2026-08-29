@@ -236,3 +236,36 @@ const CharHD = {
     return '#'+[f(n>>16&255),f(n>>8&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('');
   },
 };
+
+/* ══════════════════════════════════════════════════════════════════
+   얼굴 초상 (face-<종족>)
+
+   ⚠ 로스터가 인물로 안 읽히는 이유는 **얼굴이 없어서**다. 지금까지는 달리는
+      스프라이트를 카드에 축소해 넣었는데, 작게 줄이면 그냥 실루엣이 된다.
+
+   ⛔ 60종 중 11종만 도착했다. 그래서 **있으면 얼굴, 없으면 달리는 그림**으로
+      물러난다 — 반쪽만 얼굴인 화면이 나오지 않게, 부르는 쪽은 결과를 안 봐도 된다.
+   ══════════════════════════════════════════════════════════════════ */
+const Face = {
+  /* 있으면 얼굴을 그리고 true. 없으면 아무것도 안 그리고 false —
+     부르는 쪽이 달리는 스프라이트로 물러날 수 있게. */
+  draw(u, species, x, y, size){
+    if(!species) return false;
+    const img = (typeof BG!=='undefined') ? BG.get('face-'+species) : null;
+    if(!img) return false;
+    u.drawImage(img, x-size/2, y-size/2, size, size);
+    return true;
+  },
+  has(species){
+    return !!(species && typeof BG!=='undefined' && BG.get('face-'+species));
+  },
+  /* 얼굴이 있으면 얼굴, 없으면 달리는 그림. 카드·목록이 쓰는 한 줄. */
+  portrait(u, a, x, y, size, opt){
+    const sp = a && (a.species||a);
+    if(this.draw(u, sp, x, y, size)) return 'face';
+    if(typeof CharHD!=='undefined' &&
+       CharHD.draw(u, sp, x, y+size*0.45, 0.05, Object.assign({ scale:size/34 }, opt||{})))
+      return 'sprite';
+    return null;
+  },
+};

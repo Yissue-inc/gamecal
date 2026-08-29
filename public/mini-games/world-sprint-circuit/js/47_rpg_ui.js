@@ -75,9 +75,11 @@ class GrowPickScreen extends Screen0 {
       const on=i===this.sel;
       const col = (typeof UI!=='undefined' && UI.rareColor) ? UI.rareColor(a) : PAL.white;
       UIK.card(u, x, y, cw, ch, col, {on});
-      /* 얼굴 — 종족 스프라이트를 카드 안에 */
+      /* 얼굴 — face-<종족> 이 있으면 초상, 없으면 달리는 스프라이트로 물러난다.
+         ⚠ 60종 중 11종만 도착했다. 섞여도 어색하지 않도록 같은 자리·같은 크기로. */
       const face = Math.min(26, ch*0.42);
-      if(!CharHD.draw(u, a.species, x+face*0.72, y+ch-6, 0.05,
+      if(!Face.draw(u, a.species, x+face*0.72, y+ch-face*0.62, face*1.5) &&
+         !CharHD.draw(u, a.species, x+face*0.72, y+ch-6, 0.05,
                       { t:this.t+i*300, scale:face/42 })){
         u.fillStyle=col; u.fillRect(x+8, y+ch-30, 12, 24);
       }
@@ -238,7 +240,8 @@ class GrowScreen extends Screen0 {
     UIK.frame(u, 6, 6, 148, VH-14, { glow:col });
     txt(u, a.name, 80, 12, 13, PAL.gold, 'center', 700);
     txt(u, `${a.speciesName} · ${a.age}세`, 80, 27, 9, PAL.dim, 'center');
-    if(!CharHD.draw(u, a.species, 80, 108, 0.05, { t:this.t, scale:1.5 })){
+    if(!Face.draw(u, a.species, 80, 86, 58) &&
+       !CharHD.draw(u, a.species, 80, 108, 0.05, { t:this.t, scale:1.5 })){
       u.fillStyle=col; u.fillRect(70, 60, 20, 48);
     }
     /* 스탯이 오른 순간 발밑에서 금빛 고리 — 숫자만 바뀌면 오른 줄 모른다 */
@@ -796,7 +799,8 @@ class MasterScreen extends Screen0 {
     /* 얼굴 — 아직 초상 어셋이 없으니 종족 스프라이트를 빌려 쓴다(◀▶ 로 고른다) */
     const faces=['cheetah','greyfox','lynx','bear','horse','hare','monkey','eagle'];
     const sp=faces[(Master.d.face|0)%faces.length];
-    if(!CharHD.draw(u, sp, 83, 108, 0.05, { t:this.t, scale:1.5 })){
+    if(!Face.draw(u, sp, 83, 86, 58) &&
+       !CharHD.draw(u, sp, 83, 108, 0.05, { t:this.t, scale:1.5 })){
       u.fillStyle=PAL.gold; u.fillRect(74, 62, 18, 46);
     }
     txt(u, '◀ ▶', 83, 114, 9, PAL.dim, 'center');

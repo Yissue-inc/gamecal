@@ -377,10 +377,12 @@ class AthleteScreen extends Screen0 {
     /* ⚠ 예전엔 헤더의 오른쪽 문구와 등급 줄을 둘 다 VW-8, y≈5 에 우측정렬로 그려
        서로 겹쳤다(한국어에서도 겹쳤고 영어에서 확연해졌다). 한 줄로 합친다. */
     UI.header(u, `${a.speciesName} ${a.name}`, null);
-    /* 국기 + 국가명 — 누구를 위해 뛰는지 */
+    /* 국기 + 국가명 — 누구를 위해 뛰는지.
+       ⚠ x=8,y=26 에 그렸더니 바로 아래 OVR(8,28) 과 **글자가 겹쳤다**
+          ('대한민 OVR 34' 로 읽혔다). OVR 블록 오른쪽으로 옮긴다. */
     if(a.nation && typeof drawFlag==='function'){
-      drawFlag(u, 8, 26, 20, 14, a.nation);
-      txt(u, nationName(a.nation), 32, 28, 9, PAL.dim, 'left');
+      drawFlag(u, 120, 28, 20, 14, a.nation);
+      txt(u, nationName(a.nation), 144, 30, 9, PAL.dim, 'left');
     }
     txt(u, `${UI.rareStars(a)} ${UI.rareName(a)} · ${a.age}세 · ${GROWTH[a.growth].name}`,
         VW-8, 6, 9, UI.rareColor(a), 'right', 700);
@@ -432,6 +434,15 @@ class AthleteScreen extends Screen0 {
       txt(u,ev.short,192,120+i*11,9,PAL.white);
       txt(u,fmtRec(ev, v),VW-8,120+i*11,9,PAL.gold,'right');
     });
+    /* 초상 — 스탯 줄이 y=176 에서 끝나고 푸터까지 비어 있던 자리.
+       ⚠ 로스터가 인물로 안 읽히던 이유가 얼굴이 없어서였다. 얼굴이 없는 종족은
+          달리는 그림으로 물러나므로 어느 선수를 열어도 빈칸은 안 나온다. */
+    const pw=68, pxx=8, pyy=182;
+    if(typeof UIK!=='undefined') UIK.card(u, pxx, pyy, pw, pw, UI.rareColor(a), {});
+    if(typeof Face!=='undefined' &&
+       !Face.draw(u, a.species, pxx+pw/2, pyy+pw/2, pw-10))
+      CharHD.draw(u, a.species, pxx+pw/2, pyy+pw-8, 0.05, { t:performance.now(), scale:1.4 });
+    txt(u, a.speciesName, pxx+pw/2, pyy+pw-11, 8, PAL.white, 'center');
     UI.footer(u,'확인/취소 돌아가기');
   }
 }
