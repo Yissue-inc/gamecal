@@ -194,6 +194,37 @@ class Season {
           this.weekLog.push({ t:'gain', msg:`${a.name} ${STAT_NAME[top[0]]} +${top[1].toFixed(1)}` });
       }
     }
+    /* 팀 미팅 — 지도 슬롯 하나를 쓰면 **선수단 전체**의 사기가 오른다.
+       ⚠ 낮은 선수일수록 크게 오른다. 이미 신난 팀을 또 모으는 건 낭비여야
+          "언제 부를까"가 결정이 된다.
+
+       ── 여기까지 오는 데 **틀린 측정 두 번**을 지났다 ──────────────
+       ① 개인 면담으로 만들었다 → 한 명분 사기로는 지도 슬롯 한 칸 값을 못 갚아
+          아무도 안 고를 선택지였다(OVR −0.20). 팀 단위로 넓혔다.
+       ② 그래도 **OVR 로 재니 노이즈**였다(45:0.00 · 65:−0.06 · 75:+0.24 — 단조롭지도 않다).
+          변수를 잘못 잡은 것이었다. **사기는 스탯이 아니라 컨디션으로 간다**
+          (target = 96 − 피로×0.62 + (사기−60)×0.16), 그리고 컨디션이 기록을 정한다
+          (컨디션 30→100 이 100m 를 11.48→9.39초로 바꾼다).
+          그래서 재야 할 것은 **승점**이었다:
+
+            안 씀      278.6 승점
+            문턱 70    293.3  (+14.7 · 미팅 1.7회)
+            문턱 80    298.4  (+19.9 · 미팅 2.9회)   ← 적정선
+            매주       274.7  (−3.9)                 ← 과하면 안 쓰느니만 못하다
+
+          적정선이 있고 과하면 손해인 모양 — 그게 이 선택지를 결정으로 만든다. */
+    const meeting = this.club.squad.some(a=>focusMap[a.id]==='talk');
+    if(meeting){
+      let lifted = 0;
+      for(const a of this.club.squad){
+        const g = 5 + (100 - a.morale) * 0.22 + (a.injury ? 4 : 0);
+        const before = a.morale;
+        a.morale = clamp(a.morale + g, 0, 100);
+        lifted += a.morale - before;
+      }
+      this.weekLog.push({ t:'talk',
+        msg:`팀 미팅 — 선수단 사기 총 +${Math.round(lifted)}` });
+    }
     // 사기 — 부상자는 떨어지고, 건강한 선수는 천천히 회복
     for(const a of this.club.squad){
       a.morale = clamp(a.morale + (a.injury ? -1.6 : 1.1), 0, 100);

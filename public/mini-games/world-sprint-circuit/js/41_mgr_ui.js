@@ -186,6 +186,14 @@ function officeTodo(mg){
   /* ③ 이번 주에 반드시 할 것 */
   if(S.isMeetWeek) return put(`${MEET_INFO[S.meetKind].name} 출전`, '출전표를 짜세요',
                               ()=>new EntryScreen(mg), 'ic-meet');
+  /* 팀 미팅 — 실측상 사기가 80 아래일 때 부르면 시즌 승점이 +19.9(+7%) 다.
+     매주 부르면 오히려 −3.9 이므로 **문턱을 넘을 때만** 권한다. */
+  const mAvg = C.squad.length
+    ? C.squad.reduce((s2,a)=>s2+a.morale,0)/C.squad.length : 100;
+  if(mAvg < 78 && !Object.values(mg.focus).includes('talk'))
+    return put(`팀 사기가 ${Math.round(mAvg)}까지 내려갔습니다`,
+               '팀 미팅으로 올리세요 — 컨디션이 따라 오릅니다',
+               ()=>new TrainScreen(mg), 'ic-morale');
   const hurt = C.squad.filter(a=>a.injury).length;
   if(hurt) return put(`부상 ${hurt}명 — 치료를 지정하세요`, '치료 지도는 회복이 2배 빠릅니다',
                       ()=>new TrainScreen(mg), 'ic-injury');
@@ -432,11 +440,22 @@ class FocusPickScreen extends Screen0 {
       const F=FOCUS[k];
       const cur = F.stat ? this.a.stats[F.stat] : null;
       const pot = F.stat ? this.a.potential[F.stat] : null;
+      /* 팀 미팅은 선수단 전체가 얼마나 오르는지를 미리 보여 준다 —
+         "지금 부를 때인가"를 목록에서 바로 판단할 수 있어야 한다 */
+      const gain = F.talk
+        ? Math.round(this.mg.club.squad.reduce((s2,x)=>
+            s2 + Math.min(100-x.morale, 5 + (100-x.morale)*0.22 + (x.injury?4:0)), 0))
+        : 0;
       return { label:F.name,
-        sub: F.stat ? `${Math.round(cur)} / ${pot}${cur>=pot-0.5?' (한계)':''}` :
-             (k==='rest'?'피로를 크게 회복한다':'부상 회복이 2배 빨라진다'),
-        right: F.load>0 ? `부하 +${F.load.toFixed(1)}` : `회복 ${F.load.toFixed(1)}`,
-        rightColor: F.load>0 ? (F.load>1.4?PAL.red:PAL.gold) : PAL.green,
+        /* ⚠ 예전엔 여기서 k==='rest' 삼항으로 설명을 갈랐다 — 항목을 하나 더하면
+           **엉뚱한 설명이 붙는다**(면담을 넣자 '부상 회복이 2배'로 떴다).
+           설명은 FOCUS 가 들고 있다. */
+        sub: F.stat ? `${Math.round(cur)} / ${pot}${cur>=pot-0.5?' (한계)':''}` : (F.desc||''),
+        right: F.talk ? `팀 사기 +${gain}`
+              : F.load>0 ? `부하 +${F.load.toFixed(1)}` : `회복 ${F.load.toFixed(1)}`,
+        rightColor: F.talk ? (gain>=45?PAL.green:PAL.gold)
+                  : F.load>0 ? (F.load>1.4?PAL.red:PAL.gold) : PAL.green,
+        right2: F.talk ? `평균 ${Math.round(this.mg.club.squad.reduce((s2,x)=>s2+x.morale,0)/this.mg.club.squad.length)}` : undefined,
         dim: F.stat && cur>=pot-0.5 };
     }).concat([{ label:'지도 안 함', sub:'팀 프로그램대로', right:'—', rightColor:PAL.dim }]);
   }
@@ -452,7 +471,13 @@ class FocusPickScreen extends Screen0 {
     txt(u, `컨디션 ${UI.condName(a.condition)}`, 8, 27, 9, UI.cond(a.condition));
     txt(u, `피로 ${Math.round(a.fatigue)}`, 96, 27, 9, a.fatigue>65?PAL.red:PAL.dim);
     if(a.injury) txt(u, `부상: ${a.injury.name} (${a.injury.weeks}주)`, 160, 27, 9, PAL.red);
-    UI.list(u, this.rows, this.sel, 8, 40, VW-16, 22, 8);
+    /* ⚠ 8줄 고정이었다. 항목이 10개(스탯 6 + 휴식·치료·팀 미팅 + 지도 안 함)로 늘자
+       **새로 넣은 팀 미팅이 화면 밖으로 잘렸다** — 목록이 스크롤되긴 하지만
+       기본 위치에서 안 보이면 없는 것과 같다. 줄 수에 맞춰 높이를 계산한다. */
+    const n = this.rows.length;
+    const top = 40, bot = VH - 20;
+    const rowH = Math.max(16, Math.min(22, Math.floor((bot-top)/n)));
+    UI.list(u, this.rows, this.sel, 8, top, VW-16, rowH, n);
     UI.footer(u, '확인 지정   취소 돌아가기');
   }
 }
@@ -553,7 +578,13 @@ class AthleteScreen extends Screen0 {
     txt(u,'피로',8+icF(60),60,8,PAL.dim);   UI.bar(u,sbx,62,sbw,6,a.fatigue,100, a.fatigue>65?PAL.red:a.fatigue>45?PAL.gold:PAL.green);
     txt(u,Math.round(a.fatigue)+'',snx,58,9,PAL.dim);
     txt(u,'사기',8+icM(72),72,8,PAL.dim);   UI.bar(u,sbx,74,sbw,6,a.morale,100, a.morale>65?PAL.green:a.morale>40?PAL.gold:PAL.red);
+    /* ⚠ 사기는 한 시즌에 23~100 으로 흔들리며 **성장을 27.6% 좌우한다**(실측).
+       그런데 화면에는 0~100 숫자만 있어서 그게 뭘 하는 값인지 알 길이 없었다.
+       훈련이 실제로 곱하는 배수를 그대로 적는다(31_training 의 moraleF). */
+    const mf = 0.82 + a.morale/100*0.32;
     txt(u,Math.round(a.morale)+'',snx,70,9,PAL.dim);
+    txt(u, `성장 ×${mf.toFixed(2)}`, snx+22, 71, 8,
+        mf>=1.05?PAL.green:mf<=0.95?PAL.red:PAL.dim);
     if(a.injury) txt(u,`부상: ${a.injury.name} — ${a.injury.weeks}주 남음`,8,84,10,PAL.red,'left',700);
 
     // 스탯
