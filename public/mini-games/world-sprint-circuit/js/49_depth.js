@@ -108,3 +108,82 @@ const DEPTH = {
     return '더 볼 것이 없다';
   },
 };
+
+/* ══════════════════════════════════════════════════════════════════
+   명예의 전당 · 유산 — 세대를 잇는 고리
+
+   ⚠ 지금까지 은퇴 선수는 **그냥 사라졌다.** Lv22 · OVR71 로 10년을 키운 선수가
+      배열에서 splice 되고 끝이었다(실측: 14시즌에 7명이 그렇게 사라졌다).
+      육성 게임에서 이건 가장 큰 손실이다 — 쌓은 것이 남지 않으면
+      '오래 하는 이유'가 없다. 방치형·육성물이 전부 갖고 있는 회차 고리
+      (우마무스메의 계승, 아이들 게임의 환생)가 여기에 해당한다.
+
+   두 갈래로 남긴다:
+     ① 전당(hall)  — 기록으로 남는다. 이력과 이름이 영구히 보관된다.
+     ② 유산(legacy) — 숫자로 남는다. 클럽 전체의 성장에 아주 조금씩 보태고,
+                      신인이 **계승**해 잠재치를 물려받을 수 있다.
+
+   ⛔ 여전히 경기 계산에는 안 들어간다. 유산은 **성장**에만 붙는다.
+   ══════════════════════════════════════════════════════════════════ */
+Object.assign(DEPTH, {
+  /* 은퇴 선수 한 명이 남기는 유산 점수.
+     오래 뛴 것 · 잘한 것 · 기록을 세운 것을 함께 본다. */
+  legacyOf(a){
+    const ovr = a.overall || 0;
+    const lv  = a.lv || 1;
+    const hist = a.history || [];
+    const gold = hist.filter(h=>h.rank===1).length;
+    const podium = hist.filter(h=>h.rank<=3).length;
+    const pbs = Object.keys(a.best||{}).length;
+    return Math.round(ovr*2 + lv*6 + gold*30 + podium*10 + pbs*8);
+  },
+
+  /* 은퇴시킨다 — 전당에 올리고 유산을 적는다.
+     ⚠ 선수 객체를 통째로 저장하면 세이브가 커진다. 남길 것만 추린다. */
+  enshrine(club, a, year){
+    if(!club || !a) return null;
+    const rec = {
+      name: a.name, species: a.species, speciesName: a.speciesName,
+      nation: a.nation, age: a.age, lv: a.lv||1, ovr: a.overall,
+      pot: Object.assign({}, a.potential),
+      gold: (a.history||[]).filter(h=>h.rank===1).length,
+      year: year || 0,
+      legacy: this.legacyOf(a),
+      spec: a.spec,
+    };
+    (club.hall ||= []).push(rec);
+    return rec;
+  },
+  hall(club){ return (club && club.hall) || []; },
+  legacyTotal(club){ return this.hall(club).reduce((s,r)=>s+(r.legacy||0), 0); },
+
+  /* 클럽 전체에 붙는 성장 보너스 — 아주 얕게, 대신 영원히.
+     ⚠ 세게 만들면 오래 한 사람이 새 선수를 즉시 완성시킨다. 얕아야 '역사'가 된다.
+        유산 1,000점 = 성장 +5%, 상한 +25%(약 5,000점 = 20명쯤). */
+  legacyBonus(club){
+    const t=this.legacyTotal(club);
+    return { grow: Math.min(0.25, t/20000) };
+  },
+
+  /* ── 계승 ────────────────────────────────────────────────
+     전당의 선배 하나를 골라 신인이 물려받는다.
+     잠재치를 선배 쪽으로 당긴다 — **현재 스탯이 아니라 잠재치다.**
+     ⚠ 스탯을 물려주면 신인이 곧 완성품이라 키울 게 없다.
+        잠재치만 물려주면 '가능성을 물려받고 키우는 건 여전히 내 몫'이 된다. */
+  inheritCost(rec){ return Math.round(40 + (rec.legacy||0)*0.25); },
+  inherit(club, rookie, rec){
+    if(!club || !rookie || !rec) return '대상이 없습니다';
+    if(rookie.inherited) return '이미 계승했습니다';
+    const cost=this.inheritCost(rec);
+    if((club.budget||0) < cost) return `코인이 부족합니다 (필요 ${cost})`;
+    club.budget = +(club.budget - cost).toFixed(1);
+    /* 선배의 잠재치 쪽으로 40% 당긴다. 원래보다 낮아지지는 않는다. */
+    const K=(typeof STAT_KEYS!=='undefined')?STAT_KEYS:Object.keys(rookie.potential||{});
+    for(const k of K){
+      const mine=rookie.potential[k], theirs=(rec.pot&&rec.pot[k])||mine;
+      rookie.potential[k] = Math.round(Math.max(mine, mine + (theirs-mine)*0.40));
+    }
+    rookie.inherited = { from: rec.name, year: rec.year };
+    return null;
+  },
+});

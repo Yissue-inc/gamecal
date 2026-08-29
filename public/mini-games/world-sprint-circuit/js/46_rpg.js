@@ -22,7 +22,11 @@ const RPG = {
   /* ⚠ 숫자는 **크게** 잡는다. 방치형·육성물의 재미 절반은 '큰 수가 오르는 것'이다.
      한 주에 22 오르는 것과 450 오르는 것은 같은 비율이어도 체감이 다르다.
      한 시즌(24주 + 대회 4회)에 Lv 7~9 가 되도록 맞췄다(tools/rpg_neutral 로 실측). */
-  xpToNext(lv){ return Math.round(600 * Math.pow(Math.max(1,lv), 1.25)); },
+  /* ⚠ 1.25 지수는 **상한을 못 닿게** 만들었다 — 실측: 자동 플레이 10시즌(240주 +
+     대회 40회)에 평균 Lv21, 최고 Lv25. Lv60 누적이 262만 XP 라 70시즌쯤 걸린다.
+     닿을 수 없는 상한은 상한이 아니라 벽이다.
+     지수를 낮춰 **12~15시즌에 Lv60** 이 되게 한다(한 선수의 선수 생명과 얼추 같다). */
+  xpToNext(lv){ return Math.round(520 * Math.pow(Math.max(1,lv), 1.06)); },
 
   /* 누적 경험치로 레벨을 되돌린다 — 세이브에는 lv·xp 만 둔다 */
   lvOf(a){ return a.lv || 1; },
@@ -152,6 +156,30 @@ const RPG = {
   sellPrice(it){
     const m=this.rarityOf(it.r).mult;
     return Math.round(8 * m * m);      // 일반 8 · 고급 18 · 희귀 35 · 영웅 67 · 전설 128
+  },
+
+  /* ── 합성 ────────────────────────────────────────────────
+     ⚠ 창고가 **쌓이기만 했다** — 10시즌에 278개, 낄 수 있는 건 3칸.
+        파는 것 말고는 배출구가 없었다. 방치형·수집형은 예외 없이
+        '같은 것 여럿 → 더 좋은 것 하나' 를 갖고 있다.
+     같은 아이템 · 같은 등급 3개 → 한 등급 위 1개. 전설은 더 올릴 곳이 없다. */
+  FUSE_N: 3,
+  canFuse(inv, it){
+    if(!inv || !it) return false;
+    const i = this.RARITY.findIndex(r=>r.key===it.r);
+    if(i<0 || i>=this.RARITY.length-1) return false;      // 전설은 끝
+    return inv.filter(x=>x.id===it.id && x.r===it.r).length >= this.FUSE_N;
+  },
+  fuse(inv, it){
+    if(!this.canFuse(inv, it)) return null;
+    let n=this.FUSE_N;
+    for(let i=inv.length-1; i>=0 && n>0; i--){
+      if(inv[i].id===it.id && inv[i].r===it.r){ inv.splice(i,1); n--; }
+    }
+    const up = this.RARITY[this.RARITY.findIndex(r=>r.key===it.r)+1].key;
+    const made = this.make(it.id, up);
+    inv.push(made);
+    return made;
   },
 
   equip(a, it){

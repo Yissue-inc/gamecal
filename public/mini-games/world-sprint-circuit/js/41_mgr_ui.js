@@ -143,6 +143,12 @@ class OfficeScreen extends Screen0 {
                rightColor: d.claimed?PAL.dim:PAL.gold,
                color: d.claimed?undefined:PAL.gold,
                go:()=>new DailyScreen(this.mg) }; })(),
+      /* 명예의 전당(49_depth) — 은퇴 선수가 남는 자리이자 신인이 물려받는 자리 */
+      (()=>{ const h=(typeof DEPTH!=='undefined')?DEPTH.hall(this.mg.club):[];
+             const t=(typeof DEPTH!=='undefined')?DEPTH.legacyTotal(this.mg.club):0;
+             return { label:'명예의 전당',
+                      sub: h.length? `${h.length}명 · 유산 ${t}` : '아직 비어 있습니다',
+                      right:'▶', go:()=>new HallScreen(this.mg) }; })(),
       { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶',
         go:()=>new RecordScreen(this.mg) },
       { label:'리그 순위표', sub:leagueSub(S), right:'▶',

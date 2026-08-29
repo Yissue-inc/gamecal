@@ -134,7 +134,9 @@ class GrowScreen extends Screen0 {
     });
     const inv=this.mg.club.inventory||[];
     inv.forEach((it,i)=>{
-      rows.push({ label:'  '+RPG.itemName(it), sub:RPG.itemLine(it),
+      const fuseOk = RPG.canFuse(inv, it);
+      rows.push({ label:'  '+RPG.itemName(it),
+        sub: RPG.itemLine(it) + (fuseOk ? '  · ▲합성 가능' : ''),
         right:'착용 · ▼팔기 '+RPG.sellPrice(it),
         rightColor:RPG.rarityOf(it.r).color, color:RPG.rarityOf(it.r).color, _inv:i });
     });
@@ -149,6 +151,28 @@ class GrowScreen extends Screen0 {
     /* ▲ — 스카우트 리포트(잠재치를 범위로 본다) */
     if(Input.pressed('up') && this.tab===0){
       if(typeof ScoutReportScreen!=='undefined'){ Sfx.ui(); this.mg.push(new ScoutReportScreen(this.mg, this.a)); return; }
+    }
+    /* ▼(스탯 탭) — 계승. 아직 안 받은 선수만 전당으로 보낸다 */
+    if(Input.pressed('down') && this.tab===0){
+      if(this.a.inherited){ Sfx.fail(); this.mg.toast(K('이미 %1의 자질을 물려받았습니다').replace('%1', this.a.inherited.from)); return; }
+      if(typeof HallScreen==='undefined' || !DEPTH.hall(this.mg.club).length){
+        Sfx.fail(); this.mg.toast(K('전당이 비어 있습니다')); return;
+      }
+      Sfx.ui(); this.mg.push(new HallScreen(this.mg, this.a)); return;
+    }
+    /* ▲(장비 탭) — 합성. 같은 것 3개를 한 등급 위로 */
+    if(this.tab===1 && Input.pressed('up')){
+      const r=this.rows[this.sel];
+      if(r && r._inv!==undefined){
+        const inv=this.mg.club.inventory, it=inv[r._inv];
+        if(it && RPG.canFuse(inv, it)){
+          const made=RPG.fuse(inv, it);
+          Sfx.record(); Screen.shake(0.35);
+          this.mg.toast(K('합성 → %1').replace('%1', RPG.itemName(made)));
+          this.sel=Math.min(this.sel, this.rows.length-1);
+        } else { Sfx.fail(); this.mg.toast(K('같은 등급 3개가 필요합니다')); }
+        return;
+      }
     }
     /* 창고의 장비는 ▼ 로 판다 — 창고가 쌓이기만 하면 의미가 없다 */
     if(this.tab===1 && Input.pressed('down')){
@@ -241,8 +265,8 @@ class GrowScreen extends Screen0 {
       txt(u, K(nm), x+35, 17, 9, on?PAL.gold:PAL.dim, 'center', on?700:400);
     });
     UI.list(u, this.rows, this.sel, 166, 36, VW-178, 22, 8);
-    UI.footer(u, this.tab===1 ? '확인 착용/벗기 · ▼ 팔기 · ◀▶ 탭 · 취소 뒤로'
-                              : '확인 +1 · ▲ 스카우트 리포트 · ◀▶ 탭 · 취소 뒤로');
+    UI.footer(u, this.tab===1 ? '확인 착용 · ▲ 합성 · ▼ 팔기 · ◀▶ 탭 · 취소 뒤로'
+                              : '확인 +1 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소 뒤로');
   }
 }
 
@@ -640,5 +664,57 @@ class DailyScreen extends Screen0 {
     txt(u, d.claimed ? K('받았습니다') : d.done ? K('받을 수 있습니다') : K('세 종목을 마치면 받습니다'),
         VW-56, y+30, 8, d.claimed?PAL.dim:d.done?PAL.gold:PAL.dim, 'center');
     UI.footer(u, '확인 도전/받기   취소 돌아가기');
+  }
+}
+
+/* ── 명예의 전당 (49_depth) ─────────────────────────────────
+   은퇴한 선수가 남는 자리. 그리고 **신인이 물려받는 자리**.
+   ⚠ 전당이 '읽기만 하는 목록'이면 한 번 보고 안 온다. 계승을 여기 붙여
+      전당이 곧 다음 세대의 자원이 되게 한다. */
+class HallScreen extends Screen0 {
+  constructor(mg, rookie){ super(mg); this.rookie=rookie||null; this.t=0; }
+  get list(){ return DEPTH.hall(this.mg.club).slice().sort((a,b)=>b.legacy-a.legacy); }
+  get rows(){
+    const R=this.rookie;
+    return this.list.map(r=>{
+      const cost=DEPTH.inheritCost(r);
+      return { label:`${r.speciesName||''} ${r.name}`,
+        sub:`${r.year}년차 은퇴 · ${r.age}세 · Lv.${r.lv} · OVR ${r.ovr} · 금 ${r.gold}`,
+        right: R ? K('계승 %1').replace('%1', cost) : String(r.legacy),
+        rightColor: R ? ((this.mg.club.budget>=cost)?PAL.gold:PAL.red) : PAL.blue,
+        nation:r.nation, _rec:r };
+    });
+  }
+  confirm(){
+    const r=this.rows[this.sel]; if(!r || !this.rookie) return;
+    const err=DEPTH.inherit(this.mg.club, this.rookie, r._rec);
+    if(err){ Sfx.fail(); this.mg.toast(err); return; }
+    Sfx.record(); Sfx.roar(); Screen.shake(0.4);
+    this.mg.toast(K('%1의 자질을 물려받았습니다').replace('%1', r._rec.name));
+    this.mg.pop();
+  }
+  draw(u){
+    const C=this.mg.club, hall=this.list;
+    const tot=DEPTH.legacyTotal(C), lb=DEPTH.legacyBonus(C);
+    UIK.resourceBar(u, 0, [{ value:Math.round(C.budget), color:'#ffcf4a', icon:'icon-coin' }]);
+    txt(u, K('명예의 전당'), VW-8, 3, 11, PAL.gold, 'right', 700);
+    /* 유산 — 이 클럽이 쌓아 온 역사가 숫자 하나로 */
+    UIK.frame(u, 8, 20, VW-16, 26, { glow: tot>0?PAL.gold:null });
+    txt(u, K('유산'), 16, 24, 8, PAL.dim, 'left');
+    txt(u, UIK.n(tot), 16, 32, 15, PAL.gold, 'left', 700);
+    txt(u, K('클럽 전체 성장 +%1%').replace('%1', Math.round(lb.grow*100)),
+        VW-16, 24, 9, lb.grow>0?PAL.green:PAL.dim, 'right');
+    txt(u, K('전당 %1명').replace('%1', hall.length), VW-16, 35, 9, PAL.dim, 'right');
+    if(!hall.length){
+      txt(u, K('아직 은퇴한 선수가 없습니다'), VW/2, 96, 12, PAL.dim, 'center');
+      txt(u, K('선수가 은퇴하면 이곳에 남고, 신인이 그 자질을 물려받습니다'),
+          VW/2, 114, 9, PAL.dim, 'center');
+      UI.footer(u, '취소 돌아가기'); return;
+    }
+    if(this.rookie)
+      txt(u, K('%1 이(가) 물려받을 선배를 고르세요').replace('%1', this.rookie.name),
+          VW/2, 50, 10, PAL.gold, 'center', 700);
+    UI.list(u, this.rows, this.sel, 8, this.rookie?62:50, VW-16, 22, this.rookie?7:8);
+    UI.footer(u, this.rookie ? '확인 계승   취소 돌아가기' : '취소 돌아가기');
   }
 }

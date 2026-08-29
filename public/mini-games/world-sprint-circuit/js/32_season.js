@@ -570,6 +570,10 @@ class Club {
       a.injury = null;
       const g = GROWTH[a.growth];
       if(a.age > g.peak + 4 && rng() < 0.30 + (a.age-g.peak-4)*0.16){
+        /* ⚠ 예전엔 여기서 splice 하고 끝이었다 — Lv22·OVR71 선수가 흔적 없이 사라졌다.
+           전당에 올리고 유산을 남긴다(49_depth). 없으면 예전 그대로 사라진다. */
+        if(typeof DEPTH!=='undefined' && DEPTH.enshrine)
+          out.enshrined = (out.enshrined||[]).concat([DEPTH.enshrine(this, a, this.year)]);
         out.retired.push(a);
         this.squad.splice(this.squad.indexOf(a),1);
       }

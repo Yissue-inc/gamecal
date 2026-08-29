@@ -51,6 +51,10 @@ function trainWeek(a, program, focus, rng, club){
   const CB = (typeof DEPTH!=='undefined' && club) ? DEPTH.coachBonus(club, null)
            : { grow:0, rest:0, hurt:0 };
   RB.rest += CB.rest; RB.hurt += CB.hurt;
+  /* 명예의 전당 유산 — 아주 얕게, 대신 영원히. 오래 한 클럽의 신인이 조금 더 잘 큰다. */
+  const LB = (typeof DEPTH!=='undefined' && club && DEPTH.legacyBonus)
+           ? DEPTH.legacyBonus(club) : { grow:0 };
+  RB.grow += LB.grow;
 
   /* 부상 중이면 회복만 한다 */
   if(a.injury){

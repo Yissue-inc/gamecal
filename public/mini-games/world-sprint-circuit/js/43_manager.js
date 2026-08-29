@@ -177,6 +177,7 @@ const MG = {
       if(typeof RPG!=='undefined') for(const a of c.squad) RPG.ensure(a);
       c.inventory = d.club.inventory || [];
       c.coaches = d.club.coaches || [];   // 코치(49_depth) — 없던 세이브는 빈 배열
+      c.hall    = d.club.hall || [];      // 명예의 전당 — 세대를 잇는 기록
       c.rng = makeRng((Date.now()^0x77)>>>0);
       this.club=c;
       const S=new Season(c, (Date.now()^0x99)>>>0);
