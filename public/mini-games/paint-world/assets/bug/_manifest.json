@@ -1,0 +1,205 @@
+{
+  "pack": "P22",
+  "species": [
+    {
+      "id": "swallowtail",
+      "part": "wing"
+    },
+    {
+      "id": "stagbeetle",
+      "part": "jaw"
+    },
+    {
+      "id": "mantis",
+      "part": "claw"
+    },
+    {
+      "id": "morpho",
+      "part": "wing"
+    },
+    {
+      "id": "monarch",
+      "part": "wing"
+    },
+    {
+      "id": "cabbagewhite",
+      "part": "wing"
+    },
+    {
+      "id": "lunamoth",
+      "part": "wing"
+    },
+    {
+      "id": "atlasmoth",
+      "part": "wing"
+    },
+    {
+      "id": "hawkmoth",
+      "part": "wing"
+    },
+    {
+      "id": "tigermoth",
+      "part": "wing"
+    },
+    {
+      "id": "skipper",
+      "part": "wing"
+    },
+    {
+      "id": "birdwing",
+      "part": "wing"
+    },
+    {
+      "id": "rhinobeetle",
+      "part": "leg"
+    },
+    {
+      "id": "ladybug",
+      "part": "wing"
+    },
+    {
+      "id": "fireflies",
+      "part": null
+    },
+    {
+      "id": "goldbeetle",
+      "part": "leg"
+    },
+    {
+      "id": "longhorn",
+      "part": "antenna"
+    },
+    {
+      "id": "divingbeetle",
+      "part": "leg"
+    },
+    {
+      "id": "weevil",
+      "part": "leg"
+    },
+    {
+      "id": "tigerbeetle",
+      "part": "leg"
+    },
+    {
+      "id": "dungbeetle",
+      "part": "leg"
+    },
+    {
+      "id": "honeybee",
+      "part": "wing"
+    },
+    {
+      "id": "bumblebee",
+      "part": "wing"
+    },
+    {
+      "id": "wasp",
+      "part": "wing"
+    },
+    {
+      "id": "carpenterbee",
+      "part": "wing"
+    },
+    {
+      "id": "ant",
+      "part": "leg"
+    },
+    {
+      "id": "soldierant",
+      "part": "jaw"
+    },
+    {
+      "id": "flyingant",
+      "part": "wing"
+    },
+    {
+      "id": "hornet",
+      "part": "wing"
+    },
+    {
+      "id": "grasshopper",
+      "part": "leg"
+    },
+    {
+      "id": "locust",
+      "part": "leg"
+    },
+    {
+      "id": "cricket",
+      "part": "leg"
+    },
+    {
+      "id": "katydid",
+      "part": "leg"
+    },
+    {
+      "id": "molecricket",
+      "part": "leg"
+    },
+    {
+      "id": "weta",
+      "part": "leg"
+    },
+    {
+      "id": "dragonfly",
+      "part": "wing"
+    },
+    {
+      "id": "damselfly",
+      "part": "wing"
+    },
+    {
+      "id": "mayfly",
+      "part": "wing"
+    },
+    {
+      "id": "antlion",
+      "part": "wing"
+    },
+    {
+      "id": "dobsonfly",
+      "part": "wing"
+    },
+    {
+      "id": "stonefly",
+      "part": "wing"
+    },
+    {
+      "id": "caterpillar",
+      "part": null
+    },
+    {
+      "id": "centipede",
+      "part": null
+    },
+    {
+      "id": "millipede",
+      "part": null
+    },
+    {
+      "id": "pillbug",
+      "part": null
+    },
+    {
+      "id": "snail-land",
+      "part": null
+    },
+    {
+      "id": "worm",
+      "part": null
+    },
+    {
+      "id": "stickinsect",
+      "part": "leg"
+    },
+    {
+      "id": "cicada",
+      "part": "wing"
+    },
+    {
+      "id": "waterstrider",
+      "part": "leg"
+    }
+  ]
+}

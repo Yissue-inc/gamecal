@@ -1,0 +1,260 @@
+{
+  "swallowtail": {
+    "wing": [
+      360,
+      225
+    ]
+  },
+  "stagbeetle": {
+    "jaw": [
+      500,
+      220
+    ]
+  },
+  "mantis": {
+    "claw": [
+      430,
+      250
+    ]
+  },
+  "morpho": {
+    "wing": [
+      355,
+      210
+    ]
+  },
+  "monarch": {
+    "wing": [
+      358,
+      215
+    ]
+  },
+  "cabbagewhite": {
+    "wing": [
+      350,
+      225
+    ]
+  },
+  "lunamoth": {
+    "wing": [
+      352,
+      205
+    ]
+  },
+  "atlasmoth": {
+    "wing": [
+      360,
+      212
+    ]
+  },
+  "hawkmoth": {
+    "wing": [
+      368,
+      220
+    ]
+  },
+  "tigermoth": {
+    "wing": [
+      352,
+      220
+    ]
+  },
+  "skipper": {
+    "wing": [
+      356,
+      230
+    ]
+  },
+  "birdwing": {
+    "wing": [
+      364,
+      210
+    ]
+  },
+  "rhinobeetle": {
+    "leg": [
+      358,
+      308
+    ]
+  },
+  "ladybug": {
+    "wing": [
+      356,
+      215
+    ]
+  },
+  "goldbeetle": {
+    "leg": [
+      350,
+      310
+    ]
+  },
+  "longhorn": {
+    "antenna": [
+      468,
+      200
+    ]
+  },
+  "divingbeetle": {
+    "leg": [
+      356,
+      305
+    ]
+  },
+  "weevil": {
+    "leg": [
+      405,
+      304
+    ]
+  },
+  "tigerbeetle": {
+    "leg": [
+      385,
+      300
+    ]
+  },
+  "dungbeetle": {
+    "leg": [
+      345,
+      302
+    ]
+  },
+  "honeybee": {
+    "wing": [
+      360,
+      214
+    ]
+  },
+  "bumblebee": {
+    "wing": [
+      345,
+      218
+    ]
+  },
+  "wasp": {
+    "wing": [
+      375,
+      215
+    ]
+  },
+  "carpenterbee": {
+    "wing": [
+      356,
+      215
+    ]
+  },
+  "ant": {
+    "leg": [
+      360,
+      292
+    ]
+  },
+  "soldierant": {
+    "jaw": [
+      452,
+      220
+    ]
+  },
+  "flyingant": {
+    "wing": [
+      360,
+      212
+    ]
+  },
+  "hornet": {
+    "wing": [
+      380,
+      212
+    ]
+  },
+  "grasshopper": {
+    "leg": [
+      380,
+      285
+    ]
+  },
+  "locust": {
+    "leg": [
+      385,
+      282
+    ]
+  },
+  "cricket": {
+    "leg": [
+      365,
+      286
+    ]
+  },
+  "katydid": {
+    "leg": [
+      380,
+      278
+    ]
+  },
+  "molecricket": {
+    "leg": [
+      340,
+      290
+    ]
+  },
+  "weta": {
+    "leg": [
+      355,
+      288
+    ]
+  },
+  "dragonfly": {
+    "wing": [
+      360,
+      205
+    ]
+  },
+  "damselfly": {
+    "wing": [
+      360,
+      205
+    ]
+  },
+  "mayfly": {
+    "wing": [
+      360,
+      205
+    ]
+  },
+  "antlion": {
+    "wing": [
+      365,
+      210
+    ]
+  },
+  "dobsonfly": {
+    "wing": [
+      370,
+      212
+    ]
+  },
+  "stonefly": {
+    "wing": [
+      360,
+      210
+    ]
+  },
+  "stickinsect": {
+    "leg": [
+      365,
+      278
+    ]
+  },
+  "cicada": {
+    "wing": [
+      360,
+      208
+    ]
+  },
+  "waterstrider": {
+    "leg": [
+      360,
+      255
+    ]
+  }
+}

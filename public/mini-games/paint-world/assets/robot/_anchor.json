@@ -1,0 +1,236 @@
+{
+  "bot-wheel": {
+    "wheel": [
+      360,
+      295
+    ]
+  },
+  "bot-spider": {
+    "leg": [
+      360,
+      265
+    ]
+  },
+  "bot-copter": {
+    "blade": [
+      360,
+      100
+    ]
+  },
+  "bot-cook": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-butler": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-fan": {
+    "blade": [
+      360,
+      285
+    ]
+  },
+  "bot-mail": {
+    "leg": [
+      360,
+      285
+    ]
+  },
+  "bot-clock": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-crane": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-drill": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-weld": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-forklift": {
+    "wheel": [
+      360,
+      285
+    ]
+  },
+  "bot-dump": {
+    "wheel": [
+      360,
+      285
+    ]
+  },
+  "bot-mixer": {
+    "drum": [
+      360,
+      285
+    ]
+  },
+  "bot-saw": {
+    "blade": [
+      360,
+      285
+    ]
+  },
+  "bot-magnet": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-track": {
+    "wheel": [
+      360,
+      285
+    ]
+  },
+  "bot-ball": {
+    "wheel": [
+      360,
+      285
+    ]
+  },
+  "bot-mono": {
+    "wheel": [
+      360,
+      285
+    ]
+  },
+  "bot-dog": {
+    "leg": [
+      360,
+      285
+    ]
+  },
+  "bot-cat": {
+    "leg": [
+      360,
+      285
+    ]
+  },
+  "bot-bird": {
+    "wing": [
+      360,
+      285
+    ]
+  },
+  "bot-fish": {
+    "fin": [
+      360,
+      285
+    ]
+  },
+  "bot-crab": {
+    "claw": [
+      360,
+      285
+    ]
+  },
+  "bot-dino": {
+    "leg": [
+      360,
+      285
+    ]
+  },
+  "bot-space": {
+    "leg": [
+      360,
+      145
+    ]
+  },
+  "bot-diver": {
+    "fin": [
+      360,
+      145
+    ]
+  },
+  "bot-rover": {
+    "wheel": [
+      360,
+      145
+    ]
+  },
+  "bot-drone": {
+    "blade": [
+      360,
+      145
+    ]
+  },
+  "bot-sub": {
+    "fin": [
+      360,
+      145
+    ]
+  },
+  "bot-doctor": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-fire": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-police": {
+    "leg": [
+      360,
+      285
+    ]
+  },
+  "bot-teacher": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-farm": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-paint": {
+    "arm": [
+      360,
+      285
+    ]
+  },
+  "bot-camera": {
+    "leg": [
+      360,
+      285
+    ]
+  },
+  "bot-toy": {
+    "leg": [
+      360,
+      285
+    ]
+  },
+  "bot-mini": {
+    "leg": [
+      360,
+      285
+    ]
+  }
+}

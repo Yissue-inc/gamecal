@@ -123,7 +123,9 @@ const Input = {
 /* ── 저장 — 아이들 그림은 하루치 유지 ────────────────────── */
 const Save = {
   key:'paintworld_v1',
-  data:{ creatures:[], made:0, sound:true },
+  /* seen — 어떤 종을 그려 봤나. ⚠ creatures 는 600장 상한에 밀려 사라지므로
+     그림이 밀려나도 '그려 봤다'는 기록은 남아야 한다. 도감의 정본이다. */
+  data:{ creatures:[], made:0, sound:true, seen:{} },
   load(){ try{ const s=localStorage.getItem(this.key); if(s) Object.assign(this.data, JSON.parse(s)); }catch(_){} },
   /* ⚠ 상한 60장은 근거 없이 잡은 값이었다. 실측: 한 장 5KB,
      localStorage 는 10MB 이상 → 1,994장이 들어간다.
@@ -190,6 +192,7 @@ const Net = {
        네트워크는 자기 타이머로 돈다 — 렌더와 무관하게. */
     this._timer=setInterval(()=>{
       if(this.role==='stage') this.poll(); else this.flush();
+      this.syncVit();
       if(!this.on) this.probe();
     }, 2000);
     /* 탭이 다시 보이면 즉시 한 번 — 밀린 걸 빨리 따라잡는다 */
@@ -207,6 +210,25 @@ const Net = {
   },
 
   /* 색칠 태블릿 — 새 그림을 보낸다 */
+  /* 함께 키우는 수조 — 서버의 값과 맞춘다.
+     ⚠ 큰 쪽을 따른다. 방금 켠 기기가 0 을 보내 되돌리면 안 된다. */
+  syncVit(){
+    if(this.role==='solo') return;
+    if(typeof Grow==='undefined' || typeof Save==='undefined') return;
+    const mine=Grow.vit();
+    fetch('api/vit', {method:'POST', headers:{'Content-Type':'application/json'},
+                      body:JSON.stringify({vit:mine})})
+      .then(r=>r.json())
+      .then(j=>{
+        if(j && j.vit>mine){
+          const before=Grow.level();
+          Save.data.vit=j.vit;
+          if(Grow.level()>before){
+            try{ const W=Game.W; if(W&&W.init) W.init(); }catch(_){}
+          }
+        }
+      }).catch(()=>{});
+  },
   push(rec){
     if(this.role==='solo') return;
     this.queue.push(rec);
@@ -537,7 +559,8 @@ const FXA = {
   /* 이름 → [프레임수] */
   FRAMES:{ 'fx-splash-in':4, 'fx-sparkle':4, 'fx-ring-pulse':4, 'fx-bubble-pop':4,
            'fx-leaf-fall':1, 'fx-dust-puff':4, 'fx-heart-pop':3, 'fx-spotlight':1,
-           'fx-confetti':4, 'fx-name-tag':1, 'fx-arrow-point':1, 'fx-water-ripple':4 },
+           'fx-confetti':4, 'fx-name-tag':1, 'fx-arrow-point':1, 'fx-water-ripple':4,
+           'fx-chest-burst':1 },
   get(n){
     if(this.cache[n]) return this.cache[n];
     if(this.tried[n]) return null;
@@ -914,19 +937,34 @@ const Paint = {
   fill:null, fctx:null, undo:[], drawing:false, lastX:0, lastY:0,
   /* 도안 배치 — 화면 가운데 크게 */
   /* 바다면 Templates, 정글이면 JTemplate — 한 곳에서 고른다 */
-  tpl(){ return (typeof JUNGLE!=='undefined' && JUNGLE[this.spId])
+  /* 자유화(백지)면 도안이 없다 */
+  get free(){ return this.spId==='__free__'; },
+  mode:null,                      // 새 모드에서 고른 종이면 그 모드 이름
+  tpl(){ if(this.free) return null;
+    if(this.mode && typeof MTemplate!=='undefined') return MTemplate.get(this.mode, this.spId);
+    return (typeof JUNGLE!=='undefined' && JUNGLE[this.spId])
     ? JTemplate.get(this.spId) : Templates.get(this.spId); },
-  box(){ const w=TW*0.95, h=TH*0.95; return {x:VW/2-w/2, y:150, w, h}; },
+  /* ⚠ 화면이 세로면(태블릿을 세워 두면) 16:9 무대가 화면 폭에 맞춰 0.6배로 줄어든다.
+     그래서 색칸 60px 이 **실제 36px** 이 됐다 — 다섯 살 손가락에 작다(기준 38, 애플 권고 44).
+     세로에서는 그림판을 조금 줄이고 그 자리를 색칸에 준다. 비율은 그대로 유지한다
+     (가로세로를 따로 줄이면 아이 그림이 찌그러진다). */
+  tight(){ return (typeof Screen!=='undefined' && Screen.scale>0 && Screen.scale<0.72); },
+  box(){
+    const k=this.tight()? 0.80 : 0.95;
+    const w=TW*k, h=TH*k;
+    return {x:VW/2-w/2, y:this.tight()?136:150, w, h};
+  },
   toTpl(x,y){ const b=this.box(); return {x:(x-b.x)/b.w*TW, y:(y-b.y)/b.h*TH}; },
 
-  open(spId){
+  open(spId, mode){
+    this.mode = mode || null;
     if(typeof BG!=='undefined'){ BG.get('paper'); BG.get('frame-wood'); }
     this.spId=spId||this.spId;
     this._maskArea=undefined;          // 종이 바뀌면 분모도 바뀐다
     this.fill=document.createElement('canvas'); this.fill.width=TW; this.fill.height=TH;
     this.fctx=this.fill.getContext('2d');
     this.undo=[]; this.pushUndo();
-    this.color=CRAYONS[0]; this.tool='brush'; this.drawing=false;
+    this.color=CRAYONS[0]; this.tool='brush'; this.drawing=false; this.mirror=false;
     this.sizeIdx=1; this.size=this.sizes[1];
   },
   pushUndo(){
@@ -957,6 +995,8 @@ const Paint = {
       for(let i=3;i<d.length;i+=4) if(d[i]>24) painted++;
     }catch(e){ return 1; }               // 못 읽으면 통과시킨다 — 막는 게 목적이 아니다
     if(this._maskArea===undefined){
+      /* 백지에는 분모로 삼을 mask 가 없다 — 종이의 일부만 채워도 그림이다 */
+      if(this.free){ this._maskArea = w*h*0.16; return Math.min(1, painted/this._maskArea); }
       const T=this.tpl();
       let a=0;
       if(T && T.mask){
@@ -972,10 +1012,22 @@ const Paint = {
   },
 
   _brushT:0,
+  /* 좌우 대칭 — 반쪽만 그리면 반대편이 저절로 그려진다.
+     ⚠ 손이 서툰 아이도 결과가 예뻐야 한다. 나비·얼굴처럼 좌우가 같은 것을
+       혼자 맞춰 그리기는 어렵다 — 그리기 자체가 놀이가 되게 하는 장치다.
+     ⚠ 지우개도 함께 비쳐야 한다. 안 그러면 지운 자리에 반대쪽이 남는다. */
+  mirror:false,
   stroke(x,y,fromX,fromY){
     /* 붓질 소리 — 5프레임에 한 번만. 매번 내면 소음이 된다 */
     if(++this._brushT % 5 === 0 && this.tool!=='bucket')
       Sfx.brush((this.sizeIdx||0)/2);
+    this._stroke(x,y,fromX,fromY);
+    if(this.mirror){
+      const m=(v)=>TW-v;
+      this._stroke(m(x), y, fromX===undefined?undefined:m(fromX), fromY);
+    }
+  },
+  _stroke(x,y,fromX,fromY){
     const f=this.fctx;
     f.save();
     f.strokeStyle=this.color; f.fillStyle=this.color;
@@ -1062,12 +1114,280 @@ const Paint = {
     const t=this.tpl();
     c.drawImage(this.fill, b.x,b.y,b.w,b.h);
     if(t) c.drawImage(t.ink, b.x,b.y,b.w,b.h);
+    if(this.mirror){                       // 대칭 축 — 여기를 기준으로 비친다
+      c.save(); c.globalAlpha=0.5;
+      c.strokeStyle=PAL.gold; c.lineWidth=2; c.setLineDash([9,9]);
+      c.beginPath(); c.moveTo(b.x+b.w/2, b.y+6); c.lineTo(b.x+b.w/2, b.y+b.h-6); c.stroke();
+      c.restore();
+    }
     /* 나무 액자 — 아이 그림을 감싼다. 가운데가 뚫린 그림이라 도안을 안 가린다 */
     const fr=(typeof BG!=='undefined') && BG.get('frame-wood');
     if(fr) c.drawImage(fr, b.x-46, b.y-46, b.w+92, b.h+92);
     else { c.font='700 22px Galmuri11, sans-serif'; c.textAlign='center';
       c.fillStyle='#8fa3b8'; c.fillText('도안을 불러오는 중…', VW/2, b.y+b.h/2); }
   }
+};
+
+</script>
+<script>
+/* ===== js/25_items.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   꾸미기 아이템 — 보물상자에서 나와 내 그림에 붙는다.
+
+   ⚠ 왜 있나: 지금까지 '다시 올 이유'가 도감 하나뿐이었다.
+     아이템은 두 번째 이유다 — 오늘 온 아이는 오늘 것을 얻는다.
+   ⚠ 어셋(P19)이 아직 없다. 없으면 **코드로 그린 것**이 나온다.
+     어셋이 오는 대로 조용히 대체된다 — 게임은 지금도 돈다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* 붙는 자리 — 그림 안에서 어디에 얹히나 */
+const ITEM_SLOT = { head:'head', face:'face', body:'body', hold:'hold', pet:'pet' };
+
+/* id, 이름, 붙는 자리. 어셋 파일은 assets/item/<id>.png */
+const ITEMS = [
+  ['hat-party','고깔모자','head'],   ['hat-crown','왕관','head'],
+  ['hat-cap','야구모자','head'],     ['hat-straw','밀짚모자','head'],
+  ['hat-chef','요리사모자','head'],  ['hat-pirate','해적모자','head'],
+  ['hat-flower','꽃','head'],        ['hat-leaf','나뭇잎','head'],
+  ['hat-bow','리본','head'],         ['hat-horn','뿔','head'],
+  ['hat-halo','천사 고리','head'],   ['hat-antenna','더듬이','head'],
+  ['face-glasses','안경','face'],    ['face-sunglass','선글라스','face'],
+  ['face-goggle','물안경','face'],   ['face-mustache','콧수염','face'],
+  ['face-mask','마스크','face'],     ['face-blush','볼터치','face'],
+  ['face-star','별 눈','face'],      ['face-heart','하트 눈','face'],
+  ['body-scarf','목도리','body'],    ['body-cape','망토','body'],
+  ['body-bowtie','나비넥타이','body'],['body-necklace','목걸이','body'],
+  ['body-backpack','가방','body'],   ['body-vest','조끼','body'],
+  ['body-belt','허리띠','body'],     ['body-badge','배지','body'],
+  ['hold-balloon','풍선','hold'],    ['hold-flag','깃발','hold'],
+  ['hold-star','별 지팡이','hold'],  ['hold-umbrella','우산','hold'],
+  ['hold-fish','작은 물고기','hold'],['hold-flower','꽃다발','hold'],
+  ['pet-bubble','비눗방울','pet'],   ['pet-sparkle','반짝이','pet'],
+  ['pet-butterfly','작은 나비','pet'],['pet-bird','작은 새','pet'],
+  ['pet-star','작은 별','pet'],      ['pet-heart','하트','pet'],
+];
+const ITEM_BY_ID = {};
+ITEMS.forEach(([id,ko,slot])=>{ ITEM_BY_ID[id]={id,ko,slot}; });
+
+/* ══ 10초짜리 효과 ═══════════════════════════════════════
+   꾸미기(영구)와 달리 잠깐 몸이 변한다. 상자에서 반반쯤 나온다.
+   ⚠ 아이가 "무슨 일이 났는지" 바로 알아야 한다 — 이름을 크게 알리고
+     남은 시간을 띠로 보여 준다. 조용히 변하면 버그로 보인다. */
+const EFFECTS = {
+  grow:   { ko:'커지기',   sec:10, col:'#ffd23f' },
+  shrink: { ko:'작아지기', sec:10, col:'#4aa8ff' },
+  fast:   { ko:'빨라지기', sec:10, col:'#ff6bb0' },
+  slow:   { ko:'느려지기', sec:10, col:'#8ac926' },
+  ghost:  { ko:'투명해지기', sec:10, col:'#b06bff' },
+  glow:   { ko:'반짝이기', sec:10, col:'#ffe08a' },
+  rainbow:{ ko:'무지개',   sec:10, col:'#ff8a3d' },
+};
+const EFFECT_IDS = Object.keys(EFFECTS);
+
+/* 생물에 효과를 건다 — 어느 세계든 똑같이 */
+function applyEffect(being, kind){
+  const e=EFFECTS[kind]; if(!e || !being) return;
+  being.fx = { kind, t: e.sec*60, max: e.sec*60 };
+}
+
+const Items = {
+  cache:{}, tried:{},
+  get(id){
+    if(this.cache[id]) return this.cache[id];
+    if(this.tried[id]) return null;
+    this.tried[id]=true;
+    const img=new Image();
+    img.onload=()=>{ this.cache[id]=img; };
+    img.src='assets/item/'+id+'.png';
+    return null;
+  },
+  /* 지금 뽑을 수 있는 것 — 꾸미기(영구)와 효과(10초)를 섞는다.
+     ⚠ 효과만 나오면 남는 게 없고, 꾸미기만 나오면 놀랄 일이 없다. */
+  pick(){
+    if(rnd()<0.45) return 'fx:'+EFFECT_IDS[(rnd()*EFFECT_IDS.length)|0];
+    const real = ITEMS.filter(([id])=>this.cache[id]).map(([id])=>id);
+    const pool = real.length ? real : Object.keys(FALLBACK);
+    return pool[(rnd()*pool.length)|0];
+  },
+  prefetch(){ ITEMS.forEach(([id])=>this.get(id)); },
+
+  /* 그림 위에 얹는다. 자리마다 위치가 다르다.
+     ⚠ 생물마다 크기가 달라 절대 좌표를 쓰면 큰 것에서 떠 버린다 — 몸 크기에 비례시킨다. */
+  draw(c, being){
+    const id=being.item; if(!id) return;
+    const def=ITEM_BY_ID[id] || {slot:(FALLBACK[id]?FALLBACK[id].slot:'head')};
+    const w=being.w, h=being.h;
+    const dir=being.dir||1;
+    /* ⚠ 텍스처 높이(h)로 위치를 잡으면 **여백까지 세어** 모자가 머리 위 허공에 뜬다.
+       그림이 실제로 차지하는 범위를 재서 그 가장자리에 붙인다. */
+    let top=-h*0.5, bot=h*0.5, mid=0;
+    try{
+      const f=(typeof BodyFit!=='undefined' && being.tex) ? BodyFit.of(being.tex) : null;
+      if(f){
+        const sc=h/TEX_H;
+        top=(f.top-TEX_H/2)*sc; bot=(f.bot-TEX_H/2)*sc; mid=(top+bot)/2;
+      }
+    }catch(e){}
+    const bh=Math.max(20, bot-top);
+    /* ⚠ 머리는 **진행 방향 쪽**이다(도안 규격: 머리가 오른쪽).
+       0.16 으로 뒀더니 왕관이 꼬리 쪽에 앉았다. */
+    const P={
+      head:[ w*0.30*dir, top - bh*0.14, w*0.30 ],   // 머리 바로 위
+      face:[ w*0.32*dir, mid - bh*0.12, w*0.22 ],   // 눈 언저리
+      body:[ w*0.02*dir, mid + bh*0.12, w*0.34 ],
+      hold:[-w*0.30*dir, mid + bh*0.20, w*0.26 ],   // 꼬리 쪽에 들고
+      pet: [-w*0.44*dir, top - bh*0.06, w*0.20 ],
+    }[def.slot] || [w*0.30*dir, top-bh*0.14, w*0.28];
+    const [ox,oy,size]=P;
+    c.save();
+    c.translate(being.x+ox, being.y+oy);
+    if(def.slot==='pet'){                    // 따라다니는 것은 살랑인다
+      c.translate(Math.sin(being.t*0.06)*w*0.05, Math.cos(being.t*0.05)*h*0.05);
+    }
+    const img=this.get(id);
+    if(img){
+      const iw=size, ih=size*(img.naturalHeight/Math.max(1,img.naturalWidth));
+      c.drawImage(img, -iw/2, -ih/2, iw, ih);
+    } else {
+      const f=FALLBACK[id]; if(f) f.draw(c, size*0.5);
+    }
+    c.restore();
+  },
+};
+
+/* 어셋이 오기 전까지 코드로 그리는 것들 — 여섯 가지면 아이는 충분히 다르다고 느낀다 */
+const FALLBACK = {
+  'hat-crown': { slot:'head', ko:'왕관', draw(c,r){
+    c.fillStyle='#ffd23f'; c.strokeStyle='#12212e'; c.lineWidth=r*0.16;
+    c.beginPath();
+    c.moveTo(-r,r*0.5); c.lineTo(-r,-r*0.2); c.lineTo(-r*0.5,r*0.15);
+    c.lineTo(0,-r*0.6); c.lineTo(r*0.5,r*0.15); c.lineTo(r,-r*0.2); c.lineTo(r,r*0.5);
+    c.closePath(); c.fill(); c.stroke(); } },
+  'hat-bow': { slot:'head', ko:'리본', draw(c,r){
+    c.fillStyle='#ff6bb0'; c.strokeStyle='#12212e'; c.lineWidth=r*0.16;
+    for(const s of [-1,1]){
+      c.beginPath();
+      c.moveTo(0,0); c.quadraticCurveTo(s*r*1.2,-r*0.8, s*r*1.1,r*0.1);
+      c.quadraticCurveTo(s*r*0.9,r*0.7, 0,0); c.closePath(); c.fill(); c.stroke(); }
+    c.beginPath(); c.arc(0,0,r*0.26,0,TAU); c.fill(); c.stroke(); } },
+  'face-glasses': { slot:'face', ko:'안경', draw(c,r){
+    c.strokeStyle='#12212e'; c.lineWidth=r*0.18; c.fillStyle='rgba(200,235,255,.5)';
+    for(const s of [-1,1]){
+      c.beginPath(); c.arc(s*r*0.62,0,r*0.52,0,TAU); c.fill(); c.stroke(); }
+    c.beginPath(); c.moveTo(-r*0.12,0); c.lineTo(r*0.12,0); c.stroke(); } },
+  'hold-balloon': { slot:'hold', ko:'풍선', draw(c,r){
+    c.strokeStyle='#12212e'; c.lineWidth=r*0.10;
+    c.beginPath(); c.moveTo(0,r*1.6); c.quadraticCurveTo(r*0.3,r*0.6, 0,r*0.1); c.stroke();
+    c.fillStyle='#ff4757';
+    c.beginPath(); c.ellipse(0,-r*0.5,r*0.8,r*0.95,0,0,TAU); c.fill(); c.stroke(); } },
+  'pet-sparkle': { slot:'pet', ko:'반짝이', draw(c,r){
+    c.fillStyle='#ffd23f';
+    for(const [dx,dy,k] of [[0,0,1],[r*1.2,r*0.6,0.6],[-r*1.0,r*0.9,0.5]]){
+      c.save(); c.translate(dx,dy); c.scale(k,k);
+      c.beginPath();
+      for(let i=0;i<8;i++){ const a=i/8*TAU, rr=i%2?r*0.3:r*0.85;
+        const px=Math.cos(a)*rr, py=Math.sin(a)*rr; i?c.lineTo(px,py):c.moveTo(px,py); }
+      c.closePath(); c.fill(); c.restore(); } } },
+  'body-scarf': { slot:'body', ko:'목도리', draw(c,r){
+    c.fillStyle='#4aa8ff'; c.strokeStyle='#12212e'; c.lineWidth=r*0.14;
+    c.beginPath(); c.ellipse(0,0,r*1.05,r*0.42,0,0,TAU); c.fill(); c.stroke();
+    c.beginPath(); c.rect(r*0.35,r*0.1,r*0.42,r*1.1); c.fill(); c.stroke(); } },
+};
+Object.entries(FALLBACK).forEach(([id,f])=>{ if(!ITEM_BY_ID[id]) ITEM_BY_ID[id]={id,ko:f.ko,slot:f.slot}; });
+
+</script>
+<script>
+/* ===== js/27_grow.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   자라는 세계 — Tap Tap Fish(AbyssRium) 의 뼈대를 전시장에 맞게 옮긴 것.
+
+   원작: 탭 → 생명력 → 산호를 키움 → 새 물고기가 나타남 (혼자 하는 방치형)
+   여기: 아이들이 **함께** 만질수록 수조가 자란다.
+
+   ⚠ 화폐·상점·방치 보상은 가져오지 않는다. 전시장 아이는 몇 분 놀고 간다 —
+     "무엇을 살까"를 고르게 하면 그 몇 분을 메뉴에서 보낸다.
+     대신 만지는 행동이 곧바로 세계를 키운다. 다음 아이가 그걸 이어받는다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const Grow = {
+  /* 단계 — 넘을 때마다 수조가 눈에 띄게 달라진다 */
+  STEPS:[
+    { at:0,    ko:'작은 웅덩이' },
+    { at:40,   ko:'산호가 자랐어요' },
+    { at:110,  ko:'수초가 우거졌어요' },
+    { at:220,  ko:'빛이 들어왔어요' },
+    { at:380,  ko:'친구들이 모여요' },
+    { at:600,  ko:'큰 바다가 됐어요' },
+  ],
+  /* 무엇을 하면 얼마나 자라나 — 만지는 행동이 곧 성장이다 */
+  GAIN:{ touch:1, feed:3, chest:5, draw:12, herd:8 },
+
+  vit(){ return (Save.data && Save.data.vit) || 0; },
+  level(){
+    const v=this.vit(); let lv=0;
+    for(let i=0;i<this.STEPS.length;i++) if(v>=this.STEPS[i].at) lv=i;
+    return lv;
+  },
+  next(){ return this.STEPS[this.level()+1] || null; },
+  /* 다음 단계까지 얼마나 왔나 (0~1) */
+  progress(){
+    const n=this.next(); if(!n) return 1;
+    const cur=this.STEPS[this.level()].at;
+    return Math.max(0, Math.min(1, (this.vit()-cur)/(n.at-cur)));
+  },
+
+  add(kind, x, y){
+    const g=this.GAIN[kind]||1;
+    const before=this.level();
+    if(!Save.data.vit) Save.data.vit=0;
+    Save.data.vit += g;
+    /* 만진 자리에서 생명력이 피어오른다 — 무엇 때문에 자랐는지 보여야 한다 */
+    if(x!==undefined && typeof FX!=='undefined') FX.sparkle(x, y, Math.min(6, g));
+    const after=this.level();
+    if(after>before){
+      const st=this.STEPS[after];
+      Game.say(st.ko);
+      if(typeof FX!=='undefined') FX.confetti(VW/2, VH*0.42);
+      if(typeof Sfx!=='undefined') Sfx.join();
+      this.flash=90;
+      /* 세계를 다시 지어 늘어난 산호·수초가 실제로 보이게 한다.
+         ⚠ 아이 그림은 그대로 둔다 — 다시 짓는 건 배경뿐이다. */
+      try{
+        /* 지금 보고 있는 세계를 다시 짓는다 — 바다만 짓다가 정글에서는
+           단계가 올라도 아무 일도 안 일어났다. */
+        const W = (typeof Game!=='undefined') ? Game.W : null;
+        if(W && W.init) W.init();
+      }catch(_){}
+    }
+    /* 저장은 가끔만 — 탭마다 쓰면 11MB 를 매번 직렬화한다 */
+    if((Save.data.vit % 10)===0){ try{ Save.write(); }catch(_){} }
+  },
+
+  /* 단계에 따라 세계가 달라진다 — World 가 물어본다 */
+  coralBoost(){ return [0, 1, 1, 2, 2, 3][this.level()] || 0; },
+  kelpBoost(){  return [0, 0, 1, 2, 3, 4][this.level()] || 0; },
+  rayBoost(){   return [0, 0, 0, 1, 1, 2][this.level()] || 0; },
+  chestFaster(){ return this.level()>=4; },
+
+  flash:0,
+  draw(c){
+    if(this.flash>0) this.flash--;
+    const lv=this.level(), st=this.STEPS[lv], n=this.next();
+    const x=VW-232, y=26, w=200;
+    c.save();
+    /* 단계가 오른 직후엔 잠깐 빛난다 */
+    if(this.flash>0){ c.shadowColor=PAL.gold; c.shadowBlur=18*(this.flash/90); }
+    c.font='600 17px Galmuri11, sans-serif'; c.textAlign='right';
+    c.fillStyle='rgba(255,255,255,.82)';
+    c.fillText(st.ko, VW-28, y+4);
+    c.restore();
+    if(!n) return;
+    c.fillStyle='rgba(255,255,255,.14)'; UI.round(c, x, y+14, w, 8, 4); c.fill();
+    c.fillStyle=PAL.gold;
+    UI.round(c, x, y+14, Math.max(3, w*this.progress()), 8, 4); c.fill();
+  },
 };
 
 </script>
@@ -1157,6 +1477,10 @@ class Creature {
     this.t=rnd()*300;
     this.vy=0; this.state='idle'; this.stateT=0;
     this.reactT=0; this.reactKind=null; this.fedCd=0;
+    /* 태어난 때 — 시간이 지나면 조금씩 자란다. 다음 날 오면 더 커져 있다.
+       ⚠ 무한히 크면 화면을 잡아먹는다. 이틀이면 다 자란다(1.0 → 1.35). */
+    this.born = opt.born || Date.now();
+    this.item = opt.item || null;   // 보물상자에서 받은 꾸미기
     this.mine=!!opt.mine;
     this.joinT=opt.join?70:0;      // 합류 연출
     this.scared=0; this.target=null;
@@ -1181,6 +1505,8 @@ class Creature {
   get h(){ return TEX_H*this.s; }
 
   update(dt, world){
+    /* 효과 시간 — 다 되면 원래대로 돌아간다 */
+    if(this.fx){ if(--this.fx.t<=0) this.fx=null; }
     this.t+=dt*60;
     /* ⚠ 서로를 전혀 의식하지 않으면 '어항 스크린세이버'다.
        같은 종끼리 느슨하게 모이고, 겹치면 살짝 비킨다.
@@ -1193,6 +1519,10 @@ class Creature {
     if(this.reactT>0) this.reactT--;
 
     let sp=this.spd*(this.scared>0?3.2:1);
+    if(this.fx && this.fx.t>0){
+      if(this.fx.kind==='fast') sp*=2.6;
+      else if(this.fx.kind==='slow') sp*=0.32;
+    }
     /* 내 것이면 부르는 자리로 모여든다 — 이게 '나를 알아본다'의 정체다 */
     if(this.mine && world.callAt && this.scared<=0){
       const cx=world.callAt.x, cy=world.callAt.y;
@@ -1383,8 +1713,21 @@ class Creature {
     const onW=this.w;
     /* LOD — 작게 보이면 띠를 줄인다(실측 2.3배) */
     const SL = onW<70?8 : onW<130?16 : onW<220?28 : 44;
-    let s=this.s;
+    let s=this.s*growth(this.born);
     let alpha=1, extraY=0, sx=1, sy=1, rot=0;
+    /* 보물상자의 10초짜리 효과 — 몸이 잠깐 변한다 */
+    let glowK=0, hueShift=0;
+    if(this.fx && this.fx.t>0){
+      const k=this.fx.t/this.fx.max;               // 1 → 0
+      const ease=Math.min(1, k*6) * Math.min(1, (1-k)*6 + 0.35);  // 시작·끝을 부드럽게
+      switch(this.fx.kind){
+        case 'grow':   s*= 1 + 1.15*ease; break;
+        case 'shrink': s*= 1 - 0.55*ease; break;
+        case 'ghost':  alpha*= 1 - 0.62*ease; break;
+        case 'glow':   glowK = ease; break;
+        case 'rainbow':hueShift = (this.t*4)%360; break;
+      }
+    }
 
     if(this.joinT>0){               // 합류 연출 — 커지며 나타난다
       const k=1-this.joinT/70;
@@ -1404,6 +1747,16 @@ class Creature {
         case 'curl':  rot+=Math.sin(k*Math.PI*3)*0.30; sx*=1-bump*0.12; break;
         case 'glow':  sx*=1+bump*0.12; sy*=1+bump*0.12; break;
         case 'blow':  extraY-=bump*18; sy*=1+bump*0.10; break;          // 물 뿜으며 솟구침
+        /* ── 새 모드(공룡·로봇·곤충) ── 부위가 하는 일에서 나온 몸짓 */
+        case 'stomp':   extraY+=bump*10; sy*=1-bump*0.10; sx*=1+bump*0.08; break;  // 쿵
+        case 'flutter': sy*=1+Math.sin(k*Math.PI*8)*0.16; extraY-=bump*10; break;  // 파닥
+        case 'splash':  rot+=Math.sin(k*Math.PI*4)*0.16; extraY-=bump*8; break;
+        case 'wave':    rot+=Math.sin(k*Math.PI*5)*0.22; break;                    // 팔 흔들기
+        case 'roll':    rot+=k*TAU; extraY-=bump*6; break;                         // 굴러간다
+        case 'whirl':   rot+=k*TAU*2; break;                                       // 팽이처럼
+        case 'snap':    sx*=1+Math.sin(k*Math.PI*7)*0.16; break;
+        case 'chomp':   sy*=1+Math.sin(k*Math.PI*6)*0.20; sx*=1-Math.sin(k*Math.PI*6)*0.10; break;
+        case 'wiggle':  rot+=Math.sin(k*Math.PI*6)*0.14; break;
         case 'ink':   extraY-=bump*4; sx*=1-bump*0.10; break;
         default:      rot+=Math.sin(k*Math.PI*5)*0.26; extraY-=bump*12;  // 꼬리 흔들기
                       sx*=1+bump*0.10;
@@ -1418,17 +1771,46 @@ class Creature {
 
     /* 몸 중심을 this.y 에 맞춘다. 바닥에 붙는 종은 아래끝을 바닥에 맞춘다. */
     const fit=BodyFit.of(tex);
-    const floorish = (m==='crawl'||m==='scuttle');
+    /* 바닥을 딛는 것들 — 몸 한가운데가 아니라 **발끝**이 y 에 오게 맞춘다.
+       ⚠ 안 그러면 공룡이 땅 위에 떠 있다(CK 지적: 티라노가 뜬다). */
+    const floorish = (m==='crawl'||m==='scuttle'||m==='stride');
     const adj = floorish ? -fit.botOff*s : -fit.midOff*s;
     c.save();
     c.globalAlpha=alpha;
+    if(hueShift) c.filter='hue-rotate('+hueShift+'deg) saturate(1.35)';
+    if(glowK){ c.shadowColor='rgba(255,224,138,'+(0.85*glowK)+')'; c.shadowBlur=26*glowK; }
     c.translate(this.x, this.y+extraY+adj);
     if(this.dir<0) c.scale(-1,1);
     if(rot) c.rotate(rot);
     c.scale(s*sx, s*sy);
 
     const sw=TEX_W/SL;
-    for(let i=0;i<SL;i++){
+    /* 걷기 — ⚠ 위의 세로 띠 방식은 띠를 **y 로만** 밀어서 다리가 앞뒤로
+       움직이지 못한다(실측: 통짜 crawl 은 폭 변화 0, 높이 2~3px).
+       걷는 것은 가로로 잘라 **아래쪽(다리)을 앞뒤로** 민다.
+       앞다리와 뒷다리를 반대로 밀면 교대로 내딛는 것처럼 보인다. */
+    if(m==='stride'){
+      const ROWS=16, rh=TEX_H/ROWS;
+      const ph=this.t*0.15+this.ph;
+      for(let r=0;r<ROWS;r++){
+        const v=(r+0.5)/ROWS;                    // 0=등 1=발
+        /* ⚠ 아래 절반을 통째로 밀었더니 몸통까지 흔들려 **헤엄치는 것처럼** 보였다.
+           걷는 몸은 등이 거의 안 흔들린다 — 아래 30% 만, 발끝으로 갈수록 세게. */
+        const k=Math.max(0,(v-0.70)/0.30);
+        if(k<=0){
+          c.drawImage(tex, 0,r*rh,TEX_W,rh+1, -TEX_W/2, r*rh-TEX_H/2, TEX_W, rh+1);
+          continue;
+        }
+        const amp=13*k*k;
+        /* 몸을 앞뒤로 갈라 반대 위상 — 다리가 교대한다 */
+        const half=TEX_W/2;
+        c.drawImage(tex, 0,r*rh,half,rh+1,
+                    -TEX_W/2 + Math.sin(ph)*amp,        r*rh-TEX_H/2, half, rh+1);
+        c.drawImage(tex, half,r*rh,half,rh+1,
+                    -TEX_W/2+half - Math.sin(ph)*amp,   r*rh-TEX_H/2, half, rh+1);
+      }
+    }
+    else for(let i=0;i<SL;i++){
       const u=i/SL;                 // 0=꼬리 1=머리
       let off=0, vscale=1;
       switch(m){
@@ -1491,6 +1873,52 @@ class Creature {
 }
 
 /* 색칠 결과 → 180x120 텍스처 (합성: 칠한 것 → 마스크로 자르기 → 잉크 덮기) */
+/* 백지에 그린 그림을 그대로 텍스처로 만든다.
+   ⚠ 도안이 없으니 mask 클리핑도 ink 도 없다 — **아이가 그린 것이 곧 실루엣**이다.
+     그린 영역만 잘라내 텍스처에 꽉 채워야 한다. 안 그러면 여백까지 크기로 쳐서
+     작게 그린 아이의 그림이 점처럼 보인다. */
+/* 태어난 지 얼마나 됐나 → 크기 배수. 이틀에 걸쳐 1.0 → 1.35 로 자란다.
+   ⚠ 아이가 다시 왔을 때 '내 물고기가 컸네' 하는 게 목적이다.
+     그 이상 키우면 수조가 큰 것들로만 찬다. */
+function growth(born){
+  if(!born) return 1;
+  const days = (Date.now() - born) / 86400000;
+  return 1 + Math.min(0.35, Math.max(0, days) * 0.175);
+}
+
+function bakeFree(fillCanvas){
+  let px;
+  try{
+    px = fillCanvas.getContext('2d', {willReadFrequently:true})
+                   .getImageData(0,0,TW,TH).data;
+  }catch(e){ return null; }
+  let x0=TW, y0=TH, x1=-1, y1=-1;
+  for(let y=0; y<TH; y+=2) for(let x=0; x<TW; x+=2){
+    if(px[((y*TW+x)*4)+3] > 30){
+      if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  }
+  if(x1 < 0) return null;                      // 아무것도 안 그렸다
+  const pad=10;
+  x0=Math.max(0,x0-pad); y0=Math.max(0,y0-pad);
+  x1=Math.min(TW,x1+pad); y1=Math.min(TH,y1+pad);
+  const w=x1-x0, h=y1-y0;
+  const out=document.createElement('canvas'); out.width=TEX_W; out.height=TEX_H;
+  const o=out.getContext('2d');
+  o.imageSmoothingEnabled=true; o.imageSmoothingQuality='high';
+  const sc=Math.min(TEX_W/w, TEX_H/h)*0.94;    // 비율은 지킨다 — 아이 그림을 늘이지 않는다
+  o.drawImage(fillCanvas, x0,y0,w,h,
+              (TEX_W-w*sc)/2, (TEX_H-h*sc)/2, w*sc, h*sc);
+  out.freeAR = w/h;                            // 형태 → 움직임 고르기에 쓴다
+  return out;
+}
+
+/* 그린 모양에 어울리는 움직임. 길쭉하면 헤엄치고, 둥글면 둥둥 뜬다. */
+function freeMotion(ar){
+  if(ar > 1.7) return 'swim';
+  if(ar < 0.7) return 'bob';
+  return 'glide';
+}
+
 function bakeCreature(fillCanvas, spId){
   const t=Templates.get(spId);
   const big=document.createElement('canvas'); big.width=TW; big.height=TH;
@@ -1533,72 +1961,72 @@ const JUNGLE = {
   /* anchor = body(512x512) 안에서 그 부위가 붙는 자리. 내가 종마다 잡는다.
      ⚠ 발주서엔 부위 그림 안의 '이음점'만 못박았다(JOINT).
         몸의 어디에 붙일지는 종마다 다르니 코드가 정한다. */
-  elephant:{ ko:'코끼리', parts:['body','head','legF','legB','ear'],
+  elephant:{ ko:'코끼리', h:0.84, parts:['body','head','legF','legB','ear'],
     anchor:{head:[452,232],legF:[372,392],legB:[150,392],ear:[350,180]},
     scale:{head:1.0,legF:0.92,legB:0.92,ear:0.85}, gait:{swing:0.40,bob:5,speed:0.85}},
-  lion:{ ko:'사자', parts:['body','head','legF','legB','tail','ear'],
+  lion:{ ko:'사자', h:0.86, parts:['body','head','legF','legB','tail','ear'],
     anchor:{head:[448,236],legF:[366,394],legB:[152,394],tail:[74,258]},
     scale:{head:1.05,legF:0.86,legB:0.86,tail:0.9}, gait:{swing:0.46,bob:5,speed:1.05}},
-  tiger:{ ko:'호랑이', parts:['body','head','legF','legB','tail','ear'],
+  tiger:{ ko:'호랑이', h:0.86, parts:['body','head','legF','legB','tail','ear'],
     anchor:{head:[450,240],legF:[368,396],legB:[150,396],tail:[72,262]},
     scale:{head:0.98,legF:0.86,legB:0.86,tail:0.95}, gait:{swing:0.48,bob:5,speed:1.1}},
-  bear:{ ko:'곰', parts:['body','head','legF','legB','ear'],
+  bear:{ ko:'곰', h:0.87, parts:['body','head','legF','legB','ear'],
     anchor:{head:[444,238],legF:[362,392],legB:[156,392],ear:[356,182]},
     scale:{head:1.0,legF:0.9,legB:0.9,ear:0.7}, gait:{swing:0.38,bob:6,speed:0.8}},
-  panda:{ ko:'판다', parts:['body','head','legF','legB','ear'],
+  panda:{ ko:'판다', h:0.88, parts:['body','head','legF','legB','ear'],
     anchor:{head:[442,236],legF:[360,392],legB:[158,392],ear:[352,180]},
     scale:{head:1.02,legF:0.9,legB:0.9,ear:0.7}, gait:{swing:0.34,bob:6,speed:0.7}},
-  giraffe:{ ko:'기린', parts:['body','head','legF','legB','ear','tail'],
+  giraffe:{ ko:'기린', h:0.8, parts:['body','head','legF','legB','ear','tail'],
     anchor:{head:[452,150],legF:[372,392],legB:[152,392],ear:[360,110],tail:[74,252]},
     scale:{head:0.85,legF:1.05,legB:1.05,ear:0.6,tail:0.8}, gait:{swing:0.40,bob:4,speed:0.95}},
-  zebra:{ ko:'얼룩말', parts:['body','head','legF','legB','tail','ear'],
+  zebra:{ ko:'얼룩말', h:0.83, parts:['body','head','legF','legB','tail','ear'],
     anchor:{head:[450,214],legF:[368,392],legB:[152,392],tail:[72,250]},
     scale:{head:0.95,legF:1.0,legB:1.0,tail:0.85}, gait:{swing:0.46,bob:5,speed:1.1}},
-  hippo:{ ko:'하마', layer:'water', parts:['body','head','legF','legB'],
+  hippo:{ ko:'하마', h:0.95, layer:'water', parts:['body','head','legF','legB'],
     anchor:{head:[452,248],legF:[368,398],legB:[152,398]},
     scale:{head:1.08,legF:0.82,legB:0.82}, gait:{swing:0.30,bob:4,speed:0.65}},
-  rhino:{ ko:'코뿔소', parts:['body','head','legF','legB','ear'],
+  rhino:{ ko:'코뿔소', h:0.87, parts:['body','head','legF','legB','ear'],
     anchor:{head:[452,244],legF:[368,396],legB:[152,396],ear:[366,178]},
     scale:{head:1.05,legF:0.86,legB:0.86,ear:0.6}, gait:{swing:0.34,bob:5,speed:0.75}},
-  monkey:{ ko:'원숭이', layer:'branch', move:'bounce', parts:['body','head','legF','legB','tail','ear'],
+  monkey:{ ko:'원숭이', h:0.36, layer:'branch', move:'bounce', parts:['body','head','legF','legB','tail','ear'],
     anchor:{head:[440,222],legF:[358,388],legB:[164,388],tail:[76,248]},
     scale:{head:1.0,legF:0.8,legB:0.8,tail:1.05}, gait:{swing:0.52,bob:7,speed:1.15}},
-  sloth:{ ko:'나무늘보', layer:'branch', move:'creep', parts:['body','head','legF','legB'],
+  sloth:{ ko:'나무늘보', h:0.5, layer:'branch', move:'creep', parts:['body','head','legF','legB'],
     anchor:{head:[440,226],legF:[356,386],legB:[164,386]},
     scale:{head:1.0,legF:0.95,legB:0.95}, gait:{swing:0.22,bob:3,speed:0.35}},
-  pig:{ ko:'돼지', parts:['body','head','legF','legB','ear','tail'],
+  pig:{ ko:'돼지', h:0.89, parts:['body','head','legF','legB','ear','tail'],
     anchor:{head:[448,246],legF:[364,396],legB:[156,396],ear:[356,192],tail:[74,262]},
     scale:{head:1.0,legF:0.76,legB:0.76,ear:0.62,tail:0.55}, gait:{swing:0.42,bob:6,speed:0.9}},
   /* ── P12 보통 16종 (도착 대기) ── */
-  deer:{ ko:'사슴', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.46,bob:5,speed:1.0}},
-  wolf:{ ko:'늑대', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.48,bob:5,speed:1.1}},
-  fox:{ ko:'여우', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.50,bob:5,speed:1.15}},
-  leopard:{ ko:'표범', parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.48,bob:5,speed:1.1}},
-  cheetah:{ ko:'치타', parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.56,bob:4,speed:1.35}},
-  kangaroo:{ ko:'캥거루', parts:['body','head','legF','legB','tail','ear'], move:'hop', gait:{swing:0.30,bob:12,speed:1.2}},
-  koala:{ ko:'코알라', layer:'branch', parts:['body','head','legF','legB','ear'], gait:{swing:0.24,bob:4,speed:0.45}},
-  camel:{ ko:'낙타', parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.38,bob:6,speed:0.8}},
-  llama:{ ko:'라마', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.40,bob:5,speed:0.9}},
-  gorilla:{ ko:'고릴라', parts:['body','head','legF','legB'], gait:{swing:0.36,bob:7,speed:0.7}},
-  crocodile:{ ko:'악어', layer:'water', parts:['body','head','legF','legB','tail'], gait:{swing:0.26,bob:2,speed:0.55}},
-  landturtle:{ ko:'육지거북', parts:['body','head','legF','legB','tail'], gait:{swing:0.20,bob:2,speed:0.3}},
-  raccoon:{ ko:'너구리', parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.44,bob:5,speed:0.95}},
-  squirrel:{ ko:'다람쥐', layer:'branch', parts:['body','head','legF','legB','ear','tail'], move:'bounce', gait:{swing:0.54,bob:8,speed:1.25}},
-  hedgehog:{ ko:'고슴도치', parts:['body','head','legF','legB'], gait:{swing:0.34,bob:4,speed:0.6}},
-  rabbit:{ ko:'토끼', parts:['body','head','legF','legB','ear','tail'], move:'hop', gait:{swing:0.28,bob:11,speed:1.1}},
+  deer:{ ko:'사슴', h:0.82, parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.46,bob:5,speed:1.0}},
+  wolf:{ ko:'늑대', h:0.86, parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.48,bob:5,speed:1.1}},
+  fox:{ ko:'여우', h:0.88, parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.50,bob:5,speed:1.15}},
+  leopard:{ ko:'표범', h:0.84, parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.48,bob:5,speed:1.1}},
+  cheetah:{ ko:'치타', h:0.83, parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.56,bob:4,speed:1.35}},
+  kangaroo:{ ko:'캥거루', h:0.84, parts:['body','head','legF','legB','tail','ear'], move:'hop', gait:{swing:0.30,bob:12,speed:1.2}},
+  koala:{ ko:'코알라', h:0.46, layer:'branch', parts:['body','head','legF','legB','ear'], gait:{swing:0.24,bob:4,speed:0.45}},
+  camel:{ ko:'낙타', h:0.81, parts:['body','head','legF','legB','tail','ear'], gait:{swing:0.38,bob:6,speed:0.8}},
+  llama:{ ko:'라마', h:0.82, parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.40,bob:5,speed:0.9}},
+  gorilla:{ ko:'고릴라', h:0.85, parts:['body','head','legF','legB'], gait:{swing:0.36,bob:7,speed:0.7}},
+  crocodile:{ ko:'악어', h:0.97, layer:'water', parts:['body','head','legF','legB','tail'], gait:{swing:0.26,bob:2,speed:0.55}},
+  landturtle:{ ko:'육지거북', h:0.92, parts:['body','head','legF','legB','tail'], gait:{swing:0.20,bob:2,speed:0.3}},
+  raccoon:{ ko:'너구리', h:0.89, parts:['body','head','legF','legB','ear','tail'], gait:{swing:0.44,bob:5,speed:0.95}},
+  squirrel:{ ko:'다람쥐', h:0.41, layer:'branch', parts:['body','head','legF','legB','ear','tail'], move:'bounce', gait:{swing:0.54,bob:8,speed:1.25}},
+  hedgehog:{ ko:'고슴도치', h:0.93, parts:['body','head','legF','legB'], gait:{swing:0.34,bob:4,speed:0.6}},
+  rabbit:{ ko:'토끼', h:0.9, parts:['body','head','legF','legB','ear','tail'], move:'hop', gait:{swing:0.28,bob:11,speed:1.1}},
   /* ── P13 화려 12종 (도착 대기) ── */
-  peacock:{ ko:'공작', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.34,bob:5,speed:0.7}},
-  parrot:{ ko:'앵무', layer:'branch', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.40,bob:6,speed:0.9}},
-  toucan:{ ko:'큰부리새', layer:'branch', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.38,bob:6,speed:0.85}},
-  flamingo:{ ko:'플라밍고', layer:'water', parts:['body','head','legF','legB','wing'], move:'strut', gait:{swing:0.42,bob:4,speed:0.8}},
-  owl:{ ko:'부엉이', layer:'branch', parts:['body','head','legF','legB','ear','wing'], move:'strut', gait:{swing:0.26,bob:3,speed:0.5}},
-  chameleon:{ ko:'카멜레온', layer:'branch', parts:['body','head','legF','legB','tail'], gait:{swing:0.22,bob:2,speed:0.35}},
-  iguana:{ ko:'이구아나', parts:['body','head','legF','legB','tail'], gait:{swing:0.28,bob:2,speed:0.5}},
-  frog:{ ko:'개구리', layer:'water', parts:['body','head','legF','legB'], move:'hop', gait:{swing:0.30,bob:13,speed:0.95}},
+  peacock:{ ko:'공작', h:0.87, parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.34,bob:5,speed:0.7}},
+  parrot:{ ko:'앵무', h:0.26, layer:'branch', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.40,bob:6,speed:0.9}},
+  toucan:{ ko:'큰부리새', h:0.2, layer:'branch', parts:['body','head','legF','legB','tail','wing'], move:'strut', gait:{swing:0.38,bob:6,speed:0.85}},
+  flamingo:{ ko:'플라밍고', h:0.92, layer:'water', parts:['body','head','legF','legB','wing'], move:'strut', gait:{swing:0.42,bob:4,speed:0.8}},
+  owl:{ ko:'부엉이', h:0.32, layer:'branch', parts:['body','head','legF','legB','ear','wing'], move:'strut', gait:{swing:0.26,bob:3,speed:0.5}},
+  chameleon:{ ko:'카멜레온', h:0.55, layer:'branch', parts:['body','head','legF','legB','tail'], gait:{swing:0.22,bob:2,speed:0.35}},
+  iguana:{ ko:'이구아나', h:0.93, parts:['body','head','legF','legB','tail'], gait:{swing:0.28,bob:2,speed:0.5}},
+  frog:{ ko:'개구리', h:0.99, layer:'water', parts:['body','head','legF','legB'], move:'hop', gait:{swing:0.30,bob:13,speed:0.95}},
   /* 나비·잠자리는 legF/legB 자리에 날개가 온다 — 더 크게 펄럭인다 */
-  butterfly:{ ko:'나비', layer:'canopy', parts:['body','head','wing'], move:'fly', gait:{swing:0.85,bob:9,speed:1.0}, flyer:true},
-  beetle:{ ko:'장수풍뎅이', parts:['body','head','legF','legB'], gait:{swing:0.36,bob:3,speed:0.6}},
-  dragonfly:{ ko:'잠자리', layer:'canopy', parts:['body','head','wing'], move:'fly', gait:{swing:0.95,bob:7,speed:1.3}, flyer:true},
+  butterfly:{ ko:'나비', h:0.03, layer:'canopy', parts:['body','head','wing'], move:'fly', gait:{swing:0.85,bob:9,speed:1.0}, flyer:true},
+  beetle:{ ko:'장수풍뎅이', h:0.94, parts:['body','head','legF','legB'], gait:{swing:0.36,bob:3,speed:0.6}},
+  dragonfly:{ ko:'잠자리', h:0.09, layer:'canopy', parts:['body','head','wing'], move:'fly', gait:{swing:0.95,bob:7,speed:1.3}, flyer:true},
 };
 
 /* ── 조립 좌표 — 마스터 SVG 에서 뽑아 둔 값 ───────────────
@@ -1814,28 +2242,41 @@ class Walker {
     opt=opt||{};
     this.id=id; this.D=JUNGLE[id]; this.name=name||'';
     this.tex=paintedTex;            // 조립 상태로 칠해진 텍스처 (TEX_W x TEX_H)
-    /* 높이 층 — 종마다 사는 높이가 다르다 */
-    this.layer = JLAYER_IDX[(this.D&&this.D.layer)||'ground'];
+    /* layer 는 이제 '어디 사는가'가 아니라 **그리는 순서**일 뿐이다.
+       높이(h)에서 파생시킨다 — 위에 사는 것이 뒤에 그려진다. */
+    const hh = (this.D&&this.D.h!==undefined) ? this.D.h : 0.82;
+    this.layer = hh<0.16 ? 0 : hh<0.62 ? 1 : hh<0.87 ? 2 : 3;
     this.x=opt.x!==undefined?opt.x:rnd()*VW;
-    /* 층 안에서도 흩어놓는다 — 같은 층이 한 줄로 서면 층을 나눈 의미가 없다.
-       위 층일수록 폭이 넓다(가지·허공은 자유롭고 물가는 강을 벗어나면 안 된다) */
-    const SPREAD=[54,44,46,20][this.layer];
-    this.depth=rnd();                       // 0 = 뒤(위·작게) · 1 = 앞(아래·크게)
-    this.baseY=JWorld.layerY(this.layer)+(this.depth-0.5)*2*SPREAD;
+    /* ⚠ 층을 넷으로 나눠 두니 **화면이 상하로 잘려** 보였다(CK 지적).
+       실측: 나무 위 2종·가지 8종·땅 25종이라 위쪽이 비어 층 사이에 123px,
+       62px 짜리 빈 띠가 남았다. 층 경계를 없애고 **종마다 사는 높이**를
+       0(꼭대기)~1(바닥) 연속값으로 준다. 이제 정글은 하나의 공간이다.
+       ⚠ 땅에 사는 동물은 배경의 땅 위에 있어야 한다 — 위로 올릴 수 없다.
+         그래서 위쪽은 나는 것·나무에 사는 것이 **넓게 오르내려** 채운다. */
+    const h = (this.D.h!==undefined) ? this.D.h : 0.86;
+    this.depth = rnd();                      // 0 = 뒤(작게) · 1 = 앞(크게)
+    /* ⚠ 처음 쓴 공식(0.16+h*0.66)은 **땅 동물을 배경의 땅보다 위로 띄웠다**
+       (코끼리 486, 땅 그림은 561부터). 두 끝을 지나는 직선으로 다시 맞춘다:
+         나비 h0.03 → 0.285   ·   개구리 h0.99 → 0.815 */
+    const band = 0.2684 + h*0.5521;
+    /* 위에 사는 것은 넓게 오르내려 위아래를 잇고, 땅에 사는 것은 땅에 붙어 있는다 */
+    const wob  = (h<0.60 ? 0.16 : 0.035);
+    this.baseY = VH*(band + (this.depth-0.5)*2*wob);
     this.y=opt.y!==undefined?opt.y:this.baseY;
     this.dir=rnd()<0.5?-1:1;
     /* ⚠ 0.7~1.1 로 뒀더니 화면에서 101x81px 였다 — 아이 그림이 안 보인다.
        조립 텍스처를 동물이 66%x79% 만 채우므로 배율을 더 키워야 한다. */
-    /* 위 층일수록 작게 — 멀리 있는 느낌.
-       ⚠ 층 안에서 크기가 균일하면 20마리가 한 줄로 겹쳐 벽이 된다.
-         같은 층에서도 뒤(위)에 선 것은 작게 — 겹쳐도 앞뒤로 읽힌다. */
-    const LS=[0.62,0.78,1.0,1.06][this.layer!==undefined?this.layer:2];
-    const near=0.78+(this.depth!==undefined?this.depth:0.5)*0.44;   // 0.78 ~ 1.22
+    /* 높이 그대로 크기에 반영 — 위에 있을수록 작다(멀어 보인다).
+       층 계단이 아니라 **연속**이라 크기도 매끄럽게 변한다. */
+    const LS = 0.58 + h*0.52;                       // 꼭대기 0.58 → 바닥 1.10
+    const near = 0.80 + this.depth*0.40;
     this.s=(1.5+rnd()*0.7)*LS*near;
     this.spd=(0.4+rnd()*0.5)*this.D.gait.speed;
     this.t=rnd()*300; this.ph=rnd()*TAU;
     this.mine=!!opt.mine; this.joinT=opt.join?70:0;
     this.scared=0; this.reactT=0; this.reactKind=null;
+    this.born = opt.born || Date.now();   // 시간이 지나면 자란다
+    this.item = opt.item || null;   // 보물상자에서 받은 꾸미기
   }
   /* 만졌다 — 종에 맞는 반응 */
   react(){
@@ -1882,18 +2323,25 @@ class Walker {
         this.airborne = air>0.15;
         break; }
       case 'fly': {                       // 나비·잠자리 — 땅에 안 붙는다
-        /* ⚠ 층을 넣기 전엔 땅에서 150px 띄웠는데, 이제 기준선 자체가 나무 위라
-           그대로 두면 **화면 밖으로 나갔다**(실측 y=-32).
-           층 기준선 둘레에서만 떠다닌다. */
-        this.flyPh=(this.flyPh||rnd()*TAU)+0.03;
-        this.y = G0 + Math.sin(this.flyPh)*44 + Math.sin(this.flyPh*0.37)*22;
+        /* ⚠ 위쪽은 나는 것 두 종뿐이라 가만히 두면 화면 윗부분이 휑하다.
+           땅에 사는 25종을 위로 올릴 수는 없으니(배경의 땅 위에 있어야 한다),
+           **나는 것이 넓게 오르내려** 위아래를 잇는다. */
+        this.flyPh=(this.flyPh||rnd()*TAU)+0.022;
+        this.y = G0 + Math.sin(this.flyPh)*VH*0.15
+                    + Math.sin(this.flyPh*0.37)*VH*0.07;
         break; }
-      case 'bounce':                      // 원숭이·다람쥐 — 통통
-        this.y = G0 - Math.abs(Math.sin(this.t*0.14+this.ph))*22; break;
-      case 'creep':                       // 나무늘보 — 거의 안 움직인다
-        this.y = G0 - Math.sin(this.t*0.02+this.ph)*3; break;
-      case 'strut':                       // 새 — 목을 까딱이며 걷는다
-        this.y = G0 - Math.abs(Math.sin(this.t*0.09+this.ph))*7; break;
+      case 'bounce':                      // 원숭이·다람쥐 — 가지 사이를 오르내린다
+        this.y = G0 - Math.abs(Math.sin(this.t*0.14+this.ph))*22
+                    - Math.sin(this.t*0.011+this.ph)*VH*0.05;
+        break;
+      case 'creep':                       // 나무늘보 — 아주 천천히 오르내린다
+        this.y = G0 - Math.sin(this.t*0.02+this.ph)*3
+                    - Math.sin(this.t*0.006+this.ph)*VH*0.035;
+        break;
+      case 'strut':                       // 새 — 까딱이며 걷다가 가끔 자리를 옮긴다
+        this.y = G0 - Math.abs(Math.sin(this.t*0.09+this.ph))*7
+                    - (this.D.h<0.6 ? Math.sin(this.t*0.009+this.ph)*VH*0.055 : 0);
+        break;
       default:
         this.y = G0;
     }
@@ -1944,7 +2392,7 @@ class Walker {
   }
   draw(c, world){
     if(!this.tex) return;
-    let s=this.s, alpha=1;
+    let s=this.s*(typeof growth==='function'?growth(this.born):1), alpha=1;
     if(this.joinT>0){ const k=1-this.joinT/70; s*=0.4+0.6*k; alpha=k; }
     const g=this.D.gait;
     /* 몸이 위아래로 까딱 — 걷는 리듬 */
@@ -2112,6 +2560,679 @@ function bakeWalker(fillCanvas, id){
 
 </script>
 <script>
+/* ===== js/36_modes.js ===== */
+/* ══════════════════════════════════════════════════════════
+   새 모드의 종 목록 — **이 파일은 손으로 고치지 않는다.**
+   발주서에서 만든다:  python3 tools/gen_modes.py
+   ⚠ 목록의 정본은 발주서다. 손으로 따로 관리하면 반드시 어긋난다
+     (정글에서 코드의 parts 가 어셋과 달라 '사자 다리를 붙인 나비'가 나왔다).
+   ══════════════════════════════════════════════════════════ */
+'use strict';
+
+/* 공룡시대 — 50종. 정본은 prompts/P20_공룡50종.md 다. */
+const DINO_SPECIES = {
+    brachiosaurus:{ id:'brachiosaurus', ko:'브라키오사우루스', part:'leg', move:'step', react:'stomp' },
+    apatosaurus:{ id:'apatosaurus', ko:'아파토사우루스', part:'leg', move:'step', react:'stomp' },
+    diplodocus:{ id:'diplodocus', ko:'디플로도쿠스', part:'leg', move:'step', react:'stomp' },
+    argentinosaurus:{ id:'argentinosaurus', ko:'아르젠티노사우루스', part:'leg', move:'step', react:'stomp' },
+    mamenchisaurus:{ id:'mamenchisaurus', ko:'마멘키사우루스', part:'leg', move:'step', react:'stomp' },
+    camarasaurus:{ id:'camarasaurus', ko:'카마라사우루스', part:'leg', move:'step', react:'stomp' },
+    shunosaurus:{ id:'shunosaurus', ko:'슈노사우루스', part:'leg', move:'step', react:'stomp' },
+    amargasaurus:{ id:'amargasaurus', ko:'아마르가사우루스', part:'leg', move:'step', react:'stomp' },
+    tyrannosaurus:{ id:'tyrannosaurus', ko:'티라노사우루스', part:'leg', move:'step', react:'stomp' },
+    spinosaurus:{ id:'spinosaurus', ko:'스피노사우루스', part:'leg', move:'step', react:'stomp' },
+    giganotosaurus:{ id:'giganotosaurus', ko:'기가노토사우루스', part:'leg', move:'step', react:'stomp' },
+    allosaurus:{ id:'allosaurus', ko:'알로사우루스', part:'leg', move:'step', react:'stomp' },
+    carnotaurus:{ id:'carnotaurus', ko:'카르노타우루스', part:'leg', move:'step', react:'stomp' },
+    baryonyx:{ id:'baryonyx', ko:'바리오닉스', part:'leg', move:'step', react:'stomp' },
+    ceratosaurus:{ id:'ceratosaurus', ko:'케라토사우루스', part:'leg', move:'step', react:'stomp' },
+    acrocanthosaurus:{ id:'acrocanthosaurus', ko:'아크로칸토사우루스', part:'leg', move:'step', react:'stomp' },
+    triceratops:{ id:'triceratops', ko:'트리케라톱스', part:'leg', move:'step', react:'stomp' },
+    styracosaurus:{ id:'styracosaurus', ko:'스티라코사우루스', part:'leg', move:'step', react:'stomp' },
+    protoceratops:{ id:'protoceratops', ko:'프로토케라톱스', part:'leg', move:'step', react:'stomp' },
+    pachycephalosaurus:{ id:'pachycephalosaurus', ko:'파키케팔로사우루스', part:'leg', move:'step', react:'stomp' },
+    torosaurus:{ id:'torosaurus', ko:'토로사우루스', part:'leg', move:'step', react:'stomp' },
+    pentaceratops:{ id:'pentaceratops', ko:'펜타케라톱스', part:'leg', move:'step', react:'stomp' },
+    centrosaurus:{ id:'centrosaurus', ko:'켄트로사우루스', part:'leg', move:'step', react:'stomp' },
+    chasmosaurus:{ id:'chasmosaurus', ko:'카스모사우루스', part:'leg', move:'step', react:'stomp' },
+    stegosaurus:{ id:'stegosaurus', ko:'스테고사우루스', part:'leg', move:'step', react:'stomp' },
+    ankylosaurus:{ id:'ankylosaurus', ko:'안킬로사우루스', part:'leg', move:'step', react:'stomp' },
+    kentrosaurus:{ id:'kentrosaurus', ko:'켄트로사우루스갑', part:'leg', move:'step', react:'stomp' },
+    euoplocephalus:{ id:'euoplocephalus', ko:'에우오플로케팔루스', part:'leg', move:'step', react:'stomp' },
+    scelidosaurus:{ id:'scelidosaurus', ko:'스켈리도사우루스', part:'leg', move:'step', react:'stomp' },
+    polacanthus:{ id:'polacanthus', ko:'폴라칸투스', part:'leg', move:'step', react:'stomp' },
+    velociraptor:{ id:'velociraptor', ko:'벨로키랍토르', part:'leg', move:'step', react:'stomp' },
+    compsognathus:{ id:'compsognathus', ko:'콤프소그나투스', part:'leg', move:'step', react:'stomp' },
+    gallimimus:{ id:'gallimimus', ko:'갈리미무스', part:'leg', move:'step', react:'stomp' },
+    oviraptor:{ id:'oviraptor', ko:'오비랍토르', part:'leg', move:'step', react:'stomp' },
+    troodon:{ id:'troodon', ko:'트로오돈', part:'leg', move:'step', react:'stomp' },
+    deinonychus:{ id:'deinonychus', ko:'데이노니쿠스', part:'leg', move:'step', react:'stomp' },
+    parasaurolophus:{ id:'parasaurolophus', ko:'파라사우롤로푸스', part:'leg', move:'step', react:'stomp' },
+    edmontosaurus:{ id:'edmontosaurus', ko:'에드몬토사우루스', part:'leg', move:'step', react:'stomp' },
+    corythosaurus:{ id:'corythosaurus', ko:'코리토사우루스', part:'leg', move:'step', react:'stomp' },
+    lambeosaurus:{ id:'lambeosaurus', ko:'람베오사우루스', part:'leg', move:'step', react:'stomp' },
+    pteranodon:{ id:'pteranodon', ko:'프테라노돈', part:'wing', move:'flap', react:'flutter' },
+    quetzalcoatlus:{ id:'quetzalcoatlus', ko:'케찰코아틀루스', part:'wing', move:'flap', react:'flutter' },
+    rhamphorhynchus:{ id:'rhamphorhynchus', ko:'람포링쿠스', part:'wing', move:'flap', react:'flutter' },
+    dimorphodon:{ id:'dimorphodon', ko:'디모르포돈', part:'wing', move:'flap', react:'flutter' },
+    pterodactylus:{ id:'pterodactylus', ko:'프테로닥틸루스', part:'wing', move:'flap', react:'flutter' },
+    plesiosaurus:{ id:'plesiosaurus', ko:'플레시오사우루스', part:'fin', move:'paddle', react:'splash' },
+    mosasaurus:{ id:'mosasaurus', ko:'모사사우루스', part:null, move:'stride', react:'wiggle' },
+    ichthyosaurus:{ id:'ichthyosaurus', ko:'이크티오사우루스', part:null, move:'stride', react:'wiggle' },
+    elasmosaurus:{ id:'elasmosaurus', ko:'엘라스모사우루스', part:'fin', move:'paddle', react:'splash' },
+    kronosaurus:{ id:'kronosaurus', ko:'크로노사우루스', part:'fin', move:'paddle', react:'splash' },
+};
+const DINO_LIST = Object.values(DINO_SPECIES);
+
+/* 로봇도시 — 50종. 정본은 prompts/P21_로봇50종.md 다. */
+const ROBOT_SPECIES = {
+    bot_vacuum:{ id:'bot-vacuum', ko:'청소로봇', part:null, move:'stride', react:'wiggle' },
+    bot_cook:{ id:'bot-cook', ko:'요리로봇', part:'arm', move:'swing', react:'wave' },
+    bot_laundry:{ id:'bot-laundry', ko:'빨래로봇', part:null, move:'stride', react:'wiggle' },
+    bot_butler:{ id:'bot-butler', ko:'집사로봇', part:'arm', move:'swing', react:'wave' },
+    bot_lamp:{ id:'bot-lamp', ko:'전등로봇', part:null, move:'stride', react:'wiggle' },
+    bot_fan:{ id:'bot-fan', ko:'선풍기로봇', part:'blade', move:'spin', react:'whirl' },
+    bot_mail:{ id:'bot-mail', ko:'우편로봇', part:'leg', move:'step', react:'stomp' },
+    bot_clock:{ id:'bot-clock', ko:'시계로봇', part:'arm', move:'swing', react:'wave' },
+    bot_crane:{ id:'bot-crane', ko:'크레인로봇', part:'arm', move:'swing', react:'wave' },
+    bot_drill:{ id:'bot-drill', ko:'드릴로봇', part:'arm', move:'swing', react:'wave' },
+    bot_weld:{ id:'bot-weld', ko:'용접로봇', part:'arm', move:'swing', react:'wave' },
+    bot_forklift:{ id:'bot-forklift', ko:'지게차로봇', part:'wheel', move:'spin', react:'roll' },
+    bot_dump:{ id:'bot-dump', ko:'덤프로봇', part:'wheel', move:'spin', react:'roll' },
+    bot_mixer:{ id:'bot-mixer', ko:'믹서로봇', part:'drum', move:'spin', react:'whirl' },
+    bot_saw:{ id:'bot-saw', ko:'톱로봇', part:'blade', move:'spin', react:'whirl' },
+    bot_magnet:{ id:'bot-magnet', ko:'자석로봇', part:'arm', move:'swing', react:'wave' },
+    bot_wheel:{ id:'bot-wheel', ko:'바퀴로봇', part:'wheel', move:'spin', react:'roll' },
+    bot_track:{ id:'bot-track', ko:'궤도로봇', part:'wheel', move:'spin', react:'roll' },
+    bot_ball:{ id:'bot-ball', ko:'공로봇', part:'wheel', move:'spin', react:'roll' },
+    bot_mono:{ id:'bot-mono', ko:'외바퀴로봇', part:'wheel', move:'spin', react:'roll' },
+    bot_hover:{ id:'bot-hover', ko:'호버로봇', part:null, move:'stride', react:'wiggle' },
+    bot_jet:{ id:'bot-jet', ko:'제트로봇', part:null, move:'stride', react:'wiggle' },
+    bot_rocket:{ id:'bot-rocket', ko:'로켓로봇', part:null, move:'stride', react:'wiggle' },
+    bot_copter:{ id:'bot-copter', ko:'헬기로봇', part:'blade', move:'spin', react:'whirl' },
+    bot_dog:{ id:'bot-dog', ko:'개로봇', part:'leg', move:'step', react:'stomp' },
+    bot_cat:{ id:'bot-cat', ko:'고양이로봇', part:'leg', move:'step', react:'stomp' },
+    bot_bird:{ id:'bot-bird', ko:'새로봇', part:'wing', move:'flap', react:'flutter' },
+    bot_fish:{ id:'bot-fish', ko:'물고기로봇', part:'fin', move:'paddle', react:'splash' },
+    bot_snake:{ id:'bot-snake', ko:'뱀로봇', part:null, move:'stride', react:'wiggle' },
+    bot_spider:{ id:'bot-spider', ko:'거미로봇', part:'leg', move:'step', react:'stomp' },
+    bot_crab:{ id:'bot-crab', ko:'게로봇', part:'claw', move:'snap', react:'snap' },
+    bot_dino:{ id:'bot-dino', ko:'공룡로봇', part:'leg', move:'step', react:'stomp' },
+    bot_space:{ id:'bot-space', ko:'우주로봇', part:'leg', move:'step', react:'stomp' },
+    bot_diver:{ id:'bot-diver', ko:'잠수로봇', part:'fin', move:'paddle', react:'splash' },
+    bot_rover:{ id:'bot-rover', ko:'탐사로봇', part:'wheel', move:'spin', react:'roll' },
+    bot_drone:{ id:'bot-drone', ko:'드론로봇', part:'blade', move:'spin', react:'whirl' },
+    bot_sub:{ id:'bot-sub', ko:'잠수함로봇', part:'fin', move:'paddle', react:'splash' },
+    bot_arctic:{ id:'bot-arctic', ko:'설상로봇', part:null, move:'stride', react:'wiggle' },
+    bot_doctor:{ id:'bot-doctor', ko:'의사로봇', part:'arm', move:'swing', react:'wave' },
+    bot_fire:{ id:'bot-fire', ko:'소방로봇', part:'arm', move:'swing', react:'wave' },
+    bot_police:{ id:'bot-police', ko:'경찰로봇', part:'leg', move:'step', react:'stomp' },
+    bot_teacher:{ id:'bot-teacher', ko:'선생로봇', part:'arm', move:'swing', react:'wave' },
+    bot_guide:{ id:'bot-guide', ko:'안내로봇', part:null, move:'stride', react:'wiggle' },
+    bot_farm:{ id:'bot-farm', ko:'농사로봇', part:'arm', move:'swing', react:'wave' },
+    bot_music:{ id:'bot-music', ko:'음악로봇', part:null, move:'stride', react:'wiggle' },
+    bot_paint:{ id:'bot-paint', ko:'그림로봇', part:'arm', move:'swing', react:'wave' },
+    bot_camera:{ id:'bot-camera', ko:'사진로봇', part:'leg', move:'step', react:'stomp' },
+    bot_balloon:{ id:'bot-balloon', ko:'풍선로봇', part:null, move:'stride', react:'wiggle' },
+    bot_toy:{ id:'bot-toy', ko:'장난감로봇', part:'leg', move:'step', react:'stomp' },
+    bot_mini:{ id:'bot-mini', ko:'꼬마로봇', part:'leg', move:'step', react:'stomp' },
+};
+const ROBOT_LIST = Object.values(ROBOT_SPECIES);
+
+/* 풀숲 — 50종. 정본은 prompts/P22_곤충50종.md 다. */
+const BUG_SPECIES = {
+    swallowtail:{ id:'swallowtail', ko:'호랑나비', part:'wing', move:'flap', react:'flutter' },
+    morpho:{ id:'morpho', ko:'모르포나비', part:'wing', move:'flap', react:'flutter' },
+    monarch:{ id:'monarch', ko:'제왕나비', part:'wing', move:'flap', react:'flutter' },
+    cabbagewhite:{ id:'cabbagewhite', ko:'배추흰나비', part:'wing', move:'flap', react:'flutter' },
+    lunamoth:{ id:'lunamoth', ko:'달나방', part:'wing', move:'flap', react:'flutter' },
+    atlasmoth:{ id:'atlasmoth', ko:'아틀라스나방', part:'wing', move:'flap', react:'flutter' },
+    hawkmoth:{ id:'hawkmoth', ko:'박각시', part:'wing', move:'flap', react:'flutter' },
+    tigermoth:{ id:'tigermoth', ko:'불나방', part:'wing', move:'flap', react:'flutter' },
+    skipper:{ id:'skipper', ko:'팔랑나비', part:'wing', move:'flap', react:'flutter' },
+    birdwing:{ id:'birdwing', ko:'제비나비', part:'wing', move:'flap', react:'flutter' },
+    stagbeetle:{ id:'stagbeetle', ko:'사슴벌레', part:'jaw', move:'snap', react:'chomp' },
+    rhinobeetle:{ id:'rhinobeetle', ko:'장수풍뎅이', part:'leg', move:'step', react:'stomp' },
+    ladybug:{ id:'ladybug', ko:'무당벌레', part:'wing', move:'flap', react:'flutter' },
+    fireflies:{ id:'fireflies', ko:'반딧불이', part:null, move:'stride', react:'wiggle' },
+    goldbeetle:{ id:'goldbeetle', ko:'황금풍뎅이', part:'leg', move:'step', react:'stomp' },
+    longhorn:{ id:'longhorn', ko:'하늘소', part:'antenna', move:'wave', react:'wiggle' },
+    divingbeetle:{ id:'divingbeetle', ko:'물방개', part:'leg', move:'step', react:'stomp' },
+    weevil:{ id:'weevil', ko:'바구미', part:'leg', move:'step', react:'stomp' },
+    tigerbeetle:{ id:'tigerbeetle', ko:'길앞잡이', part:'leg', move:'step', react:'stomp' },
+    dungbeetle:{ id:'dungbeetle', ko:'쇠똥구리', part:'leg', move:'step', react:'stomp' },
+    honeybee:{ id:'honeybee', ko:'꿀벌', part:'wing', move:'flap', react:'flutter' },
+    bumblebee:{ id:'bumblebee', ko:'호박벌', part:'wing', move:'flap', react:'flutter' },
+    wasp:{ id:'wasp', ko:'말벌', part:'wing', move:'flap', react:'flutter' },
+    carpenterbee:{ id:'carpenterbee', ko:'나무벌', part:'wing', move:'flap', react:'flutter' },
+    ant:{ id:'ant', ko:'개미', part:'leg', move:'step', react:'stomp' },
+    soldierant:{ id:'soldierant', ko:'병정개미', part:'jaw', move:'snap', react:'chomp' },
+    flyingant:{ id:'flyingant', ko:'날개미', part:'wing', move:'flap', react:'flutter' },
+    hornet:{ id:'hornet', ko:'장수말벌', part:'wing', move:'flap', react:'flutter' },
+    grasshopper:{ id:'grasshopper', ko:'메뚜기', part:'leg', move:'step', react:'stomp' },
+    locust:{ id:'locust', ko:'풀무치', part:'leg', move:'step', react:'stomp' },
+    cricket:{ id:'cricket', ko:'귀뚜라미', part:'leg', move:'step', react:'stomp' },
+    katydid:{ id:'katydid', ko:'여치', part:'leg', move:'step', react:'stomp' },
+    molecricket:{ id:'molecricket', ko:'땅강아지', part:'leg', move:'step', react:'stomp' },
+    weta:{ id:'weta', ko:'웨타', part:'leg', move:'step', react:'stomp' },
+    dragonfly:{ id:'dragonfly', ko:'잠자리', part:'wing', move:'flap', react:'flutter' },
+    damselfly:{ id:'damselfly', ko:'실잠자리', part:'wing', move:'flap', react:'flutter' },
+    mayfly:{ id:'mayfly', ko:'하루살이', part:'wing', move:'flap', react:'flutter' },
+    antlion:{ id:'antlion', ko:'명주잠자리', part:'wing', move:'flap', react:'flutter' },
+    dobsonfly:{ id:'dobsonfly', ko:'뿔잠자리', part:'wing', move:'flap', react:'flutter' },
+    stonefly:{ id:'stonefly', ko:'강도래', part:'wing', move:'flap', react:'flutter' },
+    caterpillar:{ id:'caterpillar', ko:'애벌레', part:null, move:'stride', react:'wiggle' },
+    centipede:{ id:'centipede', ko:'지네', part:null, move:'stride', react:'wiggle' },
+    millipede:{ id:'millipede', ko:'노래기', part:null, move:'stride', react:'wiggle' },
+    pillbug:{ id:'pillbug', ko:'공벌레', part:null, move:'stride', react:'wiggle' },
+    snail_land:{ id:'snail-land', ko:'달팽이', part:null, move:'stride', react:'wiggle' },
+    worm:{ id:'worm', ko:'지렁이', part:null, move:'stride', react:'wiggle' },
+    mantis:{ id:'mantis', ko:'사마귀', part:'claw', move:'snap', react:'snap' },
+    stickinsect:{ id:'stickinsect', ko:'대벌레', part:'leg', move:'step', react:'stomp' },
+    cicada:{ id:'cicada', ko:'매미', part:'wing', move:'flap', react:'flutter' },
+    waterstrider:{ id:'waterstrider', ko:'소금쟁이', part:'leg', move:'step', react:'stomp' },
+};
+const BUG_LIST = Object.values(BUG_SPECIES);
+
+</script>
+<script>
+/* ===== js/37_modeworld.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   새 모드 공통 — 공룡시대 · 로봇도시 · 풀숲
+
+   ⚠ 바다는 통짜(슬라이스 워프), 정글은 완전 부위 조립이다.
+     새 모드는 그 사이다 — **몸통 한 장 + 움직이는 부위 1~2장**.
+     실측: 통짜로만 두면 다리 짧은 종이 안 움직인다
+       물고기 헤엄 13% · 기린 걷기 16% · 코끼리 5% · 악어 2%
+       (한 프레임에 바뀌는 픽셀 비율)
+   ⚠ 어셋(P20·P21·P22)이 오기 전에도 게임은 돌아야 한다.
+     도안이 없는 종은 목록에 안 뜬다 — 오는 대로 늘어난다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* 모드 정의 — realm 이 이 키가 된다 */
+const MODES = {
+  dino:  { ko:'공룡시대', folder:'dino',  list:()=>DINO_LIST,  by:()=>DINO_SPECIES,
+           bg:'dino',  ground:0.80, amb:'jungle' },
+  robot: { ko:'로봇도시', folder:'robot', list:()=>ROBOT_LIST, by:()=>ROBOT_SPECIES,
+           bg:'city',  ground:0.82, amb:'jungle', rev:'p24r1' },
+  bug:   { ko:'풀숲',     folder:'bug',   list:()=>BUG_LIST,   by:()=>BUG_SPECIES,
+           bg:'bug',   ground:0.78, amb:'jungle' },
+};
+
+/* 도안 — 몸통 + (있으면) 부위 한 장 */
+const MTemplate = {
+  cache:{}, _img:{},
+  key(mode,id){ return mode+'/'+id; },
+  get(mode,id){
+    const k=this.key(mode,id);
+    if(this.cache[k]) return this.cache[k];
+    const M=MODES[mode]; if(!M) return null;
+    const D=M.by()[id.replace(/-/g,'_')] || M.by()[id]; if(!D) return null;
+    const need=[['','ink'],['','mask']];
+    if(D.part) need.push([D.part,'ink'],[D.part,'mask']);
+    const imgs={}; let ready=true;
+    for(const [p,kind] of need){
+      const n = p ? `${id}-${p}-${kind}` : `${id}-${kind}`;
+      let im=this._img[n];
+      /* P24 replaces same-name PNGs: avoid retaining an earlier robot mask in cache. */
+      if(!im){ im=new Image(); im.src=`assets/${M.folder}/${n}.png?v=${M.rev||'1'}`; this._img[n]=im; }
+      if(!im.complete || !im.naturalWidth) ready=false;
+      imgs[(p||'body')+'_'+kind]=im;
+    }
+    if(!ready) return null;
+    const t={ ink:imgs.body_ink, mask:imgs.body_mask, D, imgs, part:D.part };
+    this.cache[k]=t; return t;
+  },
+  prefetch(mode){
+    const M=MODES[mode]; if(!M) return;
+    MAnchor.load(mode);
+    for(const D of M.list()) this.get(mode, D.id);
+  },
+  /* 어셋이 실제로 도착한 종만 — 없는 것을 목록에 띄우면 아이가 골랐을 때 빈 화면이 된다 */
+  ready(mode){ return MODES[mode] ? MODES[mode].list().filter(D=>this.get(mode,D.id)) : []; },
+};
+
+/* 몸통에 아이 그림을 입히고, 부위는 따로 남겨 회전시킨다 */
+function bakeMode(fillCanvas, mode, id){
+  const t=MTemplate.get(mode,id); if(!t) return null;
+  const big=document.createElement('canvas'); big.width=TW; big.height=TH;
+  const b=big.getContext('2d');
+  b.drawImage(fillCanvas,0,0);
+  b.globalCompositeOperation='destination-in';
+  b.drawImage(t.mask,0,0);
+  b.globalCompositeOperation='source-over';
+  b.drawImage(t.ink,0,0);
+  const small=document.createElement('canvas'); small.width=TEX_W; small.height=TEX_H;
+  const s=small.getContext('2d');
+  s.imageSmoothingEnabled=true; s.imageSmoothingQuality='high';
+  s.drawImage(big,0,0,TW,TH,0,0,TEX_W,TEX_H);
+  /* 부위도 같은 색으로 — 아이가 칠한 색이 다리에도 이어져야 한 몸으로 보인다 */
+  if(t.part){
+    const pc=document.createElement('canvas'); pc.width=256; pc.height=256;
+    const p=pc.getContext('2d');
+    /* 아이 그림에서 부위 자리의 색을 가져온다(대표색 한 가지) */
+    p.drawImage(fillCanvas, TW*0.30, TH*0.55, TW*0.28, TH*0.30, 0,0,256,256);
+    p.globalCompositeOperation='destination-in';
+    p.drawImage(t.imgs[t.part+'_mask'],0,0,256,256);
+    p.globalCompositeOperation='source-over';
+    p.drawImage(t.imgs[t.part+'_ink'],0,0,256,256);
+    small.partTex=pc;
+  }
+  small.modeId=id; small.modeName=mode;
+  return small;
+}
+
+/* 부위가 몸통 어디에 붙는지 — 어셋이 알려 주는 것이 정본이다.
+   ⚠ 몸통 그림만 보고는 '다리가 어디 달렸는지' 알 수 없다. 추정하면 종마다 어긋난다.
+     assets/<mode>/_anchor.json 에  {"tyrannosaurus":{"leg":[352,300]}}  (몸통 720x480 기준)
+     없으면 아래 PartFit 으로 대략 잡는다 — 어셋이 오면 저절로 정확해진다. */
+const MAnchor = {
+  data:{}, asked:{},
+  load(mode){
+    if(this.asked[mode]) return;
+    this.asked[mode]=true;
+    const dir='assets/'+((MODES[mode]||{}).folder||mode);
+    /* ⚠ 어셋이 준 자리 그대로 두면 **부위가 몸통 안에 묻혀 안 보이는** 종이 나온다
+       (실측: bot-ball 바퀴 1.00 = 완전히 가림 · 로봇 평균 0.69, 곤충 0.38).
+       _anchor_fix.json 은 우리가 재서 만든 보정치다 — 어셋 파일은 손대지 않는다.
+       어셋이 다시 오면 tools/fix_anchor.py 를 돌려 보정치를 새로 뽑는다. */
+    Promise.all([
+      fetch(dir+'/_anchor.json').then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(dir+'/_anchor_fix.json').then(r=>r.ok?r.json():null).catch(()=>null),
+    ]).then(([j,fx])=>{
+      if(!j) return;
+      if(fx) for(const sp in fx) j[sp]=Object.assign({}, j[sp], fx[sp]);
+      this.data[mode]=j;
+    });
+  },
+  of(mode,id,part){
+    const m=this.data[mode]; if(!m) return null;
+    const e=m[id]; if(!e) return null;
+    const a=e[part]; return (a && a.length===2) ? a : null;
+  }
+};
+
+/* 몸통 텍스처에서 그림이 실제로 차지하는 네모 — anchor 가 없을 때 쓴다 */
+const PartFit = {
+  cache:new WeakMap(),
+  of(tex){
+    let v=this.cache.get(tex); if(v) return v;
+    try{
+      const c=document.createElement('canvas'); c.width=TEX_W; c.height=TEX_H;
+      const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(tex,0,0);
+      const d=x.getImageData(0,0,TEX_W,TEX_H).data;
+      let x0=TEX_W,y0=TEX_H,x1=-1,y1=-1;
+      for(let y=0;y<TEX_H;y+=2) for(let px=0;px<TEX_W;px+=2){
+        if(d[((y*TEX_W+px)*4)+3]>40){
+          if(px<x0)x0=px; if(px>x1)x1=px; if(y<y0)y0=y; if(y>y1)y1=y; } }
+      if(x1<0){ x0=0;y0=0;x1=TEX_W;y1=TEX_H; }
+      v={x0,y0,x1,y1};
+    }catch(e){ v={x0:0,y0:0,x1:TEX_W,y1:TEX_H}; }
+    this.cache.set(tex,v); return v;
+  }
+};
+
+/* ══ 새 모드의 생물 ══════════════════════════════════════
+   몸통은 Creature 와 같은 슬라이스 워프로, 부위는 그 위에서 회전한다.
+   ⚠ Creature 를 상속하면 draw 를 통째로 덮어야 해서, 필요한 것만 빌려 쓴다. */
+class ModeBeing extends Creature {
+  constructor(tex, mode, id, name, opt){
+    super(tex, 'clownfish', name, opt||{});      // 바다 종을 빌리되 쓰지 않는다
+    this.mode=mode; this.mid=id;
+    const D=(MODES[mode] && (MODES[mode].by()[id.replace(/-/g,'_')] || MODES[mode].by()[id])) || {};
+    this.D=D;
+    this.partTex = tex && tex.partTex || null;
+    this.partKind = D.part || null;
+    /* 부위가 없는 종은 몸통만 흔든다 */
+    this.motion = D.move==='step' ? 'stride'
+                : D.move==='paddle' ? 'swim'
+                : D.move==='flap' ? 'flap' : 'stride';
+    /* ⚠ Creature 를 상속하니 **물고기처럼 떠다녔다**(CK 지적: 티라노가 뜬다).
+       걷는 것은 땅에 발이 붙어야 한다 — 사는 방식을 셋으로 가른다. */
+    this.gait = (D.move==='flap') ? 'air'
+              : (D.move==='paddle') ? 'water' : 'ground';
+    this.groundY = (MODES[mode]||{}).ground || 0.80;
+    this.lane = (rnd()-0.5)*0.06;                 // 앞뒤로 조금씩 어긋나게
+    this.y = this.gait==='ground' ? VH*(this.groundY+this.lane)   /* update 에서 발끝만큼 올린다 */
+           : this.gait==='air'    ? VH*(0.22+rnd()*0.24)
+           :                        VH*(0.45+rnd()*0.25);
+    this.spd = (0.5+rnd()*0.5)*(this.gait==='ground'?0.9:1.2);
+    this.dir = rnd()<0.5?-1:1;
+    this.ph  = rnd()*TAU;
+  }
+  /* 발끝이 몸 중심에서 얼마나 아래인가 — **부위까지 포함해** 실제로 그려 재본다.
+     ⚠ BodyFit 은 몸통만 잰다. 다리를 붙이면 발끝이 그보다 아래라
+       그 값으로 땅에 맞추면 공룡이 땅에 파묻히거나 뜬다(실측 121px 어긋남). */
+  footOff(){
+    if(this._foot!==undefined) return this._foot;
+    this._foot=0;
+    try{
+      const W2=TEX_W*4, H2=TEX_H*4;
+      const c=document.createElement('canvas'); c.width=W2; c.height=H2;
+      const x=c.getContext('2d',{willReadFrequently:true});
+      const kx=this.x, ky=this.y, ks=this.s, kd=this.dir, kt=this.t, kr=this.reactT;
+      this.x=W2/2; this.y=H2/2; this.s=1; this.dir=1; this.t=0; this.reactT=0;
+      this._measuring=true;
+      this.draw(x, null);
+      this._measuring=false;
+      this.x=kx; this.y=ky; this.s=ks; this.dir=kd; this.t=kt; this.reactT=kr;
+      const d=x.getImageData(0,0,W2,H2).data;
+      let y1=-1;
+      for(let i=3;i<d.length;i+=4) if(d[i]>50){ const py=(((i-3)/4)/W2)|0; if(py>y1)y1=py; }
+      if(y1>0) this._foot = y1 - H2/2;
+    }catch(e){}
+    return this._foot;
+  }
+  /* ⚠ 물고기 이동(Creature.update)을 쓰면 공룡이 물에 뜬다.
+     걷는 것은 x 로만 가고, y 는 걸음 리듬으로만 오르내린다. */
+  /* 무리 — 같은 종끼리 모이고, 서로 겹치지 않게 벌린다.
+     ⚠ 땅 짐승을 물고기처럼 y 로 끌어당기면 **땅에서 떠오른다.**
+       땅에서는 '가는 방향'과 '앞뒤 간격'만 맞춘다. 층(lane)은 아주 천천히. */
+  herd(world){
+    const near=world.neighbors(this.x, this.y, this);
+    if(!near.length) return;
+    let same=0, dirSum=0, laneSum=0, pullX=0, push=0;
+    const air = this.gait!=='ground';
+    for(const o of near){
+      const dx=o.x-this.x, dy=o.y-this.y;
+      const d2=dx*dx+dy*dy;
+      if(d2 > 300*300) continue;
+      if(o.mid===this.mid){ same++; dirSum+=o.dir; laneSum+=o.lane; pullX+=dx; }
+      const sepR=Math.min(170,(this.w+o.w)*0.24);
+      if(d2 < sepR*sepR && d2>1){
+        const d=Math.sqrt(d2);
+        push -= dx/d*(sepR-d)/sepR;
+        if(air) this.y -= dy/d*(sepR-d)/sepR*0.5;
+      }
+    }
+    this.x += push*0.9;
+    if(same>=2){
+      /* 여럿이 같은 쪽으로 가고 있으면 따라 돈다 — 갑자기 홱 돌지는 않게 */
+      const want = dirSum>0 ? 1 : -1;
+      if(want!==this.dir && rnd()<0.05) this.dir=want;
+      if(!air) this.lane += (laneSum/same - this.lane)*0.006;
+      /* ⚠ 방향만 맞추면 **나란히 걷기만 하고 뭉치지는 않는다**(실측: 8마리가
+         화면 1505px 에 흩어진 채 같은 쪽으로 감). 무리는 모여야 무리다.
+         화면 좌표 평균은 가장자리에서 되감기 때문에 못 쓴다 — 이웃까지의
+         **상대 거리**로 당긴다. 이웃 탐색이 ±220px 이라 이음매를 안 넘는다. */
+      this.x += Math.max(-1.1, Math.min(1.1, pullX/same*0.012));
+    }
+  }
+  update(dt, world){
+    this.t += dt*60;
+    /* 매 프레임 다 재면 개체가 늘수록 무거워진다 — 흩어서 6프레임에 한 번 */
+    if(world && world.neighbors && (Game.t + this.ph*97|0) % 6 === 0) this.herd(world);
+    if(this.joinT>0) this.joinT--;
+    if(this.reactT>0) this.reactT--;
+    if(this.fedCd>0) this.fedCd--;
+    const sp=this.spd*(this.reactT>0?0.3:1);
+    /* 먹이 — ⚠ 여기가 없어서 새 모드는 **먹이를 뿌려도 아무도 안 먹었다.**
+       Creature 의 update 를 통째로 덮으면서 먹이 추적까지 같이 덮였다.
+       땅 짐승은 먹이 쪽으로 '걸어간다'(하늘로 날아가면 안 된다). */
+    const food = this.scared>0 ? null : world.nearestFood(this.x, this.y);
+    if(food){
+      const dx=food.x-this.x, dy=food.y-this.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<820){
+        this.dir = dx>0 ? 1 : -1;
+        if(this.gait==='ground'){
+          this.x += Math.sign(dx)*Math.min(sp*2.1, Math.abs(dx));
+          this.y = VH*(this.groundY+this.lane) - this.footOff()*this.s
+                 - Math.abs(Math.sin(this.t*0.12+this.ph))*7;      // 서두르는 걸음
+        } else {
+          const a=Math.atan2(dy,dx);
+          this.x += Math.cos(a)*sp*2.1; this.y += Math.sin(a)*sp*2.1;
+        }
+        /* 땅에서는 먹이가 바닥에 있고 몸은 그 위라 세로 거리가 늘 남는다 —
+           입이 닿는지는 **가로 거리**로 본다. */
+        const reach = this.gait==='ground' ? Math.abs(dx) : d;
+        if(reach<40 && !(this.fedCd>0)){ world.eatFood(food, this); this.fedCd=90; }
+        const w0=this.w;
+        if(this.x<-w0) this.x=VW+w0;
+        if(this.x>VW+w0) this.x=-w0;
+        return;
+      }
+    }
+    if(this.gait==='ground'){
+      this.x += sp*this.dir;
+      const base=VH*(this.groundY+this.lane) - this.footOff()*this.s;
+      /* 걸을 때 몸이 조금 오르내린다 — 가만히 있으면 미끄러지는 것처럼 보인다 */
+      this.y = base - Math.abs(Math.sin(this.t*0.075+this.ph))*7;
+      if(rnd()<0.0010) this.dir*=-1;
+    } else if(this.gait==='air'){
+      this.x += sp*1.3*this.dir;
+      this.y += Math.sin(this.t*0.03+this.ph)*1.1;
+      const top=VH*0.14, bot=VH*0.50;
+      if(this.y<top) this.y=top; if(this.y>bot) this.y=bot;
+      if(rnd()<0.0008) this.dir*=-1;
+    } else {
+      this.x += sp*this.dir;
+      this.y += Math.sin(this.t*0.025+this.ph)*0.9;
+      const top=VH*0.34, bot=VH*(this.groundY-0.04);
+      if(this.y<top) this.y=top; if(this.y>bot) this.y=bot;
+      if(rnd()<0.0009) this.dir*=-1;
+    }
+    const w=this.w;
+    if(this.x<-w) this.x=VW+w;
+    if(this.x>VW+w) this.x=-w;
+  }
+  kindKo(){ return this.D.ko || '친구'; }
+  /* 만지면 종마다 다르게 — 부위가 하는 일에서 나온다 */
+  react(){
+    if(this.reactT>0) return null;
+    const k=this.D.react || 'wiggle';
+    this.reactKind=k; this.reactMax=this.reactT= (k==='chomp'?38: k==='whirl'?46: 42);
+    return k;
+  }
+  draw(c, world){
+    super.draw(c, world);
+    /* 발끝을 재는 중에는 부위까지만 그린다(이름표·표시는 빼야 정확하다) */
+    if(!this.partTex) return;
+    /* 부위 — 몸통 위에서 회전한다. 회전축은 그림 위쪽 가운데(발주 규격) */
+    const s=this.s*(typeof growth==='function'?growth(this.born):1);
+    const t=this.t, ph=this.ph;
+    let ang=0, spin=0;
+    switch(this.D.move){
+      case 'step':   ang=Math.sin(t*0.15+ph)*0.42; break;
+      case 'flap':   ang=Math.sin(t*0.34+ph)*0.62; break;
+      case 'paddle': ang=Math.sin(t*0.12+ph)*0.30; break;
+      case 'swing':  ang=Math.sin(t*0.10+ph)*0.36; break;
+      case 'spin':   spin=t*0.22; break;
+      case 'snap':   ang=Math.abs(Math.sin(t*0.09+ph))*0.50; break;
+      case 'wave':   ang=Math.sin(t*0.18+ph)*0.28; break;
+    }
+    /* 만졌을 때는 크게 움직인다 */
+    if(this.reactT>0){
+      const k=1-this.reactT/this.reactMax, bump=Math.sin(k*Math.PI);
+      if(this.D.move==='spin') spin += k*TAU*2;
+      else ang += Math.sin(k*Math.PI*6)*0.55*bump;
+    }
+    /* ⚠ 부위를 몸 한가운데 붙였더니 다리가 배 위에 떠 있었다.
+       어셋에는 '어디에 붙는지'가 없다 — **몸통 그림의 실제 범위**를 재서 정한다.
+       다리는 배 밑, 날개는 등 위, 지느러미는 뒤쪽 아래. */
+    const box=PartFit.of(this.tex);
+    const P = 256/TW*TEX_W;
+    const w = P*s, h = P*s;
+    const bw=(box.x1-box.x0)*s, bh=(box.y1-box.y0)*s;
+    const cx=((box.x0+box.x1)/2 - TEX_W/2)*s;      // 몸 중심(텍스처 기준)
+    const cy=((box.y0+box.y1)/2 - TEX_H/2)*s;
+    let ax, ay;
+    /* 어셋이 붙는 자리를 알려 줬으면 그대로 쓴다 */
+    const an=MAnchor.of(this.mode, this.mid, this.partKind);
+    if(an){
+      ax=(an[0]/TW*TEX_W - TEX_W/2)*s;
+      ay=(an[1]/TH*TEX_H - TEX_H/2)*s;
+    } else
+    switch(this.partKind){
+      case 'wing':  ax=cx-bw*0.06; ay=cy-bh*0.30; break;   // 등 위
+      case 'fin':   ax=cx-bw*0.22; ay=cy+bh*0.28; break;   // 뒤쪽 아래
+      case 'arm':
+      case 'claw':
+      case 'jaw':   ax=cx+bw*0.26; ay=cy-bh*0.02; break;   // 앞쪽
+      case 'wheel':
+      case 'blade':
+      case 'drum':  ax=cx-bw*0.10; ay=cy+bh*0.34; break;   // 아래
+      case 'antenna': ax=cx+bw*0.28; ay=cy-bh*0.34; break; // 머리 위
+      default:      ax=cx-bw*0.08; ay=cy+bh*0.34; break;   // 다리 — 배 밑
+    }
+    c.save();
+    c.translate(this.x, this.y);
+    if(this.dir<0) c.scale(-1,1);
+    c.translate(ax, ay);
+    /* 회전축은 부위 그림의 위쪽 가운데(발주 규격 128,30) */
+    const pivotY = -h*0.5 + h*(30/256);
+    c.translate(0, pivotY);
+    c.rotate(ang + spin);
+    c.translate(0, -pivotY);
+    c.drawImage(this.partTex, -w/2, -h/2, w, h);
+    c.restore();
+  }
+}
+
+/* ══ 새 모드의 무대 ══════════════════════════════════════
+   배경 어셋(P20·P21·P22)이 오기 전에도 서야 한다.
+   있으면 쓰고, 없으면 하늘·땅을 색으로 칠한다. */
+const ModeWorld = {
+  mode:'dino', t:0, scroll:0, timeIdx:1, foods:[], scareAt:null, findT:0, callAt:null,
+  /* 배경 층 — 발주서의 이름 그대로. 뒤에서 앞으로 그린다.
+     ⚠ 'far/mid' 같은 일반 이름으로 찾다가 실제 어셋(bug-stem-far…)을 못 만나
+       코드 폴백만 나왔다. 이름은 발주서가 정본이다. */
+  LAYERS:{
+    dino:  [['dino-sky',0,1.0,0.2],['dino-volcano',0.10,0.68,0.7],
+            ['dino-mountain',0.26,0.46,1.1],['dino-mist',0.34,0.38,1.5],
+            ['dino-fern-far',0.40,0.44,1.9],['dino-fern-mid',0.46,0.50,2.5],
+            ['dino-river',0.72,0.18,2.8]],
+    robot: [['city-sky',0,1.0,0.2],['city-far',0.12,0.64,0.7],
+            ['city-mid',0.28,0.50,1.2],['city-neon',0.36,0.38,1.6],
+            ['city-pipe',0.44,0.42,2.1],['city-belt',0.74,0.18,2.8]],
+    bug:   [['bug-sky',0,1.0,0.2],['bug-canopy',0,0.46,0.6],
+            ['bug-stem-far',0.10,0.64,1.1],['bug-stem-mid',0.20,0.58,1.7],
+            ['bug-flower',0.34,0.44,2.2],['bug-water',0.70,0.18,2.7]],
+  },
+  FRONT:{
+    dino:  [['dino-tree-near',0.02,0.64,3.6],['dino-rock-near',0.66,0.24,3.2],
+            ['dino-grass-front',0.90,0.10,4.4]],
+    robot: [['city-factory',0.02,0.64,3.6],['city-crate',0.66,0.24,3.2],
+            ['city-front',0.90,0.10,4.4]],
+    bug:   [['bug-leaf-near',0.02,0.64,3.6],['bug-stone-near',0.66,0.24,3.2],
+            ['bug-grass-front',0.90,0.10,4.4]],
+  },
+  DUST:{ dino:'dino-ash', robot:'city-spark', bug:'bug-pollen' },
+  PAL:{
+    dino:  { sky0:'#3a2418', sky1:'#7a4b2e', far:'#4a3526', mid:'#3a2a1e', ground:'#2e2118' },
+    robot: { sky0:'#0d1430', sky1:'#1d2a5c', far:'#243060', mid:'#1a2447', ground:'#141a33' },
+    bug:   { sky0:'#2b4a1e', sky1:'#7fae4a', far:'#4c7a34', mid:'#3a6028', ground:'#2c4620' },
+  },
+  /* ⚠ Game.W 는 **읽을 때마다** 이 함수를 부른다(getter).
+     그래서 여기서 무조건 비우면, 먹이를 뿌린 다음 프레임에 먹이가 사라지고
+     '내 것 찾기'도 켜지자마자 꺼진다 — 새 모드에선 둘 다 죽어 있었다.
+     실측: dropFood 직후 foods 0개 · findT=200 대입 직후 다음 읽기에서 0.
+     세계가 **바뀔 때만** 비운다. */
+  set(mode){
+    if(this.mode===mode) return;
+    this.mode=mode; this.foods=[]; this.findT=0; this.callAt=null; this.scareAt=null;
+  },
+  groundY(){ return VH*((MODES[this.mode]||{}).ground||0.80); },
+  band(){ const g=this.groundY(); return [g-VH*0.10, g]; },
+  init(){
+    this.t=0; this.scroll=0;
+    /* 단계가 오르면 앞쪽 소품이 늘어 세계가 빽빽해진다 */
+    const G=(typeof Grow!=='undefined') ? Grow : null;
+    this.lush = G ? G.kelpBoost() : 0;
+  },
+  update(dt){
+    this.t+=dt*60; this.scroll+=0.30;
+    if(this.findT>0) this.findT--;
+    if(this.callAt && --this.callAt.life<=0) this.callAt=null;
+    for(let i=this.foods.length-1;i>=0;i--){
+      const f=this.foods[i];
+      const rest=f.rest||this.groundY();
+      if(f.y<rest){ f.vy=Math.min(2.0,(f.vy||0.3)+0.05); f.y+=f.vy; if(f.y>rest) f.y=rest; }
+      if(--f.life<=0) this.foods.splice(i,1);
+    }
+  },
+  draw(c){
+    const P=this.PAL[this.mode]||this.PAL.dino;
+    const g=c.createLinearGradient(0,0,0,VH);
+    g.addColorStop(0,P.sky0); g.addColorStop(1,P.sky1);
+    c.fillStyle=g; c.fillRect(0,0,VW,VH);
+    const L=this.LAYERS[this.mode]||[];
+    let got=0;
+    for(const [name,y,h,sp] of L)
+      if(BG.tile(c, name, VH*y, VH*h, this.scroll*sp)) got++;
+    if(got<2){                       // 어셋이 아직이면 언덕을 코드로
+      this.hills(c, P.far, VH*0.52, 150);
+      this.hills(c, P.mid, VH*0.64, 110);
+    }
+    const gy=this.groundY();
+    const pre=(MODES[this.mode]||{}).bg||'dino';
+    if(!BG.tile(c, pre+'-ground', gy, VH-gy, this.scroll*3.0)){
+      c.fillStyle=P.ground; c.fillRect(0, gy, VW, VH-gy);
+    }
+    const dust=this.DUST[this.mode];
+    if(dust) BG.tile(c, dust, 0, VH, this.scroll*0.6);
+    for(const f of this.foods){
+      if(!Props.draw(c,'fruit',f.x,f.y+8,18)){
+        c.fillStyle=PAL.gold; c.beginPath(); c.arc(f.x,f.y,6,0,TAU); c.fill(); }
+    }
+  },
+  hills(c,col,y,h){
+    c.fillStyle=col; c.beginPath(); c.moveTo(0,VH);
+    for(let x=0;x<=VW;x+=40)
+      c.lineTo(x, y - Math.sin((x+this.scroll*0.6)*0.004)*h*0.35 - h*0.2);
+    c.lineTo(VW,VH); c.closePath(); c.fill();
+  },
+  drawFront(c){
+    /* ⚠ 앞 층을 아이 그림 위에 겹겹이 깔면 밝기를 잡아먹는다(정글에서 46% 손실).
+       위쪽 절반은 건드리지 않는다. */
+    for(const [name,y,h,sp] of (this.FRONT[this.mode]||[]))
+      BG.tile(c, name, VH*y, VH*h, this.scroll*sp);
+  },
+  /* 바다·정글과 같은 약속들 — 없으면 게임이 터진다 */
+  dropFood(x){ for(let i=0;i<14;i++)
+      this.foods.push({x:x+(rnd()-0.5)*220, y:VH*0.2, vy:0.12+rnd()*0.1,
+                       life:1400, rest:this.groundY()-rnd()*20}); Sfx.plop(); },
+  nearestFood(x,y){ let b=null,bd=1e9;
+    for(const f of this.foods){ const d=dist(x,y,f.x,f.y); if(d<bd){bd=d;b=f;} } return b; },
+  eatFood(f,c){ f.bites=(f.bites||0)+1; FX.heart(c.x,c.y-20); Sfx.eat();
+    if(f.bites>=3){ const i=this.foods.indexOf(f); if(i>=0) this.foods.splice(i,1); } },
+  scare(x,y){ this.scareAt={x,y}; for(const b of Game.beings) b.scared=40; },
+  callMine(x,y){ this.findT=720; this.callAt={x,y,life:720}; },
+  /* 이웃 찾기 — 세로로는 층이 갈리므로 가로 격자만 쓴다(정글과 같은 이유).
+     ⚠ 여기가 빈 배열을 돌려주는 동안 공룡·로봇·곤충은 서로를 못 봤다.
+       50종이 각자 혼자 걸어다니면 세계가 아니라 목록이다. */
+  CELL:220, grid:{}, gridT:-1,
+  rebuildGrid(arr){
+    if(this.gridT===Game.t) return;
+    this.gridT=Game.t;
+    const g={};
+    for(const o of arr){ const k=(o.x/this.CELL)|0; (g[k]=g[k]||[]).push(o); }
+    this.grid=g;
+  },
+  neighbors(x,y,self){
+    this.rebuildGrid(Game.modeBeings[this.mode]||[]);
+    const gx=(x/this.CELL)|0, out=[];
+    for(let i=-1;i<=1;i++){
+      const cell=this.grid[gx+i]; if(!cell) continue;
+      for(const o of cell){
+        if(o===self) continue;
+        out.push(o); if(out.length>12) return out;
+      }
+    }
+    return out;
+  },
+  prefetch(){
+    const pre=(MODES[this.mode]||{}).bg||'dino';
+    [...(this.LAYERS[this.mode]||[]), ...(this.FRONT[this.mode]||[])]
+      .forEach(([n])=>BG.get(n));
+    BG.get(pre+'-ground');
+    if(this.DUST[this.mode]) BG.get(this.DUST[this.mode]);
+  },
+};
+
+</script>
+<script>
 /* ===== js/40_world.js ===== */
 /* ══════════════════════════════════════════════════════════════════
    수조 — 깊이 6구역 · 시간대 4단계 · 패럴랙스
@@ -2202,11 +3323,16 @@ const World = {
   zoneBand(z){ const c=World.zoneY(z); return [c-110, c+110]; },
 
   init(){
-    /* 소품을 구역별로 흩뿌린다 — 구역마다 다른 풍경이 되도록 */
+    /* 소품을 구역별로 흩뿌린다 — 구역마다 다른 풍경이 되도록.
+       ⚠ 아이들이 만질수록 수조가 자란다(Grow) — 산호·수초가 단계에 따라 늘어난다.
+         '자란다'고 말만 하고 화면이 그대로면 아무 일도 안 일어난 것이다. */
+    const G=(typeof Grow!=='undefined') ? Grow : null;
+    const kelpN  = 26 + (G?G.kelpBoost():0)*9;
+    const coralN = 22 + (G?G.coralBoost():0)*8;
     this.kelp=[]; this.corals=[]; this.rocks=[];
-    for(let i=0;i<26;i++) this.kelp.push({x:rnd()*VW*1.4, h:120+rnd()*260, w:14+rnd()*16,
+    for(let i=0;i<kelpN;i++) this.kelp.push({x:rnd()*VW*1.4, h:120+rnd()*260, w:14+rnd()*16,
       ph:rnd()*TAU, depth:0.3+rnd()*0.5});
-    for(let i=0;i<22;i++) this.corals.push({x:rnd()*VW*1.4, y:VH*0.62+rnd()*VH*0.26,
+    for(let i=0;i<coralN;i++) this.corals.push({x:rnd()*VW*1.4, y:VH*0.62+rnd()*VH*0.26,
       r:26+rnd()*46, n:rndi(3,6), hue:rndi(0,360), depth:0.5+rnd()*0.5});
     for(let i=0;i<22;i++) this.rocks.push({x:rnd()*VW*1.4, y:VH*0.78+rnd()*VH*0.16,
       w:60+rnd()*140, h:30+rnd()*70, depth:0.25+rnd()*0.4});
@@ -2541,9 +3667,12 @@ const JWorld = {
      1 나뭇가지 — 원숭이·다람쥐·나무늘보·앵무 (나무 중간)
      2 땅       — 네발동물 대부분
      3 물가     — 개구리·악어·하마 (강 근처, 가장 앞) */
+  /* ⚠ 층이 서로 **닿아야** 한다. 예전 값(0.255/0.480/…)은 층마다 좁은 띠를
+     만들어 화면 세로의 24% 가 빈 채로 남았고, 정글이 층층이 끊겨 보였다.
+     층은 '어디를 좋아하는가'이지 '어디까지만 갈 수 있는가'가 아니다. */
   LAYERS:[
-    { id:'canopy', y:0.255, name:'나무 위' },
-    { id:'branch', y:0.480, name:'나뭇가지' },
+    { id:'canopy', y:0.285, name:'나무 위' },
+    { id:'branch', y:0.500, name:'나뭇가지' },
     { id:'ground', y:0.755, name:'땅' },
     { id:'water',  y:0.815, name:'물가' },
   ],
@@ -2571,7 +3700,10 @@ const JWorld = {
     this.props=[];
     const K=[['fruit-tree',260],['bush',110],['log',96],['stump',86],
              ['flower-patch',56],['mushroom',60],['rock-perch',82],['pond',90],['nest',48]];
-    for(let i=0;i<18;i++){
+    /* 아이들이 만질수록 정글도 우거진다 — 바다만 자라면 반쪽이다 */
+    const G=(typeof Grow!=='undefined') ? Grow : null;
+    const propN = 18 + (G?G.kelpBoost():0)*6;
+    for(let i=0;i<propN;i++){
       const k=K[i%K.length];
       this.props.push({n:k[0], h:k[1]*(0.8+rnd()*0.5),
         x:rnd()*VW*1.5, depth:0.4+rnd()*0.6,
@@ -2583,18 +3715,21 @@ const JWorld = {
     this.perches=[];
     const B=[['branch-thick',300],['branch-fork',270],['branch-thin',240],
              ['liana-loop',150],['tree-hole',130],['leaf-cluster',210],['moss-patch',180]];
-    for(let i=0;i<9;i++){
+    for(let i=0;i<9+(G?G.coralBoost():0)*3;i++){
       const b=B[i%B.length];
       this.perches.push({n:b[0], w:b[1]*(0.85+rnd()*0.4),
         h:(b[0]==='liana-loop'?150:b[0]==='tree-hole'?96:b[0]==='leaf-cluster'?72:b[0]==='moss-patch'?46:104)*(0.82+rnd()*0.42),
         x:rnd()*VW*1.5, depth:0.5+rnd()*0.5,
-        y:this.layerY(1)+(rnd()-0.4)*46});
+        y:this.layerY(1)+(rnd()-0.45)*150});   // 가지가 한 높이에 모이면 그것도 띠가 된다
     }
     /* 나무 위 장식 — 위에서 늘어진다. 아이 그림을 가리지 않게 화면 위쪽만 */
     this.hangers=[];
-    /* ⚠ canopy-gap 은 뺐다 — 발주는 '가운데가 뚫려 하늘이 보인다'였는데
-       실제 어셋은 **가운데가 흰 불투명**이고 투명 영역이 19% 뿐이다.
-       화면 위쪽을 흰 사각형 세 개가 덮었다. 어셋이 고쳐지면 되살린다. */
+    /* P17 canopy-gap: 중앙은 완전 투명, 바깥 잎만 불투명이다.
+       이전 파일은 가운데가 흰색이어서 제외했지만, 재작업본은 하늘과 날아다니는
+       나비가 보이는 빈틈 역할을 한다. */
+    /* ⚠ canopy-gap 은 여기 넣지 않는다. 가장자리까지 잎이 찬 '틀' 그림이라
+       여러 장을 흩뿌리면 **네모난 잘림 자국**이 드러난다(실측: 상단에 직선 3개).
+       화면 위에 한 장만 폭을 맞춰 깐다 — 아래 drawFront 를 보라. */
     const H=[['hanging-leaf',150],['flower-vine',210]];
     for(let i=0;i<7;i++){
       const h=H[i%H.length];
@@ -2803,6 +3938,9 @@ const JWorld = {
     /* ⚠ 앞 층을 동물 위에 겹겹이 깔았더니 밝기가 46% 손실됐다(실측).
        아이 그림이 주인공인데 숲에 파묻힌다.
        덩굴·나뭇잎지붕은 동물이 없는 '위쪽'에만 그리고, 앞 풀만 발치에 남긴다. */
+    /* ⚠ canopy-gap 을 화면 폭 한 줄로 깔아 봤는데 **화면을 가로로 잘랐다.**
+       위쪽은 잎, 아래쪽은 숲 — 두 장면이 수평선으로 나뉜 것처럼 보인다.
+       정글은 하나의 공간이어야 한다. 지붕은 원래 배경(jungle-canopy)에 있다. */
     /* 위에서 늘어진 잎·꽃덩굴 — 화면 위쪽에만 */
     for(const p of (this.hangers||[])){
       const px=((p.x - this.scroll*2.0*p.depth)%(VW*1.5)+VW*1.5)%(VW*1.5)-VW*0.25;
@@ -2881,7 +4019,8 @@ const Icons = {
     ['brush-fat','brush-thin','bucket','eraser','stamp-star','stamp-heart','stamp-dot',
      'stamp-stripe','undo','redo','clear','color-swatch',
      'btn-submit','btn-back','btn-home','btn-find','btn-feed','btn-book',
-     'btn-sound','btn-sound-off','btn-next','panel','tab']
+     'btn-sound','btn-sound-off','btn-next','panel','tab',
+     'btn-time','btn-realm-sea','btn-realm-jungle','card-free','hint-rotate']
       .forEach(n=>{ this.get(n); this.get(n+'-on'); });
   }
 };
@@ -2986,6 +4125,8 @@ const Onboard = {
   step:null,            // 지금 안내 중인 것
   t:0, shown:{},
   IDLE_ATTRACT: 60*20,  // 20초 놀면 다시 유인
+  LIFE: 60*7,           // 안내는 7초만 떠 있다 — 그 뒤엔 스스로 물러난다
+  FADE: 60*1.2,         // 마지막 1.2초는 서서히 사라진다
 
   /* 안내 종류 — 화면 상태에 따라 다르다 */
   pick(game){
@@ -3018,7 +4159,19 @@ const Onboard = {
     if(Input.down || Input.tapped) this.touched();
     else this.idle++;
 
-    if(this.step){ this.t++; return; }
+    /* ⚠ 안내에 수명이 없어 아이가 안 만지면 **영영 떠 있었다.**
+       수족관은 아이 그림이 주인공인데 말풍선이 계속 가린다.
+       할 말은 한 번 하고 물러난다 — 필요하면 다시 부른다(attract). */
+    if(this.step){
+      this.t++;
+      if(this.t > this.LIFE){
+        /* attract 는 '다시 부르는' 것이라 본 것으로 치지 않는다.
+           나머지는 봤다고 표시해 같은 말을 반복하지 않는다. */
+        if(this.step!=='attract') this.shown[this.step]=true;
+        this.step=null; this.t=0; this.idle=0;
+      }
+      return;
+    }
     /* 처음 안내는 바로, 재유인은 놀고 있을 때만 */
     const want=this.pick(game);
     if(!want) return;
@@ -3033,6 +4186,10 @@ const Onboard = {
     if(!this.step) return;
     const S=this.step;
     const pulse=(Math.sin(this.t*0.06)+1)/2;
+    /* 끝날 때 툭 끊기면 아이 눈에 '사라졌다'가 아니라 '깜빡였다'로 보인다 */
+    const left=this.LIFE-this.t;
+    const fade=left<this.FADE ? Math.max(0,left/this.FADE) : 1;
+    c.save(); c.globalAlpha=fade;
 
     if(S==='draw' || S==='attract'){
       /* 그리기 버튼을 가리킨다 */
@@ -3066,7 +4223,8 @@ const Onboard = {
       }
       c.stroke(); c.restore();
       this.hand(c, px, py, pulse);
-      this.bubble(c, VW/2, bx.y-64, '손가락으로 문질러 색칠해요');
+      this.bubble(c, VW/2, bx.y-64,
+        Paint.free ? '마음대로 그려 보세요' : '손가락으로 문질러 색칠해요');
     }
     else if(S==='submit'){
       const b=UI.btns.find(x=>x.id==='submit');
@@ -3076,6 +4234,7 @@ const Onboard = {
         this.bubble(c, b.x+b.w/2, b.y-70, '다 그렸으면 여기!');
       }
     }
+    c.restore();
   },
   /* 가리키는 원 — 어두운 막에 구멍을 뚫는다 */
   spot(c,x,y,r){
@@ -3151,8 +4310,9 @@ const Game = {
   pendingTex:null, myName:'', cheerT:0, zoomC:null, codexPage:0,
   /* ⚠ 바다와 정글은 무대·생물·움직임이 전부 다르다.
      한 화면에 섞지 않고 세계를 통째로 갈아 끼운다. */
-  realm:'sea',            // 'sea' | 'jungle'
+  realm:'sea',            // 'sea' | 'jungle' | 'dino' | 'robot' | 'bug'
   animals:[],             // 정글 동물 (Walker)
+  modeBeings:{dino:[], robot:[], bug:[]},   // 새 모드 — 몸통+부위
   /* 처음 온 아이를 위한 안내 — 손가락이 도안을 문지르는 시늉 */
   onboard:0, onboardShown:false,
 
@@ -3163,10 +4323,19 @@ const Game = {
        다시 켜면 코끼리가 물고기처럼 헤엄쳤다(실측). 종으로 갈라 되살린다. */
     for(const rec of (Save.data.creatures||[])){
       const img=new Image(); img.src=rec.d;
-      if(typeof JUNGLE!=='undefined' && JUNGLE[rec.sp]){
-        this.animals.push(new Walker(img, rec.sp, rec.n, {mine:rec.m}));  // y 는 종의 층이 정한다
+      if(rec.md && typeof MODES!=='undefined' && MODES[rec.md]){
+        const mb=new ModeBeing(img, rec.md, rec.sp, rec.n, {mine:rec.m, born:rec.b, item:rec.it});
+        (this.modeBeings[rec.md] || (this.modeBeings[rec.md]=[])).push(mb);
+      } else if(rec.sp==='__free__'){
+        /* 백지 그림 — 종이 없다. 움직임은 되살린 그림의 비율에서 다시 정한다 */
+        const fc=new Creature(img, 'clownfish', rec.n, {mine:rec.m, born:rec.b, item:rec.it});
+        fc.free=true;
+        img.onload=()=>{ fc.motion=freeMotion(img.naturalWidth/Math.max(1,img.naturalHeight)); };
+        this.creatures.push(fc);
+      } else if(typeof JUNGLE!=='undefined' && JUNGLE[rec.sp]){
+        this.animals.push(new Walker(img, rec.sp, rec.n, {mine:rec.m, born:rec.b, item:rec.it}));
       } else if(SP_BY_ID[rec.sp]){
-        this.creatures.push(new Creature(img, rec.sp, rec.n, {mine:rec.m}));
+        this.creatures.push(new Creature(img, rec.sp, rec.n, {mine:rec.m, born:rec.b, item:rec.it}));
       }
     }
     /* 처음이면 견본 몇 마리를 넣어 빈 수조를 피한다 */
@@ -3187,25 +4356,186 @@ const Game = {
     }
   },
   say(s){ this.toast=s; this.toastT=150; },
+
+  /* ── 가끔 거대한 친구가 지나간다 ──────────────────
+     ⚠ 아이 그림은 늘 비슷한 크기라 화면이 평평하다.
+       가끔 아주 큰 것이 지나가면 수조가 깊어 보이고, 무엇보다
+       그게 **아이가 그린 그림**이라 "내 물고기가 저렇게 커졌다"가 된다. */
+  giant:null, giantCd: 60*80,
+  updGiant(){
+    if(this.state!==ST.TANK && this.state!==ST.JOIN) return;
+    if(this.giant){
+      const g=this.giant; g.t++;
+      g.x += g.spd*g.dir;
+      g.y += Math.sin(g.t*0.012+g.ph)*0.5;
+      if(g.x < -g.w*0.8 || g.x > VW+g.w*0.8) this.giant=null;
+      return;
+    }
+    if(--this.giantCd>0) return;
+    this.giantCd = 60*(90+rndi(0,80));
+    const pool=this.beings.filter(b=>b.tex);
+    if(pool.length<3) return;                       // 너무 휑할 때는 안 띄운다
+    const mine=pool.filter(b=>b.mine);
+    const src=pick(mine.length?mine:pool);
+    const s=src.s*3.2;
+    this.giant={ tex:src.tex, name:src.name||'', s,
+                 w:TEX_W*s, h:TEX_H*s, t:0, ph:rnd()*TAU,
+                 dir: rnd()<0.5?-1:1, spd:0.55+rnd()*0.35,
+                 y: VH*(0.30+rnd()*0.24) };
+    this.giant.x = this.giant.dir>0 ? -this.giant.w*0.7 : VW+this.giant.w*0.7;
+    this.say((src.name? src.name+'의 ':'') + '큰 친구가 지나가요');
+    Sfx.join();
+  },
+  drawGiant(c){
+    const g=this.giant; if(!g) return;
+    /* 멀리 있는 것처럼 살짝 흐리게 — 앞의 아이 그림을 잡아먹으면 안 된다 */
+    c.save();
+    c.globalAlpha=0.88;
+    c.translate(g.x, g.y);
+    if(g.dir<0) c.scale(-1,1);
+    c.scale(g.s, g.s);
+    c.drawImage(g.tex, -TEX_W/2, -TEX_H/2);
+    c.restore();
+    if(g.name){
+      c.save();
+      c.globalAlpha=0.9;
+      c.font='700 26px Galmuri11, sans-serif'; c.textAlign='center';
+      const tw=c.measureText(g.name).width+30;
+      c.fillStyle='rgba(10,32,54,.55)';
+      UI.round(c, g.x-tw/2, g.y+g.h*0.34, tw, 38, 12); c.fill();
+      c.fillStyle=PAL.white; c.fillText(g.name, g.x, g.y+g.h*0.34+26);
+      c.restore();
+    }
+  },
+
+  /* ── 보물상자 ─────────────────────────────────────
+     가끔 나타나고, 누르면 열려 꾸미기 아이템이 하나 나온다.
+     ⚠ 아이가 그린 게 없으면 줄 데가 없다 — 그때는 상자를 안 띄운다. */
+  chest:null, chestCd: 60*35,
+  updChest(){
+    if(this.state!==ST.TANK) return;
+    if(this.chest){
+      this.chest.t++;
+      if(this.chest.open){
+        if(this.chest.t > this.chest.openAt + 150) this.chest=null;
+      } else if(this.chest.t > 60*40) this.chest=null;   // 아무도 안 누르면 사라진다
+      return;
+    }
+    if(--this.chestCd > 0) return;
+    this.chestCd = 60*(50+rndi(0,40));
+    if(!this.beings.some(b=>b.mine)) return;             // 줄 그림이 없다
+    this.chest={ x: VW*(0.25+rnd()*0.5), y: VH*(this.realm==='sea'?0.72:0.80),
+                 t:0, open:false, openAt:0, item:null, bob:rnd()*TAU };
+  },
+  openChest(){
+    const ch=this.chest; if(!ch || ch.open) return;
+    const mine=this.beings.filter(b=>b.mine);
+    if(!mine.length){ this.chest=null; return; }
+    ch.open=true; ch.openAt=ch.t;
+    ch.item = Items.pick();
+    /* 가장 최근에 그린 내 그림에게 준다 — 방금 만든 것이 제 것이라는 느낌이 가장 세다 */
+    const target = mine[mine.length-1];
+    ch.target = target;
+    if(ch.item.startsWith('fx:')){
+      /* 10초짜리 효과 — 몸이 잠깐 변한다 */
+      const kind=ch.item.slice(3);
+      applyEffect(target, kind);
+      const e=EFFECTS[kind]||{ko:'신기한 일'};
+      this.say(e.ko + ' ' + (e.sec||10) + '초!');
+      if(typeof Grow!=='undefined') Grow.add('chest', ch.x, ch.y-30);
+      FX.sparkle(target.x, target.y, 16);
+    } else {
+      target.item = ch.item;
+      const def = ITEM_BY_ID[ch.item] || {ko:'선물'};
+      this.say(def.ko + ' 을(를) 찾았어요!');
+      if(typeof Grow!=='undefined') Grow.add('chest', ch.x, ch.y-30);
+    }
+    FX.confetti(ch.x, ch.y-40);
+    FX.sparkle(ch.x, ch.y-30, 14);
+    Sfx.join();
+    /* 저장 — 다음에 와도 붙어 있다 */
+    try{
+      if(!ch.item.startsWith('fx:')){          // 효과는 10초짜리라 저장하지 않는다
+        const recs=Save.data.creatures||[];
+        for(let i=recs.length-1;i>=0;i--){
+          if(recs[i].m){ recs[i].it=ch.item; break; }
+        }
+        Save.write();
+      }
+    }catch(_){}
+  },
+  drawChest(c){
+    const ch=this.chest; if(!ch) return;
+    const bob=Math.sin(ch.t*0.05+ch.bob)*5;
+    const name = ch.open ? 'treasure-chest-open' : 'treasure-chest-closed';
+    /* 열리는 순간의 빛 */
+    if(ch.open){
+      const k=(ch.t-ch.openAt)/40;
+      if(k<1 && typeof FXA!=='undefined')
+        FXA.draw(c,'fx-chest-burst', ch.x, ch.y-30, 240*(0.6+k*0.8), 0);
+    }
+    if(!Props.draw(c, name, ch.x, ch.y+bob, 92)){
+      /* 어셋이 없을 때 — 궤짝을 코드로 */
+      c.save(); c.translate(ch.x, ch.y+bob);
+      c.fillStyle='#8b5e34'; c.strokeStyle='#12212e'; c.lineWidth=5;
+      c.beginPath(); UI.round(c,-46,-40,92,40,6); c.fill(); c.stroke();
+      c.fillStyle=ch.open?'#ffd23f':'#6b4526';
+      c.beginPath(); UI.round(c,-46,-64,92,26,8); c.fill(); c.stroke();
+      c.fillStyle='#ffd23f'; c.beginPath(); c.arc(0,-38,7,0,TAU); c.fill(); c.stroke();
+      c.restore();
+    }
+    if(!ch.open){                       // 눌러 달라는 신호
+      const p=(Math.sin(ch.t*0.09)+1)/2;
+      c.save(); c.globalAlpha=0.35+p*0.4;
+      c.strokeStyle=PAL.gold; c.lineWidth=4;
+      c.beginPath(); c.arc(ch.x, ch.y-24+bob, 62+p*8, 0, TAU); c.stroke();
+      c.restore();
+    }
+  },
   /* 그리기 순서 캐시를 버린다 — 생물을 지웠는데 캐시가 붙들고 있으면
      지워진 것이 몇 프레임 더 그려진다 */
   dropOrder(){ this._order=null; },
-  get W(){ return this.realm==='sea' ? World : JWorld; },
-  get beings(){ return this.realm==='sea' ? this.creatures : this.animals; },
+  get W(){
+    if(this.realm==='sea') return World;
+    if(this.realm==='jungle') return JWorld;
+    ModeWorld.set(this.realm); return ModeWorld;
+  },
+  get beings(){
+    if(this.realm==='sea') return this.creatures;
+    if(this.realm==='jungle') return this.animals;
+    return this.modeBeings[this.realm] || (this.modeBeings[this.realm]=[]);
+  },
+  /* 세계 차례 — 어셋이 준비된 모드만 돈다.
+     ⚠ 도안이 하나도 없는 모드로 넘어가면 빈 화면이 된다. */
+  realmOrder(){
+    const out=['sea','jungle'];
+    for(const m of ['dino','robot','bug'])
+      if(typeof MTemplate!=='undefined' && MTemplate.ready(m).length) out.push(m);
+    return out;
+  },
   switchRealm(){
-    this.realm = this.realm==='sea' ? 'jungle' : 'sea';
+    const order=this.realmOrder();
+    const i=order.indexOf(this.realm);
+    this.realm = order[(i+1)%order.length];
+    if(typeof ModeWorld!=='undefined' && MODES[this.realm]){
+      ModeWorld.set(this.realm); ModeWorld.init(); ModeWorld.prefetch();
+      MTemplate.prefetch(this.realm);
+    }
     if(typeof Amb!=='undefined') Amb.set(this.realm);
-    this.say(this.realm==='sea' ? '바다' : '정글');
+    this.say(this.realm==='sea' ? '바다' : this.realm==='jungle' ? '정글'
+             : ((MODES[this.realm]||{}).ko || this.realm));
     Sfx.ui();
     if(this.realm==='jungle') JTemplate.prefetch();
   },
 
   /* 1단계 — 이름을 묻는다. 이름이 있어야 아이가 자기 물고기를 찾을 수 있다 */
   askName(){
-    this.pendingTex = JUNGLE[Paint.spId]
-      ? bakeWalker(Paint.fill, Paint.spId)
-      : bakeCreature(Paint.fill, Paint.spId);
-    this.pendingSp=Paint.spId;
+    this.pendingTex = Paint.free
+      ? bakeFree(Paint.fill)
+      : Paint.mode ? bakeMode(Paint.fill, Paint.mode, Paint.spId)
+      : (JUNGLE[Paint.spId] ? bakeWalker(Paint.fill, Paint.spId)
+                            : bakeCreature(Paint.fill, Paint.spId));
+    this.pendingSp=Paint.spId; this.pendingMode=Paint.mode||null;
     this.state=ST.NAME; this.nameIdle=0;
     NameBox.open(this.myName);
   },
@@ -3215,8 +4545,44 @@ const Game = {
     const spId=this.pendingSp || Paint.spId;
     this.myName = (name||'').slice(0,8);
     let c;
-    const snakeLike = typeof SEA_LIKE_JUNGLE!=='undefined' && SEA_LIKE_JUNGLE[spId];
-    if(snakeLike){
+    const mode = this.pendingMode;
+    if(mode && MODES[mode]){
+      c=new ModeBeing(tex, mode, spId, this.myName, {mine:true, join:true, x:-160});
+      const arr=this.modeBeings[mode] || (this.modeBeings[mode]=[]);
+      while(arr.length>=200) arr.shift();
+      arr.push(c);
+      this.realm=mode;
+      if(typeof Amb!=='undefined') Amb.set((MODES[mode]||{}).amb||'jungle');
+      this.joinC=c; this.joinT=110;
+      this.state=ST.CHEER; this.cheerT=0;
+      FX.splash(VW*0.2, c.y); FX.confetti(VW/2, VH*0.4);
+      this.splashAt={x:VW*0.2, y:c.y, t:0};
+      Sfx.join();
+      try{
+        const rec={d:Save.encode(tex), sp:spId, md:mode, n:this.myName, m:true, b:Date.now()};
+        Save.data.creatures.push(rec);
+        if(!Save.data.seen) Save.data.seen={};
+        Save.data.seen[spId]=(Save.data.seen[spId]||0)+1;
+        Save.data.made=(Save.data.made||0)+1; Save.write();
+        if(typeof Net!=='undefined') Net.push({d:rec.d, sp:spId, md:mode, n:this.myName});
+      }catch(_){}
+      this.W.findT=200;
+      this.pendingMode=null;
+      return;
+    }
+    const isFree = (spId==='__free__');
+    const snakeLike = !isFree && typeof SEA_LIKE_JUNGLE!=='undefined' && SEA_LIKE_JUNGLE[spId];
+    if(isFree){
+      /* 백지 그림 — 종이 없으니 깊이도 움직임도 **그린 모양**에서 정한다 */
+      c=new Creature(tex, 'clownfish', this.myName, {mine:true, join:true,
+        x:-140, y:VH*(0.26+rnd()*0.42)});
+      c.motion = freeMotion(tex && tex.freeAR ? tex.freeAR : 1);
+      c.free = true;
+      while(this.creatures.length>=250) this.creatures.shift();
+      this.creatures.push(c);
+      this.realm='sea';
+      if(typeof Amb!=='undefined') Amb.set('sea');
+    } else if(snakeLike){
       c=new Creature(tex, spId, this.myName, {mine:true, join:true,
         x:-140, y:JWorld.groundY()-70});
       while(this.animals.length>=140) this.animals.shift();
@@ -3237,7 +4603,7 @@ const Game = {
       if(typeof Amb!=='undefined') Amb.set('sea');
     }
     /* 오래된 것부터 내보내 상한 유지 (실측: 200~300 이 60fps 상한) */
-    if(!JUNGLE[spId]){
+    if(!isFree && !JUNGLE[spId]){
       /* 실측: 실제 게임에서 300마리 65fps · 200마리 119fps. 250 에서 내보낸다. */
       while(this.creatures.length>=250) this.creatures.shift();
       this.creatures.push(c);
@@ -3250,13 +4616,31 @@ const Game = {
     Sfx.join();
     /* 저장 */
     try{
-      const rec={d:Save.encode(tex), sp:spId, n:this.myName, m:true};
+      const rec={d:Save.encode(tex), sp:spId, n:this.myName, m:true, b:Date.now()};
       Save.data.creatures.push(rec);
+      /* 도감 — 그림은 밀려나도 '그려 봤다'는 남는다 */
+      if(!Save.data.seen) Save.data.seen={};
+      Save.data.seen[spId]=(Save.data.seen[spId]||0)+1;
       Save.data.made=(Save.data.made||0)+1; Save.write();
       /* 여러 대 운영 — 큰 화면으로 보낸다. 서버가 없으면 조용히 넘어간다 */
       if(typeof Net!=='undefined') Net.push({d:rec.d, sp:spId, n:this.myName});
     }catch(_){}
     this.W.findT=200;      // ⚠ World 로 박아 두면 정글에서 안 켜진다
+    if(typeof Grow!=='undefined') Grow.add('draw', VW/2, VH*0.4);
+    /* 같은 종이 셋 모이면 무리가 된다.
+       아이들이 "우리 같이 흰동가리 그리자" 하게 만드는 게 목적이다.
+       — 이미 같은 종끼리 끌리는 무리 짓기가 있으니 알려 주기만 하면 된다. */
+    if(!isFree){
+      const same=this.beings.filter(b=>(b.spId||b.id)===spId).length;
+      if(same===3 || same===6 || same===10){
+        const nm=this.kindName(c);
+        this.say(nm+' 무리가 생겼어요! ('+same+'마리)');
+        if(typeof Grow!=='undefined') Grow.add('herd', c.x, c.y);
+        FX.confetti(c.x||VW/2, (c.y||VH*0.4)-40);
+        Sfx.join();
+        this.herdT=200; this.herdSp=spId;
+      }
+    }
   },
 
   update(dt){
@@ -3316,6 +4700,8 @@ const Game = {
   updTank(dt){
     /* 운영자 열기 — 왼쪽 위 길게 누르기 */
     if(typeof Admin!=='undefined') Admin.watchHold();
+    this.updChest();
+    this.updGiant();
     const W=this.W;
     /* 손가락을 대고 있는 동안 — 생물이 궁금해서 모여든다.
        ⚠ 버튼 위에서는 안 된다. 아이가 버튼을 누르려다 물고기를 부른다. */
@@ -3363,6 +4749,9 @@ const Game = {
        화면 전환이라 수조를 만졌다는 느낌이 없었다.
        한 번 누르면 **그 자리에서 종마다 다르게 반응**하고,
        반응 중에 한 번 더 누르면 크게 본다. 아이는 눌러 보면서 알게 된다. */
+    /* 상자를 먼저 본다 — 생물보다 작아서 뒤에 두면 놓친다 */
+    if(this.chest && !this.chest.open &&
+       dist(p.x,p.y,this.chest.x,this.chest.y-24) < 78){ this.openChest(); return; }
     let hit=null, hd=1e9;
     for(const c of this.beings){
       const d=dist(p.x,p.y,c.x,c.y);
@@ -3374,6 +4763,7 @@ const Game = {
         FX.sparkle(hit.x,hit.y,10); return;
       }
       const kind=hit.react();
+      if(typeof Grow!=='undefined') Grow.add('touch', hit.x, hit.y-hit.h*0.3);
       this.say(REACT_SAY[kind] || '안녕!');
       /* 옆에 있는 것들도 조금 놀란다 — 수조가 살아 있다는 느낌 */
       for(const o of this.beings){
@@ -3405,7 +4795,7 @@ const Game = {
     if(id==='ppage-'){ const n=this._pickPages||1;
       this.pickPage=(this.pickPage-1+n)%n; Sfx.ui(); return; }
     if(id && id.startsWith('sp:')){
-      Paint.open(id.slice(3)); this.state=ST.PAINT; this.blankWarned=false; this.backWarned=false; Sfx.ui();
+      Paint.open(id.slice(3), MODES[this.realm]?this.realm:null); this.state=ST.PAINT; this.blankWarned=false; this.backWarned=false; Sfx.ui();
     }
   },
   updPaintUI(){
@@ -3433,7 +4823,7 @@ const Game = {
       const r = Paint.inkedRatio ? Paint.inkedRatio() : 1;
       if(r < 0.05 && !this.blankWarned){
         this.blankWarned = true;
-        this.say('색을 조금만 더 칠해 볼까요?');
+        this.say(Paint.free ? '조금만 더 그려 볼까요?' : '색을 조금만 더 칠해 볼까요?');
         Sfx.ui();
         return;
       }
@@ -3443,6 +4833,10 @@ const Game = {
     else if(id==='clear'){ Paint.clear(); }
     else if(id==='size'){ Paint.sizeIdx=(Paint.sizeIdx+1)%Paint.sizes.length;
       Paint.size=Paint.sizes[Paint.sizeIdx]; Sfx.ui(); }
+    else if(id==='t:mirror'){
+      Paint.mirror=!Paint.mirror; Sfx.ui();
+      this.say(Paint.mirror ? '반쪽만 그리면 반대쪽도 그려져요' : '대칭을 껐어요');
+    }
     else if(id.startsWith('t:')){ Paint.tool=id.slice(2); Sfx.ui();
       if(Paint.tool==='bucket'){ Paint.bucket(); Paint.tool='brush'; } }
     else if(id.startsWith('c:')){
@@ -3468,7 +4862,8 @@ const Game = {
     const p=Input.takeTap(); if(!p) return;
     const id=UI.hit(p);
     if(id==='back'){ this.state=ST.TANK; Sfx.ui(); }
-    else if(id==='cpage'){ this.codexPage++; Sfx.ui(); }
+    else if(id==='cpage'){ this.codexPage=(this.codexPage+1)%(this._codexPages||1); Sfx.ui(); }
+    else if(id==='crealm'){ this.switchRealm(); this.codexPage=0; }
   },
 
   /* ── 그리기 ────────────────────────────────────── */
@@ -3500,6 +4895,55 @@ const Game = {
        (this.state===ST.TANK||this.state===ST.PICK||this.state===ST.PAINT))
       Onboard.draw(c, this);
 
+    /* 방금 도착한 그림을 크게 비춘다 (큰 화면 전용) */
+    if(this.spot){
+      const S=this.spot; S.t++;
+      const IN=26, HOLD=150, OUT=34;
+      const k = S.t<IN ? S.t/IN : S.t<IN+HOLD ? 1 : Math.max(0,1-(S.t-IN-HOLD)/OUT);
+      if(k<=0 || S.t>IN+HOLD+OUT){ this.spot=null; }
+      else if(S.c && S.c.tex){
+        c.save();
+        c.globalAlpha=k*0.66; c.fillStyle='#06182a'; c.fillRect(0,0,VW,VH);
+        c.globalAlpha=k;
+        /* ⚠ 텍스처(180x120) 를 그대로 키우면 여백까지 커져 그림이 작아 보인다.
+           실제 그림이 차지하는 범위를 재서 그만큼을 화면에 꽉 채운다. */
+        const fit=BodyFit.of(S.c.tex);
+        const th=Math.max(20, (fit.bot-fit.top)+8);
+        const sc=Math.min(VW*0.58/TEX_W, VH*0.52/th);
+        const w=TEX_W*sc, h=TEX_H*sc;
+        const cy=VH*0.40;
+        const y=cy - ((fit.top+fit.bot)/2)*sc;      // 그림의 한가운데를 화면 가운데로
+        c.drawImage(S.c.tex, VW/2-w/2, y, w, h);
+        c.font='700 46px Galmuri11, sans-serif'; c.textAlign='center';
+        c.fillStyle=PAL.gold;
+        c.fillText(S.name ? S.name+'의 그림이 왔어요' : '새 친구가 왔어요', VW/2, VH*0.80);
+        c.restore();
+      }
+    }
+    /* 효과가 걸린 그림 — 남은 시간을 띠로. 조용히 변하면 버그로 보인다 */
+    for(const b of this.beings){
+      if(!b.fx || b.fx.t<=0) continue;
+      const e=(typeof EFFECTS!=='undefined' && EFFECTS[b.fx.kind]) || {col:PAL.gold, ko:''};
+      const k=b.fx.t/b.fx.max;
+      const w=Math.max(56, b.w*0.5), y=b.y - b.h*0.52 - 16;
+      c.save(); c.globalAlpha=0.85;
+      c.fillStyle='rgba(10,32,54,.5)'; UI.round(c, b.x-w/2, y, w, 7, 4); c.fill();
+      c.fillStyle=e.col; UI.round(c, b.x-w/2, y, w*k, 7, 4); c.fill();
+      c.restore();
+    }
+    /* 방금 생긴 무리를 잠깐 표시 — 말로만 하면 어느 것들인지 모른다 */
+    if(this.herdT>0){
+      this.herdT--;
+      const a=Math.min(1,this.herdT/40);
+      c.save(); c.globalAlpha=a*0.9;
+      c.strokeStyle=PAL.gold; c.lineWidth=4;
+      for(const b of this.beings){
+        if((b.spId||b.id)!==this.herdSp) continue;
+        c.beginPath(); c.ellipse(b.x, b.y, b.w*0.46+8, b.h*0.52+8, 0, 0, TAU); c.stroke();
+      }
+      c.restore();
+    }
+    if(typeof Grow!=='undefined' && (this.state===ST.TANK||this.state===ST.JOIN)) Grow.draw(c);
     if(typeof Admin!=='undefined' && this.state===ST.TANK) Admin.drawHold(c);
     /* ⚠ 세로 화면에서는 게임이 화면의 21% 로 쪼그라들어 버튼이 29px 이 된다
        (실측 아이폰 세로). 아이 손가락에는 너무 작다. 가로로 돌리면 해결된다. */
@@ -3508,13 +4952,17 @@ const Game = {
     if(typeof SelfTest!=='undefined') SelfTest.draw(c);
     if(typeof Net!=='undefined') Net.draw(c);
 
-    if(this.toastT>0){
+    /* ⚠ 토스트가 도감 하단 버튼('다음 장')을 덮었다.
+       화면마다 비어 있는 자리가 다르다 — 도감은 안 띄우고,
+       색칠 화면은 위쪽(도안 위)에 띄운다. */
+    if(this.toastT>0 && this.state!==ST.CODEX && !this.spot){
+      const ty = (this.state===ST.PAINT) ? 96 : VH-62;
       c.globalAlpha=Math.min(1,this.toastT/25);
       c.font='700 26px Galmuri11, sans-serif'; c.textAlign='center';
       c.fillStyle='rgba(10,32,54,.7)';
       const w=c.measureText(this.toast).width+40;
-      UI.round(c,VW/2-w/2,VH-92,w,44,12); c.fill();
-      c.fillStyle=PAL.white; c.fillText(this.toast, VW/2, VH-62);
+      UI.round(c,VW/2-w/2,ty-30,w,44,12); c.fill();
+      c.fillStyle=PAL.white; c.fillText(this.toast, VW/2, ty);
       c.globalAlpha=1;
     }
     Screen.end();
@@ -3528,6 +4976,11 @@ const Game = {
     c.translate(W/2, H/2);
     const s=Math.min(W,H)/360;
     c.scale(s,s);
+    if(Icons.draw(c,'hint-rotate', 300)){
+      c.font='700 30px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle='#fff'; c.fillText('가로로 돌려 주세요', 0, 190);
+      c.restore(); return;
+    }
     /* 기울어진 태블릿 그림 */
     c.save(); c.rotate(-0.42);
     c.strokeStyle='#ffd166'; c.lineWidth=7; c.lineJoin='round';
@@ -3563,10 +5016,13 @@ const Game = {
     /* ⚠ 나무 위 층은 전경 잎보다 **앞**에 그린다.
        전경 덩굴·지붕이 y 0~302 를 덮는데 나무 위 층이 정확히 그 안이라,
        뒤에 그리면 나비·잠자리가 잎에 파묻혀 아이 그림이 안 보인다. */
+    this.drawGiant(c);                 // 멀리 있는 것 — 아이 그림보다 뒤에
     const canopyFirst = (this.realm==='jungle');
     for(const cr of list) if(!canopyFirst || (cr.layer|0)!==0) cr.draw(c, W);
     W.drawFront(c);
     if(canopyFirst) for(const cr of list) if((cr.layer|0)===0) cr.draw(c, W);
+    if(typeof Items!=='undefined') for(const cr of list) Items.draw(c, cr);
+    this.drawChest(c);
     if(W.drawTint) W.drawTint(c);
     FX.draw(c);
     /* 버튼 — ⚠ 축하·확대·이름 화면에서는 그리지 않는다.
@@ -3588,10 +5044,11 @@ const Game = {
     const W2=S*1.4, GAP=12;
     const right=[
       ['sound', S,  (g,r)=>{ if(!Icons.draw(g, Sfx.on?'btn-sound':'btn-sound-off', S*0.78)) UI.icon.sound(g,r); }],
-      ['time',  S,  (g,r)=>UI.icon.time(g,r)],
+      ['time',  S,  (g,r)=>{ if(!Icons.draw(g,'btn-time',S*0.78)) UI.icon.time(g,r); }],
       ['codex', S,  (g,r)=>{ if(!Icons.draw(g,'btn-book',S*0.78)) UI.icon.book(g,r); }],
       ['realm', S,  (g,r)=>{
-        /* 바다↔정글 — 물결과 나뭇잎으로 구분 */
+        /* 바다↔정글 — 지금 세계의 '반대쪽'을 보여 준다(누르면 갈 곳) */
+        if(Icons.draw(g, Game.realm==='sea'?'btn-realm-jungle':'btn-realm-sea', S*0.78)) return;
         g.strokeStyle=PAL.white; g.lineWidth=r*0.2; g.lineCap='round';
         if(Game.realm==='sea'){
           g.beginPath();
@@ -3612,9 +5069,12 @@ const Game = {
     /* 마릿수 */
     c.font='600 20px Galmuri11, sans-serif'; c.textAlign='left';
     c.fillStyle='rgba(255,255,255,.75)';
-    c.fillText(this.realm==='sea'
-      ? `${this.creatures.length}마리가 헤엄치고 있어요`
-      : `${this.animals.length}마리가 걷고 있어요`, 28, 44);
+    /* ⚠ 바다·정글만 세다가 새 모드에서 늘 0 이 떴다. 지금 세계의 것을 센다. */
+    const n=this.beings.length;
+    const verb = this.realm==='sea' ? '헤엄치고'
+               : this.realm==='bug' ? '기어다니고'
+               : this.realm==='robot' ? '움직이고' : '걷고';
+    c.fillText(`${n}마리가 ${verb} 있어요`, 28, 44);
   },
   drawPick(c){
     c.fillStyle='#123047'; c.fillRect(0,0,VW,VH);
@@ -3634,19 +5094,46 @@ const Game = {
        도안이 실제로 준비된 것만 보여준다 — 새 어셋이 오면 자동으로 늘어난다.
        (정글 39종 등록 · 도착 12종 상태에서 27칸이 빈 채로 떴다) */
     const inJungle=(id)=> typeof SEA_LIKE_JUNGLE!=='undefined' && SEA_LIKE_JUNGLE[id];
-    const choices=(this.realm==='sea'
-      ? SPECIES.filter(sp=>!inJungle(sp.id)).map(sp=>({id:sp.id, ko:sp.ko, jungle:false}))
-      : Object.entries(JUNGLE).map(([id,d])=>({id, ko:d.ko, jungle:true}))
-          .concat(SPECIES.filter(sp=>inJungle(sp.id))
-                         .map(sp=>({id:sp.id, ko:sp.ko, jungle:false})))
-    ).filter(sp => sp.jungle ? !!JTemplate.get(sp.id) : !!Templates.get(sp.id));
+    let choices;
+    if(MODES[this.realm]){
+      /* 새 모드 — 도안이 도착한 종만. 없는 것을 띄우면 골랐을 때 빈 화면이 된다 */
+      choices = MTemplate.ready(this.realm).map(D=>({id:D.id, ko:D.ko, mode:this.realm}));
+    } else {
+      choices=(this.realm==='sea'
+        ? SPECIES.filter(sp=>!inJungle(sp.id)).map(sp=>({id:sp.id, ko:sp.ko, jungle:false}))
+        : Object.entries(JUNGLE).map(([id,d])=>({id, ko:d.ko, jungle:true}))
+            .concat(SPECIES.filter(sp=>inJungle(sp.id))
+                           .map(sp=>({id:sp.id, ko:sp.ko, jungle:false})))
+      ).filter(sp => sp.jungle ? !!JTemplate.get(sp.id) : !!Templates.get(sp.id));
+    }
+    /* 첫 칸은 언제나 '백지' — 도안 없이 제 마음대로 그린다.
+       도안 색칠만 있으면 아이는 '주어진 것을 채우는 일'만 하게 된다. */
+    choices=[{id:'__free__', ko:'내 마음대로', free:true}].concat(choices);
     const pages=Math.max(1, Math.ceil(choices.length/per));
     if(this.pickPage>=pages) this.pickPage=0;
     const page=choices.slice(this.pickPage*per, this.pickPage*per+per);
     page.forEach((sp,i)=>{
       const x=x0+(i%cols)*cw, y=y0+((i/cols)|0)*ch;
       UI.btn(c,'sp:'+sp.id, x+8,y+8, cw-16, ch-16, (g,r)=>{
-        const t=sp.jungle ? JTemplate.get(sp.id) : Templates.get(sp.id);
+        if(sp.free){                       // 빈 종이 한 장과 크레용
+          if(Icons.draw(g,'card-free', cw*0.86)){
+            g.font='700 20px Galmuri11, sans-serif'; g.textAlign='center';
+            g.fillStyle=PAL.white; g.fillText(sp.ko, 0, ch*0.30);
+            return;
+          }
+          g.fillStyle='#fbf7ee';
+          UI.round(g,-cw*0.30,-ch*0.34,cw*0.60,ch*0.50,10); g.fill();
+          g.strokeStyle='rgba(255,255,255,.5)'; g.lineWidth=2; g.stroke();
+          g.strokeStyle=PAL.gold; g.lineWidth=7; g.lineCap='round';
+          g.beginPath(); g.moveTo(-cw*0.16,-ch*0.02);
+          g.quadraticCurveTo(-cw*0.02,-ch*0.22, cw*0.10,-ch*0.06);
+          g.quadraticCurveTo(cw*0.18,ch*0.04, cw*0.04,ch*0.10); g.stroke();
+          g.font='700 20px Galmuri11, sans-serif'; g.textAlign='center';
+          g.fillStyle=PAL.white; g.fillText(sp.ko, 0, ch*0.30);
+          return;
+        }
+        const t=sp.mode ? MTemplate.get(sp.mode, sp.id)
+              : sp.jungle ? JTemplate.get(sp.id) : Templates.get(sp.id);
         const iw=cw*1.02, ih=iw*TH/TW;
         if(t) g.drawImage(t.ink, -iw/2, -ih/2-ch*0.06, iw, ih);
         g.font='700 20px Galmuri11, sans-serif'; g.textAlign='center';
@@ -3677,13 +5164,18 @@ const Game = {
     /* 색 12개
        ⚠ 가운데 정렬했더니 마지막 2개가 제출 버튼(VW-330~)에 가렸다(실측 118px 겹침).
           제출 버튼 왼쪽 공간 안에서 가운데를 잡는다. */
-    const cs=60, gap=7;
+    /* 세로 화면에서는 한 줄 60px 이 실제 36px 로 줄어 아이 손가락에 작았다.
+       그때만 두 줄 6개씩으로 나누고 크게 잡는다(76×0.6 = 실제 46px). */
+    const tight=Paint.tight();
+    const cs=tight?76:60, gap=tight?8:7, per=tight?6:CRAYONS.length;
     const zoneR=VW-346;                       // 제출 버튼 왼쪽 한계
     const zoneL=20+78+16;                     // 뒤로 버튼 오른쪽
-    const total=CRAYONS.length*(cs+gap)-gap;
+    const rows=Math.ceil(CRAYONS.length/per);
+    const total=per*(cs+gap)-gap;
     const cx0=Math.max(zoneL, (zoneL+zoneR)/2-total/2);
     CRAYONS.forEach((col,i)=>{
-      const x=cx0+i*(cs+gap), y=VH-92;
+      const r=(i/per)|0, k=i%per;
+      const x=cx0+k*(cs+gap), y=VH-92-(rows-1-r)*(cs+gap);
       UI.btns.push({id:'c:'+col, x, y, w:cs, h:cs});
       c.save();
       c.beginPath(); c.arc(x+cs/2,y+cs/2,cs/2-6,0,TAU);
@@ -3710,13 +5202,34 @@ const Game = {
     const tools=[['brush','brush','brush-fat'],['bucket','bucket','bucket'],
                  ['eraser','eraser','eraser'],['star','star','stamp-star'],
                  ['heart','heart','stamp-heart'],['dot','dot','stamp-dot'],
-                 ['stripe','dot','stamp-stripe']];
+                 ['stripe','dot','stamp-stripe']]
+      /* ⚠ 백지에서는 채우기를 뺀다. 도안이 없으면 종이 전체가 색으로 덮여
+         잘라낼 것이 없어지고, 결국 **네모난 색종이**가 헤엄친다. */
+      .filter(t=> !(Paint.free && t[0]==='bucket'))
+      .concat([['mirror','mirror',null]]);   // 좌우 대칭 — 켜고 끈다
     const TC=2, TG=8, tTop=104;
     tools.forEach((t,i)=>{
-      const on=Paint.tool===t[0];
+      const on = t[0]==='mirror' ? !!Paint.mirror : Paint.tool===t[0];
       const col=i%TC, row=(i/TC)|0;
       UI.btn(c,'t:'+t[0], 20+col*(S+TG), tTop+row*(S+TG), S, S,
-        (g,r)=>{ if(!Icons.draw(g, t[2], S*0.78, on)) UI.icon[t[1]](g,r); }, on);
+        (g,r)=>{
+          if(t[0]==='mirror'){                 // 나비처럼 좌우가 마주 본 그림
+            g.strokeStyle=on?PAL.gold:PAL.white; g.lineWidth=r*0.16; g.lineCap='round';
+            g.setLineDash([r*0.22,r*0.22]);
+            g.beginPath(); g.moveTo(0,-r*0.9); g.lineTo(0,r*0.9); g.stroke();
+            g.setLineDash([]);
+            g.fillStyle=on?PAL.gold:PAL.white;
+            for(const sgn of [-1,1]){
+              g.beginPath();
+              g.moveTo(sgn*r*0.16,0);
+              g.quadraticCurveTo(sgn*r*1.0,-r*0.75, sgn*r*0.86, r*0.10);
+              g.quadraticCurveTo(sgn*r*0.72, r*0.72, sgn*r*0.16, r*0.16);
+              g.closePath(); g.fill();
+            }
+            return;
+          }
+          if(!Icons.draw(g, t[2], S*0.78, on)) UI.icon[t[1]](g,r);
+        }, on);
     });
     /* 붓 굵기 — 지금 굵기가 원으로 보인다. 도구 다음 칸에 */
     const nRow=Math.ceil(tools.length/TC);
@@ -3816,6 +5329,11 @@ const Game = {
       FX.splash(c.x+120, c.y);
       Sfx.join();
       this.say((rec.n? rec.n+'의 ' : '') + '친구가 왔어요');
+      /* 방금 온 그림을 3초쯤 크게 비춘다.
+         ⚠ 지금까지는 조용히 합류해서, 그린 아이가 자기 것이 도착한 줄도 몰랐다.
+           전시장에서는 그 순간이 이 작품의 보상이다. */
+      c.born = Date.now();
+      this.spot = { c, t:0, name:rec.n||'' };
     };
     img.src=rec.d;
   },
@@ -3825,6 +5343,7 @@ const Game = {
        정글 동물을 누르면 터졌다(실측: reading 'ko' of undefined). */
   kindName(x){
     if(!x) return '';
+    if(x.free) return '내가 그린 것';     // 백지 그림에는 종 이름이 없다
     const id = x.spId || x.id;
     return (SP_BY_ID[id] && SP_BY_ID[id].ko)
         || (typeof JUNGLE!=='undefined' && JUNGLE[id] && JUNGLE[id].ko)
@@ -3832,9 +5351,23 @@ const Game = {
   },
 
   /* ── 물고기 크게 보기 ───────────────────────────── */
+  /* 크게 보기 = **집에 가져가는 기념 카드**.
+     ⚠ QR 로 폰에 보내는 길을 만들려다 접었다(직접 짠 인코더가 안 읽혔다).
+       그런데 부모는 이미 폰으로 화면을 찍는다 — 찍기 좋게 만드는 게
+       서버·네트워크·QR 없이 같은 목적을 이룬다. 액자·이름·날짜를 넣는다. */
   drawZoom(c){
     const z=this.zoomC; if(!z) return;
-    c.fillStyle='rgba(6,20,36,.88)'; c.fillRect(0,0,VW,VH);
+    c.fillStyle='rgba(6,20,36,.90)'; c.fillRect(0,0,VW,VH);
+    /* 종이 액자 — 사진으로 찍었을 때 '카드'로 보이게 */
+    const cw=Math.min(VW*0.72, 760), chh=cw*0.62;
+    const cx=VW/2-cw/2, cy=VH*0.36-chh/2;
+    c.save();
+    c.shadowColor='rgba(0,0,0,.45)'; c.shadowBlur=30; c.shadowOffsetY=10;
+    c.fillStyle=PAL.paper||'#fbf7ee';
+    UI.round(c, cx, cy, cw, chh, 18); c.fill();
+    c.restore();
+    const fr=(typeof BG!=='undefined') && BG.get('frame-wood');
+    if(fr) c.drawImage(fr, cx-26, cy-26, cw+52, chh+52);
     const w=Math.min(VW*0.62, 620), h=w*TEX_H/TEX_W;
     /* 크게 볼 때도 헤엄친다 — 정지 이미지면 재미가 없다 */
     const sc=w/TEX_W;
@@ -3842,13 +5375,13 @@ const Game = {
       /* 정글 동물은 걷는 모습 그대로 크게 */
       c.save();
       const keep={x:z.x, y:z.y, s:z.s};
-      z.x=VW/2; z.y=VH*0.44+TEX_H*sc*0.4; z.s=sc;
+      z.x=VW/2; z.y=VH*0.36+TEX_H*sc*0.30; z.s=sc*0.82;
       z.draw(c, JWorld);
       z.x=keep.x; z.y=keep.y; z.s=keep.s;
       c.restore();
     } else {
       const SL=44, sw=TEX_W/SL;
-      c.save(); c.translate(VW/2, VH*0.44); c.scale(sc,sc);
+      c.save(); c.translate(VW/2, VH*0.36); c.scale(sc*0.82,sc*0.82);
       for(let i=0;i<SL;i++){
         const u=i/SL;
         const off=Math.sin(z.t*0.11+z.ph-u*3.0)*11*Math.pow(1-u,1.7);
@@ -3856,36 +5389,109 @@ const Game = {
       }
       c.restore();
     }
-    c.font='700 34px Galmuri11, sans-serif'; c.textAlign='center';
-    c.fillStyle=PAL.white;
+    /* 받은 꾸미기도 함께 — 기념품에 남아야 한다 */
+    if(z.item && typeof Items!=='undefined'){
+      const keep={x:z.x,y:z.y,w:z.w,h:z.h,dir:z.dir};
+      const sc2=(Math.min(VW*0.72,760))/TEX_W*0.82;
+      const proxy={ x:VW/2, y:VH*0.36, w:TEX_W*sc2, h:TEX_H*sc2,
+                    dir:1, t:z.t, item:z.item, tex:z.tex };
+      Items.draw(c, proxy);
+    }
     const kn=this.kindName(z);
-    c.fillText(z.name ? z.name+'의 '+kn : kn, VW/2, VH*0.74);
+    c.textAlign='center';
+    c.font='700 36px Galmuri11, sans-serif'; c.fillStyle=PAL.white;
+    c.fillText(z.name ? z.name+'의 '+kn : kn, VW/2, VH*0.785);
+    /* 날짜 — 기념품에는 언제인지가 남아야 한다 */
+    const d=new Date();
+    const ds=d.getFullYear()+'. '+(d.getMonth()+1)+'. '+d.getDate();
+    c.font='600 21px Galmuri11, sans-serif'; c.fillStyle=PAL.gold;
+    c.fillText('그린바다  ·  '+ds, VW/2, VH*0.845);
     c.font='600 20px Galmuri11, sans-serif'; c.fillStyle=PAL.dim;
-    c.fillText('화면을 만지면 돌아가요', VW/2, VH-56);
+    c.fillText('사진으로 찍어 가져가세요  ·  화면을 만지면 돌아가요', VW/2, VH-52);
   },
   /* ── 도감 — 내가 만든 것 모아 보기 ──────────────── */
+  /* 도감 — '내가 만든 목록'이 아니라 **수집표**다.
+     ⚠ 예전엔 만든 것만 나열해서 무엇이 남았는지 알 수 없었다.
+       안 그린 종을 흐리게 함께 보여 줘야 '다음엔 저거'가 생긴다. */
   drawCodex(c){
     c.fillStyle='#123047'; c.fillRect(0,0,VW,VH);
-    const mine=[...this.creatures,...this.animals].filter(x=>x.mine);
-    c.font='700 34px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.white;
-    c.fillText(mine.length? `내가 만든 ${mine.length}마리` : '아직 만든 것이 없어요', VW/2, 44);
-    const cols=5, cw=210, chh=150, x0=VW/2-cols*cw/2, y0=110;
-    const per=cols*3, page=this.codexPage%Math.max(1,Math.ceil(mine.length/per));
-    mine.slice(page*per,(page+1)*per).forEach((m,i)=>{
+    const seen=Save.data.seen||{};
+    /* ⚠ 세계가 다섯인데 도감이 바다·정글만 보여 주고 있었다 — 수집표가 반쪽이면
+       '다음엔 저거'가 절반만 생긴다. 지금 세계의 것을 보여 준다. */
+    let list;
+    if(typeof MODES!=='undefined' && MODES[this.realm]){
+      list = MODES[this.realm].list().map(D=>({id:D.id, ko:D.ko, mode:this.realm}));
+    } else if(this.realm==='jungle'){
+      list = Object.entries(JUNGLE).map(([id,d])=>({id, ko:d.ko, jungle:true}));
+    } else {
+      list = SPECIES.filter(sp=>!SEA_LIKE_JUNGLE[sp.id]).map(sp=>({id:sp.id, ko:sp.ko, jungle:false}));
+    }
+    const got  = list.filter(x=>seen[x.id]).length;
+
+    c.font='700 32px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.white;
+    const wname = this.realm==='sea' ? '바다' : this.realm==='jungle' ? '정글'
+                : ((typeof MODES!=='undefined' && MODES[this.realm]) ? MODES[this.realm].ko : this.realm);
+    c.fillText(wname+` ${list.length}종 중 ${got}종을 그렸어요`, VW/2, 42);
+    /* 채워지는 막대 — 숫자보다 먼저 읽힌다 */
+    const bw=Math.min(560, VW*0.44), bx=VW/2-bw/2, by=60;
+    c.fillStyle='rgba(255,255,255,.12)'; UI.round(c,bx,by,bw,12,6); c.fill();
+    if(got){ c.fillStyle=PAL.gold; UI.round(c,bx,by,bw*got/list.length,12,6); c.fill(); }
+
+    const cols=8, cw=150, chh=122, x0=VW/2-cols*cw/2, y0=92, per=cols*4;
+    const pages=Math.max(1, Math.ceil(list.length/per));
+    if(this.codexPage>=pages) this.codexPage=0;
+    const page=this.codexPage;
+    /* 내가 그린 그림 중 그 종의 마지막 것 */
+    const mineBy={};
+    for(const b of [...this.creatures,...this.animals])
+      if(b.mine) mineBy[b.spId||b.id]=b;
+
+    list.slice(page*per,(page+1)*per).forEach((sp,i)=>{
       const x=x0+(i%cols)*cw, y=y0+((i/cols)|0)*chh;
-      c.fillStyle='rgba(255,255,255,.07)'; UI.round(c,x+6,y+6,cw-12,chh-12,14); c.fill();
-      c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=2; c.stroke();
-      const iw=cw-40, ih=iw*TEX_H/TEX_W;
-      c.drawImage(m.tex, x+20, y+16, iw, ih);
-      c.font='600 17px Galmuri11, sans-serif'; c.textAlign='center'; c.fillStyle=PAL.white;
-      c.fillText(m.name||this.kindName(m), x+cw/2, y+chh-22);
+      const has=!!seen[sp.id];
+      c.fillStyle= has? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.035)';
+      UI.round(c,x+5,y+5,cw-10,chh-10,12); c.fill();
+      c.strokeStyle= has? 'rgba(255,201,74,.5)' : 'rgba(255,255,255,.10)';
+      c.lineWidth=2; c.stroke();
+      const mine=mineBy[sp.id];
+      const tpl = sp.mode ? MTemplate.get(sp.mode, sp.id)
+                : sp.jungle ? JTemplate.get(sp.id) : Templates.get(sp.id);
+      c.save();
+      if(mine && mine.tex){                       // 내가 칠한 그대로
+        const iw=cw-34, ih=iw*TEX_H/TEX_W;
+        c.drawImage(mine.tex, x+17, y+14, iw, ih);
+      } else if(tpl){                             // 아직 안 그린 종 — 흐린 도안
+        c.globalAlpha = has? 0.85 : 0.16;
+        const iw=cw-22, ih=iw*TH/TW;
+        c.drawImage(tpl.ink, x+11, y+12, iw, ih);
+      }
+      c.restore();
+      c.font='600 15px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle= has? PAL.white : 'rgba(255,255,255,.34)';
+      c.fillText(sp.ko, x+cw/2, y+chh-16);
+      if(seen[sp.id]>1){                          // 여러 번 그린 종
+        c.font='700 13px Galmuri11, sans-serif'; c.fillStyle=PAL.gold;
+        c.fillText('×'+seen[sp.id], x+cw-22, y+22);
+      }
     });
+
     UI.btn(c,'back', 24, VH-112, 100,88, (g,r)=>{ if(!Icons.draw(g,'btn-back',76)) UI.icon.back(g,r); });
-    if(mine.length>per) UI.btn(c,'cpage', VW-124, VH-112, 100,88,
-      (g,r)=>{ if(Icons.draw(g,'btn-next',76)) return;
-        g.fillStyle=PAL.white; g.beginPath();
-        g.moveTo(-r*0.5,-r*0.6); g.lineTo(r*0.6,0); g.lineTo(-r*0.5,r*0.6); g.closePath(); g.fill(); });
+    /* 바다↔정글 — 도감도 세계를 따라간다 */
+    const order=this.realmOrder();
+    const nx=order[(order.indexOf(this.realm)+1)%order.length];
+    const nxName = nx==='sea'?'바다' : nx==='jungle'?'정글'
+                 : ((typeof MODES!=='undefined'&&MODES[nx])?MODES[nx].ko:nx);
+    UI.btn(c,'crealm', VW/2-230, VH-108, 200,84, (g,r)=>{
+      g.font='700 21px Galmuri11, sans-serif'; g.textAlign='center';
+      g.fillStyle=PAL.gold; g.fillText(nxName+' 도감 →', 0, -8); });
+    if(pages>1){
+      UI.btn(c,'cpage', VW/2+40, VH-108, 200,84, (g,r)=>{
+        g.font='700 21px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle=PAL.white; g.fillText('다음 장  '+(page+1)+'/'+pages, 0, -8); });
+    }
+    this._codexPages=pages;
   },
+
 };
 
 /* ── 이름 입력 — 진짜 HTML input 을 쓴다.
@@ -4184,6 +5790,10 @@ const SelfTest = {
     const bs=UI.btns.slice();
     if(!bs.length) return [];
     const S=Screen;
+    /* ⚠ 화면이 아직 안 잡혔으면(창 크기 0, 배율 0) 화면 좌표 검사는 건너뛴다.
+       그 상태로 재면 모든 버튼이 '0px — 아이 손가락에 작다'로 나온다.
+       멀쩡한 것을 결함으로 보고하는 검사기는 검사기가 아니다(실측 144건 오탐). */
+    const screenReady = S && S.scale > 0.05 && S.cssW > 50 && S.cssH > 50;
     for(let i=0;i<bs.length;i++){
       const a=bs[i];
       if(a.x<-1||a.y<-1||a.x+a.w>VW+1||a.y+a.h>VH+1)
@@ -4191,12 +5801,14 @@ const SelfTest = {
       /* ⚠ 게임 좌표로만 보면 못 잡는다 — 화면 맞춤이 cover 였을 때
          좌표상으론 멀쩡한데 실제로는 25% 가 잘려 나갔다.
          실제 화면 픽셀로 환산해서 다시 본다. */
-      const ax=S.ox+a.x*S.scale, ay=S.oy+a.y*S.scale;
-      const zx=ax+a.w*S.scale,  zy=ay+a.h*S.scale;
-      if(ax<-1||ay<-1||zx>S.cssW+1||zy>S.cssH+1)
-        bad.push(`${label}: '${a.id}' 가 실제 화면 밖으로 잘린다`);
-      if(Math.min(a.w,a.h)*S.scale < 38)
-        bad.push(`${label}: '${a.id}' 가 ${Math.round(Math.min(a.w,a.h)*S.scale)}px — 아이 손가락에 작다`);
+      if(screenReady){
+        const ax=S.ox+a.x*S.scale, ay=S.oy+a.y*S.scale;
+        const zx=ax+a.w*S.scale,  zy=ay+a.h*S.scale;
+        if(ax<-1||ay<-1||zx>S.cssW+1||zy>S.cssH+1)
+          bad.push(`${label}: '${a.id}' 가 실제 화면 밖으로 잘린다`);
+        if(Math.min(a.w,a.h)*S.scale < 38)
+          bad.push(`${label}: '${a.id}' 가 ${Math.round(Math.min(a.w,a.h)*S.scale)}px — 아이 손가락에 작다`);
+      }
       /* 가운데를 눌렀을 때 자기가 잡히는가 — 겹침보다 이게 본질이다 */
       const hit=UI.hit({x:a.x+a.w/2, y:a.y+a.h/2});
       if(hit!==a.id) bad.push(`${label}: '${a.id}' 를 눌러도 '${hit}' 가 잡힌다`);
@@ -4206,15 +5818,31 @@ const SelfTest = {
 
   async run(){
     const L=[]; const keep={state:Game.state, realm:Game.realm, page:Game.pickPage};
+    /* ⚠ 건너뛰기는 가드가 아니라 구멍이었다 — 첫 화면 맞춤(Screen.fit)이
+       점검보다 늦게 끝나서, 화면이 멀쩡한데도 매번 '건너뛰었다'만 찍혔다.
+       거짓 실패를 막으려던 것이 검사 자체를 영영 안 돌게 만들었다.
+       건너뛰지 말고 **기다린다**. 그래도 안 잡히면 그건 진짜 결함이다. */
+    for(let tries=0; tries<20 && !(Screen && Screen.scale>0.05 && Screen.cssW>50); tries++)
+      await new Promise(r=>setTimeout(r,150));
+    if(!(Screen && Screen.scale>0.05 && Screen.cssW>50))
+      L.push('✗ 3초를 기다려도 화면 크기가 안 잡힌다 — 버튼 검사를 못 했다');
+
     const push=a=>{ for(const x of a) L.push('✗ '+x); };
 
-    for(const realm of ['sea','jungle']){
+    /* 신규 세계도 바다·정글과 같은 화면/손가락 기준을 통과해야 한다.
+       목록이 JS에는 있어도 이미지·anchor가 덜 오면 여기서 바로 보인다. */
+    const realms=Game.realmOrder();
+    for(const realm of realms){
       push(this.probe(realm+' 수족관', ()=>{ Game.realm=realm; Game.state=ST.TANK; }));
       /* 고르기는 페이지를 끝까지 넘겨 본다 — 마지막 페이지에서 깨지는 일이 많다 */
       for(let p=0;p<6;p++){
         const n=Game._pickPages||1;
         if(p>=n && p>0) break;
         push(this.probe(`${realm} 고르기 ${p+1}쪽`, ()=>{ Game.realm=realm; Game.state=ST.PICK; Game.pickPage=p; }));
+      }
+      if(typeof MODES!=='undefined' && MODES[realm]){
+        const first=MTemplate.ready(realm)[0];
+        if(first) push(this.probe(realm+' 색칠', ()=>{ Paint.open(first.id,realm); Game.state=ST.PAINT; }));
       }
     }
     push(this.probe('색칠', ()=>{ Paint.open('clownfish'); Game.state=ST.PAINT; }));
@@ -4238,6 +5866,59 @@ const SelfTest = {
     if(junN<junAll.length)
       L.push('✗ 정글 도안 ' + junAll.filter(id=>!JTemplate.get(id)).map(id=>JUNGLE[id].ko).join(' ') + ' 없음');
 
+    /* 새 세 모드는 실물 파일과 부위 anchor가 모두 있어야만 고르기·제출이 성립한다. */
+    if(typeof MODES!=='undefined') for(const mode of ['dino','robot','bug']){
+      const all=MODES[mode].list(); let loaded=0, anchored=0;
+      for(let tries=0;tries<6;tries++){
+        MTemplate.prefetch(mode);
+        loaded=all.filter(s=>MTemplate.get(mode,s.id)).length;
+        anchored=all.filter(s=>!s.part || !!MAnchor.of(mode,s.id,s.part)).length;
+        if(loaded===all.length && anchored===all.length) break;
+        await new Promise(r=>setTimeout(r,700));
+      }
+      L.push(`· ${MODES[mode].ko} 준비 — 도안 ${loaded}/${all.length} · 부위 anchor ${anchored}/${all.length}`);
+      if(loaded<all.length) L.push(`✗ ${MODES[mode].ko} 도안 일부가 없다 — assets/${MODES[mode].folder}/ 확인`);
+      if(anchored<all.length) L.push(`✗ ${MODES[mode].ko} 움직이는 부위 anchor 일부가 없다`);
+    }
+
+    /* 세계마다 먹이·찾기가 **다음 프레임까지 살아 있는가.**
+       ⚠ Game.W 는 getter 라 읽을 때마다 세계를 다시 '설정'했다. 그 설정이
+         foods 와 findT 를 비워서, 새 모드에선 먹이를 뿌려도 그 프레임에 사라지고
+         '내 것 찾기'가 켜지자마자 꺼졌다(실측: 뿌린 직후 0알).
+         화면은 멀쩡했다 — 아무 일도 안 일어날 뿐이었다. 그래서 여기서 잰다. */
+    {
+      const keepR=Game.realm;
+      for(const realm of ['sea','jungle','dino','robot','bug']){
+        if(realm!=='sea' && realm!=='jungle' && !(typeof MODES!=='undefined' && MODES[realm])) continue;
+        Game.realm=realm;
+        try{
+          realm==='sea' ? Game.W.dropFood(VW/2, VH*0.3) : Game.W.dropFood(VW/2);
+          const n=Game.W.foods.length;                 // 두 번째 읽기
+          Game.W.findT=200;
+          const t=Game.W.findT;                        // 세 번째 읽기
+          if(!n) L.push(`✗ ${realm}: 먹이를 뿌렸는데 다음 읽기에 사라진다`);
+          if(t!==200) L.push(`✗ ${realm}: '내 것 찾기'가 켜지자마자 꺼진다`);
+          Game.W.foods.length=0; Game.W.findT=0;
+        }catch(e){ L.push(`✗ ${realm}: 먹이·찾기 검사 중 오류 — ${e.message}`); }
+      }
+      Game.realm=keepR;
+    }
+
+    /* P19 보물상자 꾸미기도 도안만큼 실제 파일이 중요하다. 빈 상자는 보여도
+       아이가 받는 장식이 코드 임시 그림으로 보이면 출시 품질이 아니다. */
+    if(typeof Items!=='undefined'){
+      let itemN=0, chestBurst=false;
+      for(let tries=0; tries<6; tries++){
+        itemN=ITEMS.filter(([id])=>!!Items.get(id)).length;
+        chestBurst=typeof FXA!=='undefined' && !!FXA.get('fx-chest-burst');
+        if(itemN===ITEMS.length && chestBurst) break;
+        await new Promise(r=>setTimeout(r,700));
+      }
+      L.push(`· 보물 장식 준비 — ${itemN}/${ITEMS.length}종 · 상자 빛 ${chestBurst?'준비':'없음'}`);
+      if(itemN<ITEMS.length) L.push('✗ 보물 장식 PNG 일부가 없다 — assets/item/을 확인');
+      if(!chestBurst) L.push('✗ 보물상자 빛 PNG가 없다 — assets/ui/fx-chest-burst.png을 확인');
+    }
+
     /* 저장 용량 */
     try{
       const kb=((localStorage[Save.key]||'').length/1024);
@@ -4245,6 +5926,25 @@ const SelfTest = {
       if(kb>4000) L.push('✗ 저장 용량이 4MB 를 넘었다 — 오래된 것부터 지워질 수 있다');
     }catch(e){}
 
+    /* 자라는 세계 */
+    if(typeof Grow!=='undefined'){
+      const n=Grow.next();
+      L.push(`· 수조 "${Grow.STEPS[Grow.level()].ko}" · 생명력 ${Grow.vit()}`
+             + (n? ` (다음 ${n.at})` : ' (다 자랐다)'));
+    }
+    /* 세계 차례 — 어셋이 준비된 모드만 돈다 */
+    if(typeof Game!=='undefined' && Game.realmOrder){
+      const order=Game.realmOrder();
+      const names=order.map(r=> r==='sea'?'바다' : r==='jungle'?'정글'
+                              : ((typeof MODES!=='undefined'&&MODES[r])?MODES[r].ko:r));
+      L.push('· 세계 '+order.length+'개 — '+names.join(' → '));
+      if(typeof MTemplate!=='undefined')
+        for(const m of ['dino','robot','bug'])
+          if(typeof MODES!=='undefined' && MODES[m]){
+            const rd=MTemplate.ready(m).length, all=MODES[m].list().length;
+            if(rd<all) L.push(`  · ${MODES[m].ko} 도안 ${rd}/${all}`);
+          }
+    }
     /* 서버 */
     try{
       const r=await fetch('api/health'); const j=await r.json();
@@ -4293,7 +5993,7 @@ addEventListener('DOMContentLoaded',()=>{
   Screen.init(); Input.init(); Save.load();
   if(typeof Net!=='undefined') Net.init();
   Sfx.on = Save.data.sound!==false;
-  Game.init(); Icons.prefetch(); BG.prefetch(); Props.prefetch(); FX.prefetch(); JWorld.prefetch(); JTemplate.prefetch();
+  Game.init(); Icons.prefetch(); BG.prefetch(); if(typeof Items!=='undefined') Items.prefetch(); Props.prefetch(); FX.prefetch(); JWorld.prefetch(); JTemplate.prefetch();
   const gate=document.getElementById('gate');
   document.getElementById('go').onclick=()=>{
     Sfx.unlock();

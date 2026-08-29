@@ -1,0 +1,205 @@
+{
+  "pack": "P21",
+  "species": [
+    {
+      "id": "bot-wheel",
+      "part": "wheel"
+    },
+    {
+      "id": "bot-spider",
+      "part": "leg"
+    },
+    {
+      "id": "bot-copter",
+      "part": "blade"
+    },
+    {
+      "id": "bot-vacuum",
+      "part": null
+    },
+    {
+      "id": "bot-cook",
+      "part": "arm"
+    },
+    {
+      "id": "bot-laundry",
+      "part": null
+    },
+    {
+      "id": "bot-butler",
+      "part": "arm"
+    },
+    {
+      "id": "bot-lamp",
+      "part": null
+    },
+    {
+      "id": "bot-fan",
+      "part": "blade"
+    },
+    {
+      "id": "bot-mail",
+      "part": "leg"
+    },
+    {
+      "id": "bot-clock",
+      "part": "arm"
+    },
+    {
+      "id": "bot-crane",
+      "part": "arm"
+    },
+    {
+      "id": "bot-drill",
+      "part": "arm"
+    },
+    {
+      "id": "bot-weld",
+      "part": "arm"
+    },
+    {
+      "id": "bot-forklift",
+      "part": "wheel"
+    },
+    {
+      "id": "bot-dump",
+      "part": "wheel"
+    },
+    {
+      "id": "bot-mixer",
+      "part": "drum"
+    },
+    {
+      "id": "bot-saw",
+      "part": "blade"
+    },
+    {
+      "id": "bot-magnet",
+      "part": "arm"
+    },
+    {
+      "id": "bot-track",
+      "part": "wheel"
+    },
+    {
+      "id": "bot-ball",
+      "part": "wheel"
+    },
+    {
+      "id": "bot-mono",
+      "part": "wheel"
+    },
+    {
+      "id": "bot-hover",
+      "part": null
+    },
+    {
+      "id": "bot-jet",
+      "part": null
+    },
+    {
+      "id": "bot-rocket",
+      "part": null
+    },
+    {
+      "id": "bot-dog",
+      "part": "leg"
+    },
+    {
+      "id": "bot-cat",
+      "part": "leg"
+    },
+    {
+      "id": "bot-bird",
+      "part": "wing"
+    },
+    {
+      "id": "bot-fish",
+      "part": "fin"
+    },
+    {
+      "id": "bot-snake",
+      "part": null
+    },
+    {
+      "id": "bot-crab",
+      "part": "claw"
+    },
+    {
+      "id": "bot-dino",
+      "part": "leg"
+    },
+    {
+      "id": "bot-space",
+      "part": "leg"
+    },
+    {
+      "id": "bot-diver",
+      "part": "fin"
+    },
+    {
+      "id": "bot-rover",
+      "part": "wheel"
+    },
+    {
+      "id": "bot-drone",
+      "part": "blade"
+    },
+    {
+      "id": "bot-sub",
+      "part": "fin"
+    },
+    {
+      "id": "bot-arctic",
+      "part": null
+    },
+    {
+      "id": "bot-doctor",
+      "part": "arm"
+    },
+    {
+      "id": "bot-fire",
+      "part": "arm"
+    },
+    {
+      "id": "bot-police",
+      "part": "leg"
+    },
+    {
+      "id": "bot-teacher",
+      "part": "arm"
+    },
+    {
+      "id": "bot-guide",
+      "part": null
+    },
+    {
+      "id": "bot-farm",
+      "part": "arm"
+    },
+    {
+      "id": "bot-music",
+      "part": null
+    },
+    {
+      "id": "bot-paint",
+      "part": "arm"
+    },
+    {
+      "id": "bot-camera",
+      "part": "leg"
+    },
+    {
+      "id": "bot-balloon",
+      "part": null
+    },
+    {
+      "id": "bot-toy",
+      "part": "leg"
+    },
+    {
+      "id": "bot-mini",
+      "part": "leg"
+    }
+  ]
+}

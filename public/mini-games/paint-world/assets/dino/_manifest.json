@@ -1,0 +1,205 @@
+{
+  "pack": "P20",
+  "species": [
+    {
+      "id": "tyrannosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "brachiosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "pteranodon",
+      "part": "wing"
+    },
+    {
+      "id": "apatosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "diplodocus",
+      "part": "leg"
+    },
+    {
+      "id": "argentinosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "mamenchisaurus",
+      "part": "leg"
+    },
+    {
+      "id": "camarasaurus",
+      "part": "leg"
+    },
+    {
+      "id": "shunosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "amargasaurus",
+      "part": "leg"
+    },
+    {
+      "id": "spinosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "giganotosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "allosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "carnotaurus",
+      "part": "leg"
+    },
+    {
+      "id": "baryonyx",
+      "part": "leg"
+    },
+    {
+      "id": "ceratosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "acrocanthosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "triceratops",
+      "part": "leg"
+    },
+    {
+      "id": "styracosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "protoceratops",
+      "part": "leg"
+    },
+    {
+      "id": "pachycephalosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "torosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "pentaceratops",
+      "part": "leg"
+    },
+    {
+      "id": "centrosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "chasmosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "stegosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "ankylosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "kentrosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "euoplocephalus",
+      "part": "leg"
+    },
+    {
+      "id": "scelidosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "polacanthus",
+      "part": "leg"
+    },
+    {
+      "id": "velociraptor",
+      "part": "leg"
+    },
+    {
+      "id": "compsognathus",
+      "part": "leg"
+    },
+    {
+      "id": "gallimimus",
+      "part": "leg"
+    },
+    {
+      "id": "oviraptor",
+      "part": "leg"
+    },
+    {
+      "id": "troodon",
+      "part": "leg"
+    },
+    {
+      "id": "deinonychus",
+      "part": "leg"
+    },
+    {
+      "id": "parasaurolophus",
+      "part": "leg"
+    },
+    {
+      "id": "edmontosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "corythosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "lambeosaurus",
+      "part": "leg"
+    },
+    {
+      "id": "quetzalcoatlus",
+      "part": "wing"
+    },
+    {
+      "id": "rhamphorhynchus",
+      "part": "wing"
+    },
+    {
+      "id": "dimorphodon",
+      "part": "wing"
+    },
+    {
+      "id": "pterodactylus",
+      "part": "wing"
+    },
+    {
+      "id": "plesiosaurus",
+      "part": "fin"
+    },
+    {
+      "id": "mosasaurus",
+      "part": null
+    },
+    {
+      "id": "ichthyosaurus",
+      "part": null
+    },
+    {
+      "id": "elasmosaurus",
+      "part": "fin"
+    },
+    {
+      "id": "kronosaurus",
+      "part": "fin"
+    }
+  ]
+}

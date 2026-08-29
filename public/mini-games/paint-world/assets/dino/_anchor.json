@@ -1,0 +1,290 @@
+{
+  "tyrannosaurus": {
+    "leg": [
+      368,
+      300
+    ]
+  },
+  "brachiosaurus": {
+    "leg": [
+      300,
+      330
+    ]
+  },
+  "pteranodon": {
+    "wing": [
+      372,
+      214
+    ]
+  },
+  "apatosaurus": {
+    "leg": [
+      325,
+      330
+    ]
+  },
+  "diplodocus": {
+    "leg": [
+      315,
+      330
+    ]
+  },
+  "argentinosaurus": {
+    "leg": [
+      332,
+      332
+    ]
+  },
+  "mamenchisaurus": {
+    "leg": [
+      330,
+      322
+    ]
+  },
+  "camarasaurus": {
+    "leg": [
+      350,
+      324
+    ]
+  },
+  "shunosaurus": {
+    "leg": [
+      320,
+      330
+    ]
+  },
+  "amargasaurus": {
+    "leg": [
+      330,
+      316
+    ]
+  },
+  "spinosaurus": {
+    "leg": [
+      355,
+      305
+    ]
+  },
+  "giganotosaurus": {
+    "leg": [
+      350,
+      307
+    ]
+  },
+  "allosaurus": {
+    "leg": [
+      350,
+      307
+    ]
+  },
+  "carnotaurus": {
+    "leg": [
+      350,
+      306
+    ]
+  },
+  "baryonyx": {
+    "leg": [
+      350,
+      308
+    ]
+  },
+  "ceratosaurus": {
+    "leg": [
+      350,
+      306
+    ]
+  },
+  "acrocanthosaurus": {
+    "leg": [
+      350,
+      308
+    ]
+  },
+  "triceratops": {
+    "leg": [
+      350,
+      322
+    ]
+  },
+  "styracosaurus": {
+    "leg": [
+      350,
+      322
+    ]
+  },
+  "protoceratops": {
+    "leg": [
+      350,
+      325
+    ]
+  },
+  "pachycephalosaurus": {
+    "leg": [
+      350,
+      315
+    ]
+  },
+  "torosaurus": {
+    "leg": [
+      350,
+      320
+    ]
+  },
+  "pentaceratops": {
+    "leg": [
+      350,
+      320
+    ]
+  },
+  "centrosaurus": {
+    "leg": [
+      350,
+      320
+    ]
+  },
+  "chasmosaurus": {
+    "leg": [
+      350,
+      320
+    ]
+  },
+  "stegosaurus": {
+    "leg": [
+      340,
+      326
+    ]
+  },
+  "ankylosaurus": {
+    "leg": [
+      340,
+      327
+    ]
+  },
+  "kentrosaurus": {
+    "leg": [
+      340,
+      326
+    ]
+  },
+  "euoplocephalus": {
+    "leg": [
+      340,
+      326
+    ]
+  },
+  "scelidosaurus": {
+    "leg": [
+      340,
+      325
+    ]
+  },
+  "polacanthus": {
+    "leg": [
+      340,
+      325
+    ]
+  },
+  "velociraptor": {
+    "leg": [
+      350,
+      307
+    ]
+  },
+  "compsognathus": {
+    "leg": [
+      350,
+      304
+    ]
+  },
+  "gallimimus": {
+    "leg": [
+      350,
+      304
+    ]
+  },
+  "oviraptor": {
+    "leg": [
+      350,
+      305
+    ]
+  },
+  "troodon": {
+    "leg": [
+      350,
+      305
+    ]
+  },
+  "deinonychus": {
+    "leg": [
+      350,
+      308
+    ]
+  },
+  "parasaurolophus": {
+    "leg": [
+      350,
+      322
+    ]
+  },
+  "edmontosaurus": {
+    "leg": [
+      350,
+      324
+    ]
+  },
+  "corythosaurus": {
+    "leg": [
+      350,
+      320
+    ]
+  },
+  "lambeosaurus": {
+    "leg": [
+      350,
+      320
+    ]
+  },
+  "quetzalcoatlus": {
+    "wing": [
+      360,
+      190
+    ]
+  },
+  "rhamphorhynchus": {
+    "wing": [
+      360,
+      208
+    ]
+  },
+  "dimorphodon": {
+    "wing": [
+      360,
+      210
+    ]
+  },
+  "pterodactylus": {
+    "wing": [
+      360,
+      208
+    ]
+  },
+  "plesiosaurus": {
+    "fin": [
+      350,
+      300
+    ]
+  },
+  "elasmosaurus": {
+    "fin": [
+      350,
+      290
+    ]
+  },
+  "kronosaurus": {
+    "fin": [
+      350,
+      300
+    ]
+  }
+}
