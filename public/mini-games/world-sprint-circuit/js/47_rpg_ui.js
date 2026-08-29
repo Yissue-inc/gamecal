@@ -197,7 +197,9 @@ class GrowScreen extends Screen0 {
            (챕터 1 규칙: 설명은 숨기고 데이터는 남긴다). */
         if(!full) return { label:STAT_NAME[k]||k, icon:UI.STAT_ICON&&UI.STAT_ICON[k],
           subAlways:true,
-          sub:`${cur.toFixed(1)} → 잠재 ${Math.round(cap)}`,
+          /* ⛔ 챕터 9 — '잠재' 가 이 화면에 일곱 번 있었다(여섯 줄 + 왼쪽 패널).
+             화살표가 이미 '지금 → 될 수 있는 것' 을 말한다 — 줄에서는 낱말을 뺀다. */
+          sub:`${cur.toFixed(1)} → ${Math.round(cap)}`,
           right:'+1', rightColor:(a.tp>0?PAL.green:PAL.dim), color:PAL.white,
           right2:star(k), right2Color:starC(k), _k:k, _full:false };
         const why=RPG.whyBreak(a,k), br=RPG.broke(a,k);
@@ -458,7 +460,9 @@ class GrowScreen extends Screen0 {
       UIK.itemBox(u, 14+k*45, 180, 36, {
         color: it ? RPG.rarityOf(it.r).color : '#39415a',
         icon: it ? RPG.itemIcon(it) : RPG.SLOT_ICON[sl],
-        qty: it ? RPG.rarityOf(it.r).name : K('빈칸'),
+        /* 비어 있으면 글자를 안 쓴다 — 상자가 비어 보이고, 슬롯 아이콘이 무슨 칸인지
+           말하고, 아래 라벨(신발·유니폼·장비)이 이름을 댄다. '빈칸' 은 네 번째다. */
+        qty: it ? RPG.rarityOf(it.r).name : '',
         label: RPG.SLOT_NAME[sl] });
     });
     /* 장착한 스킬 — 어느 탭에 있든 '이 선수가 뭘 켜고 있나'가 보여야 한다.
@@ -497,9 +501,12 @@ class GrowScreen extends Screen0 {
           168, 31, 8, used>=cap?PAL.gold:PAL.dim, 'left');
     }
     UI.list(u, this.rows, this.sel, 166, this.tab===2?42:36, VW-178, 22, this.tab===2?7:8);
+    /* ⛔ 챕터 9 — 푸터가 이 화면에서 **제일 긴 한 조각**이었다(43자 · 전체 254자의 17%).
+       그런데 '+1 / 잠재치 돌파' 는 고른 줄의 오른쪽이 이미 말하고 있다
+       ('+1' 또는 '돌파 −N'). 키 힌트는 **줄이 못 하는 말만** 한다. */
     UI.footer(u, this.tab===2 ? '확인 배우기 / 켜고 끄기 · ◀▶ 탭 · 취소 뒤로'
                 : this.tab===1 ? '확인 착용 · ▲ 합성 · ▼ 팔기 · ◀▶ 탭 · 취소 뒤로'
-                               : '확인 +1 / 잠재치 돌파 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소');
+                               : '확인 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소');
   }
 }
 
