@@ -122,6 +122,45 @@ const RPG = {
     return true;
   },
 
+  /* ── 특성 재추첨 ─────────────────────────────────────────
+     ⚠ 실측으로 값을 먼저 재고 만들었다(2000명 · 한 시즌 × 시드 5):
+
+        특성      평균OVR  부상건수  연인원결장   나쁜 특성 보유율 18.3%
+        없음       48.84     5.8      16
+        유리몸      48.70     7.4      **29**
+        새가슴      48.82     5.8      16          ← 사실상 아무것도 안 한다
+        강골       50.30     3.6       6
+
+     ⛔ **승점으로는 못 판다.** 시드 노이즈가 지배해서 유리몸이 오히려 높게도 나온다
+        (316 vs 281). 진짜 값은 **결장 주차**다 — 유리몸은 선수단 가용시간의 5% 를
+        뺏는다. 내 주전이 대회 주에 빠지는 게 이 특성의 실체다.
+
+     ⚠ 도박으로 둔다. 나쁜 특성이 나올 수도 있어야 "다시 뽑을까"가 결정이 된다.
+        대신 **어느 특성을 다시 뽑을지는 플레이어가 고른다** — 유리몸을 고르면
+        나빠질 여지가 거의 없다(새가슴만 피하면 된다). 쓸 자리가 분명하다.
+     ⚠ 값이 오른다 — 좋은 게 나올 때까지 돌리는 걸 막는다. */
+  REROLL_BASE: 20, REROLL_STEP: 15,
+  rerollCost(a){ return this.REROLL_BASE + this.REROLL_STEP * ((a && a.rerolls) || 0); },
+  whyReroll(a, idx){
+    if(!a || !a.traits || !a.traits.length) return '특성이 없습니다';
+    if(idx===undefined || !a.traits[idx]) return '다시 뽑을 특성을 고르세요';
+    if((a.tp||0) < this.rerollCost(a)) return `훈련 포인트 ${this.rerollCost(a)} 필요`;
+    return null;
+  },
+  reroll(a, idx, rng){
+    if(this.whyReroll(a, idx) !== null) return null;
+    const R = rng || Math.random;
+    const old = a.traits[idx];
+    /* 지금 가진 것들과 방금 뺀 것을 빼고 뽑는다 — 같은 게 다시 나오면 돈만 버린다 */
+    const pool = Object.keys(TRAITS).filter(t => a.traits.indexOf(t) < 0);
+    if(!pool.length) return null;
+    const got = pool[(R()*pool.length)|0];
+    a.tp -= this.rerollCost(a);
+    a.traits[idx] = got;
+    a.rerolls = (a.rerolls||0) + 1;
+    return { from:old, to:got };
+  },
+
   /* ── 장비 ────────────────────────────────────────────────
      ⛔ 장비는 **성장·컨디션에만** 작용한다. 경기 계산에 곱해지지 않는다.
         grow  : 훈련으로 오르는 양 배수

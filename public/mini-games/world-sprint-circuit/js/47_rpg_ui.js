@@ -654,7 +654,30 @@ class CoachScreen extends Screen0 {
 class ScoutReportScreen extends Screen0 {
   constructor(mg, a){ super(mg); this.a=a; this.t=0; }
   get rows(){ return []; }
-  update(now){ this.t+=16.7; if(Input.pressed('back')||Input.pressed('action')) this.mg.pop(); }
+  /* ⚠ 이 화면은 원래 '읽기 전용'이었다(확인/취소 둘 다 나가기).
+     특성을 다시 뽑는 자리는 여기가 맞다 — 선수의 타고난 것을 보는 화면이다.
+     ◀▶ 로 특성을 고르고 ▲ 로 다시 뽑는다. 나가기는 그대로. */
+  update(now){
+    this.t+=16.7;
+    const tr = this.a.traits || [];
+    if(tr.length>1){
+      if(Input.pressed('left'))  { this.tsel=((this.tsel||0)+tr.length-1)%tr.length; Sfx.ui(); }
+      if(Input.pressed('right')) { this.tsel=((this.tsel||0)+1)%tr.length; Sfx.ui(); }
+    }
+    if(tr.length && Input.pressed('up')){
+      const i=this.tsel||0, why=RPG.whyReroll(this.a, i);
+      if(why){ Sfx.fail(); this.mg.toast(K(why)); }
+      else {
+        const r=RPG.reroll(this.a, i);
+        if(r){ Sfx.record(); Screen.shake(0.3); this.rerollAt=this.t;
+               this.mg.toast(K('%1 → %2').replace('%1', TRAITS[r.from].name)
+                                          .replace('%2', TRAITS[r.to].name)); }
+        else Sfx.fail();
+      }
+      return;
+    }
+    if(Input.pressed('back')||Input.pressed('action')) this.mg.pop();
+  }
   draw(u){
     const a=this.a, conf=DEPTH.confidence(a, this.mg && this.mg.club);
     const col=(typeof UI!=='undefined'&&UI.rareColor)?UI.rareColor(a):PAL.white;
@@ -714,7 +737,31 @@ class ScoutReportScreen extends Screen0 {
       txt(u, K('성장 이력 (OVR %1 → %2)').replace('%1',lo).replace('%2',hi),
           gx, gy-9, 8, PAL.dim, 'left');
     }
-    UI.footer(u, '확인/취소 돌아가기');
+    /* ── 특성과 재추첨 ─────────────────────────────────────
+       ⚠ 특성은 이 선수가 타고난 것인데 **바꿀 방법이 하나도 없었다.**
+          실측: 1/5 가 나쁜 특성을 갖고 태어나고, 유리몸은 선수단 가용시간의 5%를
+          뺏는다(연인원 결장 16 → 29). 다시 뽑을 수 있어야 한다. */
+    const tr=a.traits||[], ry=VH-40;
+    txt(u, K('특성'), 16, ry, 8, PAL.dim, 'left');
+    if(!tr.length) txt(u, K('없음'), 44, ry-1, 9, PAL.dim, 'left');
+    tr.forEach((t,i)=>{
+      const on = i===(this.tsel||0) && tr.length>0;
+      const bad = (t==='glass'||t==='nervous');
+      const x = 44 + i*96;
+      if(on){ u.fillStyle='rgba(255,215,94,.18)'; u.fillRect(x-4, ry-3, 92, 14); }
+      txt(u, K(TRAITS[t].name), x, ry-1, 10, bad?PAL.red:PAL.green, 'left', on?700:400);
+      txt(u, K(TRAITS[t].desc), x, ry+9, 8, PAL.dim, 'left');
+    });
+    if(tr.length){
+      const cost=RPG.rerollCost(a), can=RPG.whyReroll(a, this.tsel||0)===null;
+      txt(u, K('▲ 다시 뽑기 −%1').replace('%1', cost), VW-16, ry-1, 9,
+          can?PAL.gold:PAL.dim, 'right', 700);
+      txt(u, K('훈련 포인트 %1').replace('%1', a.tp||0), VW-16, ry+9, 8, PAL.dim, 'right');
+      if(this.rerollAt!==undefined && this.t-this.rerollAt<900)
+        BG.fx(u, 'fx-item-get', 90, ry+4, 30, clamp((this.t-this.rerollAt)/900,0,0.999), 4);
+    }
+    UI.footer(u, tr.length>1 ? '◀▶ 특성 · ▲ 다시 뽑기 · 취소 돌아가기'
+                             : tr.length ? '▲ 다시 뽑기 · 취소 돌아가기' : '확인/취소 돌아가기');
   }
 }
 
