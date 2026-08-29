@@ -382,6 +382,11 @@ class OfficeScreen extends Screen0 {
          **제일 먼저** 말한다 — 큰 것이 작은 것보다 잘 보여야 한다. */
       if(WS && WS.grow){
         const c = WS.grow>0?PAL.green:PAL.red;
+        /* 달력 한 장이 넘어간다 — 사무실에 처음 들어온 1.2초 동안만.
+           ⚠ 시간은 화면이 이미 갖고 있는 것을 쓴다(this.mg.t). */
+        { const age = (this.mg.t||0) - (this._wsAt ??= (this.mg.t||0));
+          if(age < 1200)
+            BG.fx(u, 'fx-week-done', 78, VH-40, 30, clamp(age/1200,0,0.999), 5); }
         txt(u, '이번 주 성장', 52, VH-56, 8, PAL.dim, 'left');
         txt(u, (WS.grow>0?'+':'')+UIK.n(WS.grow), 108, VH-57, 11, c, 'left', 700);
         if(WS.top && WS.top.length)
@@ -622,7 +627,9 @@ class AthleteScreen extends Screen0 {
        ⚠ 로스터가 인물로 안 읽히던 이유가 얼굴이 없어서였다. 얼굴이 없는 종족은
           달리는 그림으로 물러나므로 어느 선수를 열어도 빈칸은 안 나온다. */
     const pw=68, pxx=8, pyy=182;
-    if(typeof UIK!=='undefined') UIK.card(u, pxx, pyy, pw, pw, UI.rareColor(a), {});
+    if(typeof UIK!=='undefined')
+      UIK.card(u, pxx, pyy, pw, pw, UI.rareColor(a),
+               { tier:(typeof rarityOf==='function')?rarityOf(a):1 });
     if(typeof Face!=='undefined' &&
        !Face.draw(u, a.species, pxx+pw/2, pyy+pw/2, pw-10))
       CharHD.draw(u, a.species, pxx+pw/2, pyy+pw-8, 0.05, { t:performance.now(), scale:1.4 });

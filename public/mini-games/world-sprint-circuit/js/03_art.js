@@ -92,9 +92,21 @@ const Track = {
   },
   GAUGE_Y:242, GAUGE_H:28,    // 242~270 리듬 게이지 전용 띠
 
+  /* 시간대 — 대회마다 하늘이 다르면 "같은 트랙을 또 뛴다"가 덜하다.
+     ⚠ 종목 id 로 고정한다. 무작위면 같은 대회를 다시 볼 때마다 하늘이 바뀌어
+        오히려 안 자연스럽다(기록 화면과도 어긋난다).
+     ⚠ 어셋이 없으면 night-sky → 그라디언트 순으로 물러난다. */
+  SKY_ART: { day:'sky-day', dusk:'sky-dusk', night:'sky-night' },
+  skyFor(id){
+    if(!id) return 'sky-night';
+    let h=0; for(let i=0;i<id.length;i++) h=(h*31+id.charCodeAt(i))>>>0;
+    return [this.SKY_ART.day, this.SKY_ART.dusk, this.SKY_ART.night][h%3];
+  },
   drawBack(ctx, camM, distTotal){
-    // 하늘 — 야간 경기장
-    if(!BG.tile(BG.ctx(),'night-sky', 0, this.CROWD_Y, camM*0.6)){
+    // 하늘 — 시간대별. 없으면 night-sky, 그것도 없으면 그라디언트
+    const skyName = this.skyFor(G && G.event && G.event.def && G.event.def.id);
+    const skyOk = BG.tile(BG.ctx(), skyName, 0, this.CROWD_Y, camM*0.6);
+    if(!skyOk && !BG.tile(BG.ctx(),'night-sky', 0, this.CROWD_Y, camM*0.6)){
       const g = ctx.createLinearGradient(0,this.SKY_Y,0,this.CROWD_Y);
       g.addColorStop(0, PAL.sky1); g.addColorStop(1, PAL.sky2);
       ctx.fillStyle=g; ctx.fillRect(0,0,VW,this.CROWD_Y);
@@ -123,7 +135,14 @@ const Track = {
   },
 
   floodlight(ctx,x,y){
-    if(BG.obj(BG.ctx(),'floodlight-tower', x+9, this.CROWD_Y, this.CROWD_Y-y)) return;
+    if(BG.obj(BG.ctx(),'floodlight-tower', x+9, this.CROWD_Y, this.CROWD_Y-y)){
+      /* 조명 번짐 — 탑만 있으면 밤인데 빛이 안 난다. 등 위에 옅게 겹친다. */
+      const fl = BG.get('flare-light');
+      if(fl){ const c=BG.ctx();
+        c.save(); c.globalAlpha=0.30; c.globalCompositeOperation='lighter';
+        c.drawImage(fl, x-9, y-8, 36, 36); c.restore(); }
+      return;
+    }
     ctx.fillStyle='#2b3352'; ctx.fillRect(x+7,y+10,3,this.CROWD_Y-y-10);
     if(!Art.blit(ctx,'floodlight',x+9,y+12)){
       ctx.fillStyle='#4a5580'; ctx.fillRect(x,y,18,10);

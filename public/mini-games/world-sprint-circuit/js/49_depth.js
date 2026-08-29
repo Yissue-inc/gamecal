@@ -26,7 +26,7 @@ const DEPTH = {
     { id:'endure', name:'지구력 코치', stat:'stamina',      wage:13, grow:0.14, icon:'co-endure' },
     { id:'tech',   name:'기술 코치',   stat:'technique',    wage:16, grow:0.16, icon:'co-tech' },
     { id:'rhythm', name:'리듬 코치',   stat:'rhythm',       wage:13, grow:0.14, icon:'co-rhythm' },
-    { id:'medic',  name:'의무 트레이너',stat:null, wage:18, hurt:-0.22, rest:1.6, icon:'icon-gear' },
+    { id:'medic',  name:'의무 트레이너',stat:null, wage:18, hurt:-0.22, rest:1.6, icon:'co-medic' },
   ],
   coachOf(id){ return this.COACHES.find(c=>c.id===id) || null; },
   hired(club){ return (club && club.coaches) || []; },

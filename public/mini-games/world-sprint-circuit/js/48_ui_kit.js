@@ -129,9 +129,23 @@ const UIK = {
 
   /* ── 등급 카드 ───────────────────────────────────────────
      아이템·선수 카드. 희귀도가 테두리 색과 안쪽 물빛으로 보인다. */
+  CARD_ICON: { 1:'card-1', 2:'card-2', 3:'card-3', 4:'card-4', 5:'card-5' },
   card(u, x, y, w, h, color, opt){
     opt = opt||{};
     const c = color || '#9aa4b8';
+    /* 등급별 카드틀(card-1 … card-5) — 등급이 색이 아니라 **테두리 모양**으로 읽힌다.
+       ⚠ 이름은 리터럴 맵으로 둔다(rarity 때 검사기가 종족 이름 60개를 지어냈다).
+       ⚠ opt.tier 를 안 주면 예전 frame-card 로 물러난다 — 아이템 카드 등 등급이
+          없는 자리는 그대로여야 한다. */
+    const tierArt = opt.tier ? this.CARD_ICON[opt.tier|0] : null;
+    if(opt.art!==false && tierArt && BG.get && BG.get(tierArt)){
+      u.fillStyle = 'rgba(12,16,26,.94)'; u.fillRect(x,y,w,h);
+      u.globalAlpha = opt.on ? 0.26 : 0.14; u.fillStyle = c;
+      u.fillRect(x, y, w, h); u.globalAlpha = 1;
+      this.nine(u, tierArt, x, y, w, h, 16);
+      if(opt.on){ u.strokeStyle=c; u.lineWidth=1; u.strokeRect(x+.5,y+.5,w-1,h-1); }
+      return;
+    }
     /* HD 카드 테두리 — 안쪽이 비어 있어 등급 색을 밑에 깐다 */
     if(opt.art!==false && BG.get && BG.get('frame-card')){
       u.fillStyle = 'rgba(12,16,26,.94)'; u.fillRect(x,y,w,h);

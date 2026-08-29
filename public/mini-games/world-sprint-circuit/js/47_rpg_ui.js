@@ -74,7 +74,8 @@ class GrowPickScreen extends Screen0 {
       if(y+ch>botY+2) return;
       const on=i===this.sel;
       const col = (typeof UI!=='undefined' && UI.rareColor) ? UI.rareColor(a) : PAL.white;
-      UIK.card(u, x, y, cw, ch, col, {on});
+      /* 등급을 색뿐 아니라 **테두리 모양**으로도 — 전설은 왕관이 달린 틀을 쓴다 */
+      UIK.card(u, x, y, cw, ch, col, {on, tier:(typeof rarityOf==='function')?rarityOf(a):1});
       /* 얼굴 — face-<종족> 이 있으면 초상, 없으면 달리는 스프라이트로 물러난다.
          ⚠ 60종 중 11종만 도착했다. 섞여도 어색하지 않도록 같은 자리·같은 크기로. */
       const face = Math.min(26, ch*0.42);
@@ -276,6 +277,7 @@ class GrowScreen extends Screen0 {
         if(r._why){ Sfx.fail(); this.mg.toast(K(r._why)); return; }
         if(SKILL.learn(a, r._skill)){
           Sfx.record(); Screen.shake(0.3); this.fxAt=this.t||0;
+          this.learnAt = this.t||0;        // 봉인이 열리는 연출(fx-skill-learn)
           this.mg.toast(K('%1 습득  (남은 포인트 %2)')
             .replace('%1', SKILL.def(r._skill).name).replace('%2', a.tp));
         } else Sfx.fail();
@@ -299,6 +301,7 @@ class GrowScreen extends Screen0 {
         if(!r._break){ Sfx.fail(); this.mg.toast(K(RPG.whyBreak(a, r._k)||'잠재치에 닿았습니다')); return; }
         RPG.breakPot(a, r._k);
         Sfx.record(); Screen.shake(0.35); this.fxAt=this.t||0;
+        this.breakAt = this.t||0;          // 천장이 깨지는 연출(fx-breakthrough)
         this.mg.toast(K('%1 잠재치 돌파 → %2  (남은 포인트 %3)')
           .replace('%1', STAT_NAME[r._k]||r._k)
           .replace('%2', Math.round(a.potential[r._k])).replace('%3', a.tp));
@@ -350,6 +353,13 @@ class GrowScreen extends Screen0 {
     /* 스탯이 오른 순간 발밑에서 금빛 고리 — 숫자만 바뀌면 오른 줄 모른다 */
     if(this.fxAt!==undefined && this.t-this.fxAt < 800)
       BG.fx(u, 'fx-levelup', 80, 112, 40, clamp((this.t-this.fxAt)/800,0,0.999), 4);
+    /* 잠재치 돌파 — **천장이 깨진다.** 숫자가 81→82 로 조용히 바뀌던 자리다.
+       ⚠ 10포인트를 쓰는 행동인데 스탯 +1(1포인트)과 연출이 같으면 안 된다. */
+    if(this.breakAt!==undefined && this.t-this.breakAt < 1100)
+      BG.fx(u, 'fx-breakthrough', 80, 96, 62, clamp((this.t-this.breakAt)/1100,0,0.999), 5);
+    /* 스킬 습득 — 봉인이 열린다. 배우는 건 판마다 몇 번 없는 일이다 */
+    if(this.learnAt!==undefined && this.t-this.learnAt < 1100)
+      BG.fx(u, 'fx-skill-learn', 80, 100, 56, clamp((this.t-this.learnAt)/1100,0,0.999), 5);
     /* 장비를 얻거나 합성한 순간 — 빛기둥 */
     if(this.getFxAt!==undefined && this.t-this.getFxAt < 800)
       BG.fx(u, 'fx-item-get', 80, 200, 34, clamp((this.t-this.getFxAt)/800,0,0.999), 4);
@@ -378,6 +388,9 @@ class GrowScreen extends Screen0 {
       if(this.pwD && this.t-this.pwAt < 1400){
         const k = 1 - (this.t-this.pwAt)/1400;
         u.globalAlpha = Math.min(1, k*2);
+        /* 크게 오른 순간에만 기둥이 솟는다 — 매번 터지면 아무 의미가 없다 */
+        if(this.pwD.p >= 150)
+          BG.fx(u, 'fx-power-up', 40, 132, 46, clamp((this.t-this.pwAt)/1100,0,0.999), 5);
         const pop=(v,x)=>{ if(!v) return;
           txt(u, (v>0?'+':'')+UIK.n(v), x, 120-(1-k)*10, 13,
               v>0?PAL.green:PAL.red, 'left', 700); };
@@ -1073,7 +1086,8 @@ class CodexScreen extends Screen0 {
       const x=gx+c*(cw+gapX), y=gy+r*(ch+gapY);
       if(y+ch > bot+4) return;
       const owned=!!Codex.d.owned[sp], seen=!!Codex.d.seen[sp], hall=!!Codex.d.hall[sp];
-      UIK.card(u, x, y, cw, ch, owned?R.color:'#39415a', {on:i===this.sel});
+      UIK.card(u, x, y, cw, ch, owned?R.color:'#39415a',
+                { on:i===this.sel, tier: owned ? this.tier : 0 });
       if(owned){
         /* 등급 발광을 그대로 쓴다 — 전설은 카드 안에서도 빛난다 */
         if(!CharHD.draw(u, sp, x+cw/2, y+ch-9, 0.05, { t:this.t+i*220, scale:0.74, rare:this.tier })){

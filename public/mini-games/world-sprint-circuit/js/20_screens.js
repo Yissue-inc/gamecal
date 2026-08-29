@@ -253,6 +253,11 @@ const G = {
     u.strokeStyle = p.kind==='rank' ? p.rank.color : PAL.gold;
     u.lineWidth=2; u.strokeRect(x+.5,y+.5,w-1,39);
     if(p.kind==='rank'){
+      /* 별이 모여 하나로 — 랭크는 35시즌에 다섯 번 오르는 게 전부다.
+         ⚠ 이 팝업은 이미 age(=this.t - this._popAt)를 갖고 있다. 새 시간을 만들지 말 것 —
+            두 벌이 되면 어긋난다. */
+      if(age < 1200)
+        BG.fx(u, 'fx-rank-up', VW/2, y+34, 44, clamp(age/1200, 0, 0.999), 5);
       txt(u, '랭크 상승', VW/2, y+6, 9, PAL.dim, 'center');
       /* 뱃지가 있으면 이름 왼쪽에 — 랭크 상승은 이 게임에서 제일 드문 순간이다 */
       const ri = RANKS.indexOf(p.rank);
