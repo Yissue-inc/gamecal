@@ -46,6 +46,14 @@
 
 const VW = 1280, VH = 720;
 
+/* 어셋 개정값 — 그림 URL 뒤에 ?v= 로 붙는다.
+   ⚠ 왜 필요한가: 어셋팀은 **같은 파일 이름으로** 그림을 교체한다(P24 로봇 49종,
+     P25 산호). 캐시 무효화가 없으면 전시장 태블릿은 옛 그림을 계속 쓴다 —
+     '배포했는데 화면은 그대로'가 된다. 실측: 고릴라 파일을 지웠는데도
+     브라우저가 캐시에서 줘서 검사가 통과했다.
+   stamp.py 가 어셋 폴더의 최신 수정 시각으로 갈아 끼운다. */
+const AREV = '1787992622';
+
 const PAL = {
   ink:'#12212e',
   paper:'#fdfaf3', paperDark:'#efe7d6',
@@ -539,8 +547,8 @@ const Templates = {
       const img=new Image();
       img.onload=()=>{ t[kind+'Real']=img; if(++got===2){ t.ink=t.inkReal; t.mask=t.maskReal;
         this.real[id]=true; } };
-      img.onerror=()=>{};
-      img.src=`assets/${(typeof SEA_LIKE_JUNGLE!=='undefined'&&SEA_LIKE_JUNGLE[id])?'jungle':'sea'}/${id}-${kind}.png`;
+      img.onerror=()=>{ (Templates.failed||(Templates.failed={}))[id]=true; };
+      img.src=`assets/${(typeof SEA_LIKE_JUNGLE!=='undefined'&&SEA_LIKE_JUNGLE[id])?'jungle':'sea'}/${id}-${kind}.png?v=${AREV}`;
     };
     load('ink'); load('mask');
   }
@@ -566,7 +574,7 @@ const FXA = {
     if(this.tried[n]) return null;
     this.tried[n]=true;
     const img=new Image(); img.onload=()=>{ this.cache[n]=img; };
-    img.src='assets/ui/'+n+'.png';
+    img.src='assets/ui/'+n+'.png?v='+AREV;
     return null;
   },
   /* k = 0~1 진행도. 중앙 기준. */
@@ -1199,7 +1207,7 @@ const Items = {
     this.tried[id]=true;
     const img=new Image();
     img.onload=()=>{ this.cache[id]=img; };
-    img.src='assets/item/'+id+'.png';
+    img.src='assets/item/'+id+'.png?v='+AREV;
     return null;
   },
   /* 지금 뽑을 수 있는 것 — 꾸미기(영구)와 효과(10초)를 섞는다.
@@ -2124,7 +2132,10 @@ const JTemplate = {
         const n=`${id}-${p}-${k}`;
         let im=this._img[n];
         if(!im){
-          im=new Image(); im.src=`assets/jungle/${n}.png`;
+          im=new Image();
+          /* 실패를 기록해 둔다 — 점검기가 '느린 것'을 '없는 것'으로 세지 않게 */
+          im.onerror=()=>{ (JTemplate.failed||(JTemplate.failed={}))[n]=true; };
+          im.src=`assets/jungle/${n}.png?v=${AREV}`;
           this._img[n]=im;
         }
         if(!im.complete || !im.naturalWidth) ready=false;
@@ -2191,7 +2202,10 @@ const JTemplate = {
     const ps=(L&&L.parts) ? Object.keys(L.parts) : D.parts;
     for(const p of ps) for(const k of ['ink','mask']){
       const n=`${id}-${p}-${k}`;
-      if(!this._img[n]){ const im=new Image(); im.src=`assets/jungle/${n}.png`; this._img[n]=im; }
+      if(!this._img[n]){
+        const im=new Image();
+        im.onerror=()=>{ (JTemplate.failed||(JTemplate.failed={}))[n]=true; };
+        im.src=`assets/jungle/${n}.png?v=${AREV}`; this._img[n]=im; }
     }
   }); }
 };
@@ -3277,9 +3291,9 @@ const BG = {
     img.onerror=()=>{
       const p2=new Image();
       p2.onload=()=>{ this.cache[n]=p2; };
-      p2.src='assets/bg/'+n+'.png';
+      p2.src='assets/bg/'+n+'.png?v='+AREV;
     };
-    img.src='assets/bg/'+n+'.webp';
+    img.src='assets/bg/'+n+'.webp?v='+AREV;
     return null;
   },
   /* 가로로 이어 붙여 그린다. off 만큼 흘린다. */
@@ -3306,7 +3320,7 @@ const Props = {
     if(this.tried[n]) return null;
     this.tried[n]=true;
     const img=new Image(); img.onload=()=>{ this.cache[n]=img; };
-    img.src='assets/prop/'+n+'.png';
+    img.src='assets/prop/'+n+'.png?v='+AREV;
     return null;
   },
   /* 바닥에 세워 놓는다 — 밑면이 y 에 닿는다 */
@@ -4011,7 +4025,7 @@ const Icons = {
     const img=new Image();
     img.onload=()=>{ this.cache[name]=img; this.missing[name]=false; };
     img.onerror=()=>{};
-    img.src='assets/ui/'+name+'.png';
+    img.src='assets/ui/'+name+'.png?v='+AREV;
     return null;
   },
   /* 그렸으면 true. 버튼 중앙 기준. */
@@ -5887,10 +5901,18 @@ const SelfTest = {
       await new Promise(r=>setTimeout(r,700));
     }
     L.push(`· 도안 준비 — 바다 ${seaN}/${seaAll.length} · 정글 ${junN}/${junAll.length}`);
-    if(seaN<seaAll.length)
-      L.push('✗ 바다 도안 ' + seaAll.filter(s=>!Templates.get(s.id)).map(s=>s.ko).join(' ') + ' — 35초를 기다려도 안 온다');
-    if(junN<junAll.length)
-      L.push('✗ 정글 도안 ' + junAll.filter(id=>!JTemplate.get(id)).map(id=>JUNGLE[id].ko).join(' ') + ' — 35초를 기다려도 안 온다');
+    /* ⚠ 못 받은 것과 아직 오는 것은 다르다. 라이브에서 '고릴라 없음' 이라 보고했는데
+       파일은 200 이었고 35초 뒤에 도착했다. **404 가 났을 때만** 결함이다. */
+    const seaFail=Object.keys(Templates.failed||{}).length;
+    const junFail=Object.keys(JTemplate.failed||{}).length;
+    if(seaN<seaAll.length){
+      const miss=seaAll.filter(s=>!Templates.get(s.id)).map(s=>s.ko).join(' ');
+      L.push((seaFail?'✗ 바다 도안 못 받음(404) — ':'· 바다 도안이 아직 오는 중 — ')+miss);
+    }
+    if(junN<junAll.length){
+      const miss=junAll.filter(id=>!JTemplate.get(id)).map(id=>JUNGLE[id].ko).join(' ');
+      L.push((junFail?'✗ 정글 도안 못 받음(404) — ':'· 정글 도안이 아직 오는 중 — ')+miss);
+    }
 
     /* 새 세 모드는 실물 파일과 부위 anchor가 모두 있어야만 고르기·제출이 성립한다. */
     if(typeof MODES!=='undefined') for(const mode of ['dino','robot','bug']){
@@ -5910,7 +5932,7 @@ const SelfTest = {
       const fail=(MTemplate.failed[mode]||{size:0}).size;
       if(fail) L.push(`✗ ${MODES[mode].ko} 어셋 ${fail}장을 못 받았다 (404) — assets/${MODES[mode].folder}/`);
       L.push(`· ${MODES[mode].ko} 준비 — 도안 ${loaded}/${all.length} · 부위 anchor ${anchored}/${all.length}`);
-      if(loaded<all.length && !fail) L.push(`✗ ${MODES[mode].ko} 도안 ${all.length-loaded}종이 35초를 기다려도 안 온다`);
+      if(loaded<all.length && !fail) L.push(`· ${MODES[mode].ko} 도안 ${all.length-loaded}종이 아직 오는 중 (404 는 없다)`);
       if(anchored<all.length) L.push(`✗ ${MODES[mode].ko} 움직이는 부위 anchor 일부가 없다`);
     }
 
