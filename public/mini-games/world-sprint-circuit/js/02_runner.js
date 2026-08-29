@@ -64,6 +64,9 @@ class Runner {
     this.splits = {};
     this.judge = { PERFECT:0, GOOD:0, EARLY:0, LATE:0, REPEAT:0, SPAM:0 };
     this.lastJudge = ''; this.lastJudgeMs = -1e9;
+    /* 타격 순간 — 발밑 고리·미세 펀치가 읽는다.
+       ⚠ reset 에서 안 지우면 재도전할 때 **출발선에서 고리가 한 번 터진다**. */
+    this.hitAt = undefined; this.hitJ = '';
     this.recoverUntilMs = 0;
     this.stridePhase = 0;                 // 다리 애니메이션용 0..1
     this.hurdlesClean = 0; this.hurdlesClip = 0; this.hurdlesCrash = 0;

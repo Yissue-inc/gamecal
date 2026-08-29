@@ -134,7 +134,7 @@ class MiddleEvent {
       if(this.walk && dt < iv*0.62) this.warn(r, p);
     }
     r.judge[j]++; r.side=side; r.lastStroke=tMs;
-    if(!p) Sfx.step(j);
+    if(!p) Sfx.step(j, r.tier);     // 콤보 단계마다 반음 오른다 — 귀로도 쌓이는 게 보인다
     /* ⚠ 속도 비례 저항으로 바꾼 뒤 MISS 0.30 은 너무 비쌌다 — 보통 실력이 135초에서
        181초로 무너졌다. 중장거리는 스프린트만큼 정밀할 이유가 없다. */
     const gain={PERFECT:1.0,GOOD:0.80,MISS:0.46,REPEAT:0.12}[j];

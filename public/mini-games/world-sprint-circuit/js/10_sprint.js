@@ -84,7 +84,12 @@ class SprintEvent {
     }
     if(P.dq) return;
     const j = P.stride(side, tMs, 'off');
-    if(j) Sfx.step(j);
+    if(j){
+      Sfx.step(j, P.tier);
+      /* 타격 순간을 남긴다 — 발밑 고리와 미세 펀치가 이걸 읽는다.
+         ⚠ 러너에 붙여야 사람이 여럿일 때 각자 자기 타이밍으로 튄다. */
+      P.hitAt = this.t; P.hitJ = j;
+    }
   }
   onAction(tMs, pIdx){
     const P = this.humans[pIdx||0] || this.player;
@@ -212,12 +217,19 @@ class SprintEvent {
         { sp, x, y, ph:r.stridePhase,
           o:{ lean:leaning, crouch:this.phase==='SET',
               /* 원근 — 먼 레인 선수는 작게, 가까운 레인은 크게 */
-              scale: Track.laneScale(i),
+              /* 잘 친 순간 살짝 튄다 — 발이 땅을 밀어낸 느낌.
+                 ⚠ 6% 이상은 스프라이트가 출렁여 보인다(작게 유지). */
+              scale: Track.laneScale(i) * (
+                (r.hitJ==='PERFECT' && (this.t-(r.hitAt||-9999)) < 120)
+                  ? 1 + 0.06*(1-(this.t-r.hitAt)/120) : 1),
               rare:(SPECIES[sp]&&SPECIES[sp].rare)||1, moving:this.phase==='RUN', t:this.t },
           speedFrac: clamp((r.speed||0)/11, 0, 1),
+          hitAge: (r.hitAt!==undefined) ? (this.t - r.hitAt) : 9999, hitJ: r.hitJ,
+          me: r===this.player,
           /* 연출 판단에 필요한 것들 — 그리는 쪽이 러너를 다시 안 찾아도 되게 */
-          fatigue: r.fatigue||0, tier: r.tier||0, me: r===this.player,
-          started: r.started, gunAge: this.t - this.gunMs }); }
+          fatigue: r.fatigue||0, tier: r.tier||0,
+          started: r.started, gunAge: this.t - this.gunMs });
+        if(r===this.player) this._hdMeY = y; }
       else drawRunner(ctx, x, y, r.stridePhase, laneColor[i%laneColor.length],
         { lean:leaning, crouch:this.phase==='SET' });
     }
@@ -232,6 +244,12 @@ class SprintEvent {
       for(const c of this._hd){
         if(c.speedFrac>0.35)
           BG.fx(uctx, 'dust-kick', c.x-6, c.y+2, 9, ((this.t*0.006)+c.x*0.01)%1, 4);
+        /* 두드린 자리에서 퍼지는 고리 — **매 타가 눈에 보여야** 쫀쫀하다.
+           ⚠ 잘 친 타에만 준다. 다 주면 실수해도 똑같이 터져서 의미가 없다.
+           ⚠ 수명은 스트라이드 간격보다 짧게(160ms) — 겹치면 다시 뭉갠다. */
+        if(c.hitAge < 160 && (c.hitJ==='PERFECT' || c.hitJ==='GOOD'))
+          BG.fx(uctx, 'fx-tap-ring', c.x, c.y+2,
+                c.hitJ==='PERFECT' ? 20 : 14, clamp(c.hitAge/160, 0, 0.999), 4);
         /* 출발 연기 — 총성 직후 스타팅블록에서. 0.5초만 산다 */
         if(c.started && c.gunAge>=0 && c.gunAge<500)
           BG.fx(uctx, 'fx-startsmoke', c.x, c.y+3, 14, clamp(c.gunAge/500,0,0.999), 4);
@@ -281,7 +299,12 @@ class SprintEvent {
       const since=now-this.player.lastInputMs;
       const err = this.player.lastInputMs<-1e8 ? 0 : clamp((since-target)/target, -1, 1);
       HUD.rhythm(uctx, { nextSide: -this.player.lastSide||1, phaseErr: err, form:this.player.form });
-      HUD.judge(uctx, this.player.lastJudge, now - this.player.lastJudgeMs);
+      /* 판정 수명 = 목표 간격의 0.8 배. 다음 타가 오기 전에 사라진다. */
+      /* 판정 수명 = 목표 간격의 0.8 배. 다음 타가 오기 전에 사라진다.
+         자리는 **내 선수 바로 위** — 시선이 튀지 않아야 한 타 한 타가 붙는다. */
+      const myY = (this._hdMeY!==undefined) ? this._hdMeY - 26 : 38;
+      HUD.judge(uctx, this.player.lastJudge, now - this.player.lastJudgeMs,
+                Math.min(620, this.player.targetIntervalMs()*0.8), myY);
       /* 콤보 단계 — 지금 몇 단인지, 방금 올랐는지 */
       const P=this.player;
       if(P.tier>0){

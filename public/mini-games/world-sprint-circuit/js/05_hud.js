@@ -120,15 +120,33 @@ const HUD = {
   },
 
   /* 판정 표시 */
-  judge(ctx, j, ageMs){
-    if(!j || ageMs>620) return;
-    const a = 1 - ageMs/620;
+  /* ⚠ 지속이 620ms 고정이었다. 목표 스트라이드 간격이 238ms 이므로
+     **한 판정이 살아 있는 동안 다음 타가 2.6번 들어온다** — 라벨이 안 끊기고
+     계속 번져 있어서 '한 타 한 타 맞았다'가 안 느껴졌다.
+     간격에 맞춰 짧게 끊는다: 다음 타가 오기 전에 사라져야 매 타가 또렷하다. */
+  /* ⚠ y 가 38 로 못 박혀 있었다 — 화면 맨 위 하늘이다. 정작 눈은 선수(y≈130)와
+     리듬 게이지(맨 아래)를 본다. 판정이 **둘 다에서 제일 먼 곳**에 떴다.
+     종목이 자기 선수 근처를 알려 주면 거기 띄운다. */
+  judge(ctx, j, ageMs, life, y){
+    const L = life || 620;
+    if(!j || ageMs>L) return;
+    const a = 1 - ageMs/L;
     const col = { PERFECT:PAL.green, GOOD:PAL.blue, EARLY:PAL.gold, LATE:PAL.gold,
                   REPEAT:PAL.red, SPAM:PAL.red, LEAN:PAL.green, LEAN_EARLY:PAL.red }[j] || PAL.white;
     const label = { PERFECT:'PERFECT!', GOOD:'GOOD', EARLY:'너무 빨라', LATE:'너무 늦어',
                     REPEAT:'같은 발!', SPAM:'연타 금지', LEAN:'LEAN!', LEAN_EARLY:'너무 일찍' }[j] || j;
+    const sz = j==='PERFECT'?17:13;
+    const yy = (y!==undefined?y:38) - (1-a)*8;
     ctx.save(); ctx.globalAlpha=a;
-    txt(ctx, label, VW/2, 38 - (1-a)*8, j==='PERFECT'?17:13, col, 'center', 700);
+    /* ⚠ 선수 옆으로 옮기니 **빨간 트랙 위에서 글자가 묻혔다**(하늘에 있을 땐 잘 보였다).
+       가까이 두는 값을 지키면서 읽히게 — 글자 뒤에만 좁은 받침을 깐다. */
+    if(y!==undefined){
+      const w = label.length*sz*0.62 + 12;
+      ctx.globalAlpha = a*0.55; ctx.fillStyle='#070a12';
+      ctx.fillRect(Math.round(VW/2-w/2), Math.round(yy-3), Math.round(w), sz+6);
+      ctx.globalAlpha = a;
+    }
+    txt(ctx, label, VW/2, yy, sz, col, 'center', 700);
     ctx.restore();
   },
 };

@@ -287,7 +287,10 @@ class SwimEvent {
       const now=this.t;
       const err = this.lastStroke<-1e8?0:clamp(((now-this.lastStroke)-this.targetIv)/this.targetIv,-1,1);
       HUD.rhythm(u,{nextSide:-this.side||1, phaseErr:err, form:this.form});
-      HUD.judge(u, this.lastJudge, now-this.lastJudgeMs);
+      /* 판정 수명을 스트라이드 간격에 맞춘다 — 620ms 고정이면 다음 타가 오기 전에
+         안 사라져서 매 타가 뭉갠다(달리기에서 실측: 2.6타 겹침). */
+      HUD.judge(u, this.lastJudge, now-this.lastJudgeMs,
+                Math.min(620, this.targetIvOf(this.swimmers[0])*0.8));
       /* 숨 게이지 */
       txt(u,'숨',8,Track.GAUGE_Y-24,8,PAL.dim);
       const bw=64;

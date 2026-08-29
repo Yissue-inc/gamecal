@@ -90,9 +90,14 @@ const Sfx = {
   /* 종목 소리 */
   gun(){ this.noise(0.28, 0.55, 5200); this.beep(180, 0.12, 'square', 0.2, 60); },
   set(){ this.beep(660, 0.10, 'square', 0.12); },
-  step(j){
-    if(j==='PERFECT'){ this.noise(0.05,0.16,3000); this.beep(1320,0.05,'square',0.07); }
-    else if(j==='GOOD'){ this.noise(0.05,0.12,2000); }
+  /* ⚠ 콤보 1 과 콤보 40 이 **같은 소리**였다. 리듬 게임에서 쌓이는 느낌의 절반은
+     소리가 올라가는 것이다 — 눈을 안 봐도 잘 되고 있다는 걸 귀로 안다.
+     단계(0~5)마다 반음씩 올린다. 12단계면 한 옥타브라 5단계는 과하지 않다. */
+  step(j, tier){
+    const t = clamp(tier||0, 0, 5);
+    const up = Math.pow(2, t/12);                  // 반음 = 2^(1/12)
+    if(j==='PERFECT'){ this.noise(0.05,0.16,3000); this.beep(1320*up,0.05,'square',0.07); }
+    else if(j==='GOOD'){ this.noise(0.05,0.12,2000+t*90); }
     else if(j==='SPAM'||j==='REPEAT'){ this.beep(110,0.06,'sawtooth',0.09); }
     else this.noise(0.05,0.08,1200);
   },

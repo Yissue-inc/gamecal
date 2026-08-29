@@ -77,7 +77,7 @@ class RelayEvent extends SprintEvent {
     }
     const r=this.legs[this.cur];
     const j=r.stride(side, tMs, 'off');
-    if(j) Sfx.step(j);
+    if(j) Sfx.step(j, r && r.tier);
   }
   /* 액션 = 바통 인계.
      ⚠ 판정은 '주자가 몇 m 달렸나'가 아니라 **팀이 트랙의 어디에 있나**로 한다.
@@ -253,7 +253,8 @@ class RelayEvent extends SprintEvent {
       const now=this.t, tgt=r.targetIntervalMs();
       const err = r.lastInputMs<-1e8?0:clamp(((now-r.lastInputMs)-tgt)/tgt,-1,1);
       HUD.rhythm(u,{nextSide:-r.lastSide||1, phaseErr:err, form:r.form});
-      HUD.judge(u, r.lastJudge, now-r.lastJudgeMs);
+      HUD.judge(u, r.lastJudge, now-r.lastJudgeMs,
+                Math.min(620, r.targetIntervalMs()*0.8));
       if(this.cur<this.nLegs-1){
         const left = this.zoneEnd(this.cur) - this.teamDist;
         const inZone = left <= RELAY.zoneM;
