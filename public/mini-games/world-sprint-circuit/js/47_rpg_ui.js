@@ -25,6 +25,15 @@ function drawXpBar(u, a, x, y, w){
    카드마다 등급 테두리 · Lv 뱃지 · 경험치 막대 · 포인트 표시.
    ⚠ 줄 목록은 정보는 담아도 '내 선수단'으로 안 읽힌다. 얼굴이 보여야 애착이 생긴다. */
 class GrowPickScreen extends Screen0 {
+  /* 이 선수에게 **지금** 할 일이 있나 — 포인트가 있거나, 배워 놓고 안 켠 스킬이 있거나.
+     ⚠ 부상은 여기서 할 일이 아니다(치료는 훈련 지시에서 한다) — 뒤로 물려도 된다. */
+  static hasTodo(a){
+    if((a.tp|0) > 0) return true;
+    if(typeof SKILL==='undefined') return false;
+    SKILL.ensure(a);
+    const free = SKILL.slots(a) - SKILL.equipped(a).length;
+    return free > 0 && (a.skills||[]).some(id => (a.skillEq||[]).indexOf(id) < 0);
+  }
   get hdBg(){ return 'bg-training'; }  get hdBgDim(){ return 0.80; }
   constructor(mg){ super(mg); this.t=0; }
   get list(){ return this.mg.club.squad; }
@@ -73,6 +82,14 @@ class GrowPickScreen extends Screen0 {
       const x=gx+c*(cw+gapX), y=gyC+r*(ch+6);
       if(y+ch>botY+2) return;
       const on=i===this.sel;
+      /* ⛔ 챕터 8 — 열 장이 **전부 같은 무게**로 보였다. 이 화면의 결정은
+         "누구를 키울까"가 아니라 그 앞 단계, **"지금 할 일이 있는 카드가 어느 거냐"** 다.
+         포인트도 없고 놀리는 스킬도 없으면 지금 당장 할 게 없다 — 뒤로 물린다.
+         ⚠ 지우는 게 아니다. 고른 카드는 언제나 또렷하고, 눌러 들어가면 다 있다
+            (장비 갈아 끼우기·스킬 켜기는 포인트가 없어도 된다). */
+      const todo = GrowPickScreen.hasTodo(a);
+      u.save();
+      if(!on && !todo) u.globalAlpha = 0.55;
       const col = (typeof UI!=='undefined' && UI.rareColor) ? UI.rareColor(a) : PAL.white;
       /* 등급을 색뿐 아니라 **테두리 모양**으로도 — 전설은 왕관이 달린 틀을 쓴다 */
       UIK.card(u, x, y, cw, ch, col, {on, tier:(typeof rarityOf==='function')?rarityOf(a):1});
@@ -91,7 +108,14 @@ class GrowPickScreen extends Screen0 {
       u.save(); u.beginPath(); u.rect(x+2, y+2, cw-4, ch-4); u.clip();
       txt(u, a.name, tx, y+15, 10, on?PAL.gold:PAL.white, 'left', on?700:400);
       u.restore();
-      txt(u, `OVR ${a.overall}`, tx, y+27, 8, PAL.dim, 'left');
+      /* ⛔ 챕터 8 — 이 화면은 **누구를 키울까**를 고르는 곳이다. 그렇다면 필요한 건
+         '지금 얼마나 세냐(OVR)'가 아니라 **얼마나 더 클 수 있나** 다.
+         라벨 'OVR' 도 뺀다 — 카드 한 장에 신호가 아홉 개다(이름·레벨·얼굴·경험치
+         막대·포인트·스킬 점·장비 점·적성 둘). 글자는 숫자만 남긴다. */
+      /* ⚠ 처음엔 `35 / 95` 로 썼다 — 바로 아래 경험치 막대 때문에 **'경험치 35/95'**
+         로 읽힐 수 있다. 상세 화면은 같은 뜻을 이미 `44.0 → 잠재 99` 로 쓴다.
+         같은 뜻이면 같은 기호를 쓴다 — 화살표는 '지금 → 될 수 있는 것'이다. */
+      txt(u, `${a.overall} → ${a.potOverall}`, tx, y+27, 8, PAL.dim, 'left');
       /* 스킬을 켜 놨으면 카드에 점으로 — 목록에서 '누가 준비됐나'가 보인다 */
       if(typeof SKILL!=='undefined'){
         const eqn=SKILL.equipped(a).length, cap=SKILL.slots(a);
@@ -102,12 +126,21 @@ class GrowPickScreen extends Screen0 {
       }
       /* 잘 자라는 스탯 둘 — '이 선수는 뭐지'에 카드가 답한다 */
       const tops=DEPTH.topApt(a,2);
+      /* ⛔ 챕터 8 — 'SpA' 는 암호였다. 스탯 이름 두 글자 + 등급 한 글자를 붙인 것인데,
+         읽으려면 규칙을 먼저 배워야 한다. 스탯 아이콘 6종이 이미 있으니 그 두 글자를
+         아이콘이 대신한다 → 카드마다 4자가 빠지고 한눈에 읽힌다.
+         ⚠ 어셋이 없으면 예전 약어로 물러난다(여섯이 한 벌이라 있으면 다 있다).
+            자르기 **전에** 번역해야 영어판이 안 깨진다 — '스피A' 는 번역표에 없다. */
+      const aptIcon = tops.length && UI.STAT_ICON && UI.STAT_ICON[tops[0].k]
+                   && typeof BG!=='undefined' && !!BG.get(UI.STAT_ICON[tops[0].k]);
       tops.forEach((t2,ti)=>{
         const ap=DEPTH.aptOf(a,t2.k);
-        /* ⚠ 한글 이름을 2글자로 자른 뒤 등급을 붙여서 '스피A' 같은 문자열이 만들어졌다 —
-           그건 번역표에 없는 조합이라 영어판에서 그대로 한글로 남았다.
-           **자르기 전에 번역**한다: Speed → Sp + A. */
-        txt(u, K(STAT_NAME[t2.k]||t2.k).slice(0,2)+ap.key, tx+ti*26, y+37, 8, ap.color, 'left', 700);
+        const ix = tx + ti*(aptIcon ? 22 : 26);
+        /* ⚠ y+30 에 그렸더니 바로 위 '41 / 87'(y+27, 8px → 27~35)을 덮었다.
+           아이콘 높이 9px 를 글자 줄(y+37)에 맞춰 내린다. */
+        if(aptIcon) UIK.iconTint(u, UI.STAT_ICON[t2.k], ix, y+36, 9, ap.color);
+        txt(u, aptIcon ? ap.key : K(STAT_NAME[t2.k]||t2.k).slice(0,2)+ap.key,
+            ix + (aptIcon?11:0), y+37, 8, ap.color, 'left', 700);
       });
       UIK.xpBar(u, tx, y+ch-17, cw-(tx-x)-6, a.lv, a.xp, RPG.xpToNext(a.lv), {showText:false});
       /* 포인트 있으면 눈에 띄게 — 할 일이 있는 카드 */
@@ -115,13 +148,17 @@ class GrowPickScreen extends Screen0 {
         u.fillStyle=PAL.gold; u.fillRect(x+cw-15, y+ch-13, 12, 10);
         txt(u, String(a.tp), x+cw-9, y+ch-12, 8, '#1a1408', 'center', 700);
       }
-      if(a.injury) txt(u, K('부상'), x+cw-4, y+15, 8, PAL.red, 'right', 700);
+      /* 부상도 아이콘으로 — 글자 두 자가 카드 오른쪽 위에서 이름과 다퉜다 */
+      if(a.injury && !(typeof UIK!=='undefined' &&
+                       UIK.iconTint(u, 'ic-injury', x+cw-13, y+13, 10, PAL.red)))
+        txt(u, K('부상'), x+cw-4, y+15, 8, PAL.red, 'right', 700);
       /* 장비 3칸 표시 */
       RPG.SLOTS.forEach((sl,k)=>{
         const it=a.equip && a.equip[sl];
         u.fillStyle = it ? RPG.rarityOf(it.r).color : 'rgba(255,255,255,.12)';
         u.fillRect(tx+k*6, y+ch-8, 4, 4);
       });
+      u.restore();
     });
     txt(u, tp>0 ? K('훈련 포인트 %1점을 쓸 수 있습니다').replace('%1', tp)
                 : K('대회와 훈련으로 포인트가 쌓입니다'),

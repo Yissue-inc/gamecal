@@ -79,6 +79,10 @@ const UIK = {
      안쪽은 어둡게, 테두리는 두 겹(바깥 짙은 선 + 안쪽 밝은 선).
      ⚠ 한 겹 선만 쓰면 우리 해상도에서 '판'으로 안 읽힌다 — 두 겹이 최소다. */
   frame(u, x, y, w, h, opt){
+    /* ⛔ 알파는 **되돌린다** — 예전엔 `globalAlpha=1` 로 밀어 버렸다.
+       그래서 호출자가 걸어 둔 반투명이 이 함수를 지나면 조용히 사라졌다
+       (실측: 육성 선택에서 카드 틀만 흐려지고 이름·숫자는 또렷했다). */
+    const a0 = u.globalAlpha;
     opt = opt||{};
     const fill = opt.fill || 'rgba(12,16,26,.92)';
     const edge = opt.edge || '#3a4870';
@@ -100,7 +104,7 @@ const UIK = {
         const tw = 24, th = 24;                    // 화면 좌표에서의 타일 크기
         for(let ty=y; ty<y+h; ty+=th)
           for(let tx=x; tx<x+w; tx+=tw) u.drawImage(fillImg, tx, ty, tw, th);
-        u.globalAlpha=0.55; u.fillStyle=fill; u.fillRect(x,y,w,h); u.globalAlpha=1;
+        u.globalAlpha=0.55; u.fillStyle=fill; u.fillRect(x,y,w,h); u.globalAlpha=a0;
         u.restore();
         if(this.nine(u, 'panel-frame', x, y, w, h, 24)) return;
       } else {
@@ -113,7 +117,7 @@ const UIK = {
     u.fillStyle = fill; u.fillRect(x, y, w, h);
     if(glow){                                  // 강조 패널은 바깥에 옅은 띠
       u.strokeStyle = glow; u.globalAlpha=0.35; u.lineWidth=1;
-      u.strokeRect(x-1.5, y-1.5, w+3, h+3); u.globalAlpha=1;
+      u.strokeRect(x-1.5, y-1.5, w+3, h+3); u.globalAlpha=a0;
     }
     u.strokeStyle = '#0a0d16'; u.lineWidth=1;
     u.strokeRect(x+.5, y+.5, w-1, h-1);
@@ -131,6 +135,10 @@ const UIK = {
      아이템·선수 카드. 희귀도가 테두리 색과 안쪽 물빛으로 보인다. */
   CARD_ICON: { 1:'card-1', 2:'card-2', 3:'card-3', 4:'card-4', 5:'card-5' },
   card(u, x, y, w, h, color, opt){
+    /* ⛔ 알파는 **되돌린다** — 예전엔 `globalAlpha=1` 로 밀어 버렸다.
+       그래서 호출자가 걸어 둔 반투명이 이 함수를 지나면 조용히 사라졌다
+       (실측: 육성 선택에서 카드 틀만 흐려지고 이름·숫자는 또렷했다). */
+    const a0 = u.globalAlpha;
     opt = opt||{};
     const c = color || '#9aa4b8';
     /* 등급별 카드틀(card-1 … card-5) — 등급이 색이 아니라 **테두리 모양**으로 읽힌다.
@@ -141,7 +149,7 @@ const UIK = {
     if(opt.art!==false && tierArt && BG.get && BG.get(tierArt)){
       u.fillStyle = 'rgba(12,16,26,.94)'; u.fillRect(x,y,w,h);
       u.globalAlpha = opt.on ? 0.26 : 0.14; u.fillStyle = c;
-      u.fillRect(x, y, w, h); u.globalAlpha = 1;
+      u.fillRect(x, y, w, h); u.globalAlpha = a0;
       this.nine(u, tierArt, x, y, w, h, 16);
       if(opt.on){ u.strokeStyle=c; u.lineWidth=1; u.strokeRect(x+.5,y+.5,w-1,h-1); }
       return;
@@ -150,7 +158,7 @@ const UIK = {
     if(opt.art!==false && BG.get && BG.get('frame-card')){
       u.fillStyle = 'rgba(12,16,26,.94)'; u.fillRect(x,y,w,h);
       u.globalAlpha = opt.on ? 0.26 : 0.14; u.fillStyle = c;
-      u.fillRect(x, y, w, h); u.globalAlpha = 1;
+      u.fillRect(x, y, w, h); u.globalAlpha = a0;
       this.nine(u, 'frame-card', x, y, w, h, 10);
       if(opt.on){ u.strokeStyle=c; u.lineWidth=1; u.strokeRect(x+.5,y+.5,w-1,h-1); }
       return;
@@ -158,12 +166,12 @@ const UIK = {
     /* 등급 색을 아주 옅게 깐다 — 색만으로 등급이 읽히게 */
     u.fillStyle = 'rgba(12,16,26,.94)'; u.fillRect(x,y,w,h);
     u.globalAlpha = opt.on ? 0.22 : 0.12; u.fillStyle = c;
-    u.fillRect(x, y, w, h); u.globalAlpha = 1;
+    u.fillRect(x, y, w, h); u.globalAlpha = a0;
     u.strokeStyle = '#0a0d16'; u.lineWidth=1; u.strokeRect(x+.5,y+.5,w-1,h-1);
     u.strokeStyle = c; u.lineWidth = opt.on ? 2 : 1;
     u.strokeRect(x + (opt.on?1:1.5), y + (opt.on?1:1.5), w - (opt.on?2:3), h - (opt.on?2:3));
     /* 위쪽 하이라이트 — 카드가 평평해 보이지 않게 */
-    u.globalAlpha=0.18; u.fillStyle='#ffffff'; u.fillRect(x+2, y+2, w-4, 1); u.globalAlpha=1;
+    u.globalAlpha=0.18; u.fillStyle='#ffffff'; u.fillRect(x+2, y+2, w-4, 1); u.globalAlpha=a0;
   },
 
   /* ── 레벨 뱃지 ───────────────────────────────────────────
@@ -182,6 +190,10 @@ const UIK = {
      보상 화면의 기본 단위: 네모 + 아이콘 + 수량.
      아이콘 어셋이 없으면 등급 색 마름모로 대신한다(빈칸보다 낫다). */
   itemBox(u, x, y, size, opt){
+    /* ⛔ 알파는 **되돌린다** — 예전엔 `globalAlpha=1` 로 밀어 버렸다.
+       그래서 호출자가 걸어 둔 반투명이 이 함수를 지나면 조용히 사라졌다
+       (실측: 육성 선택에서 카드 틀만 흐려지고 이름·숫자는 또렷했다). */
+    const a0 = u.globalAlpha;
     opt = opt||{};
     const c = opt.color || '#9aa4b8';
     this.card(u, x, y, size, size, c, {on:!!opt.on});
@@ -191,7 +203,7 @@ const UIK = {
       u.beginPath();
       u.moveTo(cx, cy-size*0.22); u.lineTo(cx+size*0.20, cy);
       u.lineTo(cx, cy+size*0.22); u.lineTo(cx-size*0.20, cy);
-      u.closePath(); u.fill(); u.globalAlpha=1;
+      u.closePath(); u.fill(); u.globalAlpha=a0;
     }
     if(opt.qty!==undefined){
       /* 수량은 상자 아래 오른쪽 — 레퍼런스가 전부 그렇게 한다 */
@@ -205,6 +217,10 @@ const UIK = {
   /* ── 큰 수령 버튼 ────────────────────────────────────────
      화면에서 제일 큰 것이 '받기'여야 한다. 숨쉬듯 맥동한다. */
   bigButton(u, x, y, w, h, label, t, opt){
+    /* ⛔ 알파는 **되돌린다** — 예전엔 `globalAlpha=1` 로 밀어 버렸다.
+       그래서 호출자가 걸어 둔 반투명이 이 함수를 지나면 조용히 사라졌다
+       (실측: 육성 선택에서 카드 틀만 흐려지고 이름·숫자는 또렷했다). */
+    const a0 = u.globalAlpha;
     opt=opt||{};
     const pulse = 0.5 + 0.5*Math.sin((t||0)*0.005);
     const base = opt.color || '#2f6fd0';
@@ -215,7 +231,7 @@ const UIK = {
       this.nine(u, 'button-idle', x, y, w, h, 16);
       u.globalAlpha = 0.25 + pulse*0.55;
       this.nine(u, 'button-focus', x, y, w, h, 16);
-      u.globalAlpha = 1;
+      u.globalAlpha = a0;
       txt(u, label, x+w/2, y+Math.round((h-13)/2), 13, PAL.white, 'center', 700);
       return;
     }
@@ -223,17 +239,17 @@ const UIK = {
       this.nine(u, 'btn-primary', x, y, w, h, 24);
       u.globalAlpha = 0.25 + pulse*0.55;
       this.nine(u, 'btn-primary-on', x, y, w, h, 24);
-      u.globalAlpha = 1;
+      u.globalAlpha = a0;
       txt(u, label, x+w/2, y+Math.round((h-13)/2), 13, PAL.white, 'center', 700);
       return;
     }
     u.fillStyle = base; u.fillRect(x, y, w, h);
     u.globalAlpha = 0.20 + pulse*0.22; u.fillStyle='#ffffff';
-    u.fillRect(x, y, w, Math.round(h*0.45)); u.globalAlpha=1;
+    u.fillRect(x, y, w, Math.round(h*0.45)); u.globalAlpha=a0;
     u.strokeStyle = opt.edge || '#8fc4ff'; u.lineWidth=1;
     u.strokeRect(x+.5, y+.5, w-1, h-1);
     u.globalAlpha = 0.25+pulse*0.4; u.strokeStyle='#ffffff';
-    u.strokeRect(x-1.5, y-1.5, w+3, h+3); u.globalAlpha=1;
+    u.strokeRect(x-1.5, y-1.5, w+3, h+3); u.globalAlpha=a0;
     txt(u, label, x+w/2, y+Math.round((h-13)/2), 13, PAL.white, 'center', 700);
   },
 
