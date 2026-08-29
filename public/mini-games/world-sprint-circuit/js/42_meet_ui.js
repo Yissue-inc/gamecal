@@ -473,16 +473,29 @@ class MeetResultScreen extends Screen0 {
     box(8,   '얻은 경험치', xpTot.toLocaleString(), PAL.blue);
     box(166, '레벨 업',     lv.length,              lv.length?PAL.gold:PAL.dim);
     box(324, '장비',        drops.length,           drops.length?PAL.green:PAL.dim);
+    /* ⛔ 챕터 5 — 피드가 **벽**이었다(25조각·197자, 잰 화면 중 제일 빽빽).
+       경험치만 오른 줄까지 전부 나열해서 **정작 무슨 일이 있었는지**가 안 보였다.
+       경험치 총합은 이미 위 상자가 말한다 — 아래는 **바뀐 것만** 보여 준다:
+         레벨 업 · 장비 획득 먼저, 자리가 남으면 그날 제일 많이 번 순으로.
+       ⚠ 정보를 지우는 게 아니다 — 순서를 바꿔 위쪽 아홉 줄에 값진 것이 오게 한다. */
+    const notable = feed.filter(f=>f.lv||f.drop);
+    const plain   = feed.filter(f=>!f.lv&&!f.drop).sort((a,b)=>(b.xp||0)-(a.xp||0));
+    const show    = notable.concat(plain);
+    /* 줄마다 무슨 종류인지 아이콘으로 — 세 가지가 한 칸에 섞여 있어 파싱이 어려웠다 */
+    const kindIcon = f => f.drop ? RPG.itemIcon(f.drop) : (f.lv ? 'icon-levelup' : 'icon-xp');
     let y=80;
-    for(const f of feed.slice(-9)){
+    for(const f of show){
+      const im = BG.get(kindIcon(f));
+      if(im) u.drawImage(im, 12, y-1, 10, 10);
+      const lx = im ? 26 : 12;
       if(f.drop){
         const c=RPG.rarityOf(f.drop.r).color;
-        txt(u, '◆ '+RPG.itemName(f.drop), 12, y, 10, c,'left',700);
+        txt(u, RPG.itemName(f.drop), lx, y, 10, c,'left',700);
         txt(u, RPG.itemLine(f.drop), VW-12, y+1, 8, PAL.dim,'right');
       } else {
-        txt(u, f.name, 12, y, 10, f.lv?PAL.gold:PAL.white,'left', f.lv?700:400);
-        txt(u, '+'+f.xp+' XP', 120, y+1, 9, PAL.blue,'left');
-        if(f.lv) txt(u, `Lv.${f.lv} 달성 · 포인트 +${f.tp}`, VW-12, y, 10, PAL.gold,'right',700);
+        txt(u, f.name, lx, y, 10, f.lv?PAL.gold:PAL.white,'left', f.lv?700:400);
+        txt(u, '+'+f.xp, 130, y+1, 9, PAL.blue,'left');
+        if(f.lv) txt(u, `Lv.${f.lv} · +${f.tp}`, VW-12, y, 10, PAL.gold,'right',700);
         else     txt(u, f.ev||'', VW-12, y+1, 8, PAL.dim,'right');
       }
       y+=13; if(y>VH-40) break;

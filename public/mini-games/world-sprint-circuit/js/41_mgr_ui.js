@@ -23,8 +23,23 @@ const UI = {
     for(let i=0;i<n;i++){
       const idx = first+i, r = rows[idx]; if(!r) break;
       const ry = y + i*rowH, on = idx===sel;
-      u.fillStyle = on ? 'rgba(255,215,94,.20)' : (i%2 ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.22)');
+      /* 선택된 줄 — row-selected(9-slice)가 오면 그림으로. 없으면 예전 사각형.
+         ⚠ 커서 줄이 어디인지가 이 화면들의 유일한 상태다. 눈에 확실히 걸려야 한다. */
+      /* 줄 바탕 — 짝수/홀수로 결을 준다 */
+      u.fillStyle = (i%2 ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.22)');
       u.fillRect(x, ry, w, rowH-1);
+      if(on){
+        /* 선택 줄 — row-selected(9-slice)가 오면 그 위에 얹는다.
+           ⚠ 불투명하게 깔았더니 **금색 바탕에 금색 글자**가 되어 선택된 줄만
+              안 읽혔다(실측). 강조는 글자를 가리면 안 된다 — 반투명으로 얹는다. */
+        let drew = false;
+        if(typeof UIK!=='undefined'){
+          u.save(); u.globalAlpha = 0.34;
+          drew = UIK.nine(u, 'row-selected', x, ry, w, rowH-1, 12);
+          u.restore();
+        }
+        if(!drew){ u.fillStyle='rgba(255,215,94,.20)'; u.fillRect(x, ry, w, rowH-1); }
+      }
       u.fillStyle='rgba(255,255,255,.07)'; u.fillRect(x, ry+rowH-1, w, 1);
       if(on){ u.fillStyle=PAL.gold; u.fillRect(x, ry, 2, rowH-1); }
       /* 커서 화살표(cursor-arrow) — 금색 세로줄만으로는 '어디를 보고 있나'가 약했다.
@@ -636,7 +651,11 @@ class AthleteScreen extends Screen0 {
       drawFlag(u, 120, 28, 20, 14, a.nation);
       txt(u, nationName(a.nation), 144, 30, 9, PAL.dim, 'left');
     }
-    txt(u, `${UI.rareStars(a)} ${UI.rareName(a)} · ${a.age}세 · ${GROWTH[a.growth].name}`,
+    /* 나이 — 아이콘이 오면 '세' 를 대신한다(챕터 1 규칙).
+       ⚠ 한 줄로 이어 그리므로 아이콘은 따로 얹고 글자에서 '세' 만 뺀다. */
+    { const im=BG.get('ic-age');
+      if(im) u.drawImage(im, VW-118, 6, 9, 9); }
+    txt(u, `${UI.rareStars(a)} ${UI.rareName(a)} · ${a.age}${BG.get('ic-age')?'':'세'} · ${GROWTH[a.growth].name}`,
         VW-8, 6, 9, UI.rareColor(a), 'right', 700);
     txt(u,`OVR ${a.overall}`,8,28,15,PAL.gold,'left',700);
     /* 잠재치 — 아이콘이 오면 '잠재' 라벨을 대신한다(챕터 1 규칙) */
