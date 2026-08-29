@@ -65,25 +65,25 @@ const SKILL = {
         전부 다 좋은 스킬은 없다. 종목을 보고 고른다. */
   SKILLS: {
     /* ── 경기형 ── eff 통로. 시뮬레이션이 이미 읽는 키에만 얹는다 ── */
-    burst   : { name:'총성 반응', desc:'출발 반응이 빨라진다',       branch:'race', tier:1, lv:1,  cost: 4, eff:{ reaction:-0.25 } },
-    burstX  : { name:'화약 반응', desc:'출발이 눈에 띄게 빠르다',     branch:'race', tier:3, lv:18, cost:14, eff:{ reaction:-0.55 }, needs:'burst' },
-    grit    : { name:'뒷심',      desc:'후반에 덜 무너진다',          branch:'race', tier:1, lv:1,  cost: 4, eff:{ lateFade:-0.13 } },
-    gritX   : { name:'강철 뒷심', desc:'마지막까지 페이스가 산다',    branch:'race', tier:3, lv:22, cost:16, eff:{ lateFade:-0.32 }, needs:'grit' },
-    beat    : { name:'박자',      desc:'리듬이 덜 흔들린다',          branch:'race', tier:1, lv:6,  cost: 6, eff:{ sigma:-0.022 } },
-    beatX   : { name:'절대 박자', desc:'리듬이 거의 안 흔들린다',     branch:'race', tier:4, lv:30, cost:22, eff:{ sigma:-0.055 }, needs:'beat' },
-    clutch  : { name:'강심장',    desc:'큰 경기에서 강하다',          branch:'race', tier:2, lv:14, cost:12, eff:{ bigGame:+0.18 } },
-    clutchX : { name:'대무대 체질',desc:'큰 경기일수록 잘한다',       branch:'race', tier:5, lv:34, cost:30, eff:{ bigGame:+0.38 }, needs:'clutch' },
-    skim    : { name:'허들 감각', desc:'허들을 깔끔하게 넘는다',      branch:'race', tier:2, lv:10, cost:10, eff:{ hurdle:+0.22 }, spec:'hurdles' },
-    spring  : { name:'용수철',    desc:'도약이 멀리 뻗는다',          branch:'race', tier:2, lv:10, cost:10, eff:{ jump:+0.14 },   spec:'jump' },
-    whip    : { name:'채찍팔',    desc:'던지기가 강해진다',           branch:'race', tier:2, lv:10, cost:10, eff:{ throw:+0.15 },  spec:'throw' },
+    burst   : { name:'총성 반응', icon:'sk-burst', desc:'출발 반응이 빨라진다',       branch:'race', tier:1, lv:1,  cost: 4, eff:{ reaction:-0.25 } },
+    burstX  : { name:'화약 반응', icon:'sk-burst-x', desc:'출발이 눈에 띄게 빠르다',     branch:'race', tier:3, lv:18, cost:14, eff:{ reaction:-0.55 }, needs:'burst' },
+    grit    : { name:'뒷심', icon:'sk-grit',      desc:'후반에 덜 무너진다',          branch:'race', tier:1, lv:1,  cost: 4, eff:{ lateFade:-0.13 } },
+    gritX   : { name:'강철 뒷심', icon:'sk-grit-x', desc:'마지막까지 페이스가 산다',    branch:'race', tier:3, lv:22, cost:16, eff:{ lateFade:-0.32 }, needs:'grit' },
+    beat    : { name:'박자', icon:'sk-beat',      desc:'리듬이 덜 흔들린다',          branch:'race', tier:1, lv:6,  cost: 6, eff:{ sigma:-0.022 } },
+    beatX   : { name:'절대 박자', icon:'sk-beat-x', desc:'리듬이 거의 안 흔들린다',     branch:'race', tier:4, lv:30, cost:22, eff:{ sigma:-0.055 }, needs:'beat' },
+    clutch  : { name:'강심장', icon:'sk-clutch',    desc:'큰 경기에서 강하다',          branch:'race', tier:2, lv:14, cost:12, eff:{ bigGame:+0.18 } },
+    clutchX : { name:'대무대 체질', icon:'sk-clutch-x',desc:'큰 경기일수록 잘한다',       branch:'race', tier:5, lv:34, cost:30, eff:{ bigGame:+0.38 }, needs:'clutch' },
+    skim    : { name:'허들 감각', icon:'sk-skim', desc:'허들을 깔끔하게 넘는다',      branch:'race', tier:2, lv:10, cost:10, eff:{ hurdle:+0.22 }, spec:'hurdles' },
+    spring  : { name:'용수철', icon:'sk-spring',    desc:'도약이 멀리 뻗는다',          branch:'race', tier:2, lv:10, cost:10, eff:{ jump:+0.14 },   spec:'jump' },
+    whip    : { name:'채찍팔', icon:'sk-whip',    desc:'던지기가 강해진다',           branch:'race', tier:2, lv:10, cost:10, eff:{ throw:+0.15 },  spec:'throw' },
 
     /* ── 육성형 ── 성장 통로. 경기 계산에 안 닿는다 ── */
-    appetite: { name:'식성',      desc:'피로가 잘 빠진다',            branch:'grow', tier:1, lv:1,  cost: 4, grow:{ rest:+1.4 } },
-    knee    : { name:'강철 무릎', desc:'부상 위험이 준다',            branch:'grow', tier:1, lv:1,  cost: 5, grow:{ hurt:-0.20 } },
-    sunny   : { name:'낙천',      desc:'컨디션이 잘 오른다',          branch:'grow', tier:1, lv:8,  cost: 6, grow:{ cond:+2.0 } },
-    eager   : { name:'흡수력',    desc:'훈련 효율이 오른다',          branch:'grow', tier:2, lv:12, cost:10, grow:{ grow:+0.10 } },
-    eagerX  : { name:'천재성',    desc:'훈련 효율이 크게 오른다',     branch:'grow', tier:4, lv:28, cost:24, grow:{ grow:+0.22 }, needs:'eager' },
-    pro     : { name:'프로 의식', desc:'모든 면이 조금씩 낫다',       branch:'grow', tier:3, lv:20, cost:18, grow:{ grow:+0.06, rest:+1.0, hurt:-0.12 } },
+    appetite: { name:'식성', icon:'sk-appetite',      desc:'피로가 잘 빠진다',            branch:'grow', tier:1, lv:1,  cost: 4, grow:{ rest:+1.4 } },
+    knee    : { name:'강철 무릎', icon:'sk-knee', desc:'부상 위험이 준다',            branch:'grow', tier:1, lv:1,  cost: 5, grow:{ hurt:-0.20 } },
+    sunny   : { name:'낙천', icon:'sk-sunny',      desc:'컨디션이 잘 오른다',          branch:'grow', tier:1, lv:8,  cost: 6, grow:{ cond:+2.0 } },
+    eager   : { name:'흡수력', icon:'sk-eager',    desc:'훈련 효율이 오른다',          branch:'grow', tier:2, lv:12, cost:10, grow:{ grow:+0.10 } },
+    eagerX  : { name:'천재성', icon:'sk-eager-x',    desc:'훈련 효율이 크게 오른다',     branch:'grow', tier:4, lv:28, cost:24, grow:{ grow:+0.22 }, needs:'eager' },
+    pro     : { name:'프로 의식', icon:'sk-pro', desc:'모든 면이 조금씩 낫다',       branch:'grow', tier:3, lv:20, cost:18, grow:{ grow:+0.06, rest:+1.0, hurt:-0.12 } },
   },
   ids(){ return Object.keys(this.SKILLS); },
   def(id){ return this.SKILLS[id]; },
@@ -184,14 +184,13 @@ const SKILL = {
      ⛔ 특성(metronome 등)은 여기 안 넣는다. 수동은 예전부터 스탯·특성과 무관했다 —
         넣으면 그건 기존 게임을 바꾸는 것이다. */
   WIDEN_PER_SIGMA: 0.25,
-  manualWiden: 0,             // ⚠ 감독 모드가 경기 전에 넣고 끝나면 0 으로 되돌린다
+  /* ⚠ 예전엔 SKILL.manualWiden 을 여기서 직접 들고 있었다. 선수 스탯까지 실어야
+     하게 되면서 **운반 통로가 두 벌**이 됐다 — 한쪽만 안 꺼지면 다음 판까지 새어 나간다.
+     운반은 MANUAL(02_runner) 한 곳으로 모으고, 여기는 값만 계산해 준다. */
   widenFor(a){
     if(!a) return 0;
     return Math.max(0, -this.eff(a, 'sigma')) * this.WIDEN_PER_SIGMA;
   },
-  /* 이번 수동 경기에 나가는 우리 선수 중 대표 한 명의 창을 쓴다 */
-  beginManual(a){ this.manualWiden = this.widenFor(a); },
-  endManual(){ this.manualWiden = 0; },
 
   /* ── 화면이 쓰는 것 ──────────────────────────────────────*/
   /* 이 선수가 지금 배울 수 있는 것 · 조건이 안 되는 것을 함께 (이유를 붙여서) */

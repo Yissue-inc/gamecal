@@ -46,6 +46,12 @@ const Power = {
     let s=0; for(const k of STAT_KEYS) s += (a.potential[k]||0) * W[k];
     return s;
   },
+  /* 스탯만 — **훈련이 실제로 바꾼 것**. 주간 결산의 헤드라인은 이 값을 쓴다.
+     ⚠ 경기력으로 한 주를 재면 피로가 성장을 덮는다(실측: 개인이 +58·+53 인 주에
+        클럽 경기력은 **+2**). 열심히 훈련한 주에 "아무 일도 없었다"가 뜬다.
+        컨디션·피로는 상단 칸이 이미 따로 말하고 있다. 여기서는 성장만 센다. */
+  statOf(a){ return Math.round(this.rawOverall(a) * 100); },
+
   /* 잠재 여력 — 돌파는 여기를 민다(경기력은 아직 안 오른다) */
   roomOf(a){ return Math.round(Math.max(0, this.rawPotential(a) - this.rawOverall(a)) * 100); },
   of(a){

@@ -5,10 +5,40 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* ── 직접 뛰는 판에 '내 선수'를 실어 나른다 ─────────────────
+   감독 모드가 경기 앞뒤로 begin()/end() 를 부른다. 아케이드는 안 부르므로 늘 비어 있다.
+
+   ⚠ **리듬만은 안 싣는다.** 실측(같은 손놀림으로 100m):
+        지금(스탯 50)        9.375초 · 요구 박자 238ms
+        스탯 90 선수         8.883초 · 요구 박자 **224ms**  ← 잘 키울수록 더 어려워진다
+        스탯 90, 리듬 중립    8.933초 · 요구 박자 238ms
+      리듬은 targetIntervalMs 를 바꾼다 — 좋은 선수일수록 빨리 두드리라고 요구하게 되고,
+      그러면 **잘 키운 선수가 더 못 쳐지는** 뒤집힌 게임이 된다.
+      쳐야 할 박자는 누구든 같게 두고, 실력은 '같은 손놀림에 더 빨리 간다'로만 나타낸다. */
+const MANUAL = {
+  stats: null,          // 이번 판에 뛰는 내 선수의 스탯(리듬 제외)
+  widen: 0,             // 스킬이 넓혀 주는 판정 창
+  begin(a){
+    if(!a || !a.stats){ this.end(); return; }
+    const { speed, acceleration, stamina, technique, power } = a.stats;
+    this.stats = { speed, acceleration, stamina, technique, power };   // 리듬은 일부러 뺀다
+    this.widen = (typeof SKILL!=='undefined' && SKILL.widenFor) ? SKILL.widenFor(a) : 0;
+  },
+  end(){ this.stats = null; this.widen = 0; },
+};
+
 class Runner {
   constructor(lane, stats, isPlayer, trackM){
     this.lane = lane;
-    this.stats = Object.assign({ speed:50, acceleration:50, stamina:50, technique:50, rhythm:50, power:50 }, stats||{});
+    /* ⚠ 감독 모드에서 **직접 뛸 때 내 선수가 화면에 없었다.**
+       48개 종목 화면이 전부 `new Runner(p, {}, true, …)` 로 만들기 때문에
+       누가 뛰든 스탯 50 짜리 일반 주자였다 — Lv30 전설 치타를 키워 놓고
+       직접 뛰면 신인과 똑같이 달렸다. 육성 게임에서 제일 아픈 구멍이다.
+       화면 48개를 고치는 대신 MANUAL 이 들고 있는 것을 여기서 섞는다.
+       ⛔ 아케이드는 MANUAL.stats 가 늘 null 이라 예전과 완전히 같다. */
+    const mine = (isPlayer && typeof MANUAL!=='undefined') ? MANUAL.stats : null;
+    this.stats = Object.assign({ speed:50, acceleration:50, stamina:50, technique:50, rhythm:50, power:50 },
+                               mine||{}, stats||{});
     this.isPlayer = !!isPlayer;
     this.trackM = trackM;
     this.reset(0);
@@ -102,9 +132,9 @@ class Runner {
       const target = this.targetIntervalMs();
       /* ⚠ 수동은 선수 스탯을 안 쓴다(new Runner(p,{},true,…)). 그래서 경기형 스킬은
          **판정 창 확대**로만 나타난다 — 자동의 sigma 감소와 같은 말이다.
-         ⛔ 감독 모드가 경기 전에 SKILL.manualWiden 을 넣고 끝나면 0 으로 되돌린다.
+         ⛔ 감독 모드가 경기 전에 MANUAL.begin() 을 부르고 끝나면 MANUAL.end() 로 비운다.
             아케이드는 늘 0 이다 — 스킬 없는 판은 예전과 완전히 같다. */
-      const skillWiden = (this.isPlayer && typeof SKILL!=='undefined') ? (SKILL.manualWiden||0) : 0;
+      const skillWiden = (this.isPlayer && typeof MANUAL!=='undefined') ? (MANUAL.widen||0) : 0;
       const widen = (RULES.assistWidenPct[assist||'off'] || 0) + this.tierWiden + skillWiden;
       const err = Math.abs(dt - target) / target;
       if(err <= RULES.perfectWindowPct + widen){ j='PERFECT'; this.form = Math.min(RULES.formCeil, this.form + RULES.formGainPerfect); this.addCombo(); }

@@ -254,7 +254,12 @@ const G = {
     u.lineWidth=2; u.strokeRect(x+.5,y+.5,w-1,39);
     if(p.kind==='rank'){
       txt(u, '랭크 상승', VW/2, y+6, 9, PAL.dim, 'center');
-      txt(u, p.rank.name, VW/2, y+18, 16, p.rank.color, 'center', 700);
+      /* 뱃지가 있으면 이름 왼쪽에 — 랭크 상승은 이 게임에서 제일 드문 순간이다 */
+      const ri = RANKS.indexOf(p.rank);
+      const im = (ri>=0) ? BG.get(RANK_ICON[ri]) : null;
+      if(im){ u.drawImage(im, VW/2-58, y+14, 22, 22);
+              txt(u, p.rank.name, VW/2+8, y+18, 16, p.rank.color, 'center', 700); }
+      else    txt(u, p.rank.name, VW/2, y+18, 16, p.rank.color, 'center', 700);
     } else {
       txt(u, p.badge.icon+'  '+p.badge.name, VW/2, y+7, 13, PAL.gold, 'center', 700);
       txt(u, p.badge.desc, VW/2, y+24, 9, PAL.dim, 'center');
@@ -650,7 +655,11 @@ const G = {
       const R=Career.rank, pr=Career.progress, bw=200, bx=VW/2-bw/2, by=104;
       /* 밝은 배경 아트 위에서는 얇은 글씨가 묻힌다 — 받침을 깐다 */
       uctx.fillStyle='rgba(6,10,18,.55)'; uctx.fillRect(bx-8, by-14, bw+16, 26);
-      txt(uctx, R.name, bx, by-11, 11, R.color, 'left', 700);
+      /* 랭크 뱃지 — 어셋이 온 등급부터 그림으로. 없으면 이름만 나온다(예전 그대로) */
+      let rx = bx;
+      { const im = BG.get(RANK_ICON[Career.rankIdx]);
+        if(im){ uctx.drawImage(im, bx, by-14, 18, 18); rx = bx+21; } }
+      txt(uctx, R.name, rx, by-11, 11, R.color, 'left', 700);
       const nc=Career.nextCp;
       txt(uctx, nc===null ? `CP ${Career.d.cp}` : `CP ${Career.d.cp} / ${nc}`,
           bx+bw, by-11, 9, PAL.dim, 'right');

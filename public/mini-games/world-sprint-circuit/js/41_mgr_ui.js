@@ -363,10 +363,21 @@ class OfficeScreen extends Screen0 {
 
     UI.list(u, this.rows, this.sel, 8, 82, VW-16, 22, 6);
     // 지난주 일지 — 비어 있으면 안내를 띄운다(빈 화면은 고장처럼 보인다)
-    const log=this.mg.lastLog;
+    const log=this.mg.lastLog, WS=this.mg.weekSummary;
     plate(u, 8, VH-58, VW-16, 40, .55);
     if(log && log.length){
       txt(u,'지난주',14,VH-56,8,PAL.dim);
+      /* ⚠ 한 주치 성장이 로그 세 줄로만 흘러갔다. 그 주에 클럽이 얼마나 세졌는지를
+         **제일 먼저** 말한다 — 큰 것이 작은 것보다 잘 보여야 한다. */
+      if(WS && WS.grow){
+        const c = WS.grow>0?PAL.green:PAL.red;
+        txt(u, '이번 주 성장', 52, VH-56, 8, PAL.dim, 'left');
+        txt(u, (WS.grow>0?'+':'')+UIK.n(WS.grow), 108, VH-57, 11, c, 'left', 700);
+        if(WS.top && WS.top.length)
+          txt(u, WS.top.map(r=>`${r.name} ${r.d>0?'+':''}${UIK.n(r.d)}`).join('  ·  '),
+              146, VH-56, 8, PAL.dim, 'left');
+      }
+      /* 로그 줄 수를 결산 유무와 무관하게 세 줄로 유지한다(상자 높이가 고정이다) */
       log.slice(0,3).forEach((e,i)=>
         txt(u, e.msg, 14, VH-46+i*11, 9,
           e.t==='injury'?PAL.red : e.t==='break'?PAL.green : e.t==='slump'?'#ffa04c' : PAL.white));

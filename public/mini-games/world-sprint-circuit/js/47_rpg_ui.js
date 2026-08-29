@@ -176,7 +176,7 @@ class GrowScreen extends Screen0 {
         const d=p.def, race=d.branch==='race';
         const rr=(typeof RARITY!=='undefined'&&RARITY[d.tier])?RARITY[d.tier]:null;
         return {
-          label: d.name,
+          label: d.name, icon: d.icon,
           sub: p.known ? d.desc
              : (p.why===null ? `${d.desc} · 포인트 ${d.cost}` : `${d.desc} · ${p.why}`),
           right: p.known ? (p.on?'ON':'OFF') : (p.why===null ? `−${d.cost}` : '잠김'),
@@ -1142,7 +1142,7 @@ class FacilityScreen extends Screen0 {
     return FACIL.ids().map(id=>{
       const K=FACIL.KINDS[id], l=FACIL.lv(C,id), cost=FACIL.nextCost(C,id);
       const max = l>=FACIL.MAX;
-      return { label:`${K.name}  ${'●'.repeat(l)}${'○'.repeat(FACIL.MAX-l)}`,
+      return { label:`${K.name}  ${'●'.repeat(l)}${'○'.repeat(FACIL.MAX-l)}`, icon:K.icon,
         sub: l ? `${K.line(l)}${max?'':`  →  ${K.line(l+1)}`}` : K.desc,
         right: max ? '최대' : `−${cost}`,
         rightColor: max ? PAL.green : ((C.budget>=cost) ? PAL.gold : PAL.dim),

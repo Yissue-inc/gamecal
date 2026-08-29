@@ -43,26 +43,26 @@ const FACIL = {
   totalTo(lv){ let s=0; for(let i=0;i<lv;i++) s+=this.COST[i]; return s; },
 
   KINDS: {
-    train: { name:'훈련장',   icon:'icon-levelup',
+    train: { name:'훈련장',   icon:'fc-train',
       desc:'선수가 더 빨리 자란다',
       line:l=>`성장 +${(l*3.5).toFixed(1)}%`,
       eff:l=>({ grow: l*0.035 }) },
-    med:   { name:'의무실',   icon:'icon-medal',
+    med:   { name:'의무실',   icon:'fc-med',
       desc:'부상이 줄고 피로가 잘 빠진다',
       line:l=>`부상 −${(l*9).toFixed(0)}% · 회복 +${(l*0.7).toFixed(1)}`,
       eff:l=>({ hurt: -l*0.09, rest: l*0.7 }) },
-    dorm:  { name:'기숙사',   icon:'icon-xp',
+    dorm:  { name:'기숙사',   icon:'fc-dorm',
       desc:'컨디션이 잘 오른다',
       line:l=>`컨디션 +${(l*1.1).toFixed(1)}`,
       eff:l=>({ cond: l*1.1 }) },
-    lab:   { name:'분석실',   icon:'icon-gear',
+    lab:   { name:'분석실',   icon:'fc-lab',
       desc:'선수의 잠재치를 빨리 알아본다',
       line:l=>`스카우트 확신 +${(l*12).toFixed(0)}%`,
       eff:l=>({ conf: l*0.12 }) },
     /* ⛔ 이 하나가 위의 ②를 정면으로 친다 — 들어오는 신인이 좋아진다.
        ⚠ 신인 tier 는 0.3~0.72 다. 5단계면 +0.275 — 상단이 약 1.0 에 닿는다.
           "약체만 들어와서 클럽이 늙는다"를 여기서 막는다. */
-    youth: { name:'유소년 아카데미', icon:'icon-tp',
+    youth: { name:'유소년 아카데미', icon:'fc-youth',
       desc:'들어오는 신인이 좋아진다',
       line:l=>`신인 자질 +${(l*5.5).toFixed(1)}%`,
       eff:l=>({ rookie: l*0.055 }) },

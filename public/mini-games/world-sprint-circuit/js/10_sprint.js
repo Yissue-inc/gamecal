@@ -247,8 +247,13 @@ class SprintEvent {
       /* 콤보 단계 — 지금 몇 단인지, 방금 올랐는지 */
       const P=this.player;
       if(P.tier>0){
-        const fresh = (this.t - (this.tierMsgAt||-999)) < 60;
+        const age = this.t - (this.tierMsgAt||-999);
+        const fresh = age < 60;
         const sz = fresh ? 16 : 12;
+        /* 단이 오른 순간 — 글자가 커지는 것만으로는 잘 안 보인다(빠른 판이라 60프레임).
+           ⚠ 어셋이 없으면 예전처럼 글자만 커진다. */
+        if(age < 45)
+          BG.fx(uctx, 'fx-tierup', VW-28, 50, 30, clamp(age/45, 0, 0.999), 4);
         txt(uctx, 'TIER '+P.tier, VW-10, 44, sz,
             fresh ? PAL.gold : 'rgba(255,215,94,.55)', 'right', 700);
         txt(uctx, P.combo+' 연속', VW-10, 44+sz+2, 8, PAL.dim, 'right');

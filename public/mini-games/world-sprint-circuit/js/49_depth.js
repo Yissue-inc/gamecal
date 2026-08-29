@@ -21,11 +21,11 @@ const DEPTH = {
      주급을 받고, 자기 분야의 성장을 밀어 준다.
      ⚠ 효과는 훈련에만 붙는다(46_rpg 의 장비와 같은 통로). 경기력 아님. */
   COACHES: [
-    { id:'sprint', name:'단거리 코치', stat:'speed',        wage:14, grow:0.14, icon:'icon-tp' },
-    { id:'power',  name:'웨이트 코치', stat:'power',        wage:14, grow:0.14, icon:'icon-tp' },
-    { id:'endure', name:'지구력 코치', stat:'stamina',      wage:13, grow:0.14, icon:'icon-tp' },
-    { id:'tech',   name:'기술 코치',   stat:'technique',    wage:16, grow:0.16, icon:'icon-tp' },
-    { id:'rhythm', name:'리듬 코치',   stat:'rhythm',       wage:13, grow:0.14, icon:'icon-tp' },
+    { id:'sprint', name:'단거리 코치', stat:'speed',        wage:14, grow:0.14, icon:'co-sprint' },
+    { id:'power',  name:'웨이트 코치', stat:'power',        wage:14, grow:0.14, icon:'co-power' },
+    { id:'endure', name:'지구력 코치', stat:'stamina',      wage:13, grow:0.14, icon:'co-endure' },
+    { id:'tech',   name:'기술 코치',   stat:'technique',    wage:16, grow:0.16, icon:'co-tech' },
+    { id:'rhythm', name:'리듬 코치',   stat:'rhythm',       wage:13, grow:0.14, icon:'co-rhythm' },
     { id:'medic',  name:'의무 트레이너',stat:null, wage:18, hurt:-0.22, rest:1.6, icon:'icon-gear' },
   ],
   coachOf(id){ return this.COACHES.find(c=>c.id===id) || null; },

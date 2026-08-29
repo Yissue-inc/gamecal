@@ -34,13 +34,42 @@ const MG = {
     this.nextWeek();
   },
 
+  /* ── 한 주의 결산 ────────────────────────────────────────
+     ⚠ 한 주를 넘기는 순간이 이 게임에서 **제일 크게 오르는 순간**인데 조용했다.
+        로그에 "○○ 스피드 +1.2" 같은 줄이 세 개 뜨는 게 전부였다.
+        육성 화면에서는 포인트 하나에도 +20 이 뜨는데, 정작 한 주치 성장은
+        숫자로 안 보인다 — 큰 것이 작은 것보다 안 보이는 건 뒤집힌 것이다.
+     그래서 주 넘김 앞뒤로 클럽 경기력을 재고, 누가 제일 자랐는지까지 남긴다. */
+  weekSummary: null,
+  snapWeek(){
+    if(typeof Power==='undefined') return null;
+    const m={};
+    for(const a of this.club.squad) m[a.id]=Power.statOf(a);
+    return { per:m };
+  },
+  makeWeekSummary(before){
+    if(!before || typeof Power==='undefined') return null;
+    const rows=[]; let sum=0;
+    for(const a of this.club.squad){
+      const b=before.per[a.id]; if(b===undefined) continue;   // 이번 주에 들어온 선수
+      const d=Power.statOf(a)-b;
+      if(d){ rows.push({ name:a.name, d, lv:a.lv }); sum+=d; }
+    }
+    rows.sort((x,y)=>y.d-x.d);
+    /* ⚠ 평균이 아니라 **합계**다. 한 주의 성장은 흐름이지 잔고가 아니다 —
+       평균으로 내면 선수가 많을수록 숫자가 작아져서 큰 팀이 손해로 보인다. */
+    return { grow: sum, top: rows.slice(0,2) };
+  },
+
   nextWeek(){
     const S=this.season;
+    const before = this.snapWeek();
     S.advanceTraining(this.focus);
     /* 도감 — 지금 데리고 있는 종족은 매주 기록한다(대회 전에 은퇴/방출돼도 남게) */
     if(typeof Codex!=='undefined') Codex.bulk(()=>{
       for(const a of this.club.squad) Codex.own(a.species); });
     this.lastLog = S.weekLog.slice();
+    this.weekSummary = this.makeWeekSummary(before);
     this.focus = {};
     S.week++;
     if(S.week > SEASON_WEEKS){
@@ -90,9 +119,9 @@ const MG = {
          ⚠ 수동은 선수 스탯을 안 쓰므로 여기서 켜 주지 않으면 스킬을 배운 선수와
             안 배운 선수가 직접 뛸 때 완전히 똑같다(=스킬이 반쪽만 산다). */
       const mine = slot.rows.filter(r=>this.club.has(r.athlete)).map(r=>r.athlete);
-      if(typeof SKILL!=='undefined' && mine.length) SKILL.beginManual(mine[0]);
+      if(typeof MANUAL!=='undefined') MANUAL.begin(mine[0]);
       G.playForManager(slot.ev, (res, quality)=>{
-        if(typeof SKILL!=='undefined') SKILL.endManual();
+        if(typeof MANUAL!=='undefined') MANUAL.end();
         this.applyManual(slot, quality);
         next();
       });
