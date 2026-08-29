@@ -38,7 +38,10 @@ const UI = {
          ⚠ 국기와 같은 자리를 쓴다(둘 다 있는 목록은 없다). 어셋이 없으면 폭 0. */
       if(r.icon && typeof BG!=='undefined'){
         const im = BG.get(r.icon);
-        if(im){ const is=Math.min(13, rowH-6);
+        /* ⚠ 13px 고정이라 시설처럼 **줄이 큰 목록에서도 아이콘만 작았다** —
+           128×128 아이소메트릭을 13px 로 줄이면 뭘 그렸는지 안 보인다.
+           줄 높이에 비례하되 24 에서 멈춘다(그 이상은 글자를 밀어낸다). */
+        if(im){ const is=Math.max(11, Math.min(24, rowH-10));
                 u.drawImage(im, x+7+gut, ry+Math.round((rowH-1-is)/2), is, is);
                 lx = x+9+gut+is; }
       }
