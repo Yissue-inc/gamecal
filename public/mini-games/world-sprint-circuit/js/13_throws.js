@@ -115,9 +115,9 @@ class JavelinEvent extends FieldEvent {
                       ivMs:this.runner.targetIntervalMs(), labelY:44 });
     plate(uctx,0,0,VW,30,0.72);
     txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
-    txt(uctx,'SPEED',66,3,8,PAL.dim); txt(uctx,this.runner.speed.toFixed(1)+' m/s',66,13,11,PAL.white);
-    txt(uctx,'BEST',150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,'QUALIFY',VW-8,3,8,PAL.dim,'right');
+    txt(uctx,K('속도'),66,3,8,PAL.dim); txt(uctx,this.runner.speed.toFixed(1)+' m/s',66,13,11,PAL.white);
+    txt(uctx,K('최고'),150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
+    txt(uctx,K('기준'),VW-8,3,8,PAL.dim,'right');
     txt(uctx,this.qualify.toFixed(1)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
@@ -299,8 +299,8 @@ class HammerEvent extends FieldEvent {
     txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
     txt(uctx,'회전',66,3,8,PAL.dim); txt(uctx,this.spin.toFixed(1),66,13,11,
       this.spin>=RULES.hammerOptSpin?PAL.green:(this.spin>=RULES.hammerMinSpin?PAL.gold:PAL.red));
-    txt(uctx,'BEST',150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,'QUALIFY',VW-8,3,8,PAL.dim,'right');
+    txt(uctx,K('최고'),150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
+    txt(uctx,K('기준'),VW-8,3,8,PAL.dim,'right');
     txt(uctx,this.qualify.toFixed(1)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,

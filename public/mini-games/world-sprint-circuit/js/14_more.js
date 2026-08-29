@@ -135,11 +135,11 @@ class TripleJumpEvent extends LongJumpEvent {
     plate(u,0,0,VW,30,0.72);
     txt(u,'시기', 8,3,8,PAL.dim);
     txt(u,`${Math.min(this.attempt+1,3)} / 3`, 8,12,15,PAL.gold,'left',700);
-    txt(u,'SPEED',66,3,8,PAL.dim);
+    txt(u,K('속도'),66,3,8,PAL.dim);
     txt(u,(this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s',66,13,11,PAL.white);
-    txt(u,'BEST',150,3,8,PAL.dim);
+    txt(u,K('최고'),150,3,8,PAL.dim);
     txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(u,'QUALIFY',VW-8,3,8,PAL.dim,'right');
+    txt(u,K('기준'),VW-8,3,8,PAL.dim,'right');
     txt(u,this.qualify.toFixed(2)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(u, i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))), 250+i*70, 13, 9,
@@ -265,8 +265,8 @@ class ShotPutEvent extends JavelinEvent {
     plate(u,0,0,VW,30,0.72);
     txt(u,'시기',8,3,8,PAL.dim); txt(u,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
     txt(u,'회전',66,3,8,PAL.dim); txt(u,String(this.spinWork||0),66,13,11,PAL.white);
-    txt(u,'BEST',150,3,8,PAL.dim); txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(u,'QUALIFY',VW-8,3,8,PAL.dim,'right');
+    txt(u,K('최고'),150,3,8,PAL.dim); txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
+    txt(u,K('기준'),VW-8,3,8,PAL.dim,'right');
     txt(u,this.qualify.toFixed(1)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(u,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
@@ -447,8 +447,8 @@ class PoleVaultEvent extends FieldEvent {
     txt(u,'바 높이',8,3,8,PAL.dim); txt(u,this.bar.toFixed(2)+'m',8,12,15,PAL.gold,'left',700);
     txt(u,'실패',86,3,8,PAL.dim);
     txt(u,'●'.repeat(this.misses)+'○'.repeat(3-this.misses),86,13,12,PAL.red);
-    txt(u,'BEST',160,3,8,PAL.dim); txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',160,13,11,PAL.blue);
-    txt(u,'QUALIFY',VW-8,3,8,PAL.dim,'right');
+    txt(u,K('최고'),160,3,8,PAL.dim); txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',160,13,11,PAL.blue);
+    txt(u,K('기준'),VW-8,3,8,PAL.dim,'right');
     txt(u,this.qualify.toFixed(2)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
 
     if(this.phase==='RUNUP'){

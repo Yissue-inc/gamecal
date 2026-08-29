@@ -25,7 +25,7 @@ const NATIONS = [
   { code:'USA', ko:'미국',       en:'USA',          reg:'america',
     flag:{ stripes:{a:'#b22234', b:'#ffffff', n:7}, canton:{c:'#3c3b6e'} } },
   { code:'CAN', ko:'캐나다',     en:'Canada',       reg:'america',
-    flag:{ v:['#d52b1e','#ffffff','#d52b1e'], disc:{c:'#d52b1e', r:0.22} } },
+    flag:{ v:['#d52b1e','#ffffff','#d52b1e'], leaf:{c:'#d52b1e', r:0.40} } },
   { code:'BRA', ko:'브라질',     en:'Brazil',       reg:'america',
     flag:{ h:['#009c3b'], diamond:{c:'#ffdf00'}, disc:{c:'#002776', r:0.20} } },
   { code:'MEX', ko:'멕시코',     en:'Mexico',       reg:'america',
@@ -169,6 +169,25 @@ function drawFlag(x2d, x, y, w, h, code){
   if(f.diamond){ x2d.fillStyle=f.diamond.c;
     x2d.beginPath(); x2d.moveTo(x+w/2,y+h*0.12); x2d.lineTo(x+w*0.86,y+h/2);
     x2d.lineTo(x+w/2,y+h*0.88); x2d.lineTo(x+w*0.14,y+h/2); x2d.fill(); }
+  /* 단풍잎 — 캐나다.
+     ⛔ 원(disc)으로 대신 그리고 있었다. 빨강·하양·빨강 세로띠 가운데 **빨간 원**은
+        어떤 나라도 아니다 — 40개 중 형태가 틀린 유일한 국기였다(다른 원들은
+        태극·해·차크라·천구의처럼 이 크기에서 원이 그럴듯한 근사다).
+     ⚠ 46×28 에 잎맥까지 넣으면 뭉갠다. **뾰족한 실루엣**만 남긴다 — 세 갈래 위쪽
+        돌기와 아래 줄기. 그 윤곽만으로 이 크기에서는 충분히 캐나다로 읽힌다. */
+  if(f.leaf){
+    const cx=x+w/2, cy=y+h/2, R=h*(f.leaf.r||0.40);
+    x2d.fillStyle=f.leaf.c;
+    x2d.beginPath();
+    const P=[[0,-1.00],[0.22,-0.52],[0.52,-0.62],[0.42,-0.24],[0.86,-0.10],
+             [0.62,0.14],[0.72,0.34],[0.30,0.28],[0.34,0.72],[0.10,0.56],
+             [0.10,1.00],[-0.10,1.00],[-0.10,0.56],[-0.34,0.72],[-0.30,0.28],
+             [-0.72,0.34],[-0.62,0.14],[-0.86,-0.10],[-0.42,-0.24],[-0.52,-0.62],
+             [-0.22,-0.52]];
+    P.forEach(([px,py],i)=>{ const X=cx+px*R*0.92, Y=cy+py*R;
+      i ? x2d.lineTo(X,Y) : x2d.moveTo(X,Y); });
+    x2d.closePath(); x2d.fill();
+  }
   /* 원 */
   const disc=(d)=>{ if(!d) return; x2d.fillStyle=d.c;
     x2d.beginPath(); x2d.arc(x+w*(d.x||0.5), y+h/2, h*d.r, 0, Math.PI*2); x2d.fill(); };

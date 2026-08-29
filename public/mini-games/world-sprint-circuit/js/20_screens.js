@@ -517,9 +517,17 @@ const G = {
     ctx.fillStyle='rgba(5,6,10,.84)'; ctx.fillRect(0,0,VW,VH);
     plate(uctx, 0, 0, VW, 22, .86);
     txt(uctx,'어느 나라를 대표합니까', 8, 5, 13, PAL.gold,'left',700);
-    const cols=8, fw=46, fh=28, gx=18, gy=34;
+    /* ⛔ 40개 / 8열 = 5줄인데 줄 간격이 44 였다 → 5행이 y 210~238 을 쓰고,
+       아래 나라 이름이 VH-42(=228) 에서 17px 로 그려져 **국기 위에 얹혔다**(실측 10px).
+       간격을 40 으로 좁히고 격자를 4px 올린다 — 5행이 190~218 에서 끝나 10px 이 남는다.
+       ⚠ 나라가 늘면 여기가 다시 부딪힌다. 줄 수에 맞춰 계산한다. */
+    const cols=8, fw=46, fh=28, gx=18, gy=30;
+    const rows = Math.ceil(NATIONS.length/cols);
+    /* 아래 이름표(VH-42)까지 10px 을 비운다. 나라가 늘면 간격이 알아서 좁아진다 —
+       숫자를 손으로 다시 맞출 자리를 없앤다. */
+    const step = Math.min(40, Math.floor((VH-52-gy)/Math.max(1,rows)));
     NATIONS.forEach((n,i)=>{
-      const x=gx+(i%cols)*(fw+10), y=gy+((i/cols)|0)*(fh+16);
+      const x=gx+(i%cols)*(fw+10), y=gy+((i/cols)|0)*step;
       const on=i===this.natSel;
       if(on){ uctx.fillStyle='rgba(255,215,94,.25)'; uctx.fillRect(x-3,y-3,fw+6,fh+6); }
       drawFlag(uctx, x, y, fw, fh, n.code);
@@ -758,7 +766,10 @@ const G = {
     }
     const n=Party.count;
     const mode = n>1 ? (Party.modeFor(def)==='versus' ? K('동시 대결') : K('턴제')) : '';
-    txt(uctx, `[ ] ${K('인원')}  ${n}${K('인')} ${mode}`, VW-10, VH-55, 11,
+    /* ⚠ '[ ]' 는 **대괄호 두 키**를 뜻하는데, 사이가 벌어져 있어 화면에서는
+       '빈 상자' 로 읽힌다(처음 켠 사람이 두 번째로 보는 화면이다).
+       슬래시를 넣어 '두 개의 키' 임을 못 박는다 — ◀▶ 처럼 붙일 수는 없다([]는 배열로 읽힌다). */
+    txt(uctx, `[ / ] ${K('인원')}  ${n}${K('인')} ${mode}`, VW-10, VH-55, 11,
         n>1?PAL.gold:PAL.dim,'right', n>1?700:400);
     if(n>1){
       let px=VW-10;

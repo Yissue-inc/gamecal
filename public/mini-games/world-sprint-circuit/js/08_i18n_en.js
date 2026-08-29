@@ -927,6 +927,9 @@ const I18N_EN = {
   /* 감독 이력 — 라벨이 스스로 분모를 말한다(직접 뛴 것 vs 클럽이 딴 것) */
   '직접 뛴 경기':'Races you ran', '대회 금메달':'Meet golds', '마친 시즌':'Seasons done',
   '◀▶ 특성 · 취소 돌아가기':'◀▶ Trait · Cancel back',
+  /* 경기 HUD — 아이콘이 없을 때 나오는 라벨(원문은 한국어여야 한다) */
+  '시간':'TIME', '속도':'SPEED', '거리':'DIST',
+  '팀 사기 %1 — 올릴 수 있습니다':'Team morale %1 — you can raise it',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };

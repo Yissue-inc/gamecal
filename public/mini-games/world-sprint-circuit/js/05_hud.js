@@ -83,15 +83,17 @@ const HUD = {
       txt(ctx, txt0, x, y, 8, PAL.dim); return 0;
     };
     const ts = fmtTime(o.timeS);
-    lab(this.RACE_ICON.time, 'TIME', 8, 3);
+    /* 라벨도 한국어를 원문으로 — 아이콘이 없을 때만 나오는 대비책이지만
+       그때 한국어 화면에 영어가 뜨면 안 된다(위 QUALIFY 와 같은 사고다). */
+    lab(this.RACE_ICON.time, '시간', 8, 3);
     txt(ctx, ts, 8, ts.length>7?13:12, ts.length>7?12:15, PAL.gold, 'left', 700);
 
     /* ⚠ 'm/s' 는 매 프레임 읽히지 않는 잡음이다 — 숫자만 남긴다 */
-    lab(this.RACE_ICON.speed, 'SPEED', 76, 3);
+    lab(this.RACE_ICON.speed, '속도', 76, 3);
     txt(ctx, o.speed.toFixed(1), 76, 13, 11, PAL.white);
 
     /* 거리도 마찬가지 — '17616 / 42195' 는 11px 로 칸을 넘는다. km 로 줄인다. */
-    lab(this.RACE_ICON.dist, 'DIST', 150, 3);
+    lab(this.RACE_ICON.dist, '거리', 150, 3);
     const dist = o.trackM > 10000
       ? (o.distM/1000).toFixed(1)+' / '+(o.trackM/1000).toFixed(1)+'km'
       : o.distM.toFixed(0)+' / '+o.trackM;
@@ -115,12 +117,17 @@ const HUD = {
       txt(ctx, (d<=0?'−':'+')+Math.abs(d).toFixed(2), RX, 12, 13,
           ahead?PAL.green:PAL.red, 'right', 700);
     } else {
-      txt(ctx, 'QUALIFY', RX, 3, 8, PAL.dim, 'right');
+      /* ⛔ 여기 'QUALIFY' 와 아래 'BEST' 가 **영어 원문**으로 박혀 있었다.
+         번역표는 한국어→영어 한 방향이라 코드에 박힌 영어는 한국어 빌드에서
+         그대로 영어로 나온다(실측: 한국어 화면에 QUALIFY 만 영어). 게다가 20%를
+         지나면 같은 자리가 K('통과 페이스') 로 바뀌어 **경기 도중에 언어가 갈렸다.**
+         한국어를 원문으로 쓰고 영어는 표가 만든다 — 두 낱말 다 이미 표에 있다. */
+      txt(ctx, K('기준'), RX, 3, 8, PAL.dim, 'right');
       txt(ctx, fmtTime(o.qualify), RX, 12, 13, PAL.dim, 'right', 700);
     }
 
     if(o.best!==undefined){
-      txt(ctx, 'BEST', RX-76, 3, 8, PAL.dim, 'right');
+      txt(ctx, K('최고'), RX-76, 3, 8, PAL.dim, 'right');
       txt(ctx, fmtTime(o.best), RX-76, 13, 11, PAL.blue, 'right');
     }
   },

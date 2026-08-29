@@ -294,7 +294,35 @@ function officeTodo(mg){
     return put('도감 보상을 받으세요', '이정표에 닿았습니다',
                ()=>new CodexScreen(mg), 'icon-xp');
 
-  /* ② 놀고 있는 자원 — 쌓아 두면 아무 일도 안 한다 */
+  /* ② 이번 주가 지나면 **사라지는 것** — 여기가 먼저다.
+     ⛔ 예전엔 쌓인 자원(스킬·포인트·시설)이 먼저였다. 그래서 새로 시작한 감독이
+        1주차에 받는 첫 지시가 **'시설을 지을 수 있습니다'** 였다(자금 260 · 최저 80).
+        시설은 다음 주에도 지을 수 있지만 **직접 지도 3자리는 그 주에 안 쓰면 없어진다.**
+        기준은 취향이 아니라 이것 하나다 — 건너뛰면 잃는가.
+        쌓인 자원은 안 사라지므로 다음 주 목록에서 다시 말해 준다. */
+  if(S.isMeetWeek) return put(`${MEET_INFO[S.meetKind].name} 출전`, '출전표를 짜세요',
+                              ()=>new EntryScreen(mg), 'ic-meet');
+  /* 팀 미팅 — 실측상 사기가 80 아래일 때 부르면 시즌 승점이 +19.9(+7%) 다.
+     매주 부르면 오히려 −3.9 이므로 **문턱을 넘을 때만** 권한다. */
+  const mAvg = C.squad.length
+    ? C.squad.reduce((s2,a)=>s2+a.morale,0)/C.squad.length : 100;
+  /* ⚠ '내려갔습니다' 라고 쓰고 있었다. 그런데 **새 클럽은 평균 61~68 로 시작한다**
+     (실측 6회 · 문턱 78). 즉 새 게임을 켤 때마다 아무 일도 없었는데 "내려갔다" 가
+     첫 지시로 떴다 — 감독이 이미 뭔가 잘못한 것처럼 읽힌다.
+     변화가 아니라 **지금 값**을 말한다. 시작값 자체는 밸런스라 손대지 않는다
+     (문턱 아래에서 시작하는 덕에 첫 주에 팀 미팅을 배우게 되는 면도 있다). */
+  if(mAvg < 78 && !Object.values(mg.focus).includes('talk'))
+    return put(`팀 사기 ${Math.round(mAvg)} — 올릴 수 있습니다`,
+               '팀 미팅으로 올리세요 — 컨디션이 따라 오릅니다',
+               ()=>new TrainScreen(mg), 'ic-morale');
+  const hurt = C.squad.filter(a=>a.injury).length;
+  if(hurt) return put(`부상 ${hurt}명 — 치료를 지정하세요`, '치료 지도는 회복이 2배 빠릅니다',
+                      ()=>new TrainScreen(mg), 'ic-injury');
+  if(Object.keys(mg.focus).length < 3)
+    return put(`직접 지도 ${Object.keys(mg.focus).length} / 3`, '남은 자리를 쓰지 않으면 그냥 사라집니다',
+               ()=>new TrainScreen(mg), 'ic-train');
+
+  /* ③ 쌓여 있는 것 — 안 사라지니 이번 주에 할 일을 다 한 뒤에 권한다 */
   if(typeof SKILL!=='undefined'){
     const idle = C_squadIdleSkills(C);
     if(idle) return put(`안 켠 스킬 ${idle}개가 있습니다`, '배웠는데 장착을 안 했습니다',
@@ -306,24 +334,6 @@ function officeTodo(mg){
   if(typeof FACIL!=='undefined' && FACIL.ids().some(id=>FACIL.canBuild(C,id)===null))
     return put('시설을 지을 수 있습니다', '코인을 영구 성장으로 바꿉니다',
                ()=>new FacilityScreen(mg), 'icon-gear');
-
-  /* ③ 이번 주에 반드시 할 것 */
-  if(S.isMeetWeek) return put(`${MEET_INFO[S.meetKind].name} 출전`, '출전표를 짜세요',
-                              ()=>new EntryScreen(mg), 'ic-meet');
-  /* 팀 미팅 — 실측상 사기가 80 아래일 때 부르면 시즌 승점이 +19.9(+7%) 다.
-     매주 부르면 오히려 −3.9 이므로 **문턱을 넘을 때만** 권한다. */
-  const mAvg = C.squad.length
-    ? C.squad.reduce((s2,a)=>s2+a.morale,0)/C.squad.length : 100;
-  if(mAvg < 78 && !Object.values(mg.focus).includes('talk'))
-    return put(`팀 사기가 ${Math.round(mAvg)}까지 내려갔습니다`,
-               '팀 미팅으로 올리세요 — 컨디션이 따라 오릅니다',
-               ()=>new TrainScreen(mg), 'ic-morale');
-  const hurt = C.squad.filter(a=>a.injury).length;
-  if(hurt) return put(`부상 ${hurt}명 — 치료를 지정하세요`, '치료 지도는 회복이 2배 빠릅니다',
-                      ()=>new TrainScreen(mg), 'ic-injury');
-  if(Object.keys(mg.focus).length < 3)
-    return put(`직접 지도 ${Object.keys(mg.focus).length} / 3`, '남은 자리를 쓰지 않으면 그냥 사라집니다',
-               ()=>new TrainScreen(mg), 'ic-train');
   return null;                                  // 할 일이 없으면 줄을 안 만든다
 }
 
@@ -502,10 +512,17 @@ class OfficeScreen extends Screen0 {
       { k:'피로', v:Math.round(avgF)+'', c:avgF>65?PAL.red:avgF>45?PAL.gold:PAL.green, icon:'ic-fatigue' },
       { k:'부상', v:inj.length?`${inj.length}명`:'없음', c:inj.length?PAL.red:PAL.green, icon:'ic-injury' },
     ];
+    /* ⛔ 아이콘만 두면 **처음 켠 사람에게는 여섯 칸이 전부 수수께끼다** —
+       260 · 0 · 0·0·0 · 보통 · 0 · 없음 이 각각 뭔지 알 길이 없다(실측: 새 클럽 1주차).
+       그렇다고 늘 라벨을 달면 CK 가 지적한 '글자가 너무 많다' 로 되돌아간다.
+       **첫 시즌에만 라벨을 함께 보여 준다** — 배우고 나면 조용해진다.
+       ⚠ 라벨은 아이콘 오른쪽에 붙인다. 칸 너비는 74px 라 11+2+라벨(≤22px) 이 들어간다. */
+    const teach = S.year <= 1;
     cells.forEach((c,i)=>{
       const cx=16+i*Math.floor((VW-32)/cells.length);
       const im = c.icon ? BG.get(c.icon) : null;
-      if(im){ u.drawImage(im, cx, 53, 11, 11); }
+      if(im){ u.drawImage(im, cx, 53, 11, 11);
+              if(teach) txt(u, c.k, cx+13, 54, 8, PAL.dim); }
       else    txt(u, c.k, cx, 54, 8, PAL.dim);        // 아이콘이 아직 없으면 라벨로
       txt(u, c.v, cx, 66, 12, c.c, 'left', 700);
     });
