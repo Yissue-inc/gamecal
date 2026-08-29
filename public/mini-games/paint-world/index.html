@@ -10,13 +10,26 @@
    font-family:Galmuri11,"Nanum Gothic Coding",sans-serif;
    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
  canvas{display:block;touch-action:none;}
+ /* ⚠ 첫 화면이 불투명해서 **살아 있는 수족관을 가리고 있었다.**
+    캔버스는 이미 물고기가 헤엄치는 채로 돌고 있었는데, 지나가는 아이가 본 것은
+    글자가 적힌 검은 사각형이었다. 전시장에서 첫 3초가 전부다 —
+    안에 뭐가 있는지 보여 준 다음 부른다. (덮개 자체는 소리 잠금 해제에 필요하다) */
  #gate{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;
-   align-items:center;justify-content:center;gap:22px;background:#0a2036;color:#eaf4ff;}
- #gate h1{font-size:46px;color:#ffc94a;letter-spacing:4px;}
- #gate p{font-size:15px;color:#8fa3b8;}
+   align-items:center;justify-content:flex-end;gap:18px;padding-bottom:26vh;
+   /* 아래 버튼 줄 위에 글자를 얹으면, 눌리지도 않는 버튼이 비쳐 헷갈린다.
+      물이 트인 가운데-아래에 놓고, 아래쪽은 더 어둡게 눌러 둔다. */
+   background:linear-gradient(to bottom,
+     rgba(10,32,54,.26) 0%, rgba(10,32,54,.04) 30%,
+     rgba(10,32,54,.42) 62%, rgba(10,32,54,.93) 100%);
+   color:#eaf4ff;}
+ #gate h1{font-size:56px;color:#ffc94a;letter-spacing:4px;
+   text-shadow:0 3px 0 rgba(8,24,40,.55), 0 0 26px rgba(10,32,54,.9);}
+ #gate p{font-size:17px;color:#dbe9f7;text-shadow:0 2px 8px rgba(8,24,40,.9);}
  /* 이름 입력 — 아이 손가락 기준으로 크게 */
+ /* 그림이 위에 크게 뜬다 — 입력칸은 그 아래에 둔다(겹치면 자기 그림이 안 보인다) */
  #namebox{position:fixed;inset:0;z-index:8;display:none;flex-direction:column;
-   align-items:center;justify-content:center;gap:20px;background:rgba(10,32,54,.0);}
+   align-items:center;justify-content:flex-end;gap:18px;padding-bottom:8vh;
+   background:rgba(10,32,54,.0);}
  #namebox input{font-family:inherit;font-size:34px;font-weight:700;text-align:center;
    padding:18px 26px;width:min(460px,80vw);border:4px solid #ffc94a;border-radius:16px;
    background:#0d2a42;color:#fff;outline:none;}
@@ -24,9 +37,19 @@
  .nb-row{display:flex;gap:16px;}
  #namebox button{font-family:inherit;font-size:24px;font-weight:700;padding:18px 34px;
    border-radius:16px;cursor:pointer;border:3px solid #ffc94a;background:#ffc94a;color:#0a2036;}
- #nb-skip{background:transparent;color:#cfe2f2;border-color:rgba(255,255,255,.35);}
- #go{padding:20px 44px;border:3px solid #ffc94a;border-radius:16px;background:#123047;
-   color:#ffc94a;font-family:inherit;font-size:22px;font-weight:700;cursor:pointer;}
+ /* ⚠ '#nb-skip' 은 '#namebox button' 보다 우선순위가 낮아 **한 번도 안 먹었다** —
+    보조 버튼이 주 버튼과 똑같은 금색으로 나왔다. 둘 중 무엇을 눌러야 하는지
+    아이는 알 수 없었다. 선택자를 올려 확실히 이긴다. */
+ #namebox #nb-skip{background:transparent;color:#cfe2f2;border:3px solid rgba(255,255,255,.4);
+   font-weight:400;}
+ /* 시작 버튼은 화면에서 가장 눈에 띄어야 한다 — 아이가 무엇을 누를지 고민하면 안 된다 */
+ #go{padding:24px 56px;border:none;border-radius:20px;background:#ffc94a;
+   color:#0a2036;font-family:inherit;font-size:28px;font-weight:700;cursor:pointer;
+   box-shadow:0 6px 0 #c99a2e, 0 12px 30px rgba(8,24,40,.5);
+   animation:gobob 1.9s ease-in-out infinite;}
+ #go:active{transform:translateY(4px);box-shadow:0 2px 0 #c99a2e;}
+ @keyframes gobob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+ @media (prefers-reduced-motion: reduce){ #go{animation:none} }
 </style></head><body>
 <canvas id="game"></canvas>
 <div id="gate">
@@ -1383,7 +1406,9 @@ const Grow = {
   draw(c){
     if(this.flash>0) this.flash--;
     const lv=this.level(), st=this.STEPS[lv], n=this.next();
-    const x=VW-232, y=26, w=200;
+    /* ⚠ 연결 상태 표시(오른쪽 위 y=15)와 겹쳐 글자 두 줄이 포개져 있었다.
+       큰 화면에서는 멀리서 보는 글자라 더 눈에 띈다. 한 줄 내려 비킨다. */
+    const x=VW-232, y=48, w=200;
     c.save();
     /* 단계가 오른 직후엔 잠깐 빛난다 */
     if(this.flash>0){ c.shadowColor=PAL.gold; c.shadowBlur=18*(this.flash/90); }
@@ -4528,11 +4553,31 @@ const Game = {
   },
   /* 세계 차례 — 어셋이 준비된 모드만 돈다.
      ⚠ 도안이 하나도 없는 모드로 넘어가면 빈 화면이 된다. */
+  /* 세계 차례. ⚠ '도안이 하나라도 온 세계' 만 넣었더니, 처음 10초 동안
+     세계가 둘만 보였다 — 아이는 공룡이 아예 없는 줄 안다.
+     선언된 세계는 늘 보여 주고, 아직 안 온 세계는 눌렀을 때 기다리게 한다.
+     (어셋이 진짜 없으면 readyRealm 이 false 로 남아 흐리게 표시된다) */
   realmOrder(){
     const out=['sea','jungle'];
     for(const m of ['dino','robot','bug'])
-      if(typeof MTemplate!=='undefined' && MTemplate.ready(m).length) out.push(m);
+      if(typeof MODES!=='undefined' && MODES[m] && MODES[m].list().length) out.push(m);
     return out;
+  },
+  readyRealm(r){
+    if(r==='sea'||r==='jungle') return true;
+    return !!(typeof MTemplate!=='undefined' && MTemplate.ready(r).length);
+  },
+  /* 특정 세계로 곧장 — 순환(switchRealm)이 아니라 지목해서 간다 */
+  goRealm(r, quiet){
+    if(!this.realmOrder().includes(r) || !this.readyRealm(r)) return;
+    this.realm=r;
+    if(typeof ModeWorld!=='undefined' && MODES[r]){
+      ModeWorld.set(r); ModeWorld.init(); ModeWorld.prefetch(); MTemplate.prefetch(r);
+    }
+    if(r==='jungle') JTemplate.prefetch();
+    if(typeof Amb!=='undefined') Amb.set(r);
+    if(!quiet) this.say(this.worldName(r));
+    Sfx.ui();
   },
   switchRealm(){
     const order=this.realmOrder();
@@ -4689,7 +4734,7 @@ const Game = {
     switch(this.state){
       case ST.TANK: this.updTank(dt); break;
       case ST.PICK: this.updPick(); break;
-      case ST.PAINT: Paint.update(dt); this.updPaintUI(); break;
+      case ST.PAINT: Paint.update(dt); this.updPaintUI(); this.updPaintIdle(); break;
       case ST.JOIN:
         this.W.update(dt);
         for(const c of this.beings) c.update(dt,this.W);
@@ -4812,11 +4857,25 @@ const Game = {
     const id=UI.hit(p);
     if(id==='back'){ this.state=ST.TANK; Sfx.ui(); return; }
     if(id==='realm'){ this.switchRealm(); this.pickPage=0; return; }
+    if(id && id.startsWith('world:')){
+      const r=id.slice(6);
+      if(r===this.realm){ Sfx.ui(); return; }
+      if(!this.readyRealm(r)){          // 아직 오는 중 — 재촉하고 기다리게 한다
+        if(typeof MTemplate!=='undefined') MTemplate.prefetch(r);
+        this.say(this.worldName(r)+' 친구들이 오고 있어요'); Sfx.ui(); return;
+      }
+      this.goRealm(r, true);            // 말풍선 없이 — 탭이 이미 어디인지 보여 준다
+      this.pickPage=0;
+      return;
+    }
     if(id==='ppage+'){ this.pickPage=(this.pickPage+1)%(this._pickPages||1); Sfx.ui(); return; }
     if(id==='ppage-'){ const n=this._pickPages||1;
       this.pickPage=(this.pickPage-1+n)%n; Sfx.ui(); return; }
     if(id && id.startsWith('sp:')){
-      Paint.open(id.slice(3), MODES[this.realm]?this.realm:null); this.state=ST.PAINT; this.blankWarned=false; this.backWarned=false; Sfx.ui();
+      Paint.open(id.slice(3), MODES[this.realm]?this.realm:null); this.state=ST.PAINT;
+      this.blankWarned=false; this.backWarned=false;
+      this.paintIdle=0; this.idleAsked=false;      // 새 아이가 시작한다 — 시계를 0 으로
+      Sfx.ui();
     }
   },
   updPaintUI(){
@@ -4866,6 +4925,26 @@ const Game = {
     }
   },
 
+  /* 전시장 — 아이가 색칠하다 그냥 가 버리면 태블릿이 거기서 멈춘다.
+     다음 아이는 남의 반쯤 칠한 그림을 물려받는다(고르기·이름 칸에는 이미 시간 제한이
+     있었는데 **색칠에만 없었다**).
+     ⚠ 그림을 버리지는 않는다 — 칠한 게 있으면 이름 없이 보내 수조에 살려 둔다.
+       빈 도안이면 그냥 수조로 돌아간다(윤곽선만 떠다니면 안 된다). */
+  paintIdle:0,
+  updPaintIdle(){
+    if(Input.down || Input.tapped || Paint.drawing){ this.paintIdle=0; this.idleAsked=false; return; }
+    this.paintIdle++;
+    if(this.paintIdle===90*60 && !this.idleAsked){      // 90초 — 먼저 말을 건다
+      this.idleAsked=true;
+      this.say('아직 그리는 중이에요?'); Sfx.ui();
+    }
+    if(this.paintIdle>135*60){                           // 그 뒤로도 45초 — 정리한다
+      this.paintIdle=0; this.idleAsked=false;
+      const r = Paint.inkedRatio ? Paint.inkedRatio() : 0;
+      if(r>=0.05){ this.askName(); }                     // 칠한 건 살린다
+      else { this.state=ST.TANK; }
+    }
+  },
   updName(){
     const r=NameBox.poll();
     if(r===null){
@@ -4919,9 +4998,12 @@ const Game = {
     /* 방금 도착한 그림을 크게 비춘다 (큰 화면 전용) */
     if(this.spot){
       const S=this.spot; S.t++;
-      const IN=26, HOLD=150, OUT=34;
+      const waiting=(this.spotQ||[]).length;
+      const IN=26, HOLD=(waiting?70:150), OUT=34;      // 밀리면 짧게
       const k = S.t<IN ? S.t/IN : S.t<IN+HOLD ? 1 : Math.max(0,1-(S.t-IN-HOLD)/OUT);
-      if(k<=0 || S.t>IN+HOLD+OUT){ this.spot=null; }
+      if(k<=0 || S.t>IN+HOLD+OUT){
+        this.spot = (this.spotQ && this.spotQ.length) ? this.spotQ.shift() : null;
+      }
       else if(S.c && S.c.tex){
         c.save();
         c.globalAlpha=k*0.66; c.fillStyle='#06182a'; c.fillRect(0,0,VW,VH);
@@ -5050,14 +5132,33 @@ const Game = {
        UI.btn 은 그리면서 동시에 판정도 등록하므로, 안 그리면 눌리지도 않는다.
        예전엔 축하 화면 위로 버튼이 그대로 보여 아이가 잘못 눌렀다. */
     if(this.state!==ST.TANK && this.state!==ST.JOIN) return;
+    /* ⚠ 큰 화면에는 **버튼 줄 전체가 필요 없다.** 그리기 버튼만 숨기고 나머지
+       여섯 개(먹이·찾기·도감·시간·소리·세계)를 그대로 뒀더니, 만질 수 없는
+       화면에 만질 것처럼 생긴 것들이 늘어서 있었다. 관람객은 아이 그림을 보러 온다. */
+    const stage = (typeof Net!=='undefined' && Net.role==='stage');
+    if(stage) return;
     const S=96, y=VH-S-24;
-    /* 큰 화면(stage)은 아이가 만지지 않는다 — 그리기 버튼을 안 띄운다 */
-    if(typeof Net==='undefined' || Net.role!=='stage')
-    UI.btn(c,'new', 24, y, S*2.1, S, (g,r)=>{
-      if(!Icons.draw(g,'brush-fat',S*0.8)) UI.icon.brush(g,r*0.9);
-      g.font='700 20px Galmuri11, sans-serif'; g.textAlign='center';
-      g.fillStyle=PAL.white; g.fillText('그리기', r*1.5, r*0.35);
-    });
+    /* ⚠ 주 행동이 화면에서 가장 흐렸다. 아이는 여기서 시작하는데,
+       가장 밝은 것은 옆의 아이콘 줄이었다. 금색으로 채워 먼저 보이게 한다. */
+    {
+      const bw=S*2.1;
+      c.save();
+      c.fillStyle=PAL.gold;
+      UI.round(c, 24, y, bw, S, 16); c.fill();
+      c.fillStyle='rgba(0,0,0,.14)';
+      UI.round(c, 24, y+S-10, bw, 10, 6); c.fill();
+      c.restore();
+      UI.btn(c,'new', 24, y, bw, S, (g,r)=>{
+        g.save(); g.globalAlpha=0;             // 기본 테두리는 안 보이게(금색 판이 이미 있다)
+        g.restore();
+        /* 붓은 왼쪽, 글자는 오른쪽 — 가운데에 겹쳐 놓으면 둘 다 안 읽힌다 */
+        g.save(); g.translate(-r*1.05, 0);
+        if(!Icons.draw(g,'brush-fat',S*0.72)) UI.icon.brush(g,r*0.9);
+        g.restore();
+        g.font='700 24px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle='#2b1d05'; g.fillText('그리기', r*0.95, r*0.32);
+      });
+    }
     /* ⚠ 좌표를 하나씩 손으로 빼다가 **realm 이 find 안에 완전히 들어갔다**(실측
        find 804.8~939.2 · realm 833.6~929.6). UI.hit 은 먼저 등록된 것을 돌려주므로
        바다↔정글 전환이 **영영 안 눌렸다** — 정글로 갈 방법이 없었다.
@@ -5068,7 +5169,14 @@ const Game = {
       ['time',  S,  (g,r)=>{ if(!Icons.draw(g,'btn-time',S*0.78)) UI.icon.time(g,r); }],
       ['codex', S,  (g,r)=>{ if(!Icons.draw(g,'btn-book',S*0.78)) UI.icon.book(g,r); }],
       ['realm', S,  (g,r)=>{
-        /* 바다↔정글 — 지금 세계의 '반대쪽'을 보여 준다(누르면 갈 곳) */
+        /* ⚠ 세계가 다섯인데 바다↔정글 아이콘만 보여 주고 있었다 —
+           공룡시대에서 '바다' 아이콘이 뜨는데 실제로 가는 곳은 로봇도시였다.
+           **다음에 갈 세계**의 표식을 그린다. */
+        const ord=Game.realmOrder();
+        const nx=ord[(ord.indexOf(Game.realm)+1)%ord.length];
+        if(nx==='sea'   && Icons.draw(g,'btn-realm-sea', S*0.78)) return;
+        if(nx==='jungle'&& Icons.draw(g,'btn-realm-jungle', S*0.78)) return;
+        if(nx!=='sea' && nx!=='jungle'){ Game.worldMark(g, nx, false); return; }
         if(Icons.draw(g, Game.realm==='sea'?'btn-realm-jungle':'btn-realm-sea', S*0.78)) return;
         g.strokeStyle=PAL.white; g.lineWidth=r*0.2; g.lineCap='round';
         if(Game.realm==='sea'){
@@ -5178,21 +5286,87 @@ const Game = {
     UI.btn(c,'back', 24, VH-108, 96,84, (g,r)=>{ if(!Icons.draw(g,'btn-back',72)) UI.icon.back(g,r); });
     /* 페이지 — 1장뿐이면 아예 안 그린다(안 그리면 눌리지도 않는다) */
     if(pages>1){
-      UI.btn(c,'ppage-', VW/2-190, VH-108, 96,84, (g,r)=>{
+      UI.btn(c,'ppage-', 136, VH-108, 84,84, (g,r)=>{
         g.font='700 30px Galmuri11, sans-serif'; g.textAlign='center';
         g.fillStyle=PAL.white; g.fillText('←', 0, 10); });
-      UI.btn(c,'ppage+', VW/2+94, VH-108, 96,84, (g,r)=>{
+      UI.btn(c,'ppage+', 316, VH-108, 84,84, (g,r)=>{
         g.font='700 30px Galmuri11, sans-serif'; g.textAlign='center';
         g.fillStyle=PAL.white; g.fillText('→', 0, 10); });
       c.font='700 24px Galmuri11, sans-serif'; c.textAlign='center';
       c.fillStyle='rgba(255,255,255,.8)';
-      c.fillText((this.pickPage+1)+' / '+pages, VW/2, VH-58);
+      c.fillText((this.pickPage+1)+' / '+pages, 268, VH-56);
     }
-    UI.btn(c,'realm', VW-220, VH-108, 196,84, (g,r)=>{
-      g.font='700 22px Galmuri11, sans-serif'; g.textAlign='center';
-      g.fillStyle=PAL.gold; g.fillText(Game.realm==='sea'?'정글로 →':'← 바다로', 0, -10);
-    });
+    /* 세계 고르기 — ⚠ 예전엔 '정글로 →' 글자 버튼 하나로 다섯 세계를 **순환**했다.
+       ① 라벨이 거짓말을 했다(정글에서 '← 바다로' 인데 다음은 공룡시대다)
+       ② 다섯 살은 글자를 못 읽는다 — 공룡을 그리고 싶어도 가는 길이 안 보였다
+       ③ 순환이라 원하는 세계까지 여러 번 눌러야 했다
+       다섯 개를 한 줄에 늘어놓고 그림으로 보여 준다. 한 번에 간다. */
+    this.drawWorldStrip(c, 430, VH-108, VW-430-24, 84);
     this._pickPages=pages;
+  },
+  /* 세계 다섯 개를 한 줄로. 글자를 못 읽어도 알아볼 수 있게 표식을 그린다. */
+  drawWorldStrip(c, x, y, w, h){
+    const order=this.realmOrder();
+    const gap=10, bw=(w-gap*(order.length-1))/order.length;
+    order.forEach((r,i)=>{
+      const bx=x+i*(bw+gap), on=(r===this.realm), rd=this.readyRealm(r);
+      UI.btn(c,'world:'+r, bx, y, bw, h, (g)=>{
+        g.save();
+        g.globalAlpha = rd ? 1 : 0.45;          // 아직 오는 중이면 흐리게
+        g.fillStyle = on ? 'rgba(255,201,74,.16)' : 'rgba(255,255,255,.05)';
+        g.strokeStyle = on ? PAL.gold : 'rgba(255,255,255,.22)';
+        g.lineWidth = on ? 4 : 2;
+        const rr=14, W=bw-6, H=h-6;
+        g.beginPath(); g.roundRect(-W/2,-H/2,W,H,rr); g.fill(); g.stroke();
+        g.translate(0,-8); this.worldMark(g, r, on);
+        g.restore();
+        g.save(); g.globalAlpha = rd ? 1 : 0.45;
+        g.font='700 17px Galmuri11, sans-serif'; g.textAlign='center';
+        g.fillStyle = on ? PAL.gold : 'rgba(255,255,255,.62)';
+        g.fillText(this.worldName(r), 0, h/2-14);
+        g.restore();
+      });
+    });
+  },
+  worldName(r){
+    return r==='sea' ? '바다' : r==='jungle' ? '정글'
+         : ((typeof MODES!=='undefined' && MODES[r]) ? MODES[r].ko : r);
+  },
+  /* 세계 표식 — 어셋(btn-realm-*)이 있으면 쓰고, 없는 세 세계는 코드로 그린다.
+     ⚠ 아이콘 어셋은 바다·정글 둘뿐이다(P26 으로 발주). 그때까지 이 그림이 대신한다. */
+  worldMark(g, r, on){
+    const col = on ? PAL.gold : 'rgba(255,255,255,.72)';
+    if(r==='sea'  && Icons.draw(g,'btn-realm-sea', 34, on)) return;
+    if(r==='jungle' && Icons.draw(g,'btn-realm-jungle', 34, on)) return;
+    g.save(); g.strokeStyle=col; g.fillStyle=col;
+    g.lineWidth=3; g.lineCap='round'; g.lineJoin='round';
+    if(r==='sea'){                                   // 물결 셋
+      for(let i=0;i<3;i++){ g.beginPath();
+        g.moveTo(-16, -6+i*7); g.quadraticCurveTo(-5,-13+i*7, 2,-6+i*7);
+        g.quadraticCurveTo(9,1+i*7, 16,-6+i*7); g.stroke(); }
+    } else if(r==='jungle'){                         // 잎
+      g.beginPath(); g.moveTo(0,10); g.quadraticCurveTo(-15,0,-3,-12);
+      g.quadraticCurveTo(12,-4,0,10); g.fill();
+      g.beginPath(); g.moveTo(-2,8); g.lineTo(2,-8); g.stroke();
+    } else if(r==='dino'){                           // 발자국 — 발가락 셋
+      g.beginPath(); g.ellipse(0,5,7,8,0,0,TAU); g.fill();
+      [[-11,-6],[0,-11],[11,-6]].forEach(([tx,ty])=>{
+        g.beginPath(); g.ellipse(tx,ty,3.6,6,tx/22,0,TAU); g.fill(); });
+    } else if(r==='robot'){                          // 톱니
+      g.beginPath();
+      for(let i=0;i<8;i++){ const a=i/8*TAU, R=i%2?8:13;
+        const px=Math.cos(a)*R, py=Math.sin(a)*R;
+        i?g.lineTo(px,py):g.moveTo(px,py); }
+      g.closePath(); g.stroke();
+      g.beginPath(); g.arc(0,0,4,0,TAU); g.fill();
+    } else {                                         // 풀숲 — 딱정벌레
+      g.beginPath(); g.ellipse(0,3,9,11,0,0,TAU); g.stroke();
+      g.beginPath(); g.moveTo(0,-8); g.lineTo(0,13); g.stroke();
+      g.beginPath(); g.arc(0,-11,4,0,TAU); g.fill();
+      g.beginPath(); g.moveTo(-3,-14); g.lineTo(-9,-20);
+      g.moveTo(3,-14); g.lineTo(9,-20); g.stroke();
+    }
+    g.restore();
   },
   drawPaint(c){
     Paint.draw(c);
@@ -5281,14 +5455,21 @@ const Game = {
       (g,r)=>{ if(!Icons.draw(g,'clear',S*0.72)) UI.icon.trash(g,r); });
     UI.btn(c,'back', 20, VH-96, S,S, (g,r)=>{ if(!Icons.draw(g,'btn-back',S*0.72)) UI.icon.back(g,r); });
     /* 제출 — 가장 크게 */
+    /* ⚠ 라벨이 '정글이냐 바다냐' 둘 뿐이었다 — 티라노를 칠한 아이도 '바다로!' 를 봤다.
+       그리고 버튼 그림 **가운데에 화살표**가 있는데 글자도 가운데에 찍어 겹쳤다.
+       글자는 왼쪽, 화살표는 오른쪽. */
+    const dest = Paint.mode ? Game.worldName(Paint.mode)
+               : JUNGLE[Paint.spId] ? '정글' : '바다';
     UI.btn(c,'submit', VW-330, VH-112, 300, 96, (g,r)=>{
+      const label = dest+'로!';
       if(Icons.draw(g,'btn-submit',280,true)){
+        /* 그림의 화살표는 가운데에 박혀 있다 — 글자를 왼쪽으로 비켜 놓는다 */
         g.font='700 28px Galmuri11, sans-serif'; g.textAlign='center';
-        g.fillStyle=PAL.white; g.fillText(JUNGLE[Paint.spId]?'정글로!':'바다로!', 0, 12);
+        g.fillStyle=PAL.white; g.fillText(label, -42, 12);
       } else {
-        UI.icon.submit(g,r*0.8);
+        g.save(); g.translate(r*1.4,0); UI.icon.submit(g,r*0.8); g.restore();
         g.font='700 26px Galmuri11, sans-serif'; g.textAlign='center';
-        g.fillStyle=PAL.white; g.fillText(JUNGLE[Paint.spId]?'정글로!':'바다로!', r*1.6, r*0.4);
+        g.fillStyle=PAL.white; g.fillText(label, -r*0.5, r*0.4);
       }
     }, true);
   },
@@ -5304,18 +5485,31 @@ const Game = {
     c.save(); c.translate(VW/2, VH*0.16); c.scale(pop*k, pop*k);
     c.font='700 62px Galmuri11, sans-serif'; c.textAlign='center';
     c.fillStyle=PAL.gold;
-    c.fillText(this.joinC && JUNGLE[this.joinC.id] ? '정글로 왔어요!' : '바다로 갔어요!', 0, 0);
+    /* ⚠ '정글이냐 바다냐' 만 물어보고 있었다 — 공룡·로봇·곤충 150종을 만든 아이도
+       '바다로 갔어요!' 라는 말을 들었다. 지금 세계의 이름을 쓴다. */
+    const wn=this.worldName(this.realm);
+    c.fillText(wn+'로 갔어요!', 0, 0);
     c.restore();
-    if(this.joinC){
+    if(this.joinC && this.joinC.tex){
+      /* ⚠ 460px 로 못박아 그렸더니 **여백까지 460 이라 그림은 작았다.**
+         실제로 그림이 차지하는 범위를 재서 그만큼을 화면에 채운다(큰 화면 연출과 같은 방식). */
       const t=this.joinC.tex;
-      const w=460, h=w*TEX_H/TEX_W;
-      c.globalAlpha=k;
-      c.drawImage(t, VW/2-w/2, VH*0.40, w, h);
-      c.globalAlpha=1;
+      const fit=(typeof BodyFit!=='undefined') ? BodyFit.of(t) : null;
+      const th=fit ? Math.max(20,(fit.bot-fit.top)+8) : TEX_H;
+      const sc=Math.min(VW*0.52/TEX_W, VH*0.34/th);
+      const w=TEX_W*sc, h=TEX_H*sc;
+      const cy=VH*0.47;
+      const y=cy - (fit ? ((fit.top+fit.bot)/2)*sc : h/2);
+      c.save(); c.globalAlpha=k;
+      const g=c.createRadialGradient(VW/2,cy,10, VW/2,cy, w*0.7);
+      g.addColorStop(0,'rgba(255,201,74,.26)'); g.addColorStop(1,'rgba(255,201,74,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(VW/2,cy,w*0.7,0,TAU); c.fill();
+      c.drawImage(t, VW/2-w/2, y, w, h);
+      c.restore();
     }
     if(this.myName){
-      c.font='700 30px Galmuri11, sans-serif'; c.textAlign='center';
-      c.fillStyle=PAL.white; c.fillText(this.myName+'의 물고기', VW/2, VH*0.74);
+      c.font='700 32px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle=PAL.white; c.fillText(this.myName+'의 친구', VW/2, VH*0.78);
     }
     if(this.cheerT>40){
       c.globalAlpha=0.6+0.4*Math.sin(this.cheerT*0.08);
@@ -5324,12 +5518,34 @@ const Game = {
       c.globalAlpha=1;
     }
   },
+  /* ⚠ 방금 칠한 그림이 **화면에 없었다.** 아이가 색칠을 끝낸 바로 그 순간에
+     본 것은 빈 입력칸이었다 — 가장 신나는 장면을 폼이 끊고 있었다.
+     그림을 크게 보여 주고, 이름은 그 아래에서 묻는다. */
   drawNameBack(c){
-    c.fillStyle='rgba(10,32,54,.72)'; c.fillRect(0,0,VW,VH);
-    c.font='700 40px Galmuri11, sans-serif'; c.textAlign='center';
-    c.fillStyle=PAL.gold; c.fillText('이름을 적어 주세요', VW/2, VH*0.30);
-    c.font='600 20px Galmuri11, sans-serif'; c.fillStyle=PAL.dim;
-    c.fillText('안 적어도 괜찮아요', VW/2, VH*0.30+38);
+    c.fillStyle='rgba(10,32,54,.78)'; c.fillRect(0,0,VW,VH);
+    const tex=this.pendingTex;
+    if(tex){
+      const t=(this.nameIdle||0);
+      const fit=(typeof BodyFit!=='undefined') ? BodyFit.of(tex) : null;
+      const th=fit ? Math.max(20,(fit.bot-fit.top)+8) : TEX_H;
+      const sc=Math.min(VW*0.40/TEX_W, VH*0.30/th);
+      const w=TEX_W*sc, h=TEX_H*sc;
+      const cy=VH*0.235 + Math.sin(t*0.05)*5;         // 살짝 떠 있다
+      c.save();
+      /* 뒤에서 빛이 돈다 — 방금 만든 것이 특별해 보이게 */
+      const g=c.createRadialGradient(VW/2,cy,10, VW/2,cy, w*0.75);
+      g.addColorStop(0,'rgba(255,201,74,.30)'); g.addColorStop(1,'rgba(255,201,74,0)');
+      c.fillStyle=g; c.beginPath(); c.arc(VW/2,cy,w*0.75,0,TAU); c.fill();
+      c.translate(VW/2, cy);
+      c.rotate(Math.sin(t*0.035)*0.04);
+      const off = fit ? ((fit.top+fit.bot)/2 - TEX_H/2)*sc : 0;
+      c.drawImage(tex, -w/2, -h/2-off, w, h);
+      c.restore();
+    }
+    c.font='700 36px Galmuri11, sans-serif'; c.textAlign='center';
+    c.fillStyle=PAL.gold; c.fillText('멋지게 다 칠했어요!', VW/2, VH*0.455);
+    c.font='600 21px Galmuri11, sans-serif'; c.fillStyle='rgba(255,255,255,.82)';
+    c.fillText('이름을 적으면 이름표를 달아 줄게요', VW/2, VH*0.455+34);
   },
   /* ⚠ 다른 기기에서 온 그림을 합류시킨다(큰 화면 전용).
      내 것(mine)이 아니라 '누군가의 것'이다 — 이름표는 보이되
@@ -5368,7 +5584,14 @@ const Game = {
          ⚠ 지금까지는 조용히 합류해서, 그린 아이가 자기 것이 도착한 줄도 몰랐다.
            전시장에서는 그 순간이 이 작품의 보상이다. */
       c.born = Date.now();
-      this.spot = { c, t:0, name:rec.n||'' };
+      /* ⚠ 그냥 덮어썼더니, 그림이 잇달아 오면 **앞사람 것이 잘렸다** —
+         방금 보낸 아이가 자기 것 대신 남의 소개를 보고 끝난다.
+         짧은 대기줄로 바꾼다. 밀리면(개관 러시) 하나하나를 짧게 보여 준다.
+         3개까지만 들고 있는다 — 더 쌓이면 화면이 몇 분씩 덮인다. */
+      this.spotQ = this.spotQ || [];
+      this.spotQ.push({ c, t:0, name:rec.n||'' });
+      while(this.spotQ.length>3) this.spotQ.shift();
+      if(!this.spot) this.spot=this.spotQ.shift();
     };
     img.src=rec.d;
   },
@@ -5540,8 +5763,8 @@ const NameBox = {
       const w=document.createElement('div');
       w.id='namebox';
       w.innerHTML=`<input id="nb-in" maxlength="8" placeholder="이름" autocomplete="off">
-        <div class="nb-row"><button id="nb-ok">보내기</button>
-        <button id="nb-skip">그냥 보내기</button></div>`;
+        <div class="nb-row"><button id="nb-ok">이름 달고 보내기</button>
+        <button id="nb-skip">이름 없이 보내기</button></div>`;
       document.body.appendChild(w);
       this.el=w;
       w.querySelector('#nb-ok').onclick=()=>{ this.done=w.querySelector('#nb-in').value.trim(); };
@@ -6050,12 +6273,24 @@ addEventListener('DOMContentLoaded',()=>{
   Sfx.on = Save.data.sound!==false;
   Game.init(); Icons.prefetch(); BG.prefetch(); if(typeof Items!=='undefined') Items.prefetch(); Props.prefetch(); FX.prefetch(); JWorld.prefetch(); JTemplate.prefetch();
   const gate=document.getElementById('gate');
-  document.getElementById('go').onclick=()=>{
+  const start=()=>{
     Sfx.unlock();
     /* ⚠ 앰비언스는 사용자 제스처 뒤에만 시작할 수 있다(브라우저 정책) */
     if(typeof Amb!=='undefined'){ Amb.init(Sfx); Amb.set(Game.realm); }
     gate.remove();
   };
+  document.getElementById('go').onclick=start;
+  /* ⚠ 큰 화면(프로젝터·TV)에는 **누를 사람이 없다.** 그런데 '시작하기' 버튼이
+     떠서 직원이 와서 눌러 줄 때까지 제목 화면이 걸려 있었다.
+     역할이 stage 면 스스로 들어간다. 소리는 브라우저 정책상 제스처가 필요하므로
+     아무 클릭이나 들어오면 그때 켠다(큰 화면은 대개 소리 없이 쓴다). */
+  if(typeof Net!=='undefined' && Net.role==='stage'){
+    setTimeout(()=>{ if(gate.isConnected) gate.remove(); }, 1200);
+    addEventListener('pointerdown', ()=>{
+      Sfx.unlock();
+      if(typeof Amb!=='undefined'){ Amb.init(Sfx); Amb.set(Game.realm); }
+    }, {once:true});
+  }
   if(typeof SelfTest!=='undefined') SelfTest.boot();
   _last=performance.now(); requestAnimationFrame(loop);
 });
