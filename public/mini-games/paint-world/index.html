@@ -2762,7 +2762,7 @@ const MODES = {
 
 /* 도안 — 몸통 + (있으면) 부위 한 장 */
 const MTemplate = {
-  cache:{}, _img:{},
+  cache:{}, _img:{}, failed:{},        // failed — 실제로 못 받은 파일. '느린 것'과 구별한다
   key(mode,id){ return mode+'/'+id; },
   get(mode,id){
     const k=this.key(mode,id);
@@ -2776,7 +2776,14 @@ const MTemplate = {
       const n = p ? `${id}-${p}-${kind}` : `${id}-${kind}`;
       let im=this._img[n];
       /* P24 replaces same-name PNGs: avoid retaining an earlier robot mask in cache. */
-      if(!im){ im=new Image(); im.src=`assets/${M.folder}/${n}.png?v=${M.rev||'1'}`; this._img[n]=im; }
+      if(!im){
+        im=new Image();
+        /* ⚠ 라이브에서 '아직 오는 중'을 '없다'로 판정해 멀쩡한 배포를 실패로 셌다.
+           시간으로 재지 말고 **실제 실패**를 기록해 둔다. */
+        im.onerror=()=>{ MTemplate.failed[mode]=(MTemplate.failed[mode]||new Set()).add(n); };
+        im.src=`assets/${M.folder}/${n}.png?v=${M.rev||'1'}`;
+        this._img[n]=im;
+      }
       if(!im.complete || !im.naturalWidth) ready=false;
       imgs[(p||'body')+'_'+kind]=im;
     }
@@ -5872,37 +5879,38 @@ const SelfTest = {
        네트워크로 받는 중이었을 뿐이다(정글이 다 차는 데 8초).
        멀쩡한 것을 결함으로 세는 검사기는 검사기가 아니다.
        숫자가 **더 이상 늘지 않을 때까지** 기다린다 — 로컬은 그대로 빠르다. */
-    let seaN=0, junN=0, still=0;
-    for(let tries=0; tries<40; tries++){
-      const a=seaN, b=junN;
+    let seaN=0, junN=0;
+    for(let tries=0; tries<50; tries++){
       seaN=seaAll.filter(s=>Templates.get(s.id)).length;
       junN=junAll.filter(id=>JTemplate.get(id)).length;
       if(seaN===seaAll.length && junN===junAll.length) break;
-      still = (seaN===a && junN===b) ? still+1 : 0;
-      if(still>=4) break;                       // 3초 동안 하나도 안 늘면 진짜 없는 것
       await new Promise(r=>setTimeout(r,700));
     }
     L.push(`· 도안 준비 — 바다 ${seaN}/${seaAll.length} · 정글 ${junN}/${junAll.length}`);
     if(seaN<seaAll.length)
-      L.push('✗ 바다 도안 ' + seaAll.filter(s=>!Templates.get(s.id)).map(s=>s.ko).join(' ') + ' 없음');
+      L.push('✗ 바다 도안 ' + seaAll.filter(s=>!Templates.get(s.id)).map(s=>s.ko).join(' ') + ' — 35초를 기다려도 안 온다');
     if(junN<junAll.length)
-      L.push('✗ 정글 도안 ' + junAll.filter(id=>!JTemplate.get(id)).map(id=>JUNGLE[id].ko).join(' ') + ' 없음');
+      L.push('✗ 정글 도안 ' + junAll.filter(id=>!JTemplate.get(id)).map(id=>JUNGLE[id].ko).join(' ') + ' — 35초를 기다려도 안 온다');
 
     /* 새 세 모드는 실물 파일과 부위 anchor가 모두 있어야만 고르기·제출이 성립한다. */
     if(typeof MODES!=='undefined') for(const mode of ['dino','robot','bug']){
-      const all=MODES[mode].list(); let loaded=0, anchored=0, still=0;
-      for(let tries=0;tries<40;tries++){
+      /* ⚠ '3초간 안 늘면 없는 것' 으로 끊었더니 라이브에서 또 오판했다 —
+         네트워크는 뭉텅이로 온다(정글 4/39 로 보고했는데 잠시 뒤 다 찼다).
+         시간이 아니라 **실제 로딩 실패**로 끝낸다. 최대 35초까지 기다리되,
+         한 장이라도 404 가 나면 그 즉시 진짜 결함이다. */
+      const all=MODES[mode].list(); let loaded=0, anchored=0;
+      for(let tries=0;tries<50;tries++){
         MTemplate.prefetch(mode);
-        const a=loaded, b=anchored;
         loaded=all.filter(s=>MTemplate.get(mode,s.id)).length;
         anchored=all.filter(s=>!s.part || !!MAnchor.of(mode,s.id,s.part)).length;
         if(loaded===all.length && anchored===all.length) break;
-        still = (loaded===a && anchored===b) ? still+1 : 0;
-        if(still>=4) break;                     // 늘지 않으면 진짜 없는 것
+        if((MTemplate.failed[mode]||{size:0}).size) break;
         await new Promise(r=>setTimeout(r,700));
       }
+      const fail=(MTemplate.failed[mode]||{size:0}).size;
+      if(fail) L.push(`✗ ${MODES[mode].ko} 어셋 ${fail}장을 못 받았다 (404) — assets/${MODES[mode].folder}/`);
       L.push(`· ${MODES[mode].ko} 준비 — 도안 ${loaded}/${all.length} · 부위 anchor ${anchored}/${all.length}`);
-      if(loaded<all.length) L.push(`✗ ${MODES[mode].ko} 도안 일부가 없다 — assets/${MODES[mode].folder}/ 확인`);
+      if(loaded<all.length && !fail) L.push(`✗ ${MODES[mode].ko} 도안 ${all.length-loaded}종이 35초를 기다려도 안 온다`);
       if(anchored<all.length) L.push(`✗ ${MODES[mode].ko} 움직이는 부위 anchor 일부가 없다`);
     }
 
