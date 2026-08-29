@@ -42,29 +42,40 @@ const FACIL = {
   costOf(lv){ return this.COST[lv] !== undefined ? this.COST[lv] : null; },   // lv=현재 단계
   totalTo(lv){ let s=0; for(let i=0;i<lv;i++) s+=this.COST[i]; return s; },
 
+  /* ⚠ 줄 문구는 **낱말만 번역표를 탄다.** 문장을 통째로 조립하면 표에서 못 찾는다
+     (실측: 영어판 시설 화면이 '성장 +7.0% → +10.5%' 처럼 절반이 한국어로 남았다).
+     낱말을 K() 로 옮기고 숫자는 코드가 붙인다. `nums` 는 숫자뿐이라 번역이 필요 없다. */
   KINDS: {
     train: { name:'훈련장',   icon:'fc-train',
       desc:'선수가 더 빨리 자란다',
-      line:l=>`성장 +${(l*3.5).toFixed(1)}%`,
+      line:l=>`${K('성장')} +${(l*3.5).toFixed(1)}%`,
+      /* 화살표 오른쪽엔 라벨을 안 되풀이한다 — 왼쪽이 이미 뭘 재는지 말했다 */
+      nums:l=>`+${(l*3.5).toFixed(1)}%`,
       eff:l=>({ grow: l*0.035 }) },
     med:   { name:'의무실',   icon:'fc-med',
       desc:'부상이 줄고 피로가 잘 빠진다',
-      line:l=>`부상 −${(l*9).toFixed(0)}% · 회복 +${(l*0.7).toFixed(1)}`,
+      /* ⚠ '부상' 은 번역표에서 이미 **건수**('Injuries')다. 여기서 재는 건 확률이라
+         낱말을 갈라 둔다 — 한국어로도 '부상률' 이 정확하다. */
+      line:l=>`${K('부상률')} −${(l*9).toFixed(0)}% · ${K('회복')} +${(l*0.7).toFixed(1)}`,
+      nums:l=>`−${(l*9).toFixed(0)}% · +${(l*0.7).toFixed(1)}`,
       eff:l=>({ hurt: -l*0.09, rest: l*0.7 }) },
     dorm:  { name:'기숙사',   icon:'fc-dorm',
       desc:'컨디션이 잘 오른다',
-      line:l=>`컨디션 +${(l*1.1).toFixed(1)}`,
+      line:l=>`${K('컨디션')} +${(l*1.1).toFixed(1)}`,
+      nums:l=>`+${(l*1.1).toFixed(1)}`,
       eff:l=>({ cond: l*1.1 }) },
     lab:   { name:'분석실',   icon:'fc-lab',
       desc:'선수의 잠재치를 빨리 알아본다',
-      line:l=>`스카우트 확신 +${(l*12).toFixed(0)}%`,
+      line:l=>`${K('스카우트 확신')} +${(l*12).toFixed(0)}%`,
+      nums:l=>`+${(l*12).toFixed(0)}%`,
       eff:l=>({ conf: l*0.12 }) },
     /* ⛔ 이 하나가 위의 ②를 정면으로 친다 — 들어오는 신인이 좋아진다.
        ⚠ 신인 tier 는 0.3~0.72 다. 5단계면 +0.275 — 상단이 약 1.0 에 닿는다.
           "약체만 들어와서 클럽이 늙는다"를 여기서 막는다. */
     youth: { name:'유소년 아카데미', icon:'fc-youth',
       desc:'들어오는 신인이 좋아진다',
-      line:l=>`신인 자질 +${(l*5.5).toFixed(1)}%`,
+      line:l=>`${K('신인 자질')} +${(l*5.5).toFixed(1)}%`,
+      nums:l=>`+${(l*5.5).toFixed(1)}%`,
       eff:l=>({ rookie: l*0.055 }) },
   },
   ids(){ return Object.keys(this.KINDS); },

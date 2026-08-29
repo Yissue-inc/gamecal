@@ -782,9 +782,9 @@ const I18N_EN = {
   '○ 단거리 코치':'○ Sprint coach', '○ 웨이트 코치':'○ Strength coach',
   '○ 지구력 코치':'○ Endurance coach', '○ 기술 코치':'○ Technique coach',
   '○ 리듬 코치':'○ Rhythm coach', '○ 의무 트레이너':'○ Physio',
-  '훈련장  ○○○○○':'Training hall  ○○○○○', '의무실  ○○○○○':'Medical room  ○○○○○',
-  '기숙사  ○○○○○':'Dormitory  ○○○○○', '분석실  ○○○○○':'Analysis room  ○○○○○',
-  '유소년 아카데미  ○○○○○':'Youth academy  ○○○○○',
+  /* ⛔ 여기 있던 '훈련장  ○○○○○' 다섯 줄을 지웠다 — **0단계만 맞는 키**였다.
+     레벨이 오르면 동그라미가 ●●○○○ 로 바뀌어 표에서 못 찾고 영어판이 한국어로 남았다.
+     이제 이름만 옮기고(위 시설 구획) 동그라미는 코드가 붙인다. */
   '선수가 더 빨리 자란다':'Athletes grow faster',
   '부상이 줄고 피로가 잘 빠진다':'Fewer injuries, faster recovery',
   '컨디션이 잘 오른다':'Condition rises more easily',
@@ -910,6 +910,20 @@ const I18N_EN = {
      2~4자 한글을 통째로 걸러서 **짧은 한국어 낱말이 전부 숨어 있었다.** */
   '최악':'Awful', '나쁨':'Poor', '최상':'Peak',
   '부상 %1주':'Out %1w',
+  /* ── 시설 ─────────────────────────────────────────────
+     ⚠ 예전엔 레벨별 라벨('훈련장  ○○○○○')을 손으로 넣어 뒀다 — 1단계부터 안 맞는다.
+        이제 **이름만** 옮기고 동그라미는 코드가 붙인다.
+     ⚠ 값 줄도 문장을 통째로 넣지 않는다. 낱말만 옮기고 숫자는 코드가 붙인다.
+     ⚠ 자리표시자가 든 키는 **원문 그대로** 넣어야 한다 — 자동 번호매김이
+        '%1' 안의 숫자까지 바꿔 '%%1' 이라는 엉뚱한 키를 만든다(정확 일치가 먼저다). */
+  '훈련장':'Training hall', '의무실':'Medical room', '기숙사':'Dormitory',
+  '분석실':'Analysis room', '유소년 아카데미':'Youth academy',
+  '성장':'Growth', '회복':'Recovery', '부상률':'Injury rate',
+  '스카우트 확신':'Scout confidence', '신인 자질':'Rookie quality',
+  '성장 +%1%':'Growth +%1%', '회복 +%1':'Recovery +%1',
+  '부상률 −%1%':'Injury rate −%1%', '컨디션 +%1':'Condition +%1',
+  '스카우트 +%1%':'Scout +%1%', '신인 자질 +%1%':'Rookie quality +%1%',
+  '지금 받는 것 · 클럽에 영구':'Active bonuses · permanent, club-wide',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };

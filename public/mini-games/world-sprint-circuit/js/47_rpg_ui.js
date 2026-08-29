@@ -1278,10 +1278,20 @@ class FacilityScreen extends Screen0 {
   get rows(){
     const C=this.mg.club;
     return FACIL.ids().map(id=>{
-      const K=FACIL.KINDS[id], l=FACIL.lv(C,id), cost=FACIL.nextCost(C,id);
+      /* ⛔ 여기 지역변수 이름이 `K` 라 **전역 번역함수 K() 가 가려져** 있었다.
+         그래서 이 안에서는 아무것도 번역할 수 없었고, 대신 레벨별 라벨
+         ('훈련장  ○○○○○')을 손으로 번역표에 넣어 뒀다 — 1단계부터 안 맞는다.
+         이름만 번역하고 동그라미는 코드가 붙인다. 손으로 맞추는 목록을 없앤다. */
+      const KD=FACIL.KINDS[id], l=FACIL.lv(C,id), cost=FACIL.nextCost(C,id);
       const max = l>=FACIL.MAX;
-      return { label:`${K.name}  ${'●'.repeat(l)}${'○'.repeat(FACIL.MAX-l)}`, icon:K.icon, subAlways:true,
-        sub: l ? `${K.line(l)}${max?'':`  →  ${K.line(l+1)}`}` : K.desc,
+      /* ⛔ 챕터 10 — 한 목록이 **두 언어**로 말하고 있었다.
+         지은 시설은 숫자로(`성장 +7.0% → +10.5%`), 안 지은 시설은 문장으로
+         (`컨디션이 잘 오른다`). 80코인을 어디에 쓸지 고르려면 비교가 돼야 하는데
+         문장과 숫자는 비교가 안 된다. **전부 숫자로 말하게 한다** —
+         안 지은 줄은 1단계가 주는 것을 그대로 보여 준다.
+         문장(desc)은 버리지 않는다. 머리말 자리에서 **고른 줄에 대해서만** 말한다. */
+      return { label:`${K(KD.name)}  ${'●'.repeat(l)}${'○'.repeat(FACIL.MAX-l)}`, icon:KD.icon, subAlways:true,
+        sub: l ? `${KD.line(l)}${max?'':`  →  ${KD.nums ? KD.nums(l+1) : KD.line(l+1)}`}` : KD.line(1),
         right: max ? '최대' : `−${cost}`,
         rightColor: max ? PAL.green : ((C.budget>=cost) ? PAL.gold : PAL.dim),
         color: max ? PAL.green : ((C.budget>=cost) ? PAL.white : PAL.dim),
@@ -1302,18 +1312,24 @@ class FacilityScreen extends Screen0 {
     const C=this.mg.club;
     UIK.resourceBar(u, 0, [{ value:Math.round(C.budget), color:'#ffcf4a', icon:'icon-coin' }]);
     txt(u, K('시설'), VW-26, 3, 11, PAL.gold, 'right', 700);
-    txt(u, K('코인을 영구 성장으로 바꿉니다 — 클럽에 남고, 모든 선수에게 적용됩니다'),
-        8, 20, 9, PAL.dim, 'left');
+    /* 머리말은 늘 같은 안내문이었다(36자). 화면 이름·코인 막대·줄의 `−80`이
+       이미 '코인을 쓴다'를 말한다 — 그 자리를 **지금 고른 시설이 뭐 하는 것인지**에 준다. */
+    { const r0 = this.rows[this.sel], kd = r0 && FACIL.KINDS[r0._id];
+      /* txt() 가 알아서 K() 를 태운다 — 여기서 또 감싸면 이중 번역이 된다 */
+      if(kd) txt(u, kd.desc, 8, 20, 9, PAL.dim, 'left'); }
     /* ⚠ 26 줄높이로 5줄이면 화면 아래 40% 가 빈다(시설은 딱 5종이라 늘 5줄이다).
        줄을 키워 화면을 채운다 — 육성 카드 격자에서 배운 것과 같다. */
     UI.list(u, this.rows, this.sel, 8, 34, VW-16, 36, 5);
     /* 아래 — 지금 클럽이 받고 있는 총합. 시설이 '뭘 해 주고 있나'를 한 곳에 */
     const B=FACIL.bonus(C);
     UIK.frame(u, 8, VH-42, VW-16, 34, {});
-    txt(u, K('지금 받는 것'), 16, VH-37, 8, PAL.dim, 'left');
+    /* '영구·전원 적용'은 머리말에서 빠졌으니 여기서 못 박는다 — 이 상자가 총합이다 */
+    txt(u, K('지금 받는 것 · 클럽에 영구'), 16, VH-37, 8, PAL.dim, 'left');
     const bits=[];
     if(B.grow)   bits.push(K('성장 +%1%').replace('%1',(B.grow*100).toFixed(1)));
-    if(B.hurt)   bits.push(K('부상 %1%').replace('%1',(B.hurt*100).toFixed(0)));
+    /* ⚠ 줄은 `부상 −9%`(U+2212), 여기는 `부상 -9%`(ASCII) 였다 — 같은 값이 두 글리프로
+       나왔다. 부호를 직접 쓰고 크기만 넘긴다. */
+    if(B.hurt)   bits.push(K('부상률 −%1%').replace('%1',Math.abs(B.hurt*100).toFixed(0)));
     if(B.rest)   bits.push(K('회복 +%1').replace('%1',B.rest.toFixed(1)));
     if(B.cond)   bits.push(K('컨디션 +%1').replace('%1',B.cond.toFixed(1)));
     if(B.conf)   bits.push(K('스카우트 +%1%').replace('%1',(B.conf*100).toFixed(0)));
