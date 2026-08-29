@@ -465,14 +465,25 @@ class MeetResultScreen extends Screen0 {
     const lv = feed.filter(f=>f.lv), drops = feed.filter(f=>f.drop);
     const xpTot = feed.reduce((s,f)=>s+(f.xp||0),0);
     /* 큰 숫자 세 개 — 한눈에 */
-    const box=(x,label,val,col)=>{
+    /* 상자마다 아이콘 하나 — 라벨 글자보다 먼저 읽힌다.
+       ⚠ 라벨 폭을 재기 전에 폰트를 지정해야 아이콘이 글자를 파고들지 않는다. */
+    const box=(x,label,val,col,icon)=>{
       plate(u, x, 30, 148, 40, .85);
-      txt(u, K(label), x+74, 34, 9, PAL.dim,'center');
+      const lbl = K(label), im = icon && BG.get(icon);
+      if(im){
+        u.font='400 9px "Galmuri11","Nanum Gothic Coding",monospace';
+        const lw = Math.ceil(u.measureText(lbl).width);
+        u.drawImage(im, x+74-lw/2-12, 33, 9, 9);
+        txt(u, lbl, x+74+5, 34, 9, PAL.dim,'center');
+      } else txt(u, lbl, x+74, 34, 9, PAL.dim,'center');
       txt(u, String(val), x+74, 44, 22, col,'center',700);
     };
-    box(8,   '얻은 경험치', xpTot.toLocaleString(), PAL.blue);
-    box(166, '레벨 업',     lv.length,              lv.length?PAL.gold:PAL.dim);
-    box(324, '장비',        drops.length,           drops.length?PAL.green:PAL.dim);
+    /* ⚠ 이름을 **인자로** 넘기면 어셋 검사기가 못 읽는다(BG.get('리터럴')만 읽는다).
+       이름이 ICON 인 맵에 담는 것이 이 레포의 규약이다 — HUD.RACE_ICON 과 같다. */
+    const RESULT_ICON = { xp:'ic-xp-gain', lv:'icon-levelup', gear:'icon-gear' };
+    box(8,   '얻은 경험치', xpTot.toLocaleString(), PAL.blue,  RESULT_ICON.xp);
+    box(166, '레벨 업',     lv.length,              lv.length?PAL.gold:PAL.dim,   RESULT_ICON.lv);
+    box(324, '장비',        drops.length,           drops.length?PAL.green:PAL.dim,RESULT_ICON.gear);
     /* ⛔ 챕터 5 — 피드가 **벽**이었다(25조각·197자, 잰 화면 중 제일 빽빽).
        경험치만 오른 줄까지 전부 나열해서 **정작 무슨 일이 있었는지**가 안 보였다.
        경험치 총합은 이미 위 상자가 말한다 — 아래는 **바뀐 것만** 보여 준다:

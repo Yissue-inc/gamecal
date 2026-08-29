@@ -299,25 +299,60 @@ class SeasonEndScreen extends Screen0 {
   }
   draw(u){
     UI.header(u, `${this.year}년차 시즌 종료`, this.mg.club.name);
-    txt(u,'평가',VW/2,30,9,PAL.dim,'center');
-    txt(u,this.grade,VW/2,40,30, this.grade==='S'?PAL.gold:this.grade==='D'?PAL.red:PAL.green,'center',700);
+    /* 한 시즌의 값이 여기 한 덩어리로 모인다 — 액자를 둘러 '받는 자리'로 만든다.
+       ⚠ 어셋이 없으면 액자만 빠지고 글씨는 그대로다(9-slice 실패 시 false).
+       ⛔ panel-reward 는 **속이 꽉 찬 크림색**으로 왔다(실측 중앙 rgba
+          252,248,231 · 알파 253 — frame-panel 은 14,23,38). 발주는 '금색 테두리'
+          였다. 그대로 깔면 그 위의 흰 글씨가 통째로 사라진다(실측).
+          그래서 테두리만 살리고 **안쪽은 어두운 판을 덮는다** — bar-fill 을 흰색으로
+          받아 코드가 색을 입히는 것과 같은 처리다. 어셋을 다시 받으면 이 줄만 지운다. */
+    const hasPanel = typeof UIK!=='undefined' && UIK.nine(u,'panel-reward', VW/2-100, 34, 200, 72, 16);
+    if(hasPanel) plate(u, VW/2-96, 38, 192, 64, 0.82);
+    /* 제목 리본 — 액자 윗변에 걸친다(panel-reward 발주의 '위쪽 리본 자리').
+       ⚠ 리본도 **크림색**이다(중앙 rgba 255,240,208). 그 위 글씨는 어두워야 한다. */
+    const ribbon = hasPanel && typeof UIK!=='undefined'
+                 && UIK.nine(u, 'ribbon-title', VW/2-58, 24, 116, 22, 16);
+    txt(u,'평가', VW/2, ribbon?30:30, ribbon?10:8, ribbon?'#3b2c0c':PAL.dim, 'center', ribbon?700:400);
+    /* ⚠ 세 줄이 액자 **안**(38~102)에 다 들어가야 한다. 예전 좌표는 '평가'가 위로,
+       '목표'가 아래로 새어 크림색 위에 얹혀 안 보였다 — 줄마다 높이를 재서 채운다. */
+    txt(u,this.grade,VW/2,48,28, this.grade==='S'?PAL.gold:this.grade==='D'?PAL.red:PAL.green,'center',700); // 48~76
     txt(u,`승점 ${this.pts}  ·  금 ${this.medals.gold} 은 ${this.medals.silver} 동 ${this.medals.bronze}`,
-        VW/2,72,11,PAL.white,'center');
+        VW/2,78,11,PAL.white,'center');                                          // 78~89
     if(this.report){
       const g=this.report.goal;
-      txt(u,`목표 승점 ${g.points} · 금 ${g.gold}`, VW/2, 86, 9, PAL.dim, 'center');
+      txt(u,`목표 승점 ${g.points} · 금 ${g.gold}`, VW/2, 91, 8, PAL.dim, 'center'); // 91~99
     }
-    if(this.olympic) txt(u, olympicName(this.year)+' 해', VW/2, 20, 10, PAL.gold, 'center', 700);
-    let y=100;
+    /* ⚠ 올림픽 표시는 y=20 이었다 — 헤더 구분선(22)과 액자 윗변에 끼여 잘렸다.
+       액자 아래 제 줄로 내린다. */
+    let y=110;
+    /* ⚠ 개최 도시는 데이터다. 문장에 붙이면 조립된 통문자열이 번역표에 없어
+       영어 빌드에서 '브리즈번 %1 해' 로 남는다(실측). 틀만 번역하고 도시는 뒤에 잇는다. */
+    if(this.olympic){
+      txt(u, K('올림픽의 해') + ' — ' + olympicName(this.year), VW/2, y, 10, PAL.gold, 'center', 700);
+      y+=14;
+    }
+    else y+=4;
+    /* ⚠ 이름을 문장 안에 넣으면 번역표를 통째로 못 찾는다 — txt() 가 문자열 전체를
+       K() 에 넘기기 때문이다(실측: 영어 빌드에서 이 두 줄이 한국어로 남았다).
+       이름은 데이터라 그대로 두고, **틀만 번역**하도록 좌우로 나눠 그린다. */
     if(this.res.retired.length){
       txt(u,'은퇴',12,y,9,PAL.dim); y+=11;
-      for(const a of this.res.retired){ txt(u,`${a.name} (${a.age}세) — OVR ${a.overall}`,20,y,10,'#ffa04c'); y+=12; }
+      for(const a of this.res.retired){
+        txt(u, a.name, 20, y, 10, '#ffa04c');
+        txt(u, K('%1세 · OVR %2').replace('%1',a.age).replace('%2',a.overall),
+            VW-20, y, 10, '#ffa04c', 'right');
+        y+=12;
+      }
       y+=4;
     }
     if(this.res.joined.length){
       txt(u,'신입',12,y,9,PAL.dim); y+=11;
       for(const a of this.res.joined){
-        txt(u,`${a.name} (${a.age}세) — OVR ${a.overall} / 잠재 ${a.potOverall}`,20,y,10,PAL.green); y+=12;
+        txt(u, a.name, 20, y, 10, PAL.green);
+        txt(u, K('%1세 · OVR %2 / 잠재 %3').replace('%1',a.age)
+                .replace('%2',a.overall).replace('%3',a.potOverall),
+            VW-20, y, 10, PAL.green, 'right');
+        y+=12;
       }
     }
     UI.footer(u,'확인 다음 시즌 시작');

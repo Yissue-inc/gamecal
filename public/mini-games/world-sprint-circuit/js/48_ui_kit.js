@@ -336,6 +336,39 @@ const UIK = {
     }
   },
 
+  /* ── 아이콘 한 장, 색을 입혀서 ────────────────────────────
+     ⚠ 두 곳에서 같은 문제를 만났다:
+       ① 목록 위 정렬/거르기 칩 — 켜짐/꺼짐이 글자에만 있어 아이콘은 늘 같아 보였다.
+       ② 경기 중 HUD — ic-speed-hud 는 평균 밝기 94 인데 바탕이 남색 프레임이라
+          묻혔다(실측: ic-timer 150 · ic-distance 105 · ic-speed-hud 94).
+     둘 다 '어셋의 형태는 쓰되 색은 코드가 정한다'로 푼다 — bar-fill 과 같은 규약.
+     `color` 를 안 주면 원본 그대로 그린다. 어셋이 없으면 false 를 돌려준다. */
+  _tintC: {},                      // 이름+크기+색 → 물들여 둔 작은 캔버스
+  iconTint(u, name, x, y, size, color){
+    const im = (typeof BG!=='undefined') && BG.get(name);
+    if(!im) return false;
+    if(!color){ u.drawImage(im, x, y, size, size); return true; }
+    /* ⛔ 여기서 한 번 틀렸다 — 바로 캔버스에 그리고 source-atop 으로 덮었더니
+       **아이콘이 아니라 9×9 회색 사각형**이 나왔다. source-atop 은 '방금 그린 그림'이
+       아니라 **캔버스에 이미 있는 모든 것**을 대상으로 한다. HUD 프레임처럼 바탕이
+       불투명하면 사각형이 통째로 칠해진다(실측: 경기 중 상단 아이콘 3개 전부).
+       투명한 오프스크린에서 물들인 뒤 옮겨 붙여야 아이콘 모양만 남는다. */
+    const key = name+'|'+size+'|'+color;
+    let c = this._tintC[key];
+    if(!c){
+      c = document.createElement('canvas');
+      c.width = c.height = size;
+      const g = c.getContext('2d');
+      g.imageSmoothingEnabled = true;
+      g.drawImage(im, 0, 0, size, size);
+      g.globalCompositeOperation = 'source-atop';
+      g.fillStyle = color; g.fillRect(0, 0, size, size);
+      this._tintC[key] = c;
+    }
+    u.drawImage(c, x, y);
+    return true;
+  },
+
   /* ── 경험치 막대 (레벨 + 진행) ───────────────────────────── */
   /* 게이지 한 벌 — bar-track(홈) + bar-fill(채움).
      ⚠ bar-fill 은 **흰색으로 그려져 왔다**(발주서 지정). 색은 코드가 입힌다.

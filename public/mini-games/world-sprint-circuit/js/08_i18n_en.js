@@ -886,4 +886,29 @@ const I18N_EN = {
   '백조':'Swan',
   '오리':'Duck',
   '바다거북':'Sea Turtle',
+
+  /* ── 기록실 거르기 · 시즌 종료 (2026-08-29 ink.html 로 잡은 구멍) ──
+     ⚠ 시즌 종료 화면은 '보고서'가 있어야 열려서 그동안 훑기에서 빠져 있었다 —
+        영어 빌드에서 한 화면이 통째로 한국어였다. */
+  '%1 / %2 종목 · %3년차':'%1 / %2 events · Year %3',
+  '◆ 거르기 · 취소 돌아가기':'◆ Filter · Cancel Back',
+  '해당하는 종목이 없습니다':'No events match',
+  '기록 있음':'Has record', '아직 없음':'Not yet',
+  '◀ 전체 ▶':'◀ All ▶', '◀ 기록 있음 ▶':'◀ Has record ▶', '◀ 아직 없음 ▶':'◀ Not yet ▶',
+  '%1년차 시즌 종료':'Year %1 Season End',
+  '승점 %1  ·  금 %2 은 %3 동 %4':'%1 pts  ·  %2G %3S %4B',
+  '목표 승점 %1 · 금 %2':'Target %1 pts · %2 gold',
+  '%1세 · OVR %2':'Age %1 · OVR %2',
+  '%1세 · OVR %2 / 잠재 %3':'Age %1 · OVR %2 / Pot %3',
+  '확인 다음 시즌 시작':'Confirm Start next season',
+  '평가':'Grade', '은퇴':'Retired', '신입':'Rookies',
+  /* 올림픽 개최 도시는 데이터라 문장 밖에 둔다 — 틀만 옮긴다 */
+  '올림픽의 해':'Olympic year',
+  /* 선수단 정렬 기준 · 안내줄 */
+  '등록순':'Default', '나이':'Age',
+  /* ⚠ 컨디션 5단 중 3단이 빠져 있었다. ink.html 이 '선수 이름 제외' 필터로
+     2~4자 한글을 통째로 걸러서 **짧은 한국어 낱말이 전부 숨어 있었다.** */
+  '최악':'Awful', '나쁨':'Poor', '최상':'Peak',
+  '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
+  '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };

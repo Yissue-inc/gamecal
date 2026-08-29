@@ -61,29 +61,37 @@ function fmtDist(m){ return m<=0 ? '--.--' : m.toFixed(2); }
 
 const HUD = {
   /* 경기 중 상단 바 */
+  /* ⚠ lab() 이 이름을 **변수로** 받아 BG.get(name) 을 부른다 — 어셋 검사기는
+     BG.get('리터럴') 만 읽으므로 배선해 놓고도 '안 붙은 것'으로 잡혔다.
+     맵 이름에 ICON 을 넣어 검사기가 읽게 한다(check_assets 의 규약). */
+  RACE_ICON: { time:'ic-timer', speed:'ic-speed-hud', dist:'ic-distance' },
   race(ctx, o){
-    plate(ctx, 0, 0, VW, 30, 0.72);
+    /* 상단 정보띠 — hud-frame(9-slice)이 오면 그림으로, 없으면 예전 반투명 판 */
+    if(!(typeof UIK!=='undefined' && UIK.nine(ctx, 'hud-frame', 0, 0, VW, 30, 16)))
+      plate(ctx, 0, 0, VW, 30, 0.72);
     /* ⚠ 칸 폭을 100m(9.58)에 맞춰 박아 뒀다. 마라톤이 들어오자 시계가 '43:20.67' 이
        되면서 옆 칸(SPEED)을 파고들었다. 글자가 길면 크기를 줄여 칸 안에 넣는다. */
     /* ⛔ 챕터 4 — **달리면서 읽을 수 있는 건 두세 개뿐이다.**
        실측: 경기 중 텍스트 13조각 중 **8개가 라벨**이었다
        (TIME·SPEED·DIST·QUALIFY·다음·빠름·늦음·폼). 대부분 한 번 배우면 그만이다.
        아이콘이 오면 라벨을 안 그린다 — 챕터 1과 같은 규칙. */
+    /* ⚠ 아이콘을 원본 색으로 그리면 남색 프레임에 묻힌다 — ic-speed-hud 는
+       평균 밝기 94 다(ic-timer 150 · ic-distance 105). 라벨과 같은 색으로 물들여
+       셋의 밝기를 맞춘다. 목록 칩(UI.picker)과 같은 처리다. */
     const lab = (name, txt0, x, y) => {
-      const im = BG.get(name);
-      if(im){ ctx.drawImage(im, x, y-1, 9, 9); return 11; }
+      if(typeof UIK!=='undefined' && UIK.iconTint(ctx, name, x, y-1, 9, PAL.dim)) return 11;
       txt(ctx, txt0, x, y, 8, PAL.dim); return 0;
     };
     const ts = fmtTime(o.timeS);
-    lab('ic-timer', 'TIME', 8, 3);
+    lab(this.RACE_ICON.time, 'TIME', 8, 3);
     txt(ctx, ts, 8, ts.length>7?13:12, ts.length>7?12:15, PAL.gold, 'left', 700);
 
     /* ⚠ 'm/s' 는 매 프레임 읽히지 않는 잡음이다 — 숫자만 남긴다 */
-    lab('ic-speed-hud', 'SPEED', 76, 3);
+    lab(this.RACE_ICON.speed, 'SPEED', 76, 3);
     txt(ctx, o.speed.toFixed(1), 76, 13, 11, PAL.white);
 
     /* 거리도 마찬가지 — '17616 / 42195' 는 11px 로 칸을 넘는다. km 로 줄인다. */
-    lab('ic-distance', 'DIST', 150, 3);
+    lab(this.RACE_ICON.dist, 'DIST', 150, 3);
     const dist = o.trackM > 10000
       ? (o.distM/1000).toFixed(1)+' / '+(o.trackM/1000).toFixed(1)+'km'
       : o.distM.toFixed(0)+' / '+o.trackM;

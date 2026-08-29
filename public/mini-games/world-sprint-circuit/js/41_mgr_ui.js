@@ -16,6 +16,22 @@ const UI = {
     plate(u, 0, VH-16, VW, 16, 0.86);
     txt(u, hint, VW/2, VH-13, 9, PAL.dim, 'center');
   },
+  /* ── 목록 위의 '◀ 기준 ▶' 칩 ─────────────────────────────
+     정렬(선수단)과 거르기(기록실)가 같은 손버릇이 되도록 한 곳에서 그린다.
+     ⚠ 아이콘 자리를 만들려고 라벨 폭을 재는데, 재기 전에 폰트를 **먼저 지정**해야
+        한다. 안 하면 직전에 그린 글씨의 폰트로 재서 아이콘이 라벨을 파고든다.
+     `on` = 기본값이 아님(= 지금 뭔가 걸려 있다) → 금색으로 알린다. */
+  picker(u, icon, label, on, y){
+    const lbl = `◀ ${label} ▶`, col = on ? PAL.gold : PAL.dim;
+    if(typeof UIK==='undefined' || !(typeof BG!=='undefined' && BG.get(icon))){
+      txt(u, lbl, VW/2, y, 9, col, 'center', 700); return; }
+    u.font = '700 9px "Galmuri11","Nanum Gothic Coding",monospace';
+    const w = Math.ceil(u.measureText(lbl).width);
+    /* 아이콘을 **라벨 색으로 물들인다** — 켜짐/꺼짐을 아이콘도 같이 말한다.
+       ic-filter 는 선이 얇고 어두워(불투명 17% · 밝기 95) 안 그러면 9px 에서 사라진다. */
+    UIK.iconTint(u, icon, VW/2 - w/2 - 13, y-1, 9, col);
+    txt(u, lbl, VW/2 + 5, y, 9, col, 'center', 700);
+  },
   /* 커서가 달린 세로 목록. rows = [{label, sub, right, color, dim}] */
   list(u, rows, sel, x, y, w, rowH, maxRows){
     const n = Math.min(rows.length, maxRows);
@@ -90,10 +106,14 @@ const UI = {
       /* 상태 배지 — `!` `●3` 같은 짧은 표시는 글자만 떠 있으면 안 걸린다.
          chip-bg(9-slice)가 오면 그 뒤에 칩을 깐다.
          ⚠ 긴 값(4,605 · 클럽 경기력)에는 안 깐다 — 칩은 **짧은 상태**용이다.
-            숫자에까지 칩을 두르면 목록이 알약밭이 된다. */
+            숫자에까지 칩을 두르면 목록이 알약밭이 된다.
+         ⛔ **'값이 없다'는 표시에도 안 깐다.** 기록실을 '아직 없음'으로 거르면
+            17줄이 전부 `—` 인데, 한 글자라 칩이 붙어 **파란 알약 17개**가 됐다 —
+            비어 있다는 뜻이 '뭔가 있다'로 보인다(실측). */
       if(r.right){
         const rt = String(r.right), ry2 = ry+pad+(twoLine?2:0);
-        if(rt.length<=3 && typeof UIK!=='undefined'){
+        const EMPTY = ['—','-','–','—'];
+        if(rt.length<=3 && EMPTY.indexOf(rt)<0 && typeof UIK!=='undefined'){
           u.font='700 10px "Galmuri11","Nanum Gothic Coding",monospace';
           const cw2 = Math.max(16, Math.ceil(u.measureText(rt).width)+10);
           u.save(); u.globalAlpha=0.55;
@@ -614,7 +634,10 @@ class SquadScreen extends Screen0 {
     super.update(now);
   }
   get rows(){ return this.view().map(a=>({
-    label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${a.speciesName} ${a.name}`, nation:a.nation,
+    /* ⚠ 종족 이름은 번역표에 다 있는데도 영어 빌드에서 한국어로 나왔다 —
+       별·종족·이름을 **한 문자열로 조립**하면 txt() 가 그 통문자열을 K() 에 넘겨
+       표에서 못 찾기 때문이다. 종족만 먼저 옮겨 붙인다(이름은 데이터라 그대로). */
+    label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${K(a.speciesName)} ${a.name}`, nation:a.nation,
     /* 로스터는 표다 — 나이·등급·성장형·특성을 훑을 수 있어야 한다.
        ⛔ 챕터 1 규칙: 부제가 **설명**이면 숨기고 **데이터**면 남긴다. */
     subAlways:true,
@@ -630,7 +653,8 @@ class SquadScreen extends Screen0 {
     const v = this.view(), S = SquadScreen.SORTS[this.sortI||0];
     UI.header(u,'선수단',`${v.length}명`);
     /* 지금 무슨 기준으로 줄 세웠나 — 안 보이면 왜 순서가 바뀌었는지 모른다 */
-    txt(u, `◀ ${K(S.k)} ▶`, VW/2, 17, 9, (this.sortI||0)?PAL.gold:PAL.dim, 'center', 700);
+    /* 정렬 표시 — 아이콘이 오면 '◀ ▶' 화살표 앞에 놓아 무슨 줄인지 분명히 한다 */
+    UI.picker(u, 'ic-sort', K(S.k), !!(this.sortI||0), 17);
     UI.list(u,this.rows,this.sel,8,28,VW-16,26,8);
     /* 피로한 선수는 땀방울로 — 목록에서 '쉬게 해야 할 사람'이 바로 보인다.
        ⚠ 목록은 8줄씩 스크롤되므로 화면에 실제로 그려진 줄만 표시한다.
@@ -817,28 +841,64 @@ class AthleteScreen extends Screen0 {
 }
 
 /* ── 기록실 ──────────────────────────────────────────────── */
+/* ── 기록실 ───────────────────────────────────────────────
+   ⛔ 챕터 6 — **48줄인데 화면엔 6줄이다.**
+      실측(tools/_reclist.js · 20시즌 × 시드 2): 클럽이 기록을 가진 종목은
+      1년차 23~25 · 20년차 30~32 다. 나머지 **16~18줄이 '기록 없음 / —'** —
+      빈 줄만 3화면 분량을 스크롤로 지나가야 우리 기록에 닿는다.
+      그래서 좌우키로 거른다. 선수단의 정렬과 **같은 손버릇**이다.
+
+   ⚠ 필터의 기본값은 '전체'다. 처음부터 걸러 놓으면 "아직 안 뛴 종목"이
+      화면에서 사라져 목표가 안 된다 — 20년을 굴려도 18종목이 남는다. */
 class RecordScreen extends Screen0 {
+  /* has: null=전체 · true=기록 있음 · false=아직 없음 */
+  static FILTS = [
+    { k:'전체',      has:null },
+    { k:'기록 있음', has:true  },
+    { k:'아직 없음', has:false },
+  ];
+  constructor(mg){ super(mg); this.filt=0; }
   get rows(){
-    return EVENTS.map(ev=>{
+    const F = RecordScreen.FILTS[this.filt||0];
+    return EVENTS.filter(ev=>{
+      if(F.has===null) return true;
+      return !!this.mg.club.records[ev.id] === F.has;
+    }).map(ev=>{
       const r=this.mg.club.records[ev.id];
       /* 부제가 곧 데이터다(누가·몇 년차) — 숨기면 표가 아니라 목록이 된다 */
-      return { label:ev.name, subAlways:true, sub: r?`${r.name} · ${r.year}년차`:'기록 없음',
+      /* 같은 이유로 '년차'를 먼저 옮기고 이름을 잇는다 */
+      return { label:ev.name, subAlways:true,
+        sub: r ? `${r.name} · ${K('%1년차').replace('%1', r.year)}` : '기록 없음',
         right: r? fmtRec(ev, r.value) : '—', rightColor: r?PAL.gold:PAL.dim };
     });
+  }
+  /* ⚠ 거르고 나면 목록이 짧아진다 — sel 이 그대로면 빈 곳을 가리킨다 */
+  setFilt(d){
+    const n=RecordScreen.FILTS.length;
+    this.filt=((this.filt||0)+d+n)%n; this.sel=0; Sfx.ui();
   }
   update(now){
     if(Input.repeat('up',now)) this.move(-1);
     if(Input.repeat('down',now)) this.move(1);
+    if(Input.pressed('left'))  this.setFilt(-1);
+    if(Input.pressed('right')) this.setFilt(1);
     if(Input.pressed('back')||Input.pressed('action')) this.mg.pop();
   }
   draw(u){
-    UI.header(u,'클럽 기록',`${this.mg.season.year}년차`);
-    UI.list(u,this.rows,this.sel,8,28,VW-16,24,6);
+    /* 몇 종목에 이름을 남겼나 — 이 화면의 값은 기록 자체가 아니라 **넓이**다 */
+    const have=EVENTS.filter(ev=>this.mg.club.records[ev.id]).length;
+    UI.header(u,'클럽 기록',`${have} / ${EVENTS.length} 종목 · ${this.mg.season.year}년차`);
+    UI.picker(u, 'ic-filter', K(RecordScreen.FILTS[this.filt||0].k), !!(this.filt||0), 25);
+    const rows=this.rows;
+    if(!rows.length) txt(u,K('해당하는 종목이 없습니다'),VW/2,60,11,PAL.dim,'center');
+    /* ⚠ 칩 자리를 만드느라 6줄을 5줄로 줄였다가 도로 6줄로 돌렸다 —
+       36 + 6×24 = 180 이고 아래 '대회 이력'은 VH-56(214) 이라 안 겹친다. */
+    UI.list(u,rows,this.sel,8,36,VW-16,24,6);
     const rs=this.mg.season.results;
     txt(u,'대회 이력',8,VH-56,8,PAL.dim);
     rs.slice(-3).forEach((m,i)=>
       txt(u,`${m.week}주 ${m.name} — ${m.points}점`,8,VH-46+i*10,9,PAL.white));
-    UI.footer(u,'취소 돌아가기');
+    UI.footer(u,'◆ 거르기 · 취소 돌아가기');
   }
 }
 
