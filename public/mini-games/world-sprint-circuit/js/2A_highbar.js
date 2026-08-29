@@ -59,7 +59,11 @@ class HighBarEvent {
       const q={PERFECT:1,GOOD:0.66,MISS:0.2}[j];
       this.swingQ.push(q); if(this.swingQ.length>8) this.swingQ.shift();
       this.amp = clamp(this.amp + BAR.gain*q, 0, 1);
-      Sfx.step(j);
+      /* ⚠ 판정을 **계산해 놓고 저장도 표시도 안 했다** — 흔드는 내내 잘하고 있는지
+         알 길이 없었다(10종목 전수 점검에서 잡힌 나머지 하나). */
+      this.lastJudge=j; this.lastJudgeMs=tMs;
+      this.streak = (j==='PERFECT'||j==='GOOD') ? Math.min(60,(this.streak||0)+1) : 0;
+      Sfx.step(j, [0,6,10,20,40,60].filter(n=>this.streak>=n).length-1);
       return;
     }
     /* 공중 비틀기 */
@@ -197,6 +201,10 @@ class HighBarEvent {
   }
   drawUI(u){
     const V=this._v; if(!V) return;
+    /* 한 타의 피드백 — 기준은 HUD.tap(05_hud) 한 곳에 있다 */
+    if(this.phase==='SWING' && this.lastJudge)
+      HUD.tap(u, { j:this.lastJudge, ageMs:this.t-this.lastJudgeMs, ivMs:BAR.swingIv,
+                   labelY:V.barY-26 });
     let x=V.cx, y=V.barY+16, rot=0, tuck=false;
     if(this.phase==='SWING'){
       /* 봉을 중심으로 매달려 흔들린다 — 진폭이 클수록 크게 */

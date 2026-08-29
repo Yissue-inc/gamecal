@@ -15,7 +15,7 @@ class JavelinEvent extends FieldEvent {
     this.throwFrom=0; this.range=0;
   }
   onStride(side,tMs){ if(this.phase!=='RUNUP') return;
-    const j=this.runner.stride(side,tMs,'off'); if(j) Sfx.step(j); }
+    const j=this.runner.stride(side,tMs,'off'); if(j) Sfx.step(j, this.runner.tier); }
   onAction(tMs){
     if(this.phase!=='RUNUP') return;
     if(this.holdStart<0){ this.holdStart=tMs; this.say('힘을 모으는 중…'); Sfx.beep(330,0.1,'square',0.1); }
@@ -107,6 +107,12 @@ class JavelinEvent extends FieldEvent {
     }
   }
   drawUI(uctx){
+    /* 런업 판정 — Runner 가 이미 lastJudge 를 들고 있는데 화면에 안 나오고 있었다.
+       ⚠ 이 파일엔 drawUI 가 **둘**이다(창던지기·해머). 해머는 창 판정이 없는
+          연타형이라 fx-tap-ring 만 쓴다 — 여기(창던지기)에만 붙인다. */
+    if(this.phase==='RUNUP' && this.runner && this.runner.lastJudge)
+      HUD.tap(uctx, { j:this.runner.lastJudge, ageMs:this.t-this.runner.lastJudgeMs,
+                      ivMs:this.runner.targetIntervalMs(), labelY:44 });
     plate(uctx,0,0,VW,30,0.72);
     txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
     txt(uctx,'SPEED',66,3,8,PAL.dim); txt(uctx,this.runner.speed.toFixed(1)+' m/s',66,13,11,PAL.white);
