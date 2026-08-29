@@ -801,7 +801,9 @@ class ScoutReportScreen extends Screen0 {
       const on = i===(this.tsel||0) && tr.length>0;
       const bad = (t==='glass'||t==='nervous');
       const x = 44 + i*96;
-      if(on){ u.fillStyle='rgba(255,215,94,.18)'; u.fillRect(x-4, ry-3, 92, 14); }
+      /* ⚠ 높이 14 면 상자가 ry+11 까지 간다 — 설명 글이 ry+9 에서 시작하니 윗선 2px 를
+         파고들어 글자가 뭉개진다. 이름 줄에서 딱 끊는다(ry-3 ~ ry+9). */
+      if(on){ u.fillStyle='rgba(255,215,94,.18)'; u.fillRect(x-4, ry-3, 92, 12); }
       txt(u, K(TRAITS[t].name), x, ry-1, 10, bad?PAL.red:PAL.green, 'left', on?700:400);
       txt(u, K(TRAITS[t].desc), x, ry+9, 8, PAL.dim, 'left');
     });
@@ -813,8 +815,9 @@ class ScoutReportScreen extends Screen0 {
       if(this.rerollAt!==undefined && this.t-this.rerollAt<900)
         BG.fx(u, 'fx-item-get', 90, ry+4, 30, clamp((this.t-this.rerollAt)/900,0,0.999), 4);
     }
-    UI.footer(u, tr.length>1 ? '◀▶ 특성 · ▲ 다시 뽑기 · 취소 돌아가기'
-                             : tr.length ? '▲ 다시 뽑기 · 취소 돌아가기' : '확인/취소 돌아가기');
+    /* ⚠ '▲ 다시 뽑기' 는 바로 위 줄이 **값까지 붙여서** 이미 말하고 있다(−20 · 남은 포인트).
+       푸터는 줄이 못 하는 말만 한다 — 여기선 특성 고르기와 나가기뿐이다. */
+    UI.footer(u, tr.length>1 ? '◀▶ 특성 · 취소 돌아가기' : '취소 돌아가기');
   }
 }
 
@@ -1093,8 +1096,14 @@ class MasterScreen extends Screen0 {
     /* 이력 */
     const c=(typeof Career!=='undefined')?Career.d:{};
     let y=164;
-    for(const [k,v] of [[K('경기'), c.races||0], [K('개인 최고'), c.pbs||0],
-                        [K('금메달'), c.golds||0], [K('시즌'), c.seasons||0]]){
+    /* ⛔ 네 줄의 **분모가 서로 달랐다.**
+       races/pbs 는 `finishRace` — 내가 **직접 뛴** 판이다(아케이드 + 대회의 '직접' 종목.
+       playForManager 가 같은 아케이드 경로를 탄다). golds 는 `finishMeet` — 클럽이
+       대회에서 딴 금메달이고 대부분 자동 시뮬레이션이다.
+       그걸 라벨 없이 한 칸에 세워 놓으니 '12경기에 금 35개' 로 읽혔다.
+       라벨이 스스로 분모를 말하게 한다 — 데이터 무결성 플레이북의 첫 질문이다. */
+    for(const [k,v] of [[K('직접 뛴 경기'), c.races||0], [K('개인 최고'), c.pbs||0],
+                        [K('대회 금메달'), c.golds||0], [K('마친 시즌'), c.seasons||0]]){
       txt(u, k, 18, y, 8, PAL.dim, 'left');
       txt(u, UIK.n(v), 148, y-1, 10, PAL.white, 'right', 700);
       y+=13;

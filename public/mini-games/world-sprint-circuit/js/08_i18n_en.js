@@ -924,6 +924,9 @@ const I18N_EN = {
   '부상률 −%1%':'Injury rate −%1%', '컨디션 +%1':'Condition +%1',
   '스카우트 +%1%':'Scout +%1%', '신인 자질 +%1%':'Rookie quality +%1%',
   '지금 받는 것 · 클럽에 영구':'Active bonuses · permanent, club-wide',
+  /* 감독 이력 — 라벨이 스스로 분모를 말한다(직접 뛴 것 vs 클럽이 딴 것) */
+  '직접 뛴 경기':'Races you ran', '대회 금메달':'Meet golds', '마친 시즌':'Seasons done',
+  '◀▶ 특성 · 취소 돌아가기':'◀▶ Trait · Cancel back',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };
