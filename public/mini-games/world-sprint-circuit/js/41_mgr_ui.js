@@ -593,6 +593,29 @@ class AthleteScreen extends Screen0 {
        !Face.draw(u, a.species, pxx+pw/2, pyy+pw/2, pw-10))
       CharHD.draw(u, a.species, pxx+pw/2, pyy+pw-8, 0.05, { t:performance.now(), scale:1.4 });
     txt(u, a.speciesName, pxx+pw/2, pyy+pw-11, 8, PAL.white, 'center');
+    /* ── 종합력과 그 내역 ──────────────────────────────────
+       ⚠ 종합력은 목록·카드에 큰 숫자로 뜨는데 **어디서 왔는지는 아무 데도 없었다.**
+          숫자만 있고 근거가 없으면 "왜 올랐지"를 못 배운다 — 그러면 무엇을 해야
+          오르는지도 모른 채 숫자만 쳐다보게 된다. 여기가 그걸 배우는 자리다.
+       ⚠ 새 화면을 만들지 않는다. 선수를 들여다보는 화면이 이미 여기다. */
+    if(typeof Power!=='undefined'){
+      const bx=84, bw=VW-92;
+      const pw2=Power.of(a), gw=Power.growthOf(a, this.mg && this.mg.club);
+      txt(u, K('경기력'), bx, pyy, 8, PAL.dim, 'left');
+      txt(u, UIK.n(pw2), bx+40, pyy-2, 15, PAL.gold, 'left', 700);
+      txt(u, K('성장력'), bx+108, pyy, 8, PAL.dim, 'left');
+      txt(u, UIK.n(gw), bx+148, pyy-1, 12, '#5aaaff', 'left', 700);
+      /* 내역 — 무엇이 얼마를 보태고 깎았나 */
+      const rows = Power.breakdown(a);
+      rows.forEach((r,i)=>{
+        const y = pyy+14+i*11;
+        if(y > VH-20) return;
+        txt(u, K(r.k), bx, y, 9, PAL.white, 'left');
+        txt(u, r.note||'', bx+44, y+1, 8, PAL.dim, 'left');
+        txt(u, (r.v>0?'+':'')+UIK.n(r.v), bx+bw, y, 9,
+            r.v>0?PAL.green:(r.v<0?PAL.red:PAL.dim), 'right');
+      });
+    }
     UI.footer(u,'확인/취소 돌아가기');
   }
 }

@@ -775,7 +775,14 @@ class PodiumScreen extends Screen0 {
     if(w.rank===1){
       const k=(this.t%1200)/1200;
       BG.fx(u, 'flash-bulbs', cx, base-58, 30, k, 4);
-      if(this.t < 2600) BG.fx(u, 'confetti-burst', cx, base, 90, clamp(this.t/2600,0,0.999), 4);
+      /* 시상대 1위는 이 게임에서 제일 큰 순간이다 — 더 큰 폭죽(fx-confetti 768×192)을
+         화면 전폭으로 두 번 터뜨린다. 없으면 예전 confetti-burst 로 물러난다. */
+      if(this.t < 2600){
+        const pr = clamp(this.t/2600, 0, 0.999);
+        if(!BG.fx(u, 'fx-confetti', VW/2, base+10, 150, pr, 4))
+          BG.fx(u, 'confetti-burst', cx, base, 90, pr, 4);
+        else BG.fx(u, 'fx-confetti', VW*0.22, base-6, 110, clamp(pr+0.18,0,0.999), 4);
+      }
     }
     const medalName = ['금메달','은메달','동메달'][w.rank-1];
     txt(u, K(medalName), cx, 34, 13, w.rank===1?PAL.gold:w.rank===2?'#c9cede':'#c9884a','center',700);

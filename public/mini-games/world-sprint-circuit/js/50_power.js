@@ -135,7 +135,9 @@ const Power = {
      ⚠ 숫자만 있고 근거가 없으면 "왜 올랐지"를 못 배운다. */
   breakdown(a){
     const rows = [];
-    rows.push({ k:'스탯', v: Math.round((a.overall||0)*100), note:`OVR ${a.overall}` });
+    /* ⚠ 여기서 a.overall(반올림)을 쓰면 **행 합계가 큰 숫자와 안 맞는다**(실측 42 차이).
+       숫자가 자기 내역과 어긋나면 그 숫자를 못 믿게 된다 — of() 와 같은 값을 쓴다. */
+    rows.push({ k:'스탯', v: Math.round(this.rawOverall(a)*100), note:`OVR ${a.overall}` });
     const cond = Math.round(((a.condition ?? 70) - 60) * 15);
     rows.push({ k:'컨디션', v:cond, note: (typeof UI!=='undefined'&&UI.condName)?UI.condName(a.condition):'' });
     const fat = -Math.round((a.fatigue||0)*6);

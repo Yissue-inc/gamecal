@@ -129,6 +129,15 @@ class SprintEvent {
         const passed = !this.player.dq && v <= this.qualify;
         this.result = { status: this.player.dq?'FALSE_START':(passed?'OK':'MISSED_QUALIFY'),
                         value:v, rank:this.rankOf(this.player) };
+        /* ── 두 순간을 잡아 둔다. 지금은 둘 다 조용히 지나간다 ──
+           ⚠ 자기 최고기록은 HUD 에 작은 글씨로만 있었다. 육상 게임에서
+              개인 최고는 등수보다 중요한 순간인데 그게 안 보였다. */
+        const prev = Save.data.best[this.def.id];
+        this.isPB = !this.player.dq && v < DNF && (prev===undefined || v < prev);
+        /* 사진 판정 — 1·2위가 0.05초 안이면. 육상에서 이게 제일 짜릿한 장면이다 */
+        const times = this.all.filter(r=>r.finished).map(r=>r.finishTimeS).sort((a,b)=>a-b);
+        this.isPhoto = times.length>=2 && (times[1]-times[0]) <= 0.05;
+        if(this.isPB || this.isPhoto) this.fxAt = now;
         passed ? Sfx.finish() : Sfx.fail();
       } else if(this.elapsed > this.qualify + Math.max(8, this.qualify*0.5)){
         // 기준기록을 크게 넘기면 경기 종료 — 무한정 끌지 않는다
@@ -205,7 +214,10 @@ class SprintEvent {
               /* 원근 — 먼 레인 선수는 작게, 가까운 레인은 크게 */
               scale: Track.laneScale(i),
               rare:(SPECIES[sp]&&SPECIES[sp].rare)||1, moving:this.phase==='RUN', t:this.t },
-          speedFrac: clamp((r.speed||0)/11, 0, 1) }); }
+          speedFrac: clamp((r.speed||0)/11, 0, 1),
+          /* 연출 판단에 필요한 것들 — 그리는 쪽이 러너를 다시 안 찾아도 되게 */
+          fatigue: r.fatigue||0, tier: r.tier||0, me: r===this.player,
+          started: r.started, gunAge: this.t - this.gunMs }); }
       else drawRunner(ctx, x, y, r.stridePhase, laneColor[i%laneColor.length],
         { lean:leaning, crouch:this.phase==='SET' });
     }
@@ -220,8 +232,34 @@ class SprintEvent {
       for(const c of this._hd){
         if(c.speedFrac>0.35)
           BG.fx(uctx, 'dust-kick', c.x-6, c.y+2, 9, ((this.t*0.006)+c.x*0.01)%1, 4);
+        /* 출발 연기 — 총성 직후 스타팅블록에서. 0.5초만 산다 */
+        if(c.started && c.gunAge>=0 && c.gunAge<500)
+          BG.fx(uctx, 'fx-startsmoke', c.x, c.y+3, 14, clamp(c.gunAge/500,0,0.999), 4);
+        /* 땀 — 지친 게 숫자가 아니라 눈에 보여야 한다 */
+        if(c.fatigue>0.55)
+          BG.fx(uctx, 'fx-sweat', c.x+4, c.y-14, 10,
+                ((this.t*0.004)+c.x*0.02)%1, 3);
+        /* 집중선 — 콤보 단이 높을 때 내 선수 뒤로. '지금 잘 하고 있다'를 몸으로 */
+        if(c.me && c.tier>=3)
+          BG.fx(uctx, 'fx-focus', c.x, c.y-2, 26, ((this.t*0.005)%1), 4);
       }
       for(const c of this._hd) CharHD.draw(uctx, c.sp, c.x, c.y, c.ph, c.o); this._hd=null;
+    }
+    /* 사진 판정 — 화면 전체를 덮는 한 장(480×270). 0.9초. */
+    if(this.isPhoto && this.fxAt!==undefined){
+      const age = this.t - this.fxAt;
+      if(age < 900){
+        const im = BG.get('fx-photofinish');
+        if(im){ uctx.save(); uctx.globalAlpha = Math.min(1, (900-age)/400);
+                uctx.drawImage(im, 0, 0, VW, VH); uctx.restore(); }
+        txt(uctx, K('사진 판정'), VW/2, 30, 15, PAL.white, 'center', 700);
+      }
+    }
+    /* 개인 최고 — 등수보다 중요한 순간이다 */
+    if(this.isPB && this.fxAt!==undefined){
+      const age = this.t - this.fxAt;
+      if(age < 1400)
+        BG.fx(uctx, 'fx-record', VW/2, VH-70, 54, clamp(age/1400, 0, 0.999), 4);
     }
     HUD.race(uctx, {
       timeS: Math.max(0, this.elapsed),
