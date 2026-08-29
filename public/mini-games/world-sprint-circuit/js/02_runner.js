@@ -100,7 +100,12 @@ class Runner {
       j='GOOD';                                   // 첫 스트라이드는 비교 대상이 없다
     } else {
       const target = this.targetIntervalMs();
-      const widen = (RULES.assistWidenPct[assist||'off'] || 0) + this.tierWiden;
+      /* ⚠ 수동은 선수 스탯을 안 쓴다(new Runner(p,{},true,…)). 그래서 경기형 스킬은
+         **판정 창 확대**로만 나타난다 — 자동의 sigma 감소와 같은 말이다.
+         ⛔ 감독 모드가 경기 전에 SKILL.manualWiden 을 넣고 끝나면 0 으로 되돌린다.
+            아케이드는 늘 0 이다 — 스킬 없는 판은 예전과 완전히 같다. */
+      const skillWiden = (this.isPlayer && typeof SKILL!=='undefined') ? (SKILL.manualWiden||0) : 0;
+      const widen = (RULES.assistWidenPct[assist||'off'] || 0) + this.tierWiden + skillWiden;
       const err = Math.abs(dt - target) / target;
       if(err <= RULES.perfectWindowPct + widen){ j='PERFECT'; this.form = Math.min(RULES.formCeil, this.form + RULES.formGainPerfect); this.addCombo(); }
       else if(err <= RULES.goodWindowPct + widen){ j='GOOD'; this.form = Math.min(RULES.formCeil, this.form + RULES.formGainGood); this.addCombo(); }

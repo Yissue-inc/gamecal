@@ -95,7 +95,16 @@ class Athlete {
     const v=this.overall; this.stats=save; return v;
   }
   has(t){ return this.traits.includes(t); }
-  eff(key){ let v=0; for(const t of this.traits) v += (TRAITS[t].eff[key]||0); return v; }
+  /* ⚠ 특성과 **같은 통로**로 스킬(4E_skill)을 더한다. 이게 스킬이 경기에 닿는
+     유일한 자리다 — 시뮬레이션은 이미 이 값을 읽고 있어 배선이 따로 없다.
+     ⛔ 장착한 스킬이 없으면 SKILL.eff 는 0 이다 → 스킬 층이 없던 때와 완전히 같다.
+        `tools/skill_neutral.js` 가 소수점까지 대조한다. */
+  eff(key){
+    let v=0;
+    for(const t of this.traits) v += (TRAITS[t].eff[key]||0);
+    if(typeof SKILL!=='undefined') v += SKILL.eff(this, key);
+    return v;
+  }
   get available(){ return !this.injury; }
 
   /* 나이에 따른 성장 여력 — 전성기를 지나면 마이너스가 된다 */

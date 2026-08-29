@@ -105,6 +105,18 @@ class Screen0 {
   confirm(){} cancel(){ this.mg.pop(); }
 }
 
+/* 배웠는데 안 켠 스킬이 몇 개인가 — 슬롯이 비어 있는데 놀리는 건 순손해다 */
+function C_squadIdleSkills(club){
+  let n=0;
+  for(const a of (club.squad||[])){
+    SKILL.ensure(a);
+    const free = SKILL.slots(a) - SKILL.equipped(a).length;
+    if(free<=0) continue;
+    n += Math.min(free, a.skills.filter(id=>a.skillEq.indexOf(id)<0).length);
+  }
+  return n;
+}
+
 /* ── 사무실(허브) ────────────────────────────────────────── */
 class OfficeScreen extends Screen0 {
   get hdBg(){ return 'bg-office'; }  get hdBgDim(){ return 0.76; }
@@ -126,9 +138,14 @@ class OfficeScreen extends Screen0 {
       /* 육성(46_rpg) — 포인트가 남아 있으면 눈에 띄게 */
       (()=>{ const tp=this.mg.club.squad.reduce((s,a)=>s+(a.tp||0),0);
              const inv=(this.mg.club.inventory||[]).length;
-             return { label:'육성', sub:`훈련 포인트 ${tp} · 창고 ${inv}개`,
-                      right: tp>0?'●'+tp:'▶', rightColor: tp>0?PAL.gold:PAL.dim,
-                      color: tp>0?PAL.gold:undefined,
+             /* 켤 수 있는데 안 켠 스킬이 있으면 알려 준다 — 배우고 안 켜는 게 함정이다 */
+             const idle = (typeof SKILL==='undefined') ? 0 : C_squadIdleSkills(this.mg.club);
+             return { label:'육성',
+                      sub:`훈련 포인트 ${tp} · 창고 ${inv}개`
+                          + (idle? ` · 안 켠 스킬 ${idle}개` : ''),
+                      right: (tp>0||idle)?'●'+(tp||idle):'▶',
+                      rightColor: (tp>0||idle)?PAL.gold:PAL.dim,
+                      color: (tp>0||idle)?PAL.gold:undefined,
                       go:()=>new GrowPickScreen(this.mg) }; })(),
       { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶',
         go:()=>new ProgramScreen(this.mg) },

@@ -91,6 +91,14 @@ class GrowPickScreen extends Screen0 {
       txt(u, a.name, tx, y+15, 10, on?PAL.gold:PAL.white, 'left', on?700:400);
       u.restore();
       txt(u, `OVR ${a.overall}`, tx, y+27, 8, PAL.dim, 'left');
+      /* 스킬을 켜 놨으면 카드에 점으로 — 목록에서 '누가 준비됐나'가 보인다 */
+      if(typeof SKILL!=='undefined'){
+        const eqn=SKILL.equipped(a).length, cap=SKILL.slots(a);
+        for(let k=0;k<cap;k++){
+          u.fillStyle = k<eqn ? PAL.green : 'rgba(255,255,255,.18)';
+          u.fillRect(x+cw-8-k*6, y+5, 4, 4);
+        }
+      }
       /* 잘 자라는 스탯 둘 — '이 선수는 뭐지'에 카드가 답한다 */
       const tops=DEPTH.topApt(a,2);
       tops.forEach((t2,ti)=>{
@@ -121,7 +129,13 @@ class GrowPickScreen extends Screen0 {
 /* ── 육성 — 한 선수 ─────────────────────────────────────── */
 class GrowScreen extends Screen0 {
   get hdBg(){ return 'bg-training'; }  get hdBgDim(){ return 0.82; }
-  constructor(mg, a){ super(mg); this.a=RPG.ensure(a); this.tab=0; }   // 0=스탯 1=장비
+  /* 0=스탯 1=장비 2=스킬.
+     ⚠ 예전엔 `this.tab = this.tab?0:1` 이라 **탭이 늘면 조용히 안 열린다.**
+        탭 이름 목록과 순환을 한 곳에서 뽑아 쓴다 — 어긋날 자리를 없앤다. */
+  static TABS = ['스탯 올리기','장비','스킬'];
+  constructor(mg, a){ super(mg); this.a=RPG.ensure(a);
+    if(typeof SKILL!=='undefined') SKILL.ensure(a);
+    this.tab=0; }
   get rows(){
     const a=this.a;
     if(this.tab===0){
@@ -133,6 +147,28 @@ class GrowScreen extends Screen0 {
           right: full ? '최대' : '+1',
           rightColor: full?PAL.dim:(a.tp>0?PAL.green:PAL.dim),
           color: full?PAL.dim:PAL.white, _k:k, _full:full };
+      });
+    }
+    if(this.tab===2){
+      /* 스킬 탭 — 배운 것 · 배울 수 있는 것 · 조건 미달 순(SKILL.pool 이 정렬한다).
+         ⚠ '배웠다'와 '켰다'는 다르다 — 슬롯이 모자라면 배워도 안 켜진다.
+            그래서 오른쪽에 ON/OFF 를 못 박아 둔다. */
+      const slots=SKILL.slots(a), on=SKILL.equipped(a).length;
+      return SKILL.pool(a).map(p=>{
+        const d=p.def, race=d.branch==='race';
+        const rr=(typeof RARITY!=='undefined'&&RARITY[d.tier])?RARITY[d.tier]:null;
+        return {
+          label: d.name,
+          sub: p.known ? d.desc
+             : (p.why===null ? `${d.desc} · 포인트 ${d.cost}` : `${d.desc} · ${p.why}`),
+          right: p.known ? (p.on?'ON':'OFF') : (p.why===null ? `−${d.cost}` : '잠김'),
+          rightColor: p.known ? (p.on?PAL.green:PAL.dim)
+                    : (p.why===null ? PAL.gold : PAL.dim),
+          right2: race ? K('경기') : K('육성'),
+          color: p.known ? (p.on?PAL.white:PAL.dim)
+               : (p.why===null ? PAL.white : PAL.dim),
+          _skill:p.id, _known:p.known, _on:p.on, _why:p.why,
+          _tierColor: rr?rr.color:null };
       });
     }
     /* 장비 탭 — 낀 것 3칸 + 창고 */
@@ -155,9 +191,9 @@ class GrowScreen extends Screen0 {
   }
   update(now){
     /* ◀▶ 로 탭 전환 — 스탯과 장비를 오간다 */
-    if(Input.pressed('left')||Input.pressed('right')){
-      this.tab = this.tab?0:1; this.sel=0; Sfx.ui(); return;
-    }
+    const NT = GrowScreen.TABS.length;
+    if(Input.pressed('right')){ this.tab=(this.tab+1)%NT; this.sel=0; Sfx.ui(); return; }
+    if(Input.pressed('left')) { this.tab=(this.tab+NT-1)%NT; this.sel=0; Sfx.ui(); return; }
     /* ▲ — 스카우트 리포트(잠재치를 범위로 본다) */
     if(Input.pressed('up') && this.tab===0){
       if(typeof ScoutReportScreen!=='undefined'){ Sfx.ui(); this.mg.push(new ScoutReportScreen(this.mg, this.a)); return; }
@@ -204,6 +240,28 @@ class GrowScreen extends Screen0 {
   }
   confirm(){
     const a=this.a, r=this.rows[this.sel]; if(!r) return;
+    if(this.tab===2){
+      if(!r._known){
+        if(r._why){ Sfx.fail(); this.mg.toast(K(r._why)); return; }
+        if(SKILL.learn(a, r._skill)){
+          Sfx.record(); Screen.shake(0.3); this.fxAt=this.t||0;
+          this.mg.toast(K('%1 습득  (남은 포인트 %2)')
+            .replace('%1', SKILL.def(r._skill).name).replace('%2', a.tp));
+        } else Sfx.fail();
+        return;
+      }
+      /* 배운 것 — 켜고 끈다. 슬롯이 꽉 찼으면 못 켠다 */
+      if(SKILL.toggle(a, r._skill)){
+        Sfx.ui();
+        this.mg.toast(SKILL.has(a, r._skill)
+          ? K('%1 장착').replace('%1', SKILL.def(r._skill).name)
+          : K('%1 해제').replace('%1', SKILL.def(r._skill).name));
+      } else {
+        Sfx.fail();
+        this.mg.toast(K('슬롯이 %1칸뿐입니다 — 하나를 빼세요').replace('%1', SKILL.slots(a)));
+      }
+      return;
+    }
     if(this.tab===0){
       if(r._full){ Sfx.fail(); this.mg.toast('잠재치에 닿았습니다'); return; }
       const err=RPG.spendTp(a, r._k, 1);
@@ -240,6 +298,11 @@ class GrowScreen extends Screen0 {
     UIK.frame(u, 6, 6, 148, VH-14, { glow:col });
     txt(u, a.name, 80, 12, 13, PAL.gold, 'center', 700);
     txt(u, `${a.speciesName} · ${a.age}세`, 80, 27, 9, PAL.dim, 'center');
+    /* 상태 — 카드 아래는 장비·스킬이 다 채웠다(219~249). 이름 밑 빈 줄로 올린다.
+       ⚠ 250 에 두면 푸터 판(VH-16=254)에 씹힌다. */
+    { const cond=Math.round(a.condition), fat=Math.round(a.fatigue);
+      txt(u, K('컨디션 %1  ·  피로 %2').replace('%1',cond).replace('%2',fat),
+          80, 39, 9, fat>65?PAL.red:PAL.dim, 'center'); }
     if(!Face.draw(u, a.species, 80, 86, 58) &&
        !CharHD.draw(u, a.species, 80, 108, 0.05, { t:this.t, scale:1.5 })){
       u.fillStyle=col; u.fillRect(70, 60, 20, 48);
@@ -258,35 +321,61 @@ class GrowScreen extends Screen0 {
     txt(u, String(a.overall), 16, 152, 19, PAL.gold, 'left', 700);
     txt(u, K('잠재'), 88, 143, 8, PAL.dim, 'left');
     txt(u, String(a.potOverall), 88, 152, 19, PAL.dim, 'left', 700);
-    /* 장비 3칸 — 늘 보이게 */
-    txt(u, K('장비'), 16, 176, 8, PAL.dim, 'left');
+    /* 장비 3칸 — 늘 보이게.
+       ⚠ 아래에 스킬 두 줄이 새로 붙었다. 예전 자리(186)면 상자 라벨과 스킬 줄이,
+          그리고 컨디션 줄이 푸터와 겹친다(실측). 블록을 통째로 6px 올린다. */
+    txt(u, K('장비'), 16, 172, 8, PAL.dim, 'left');
     RPG.SLOTS.forEach((sl,k)=>{
       const it=a.equip && a.equip[sl];
-      UIK.itemBox(u, 14+k*45, 186, 38, {
+      UIK.itemBox(u, 14+k*45, 181, 36, {
         color: it ? RPG.rarityOf(it.r).color : '#39415a',
         icon: it ? RPG.itemIcon(it) : RPG.SLOT_ICON[sl],
         qty: it ? RPG.rarityOf(it.r).name : K('빈칸'),
         label: RPG.SLOT_NAME[sl] });
     });
-    /* 상태 */
-    const cond=Math.round(a.condition), fat=Math.round(a.fatigue);
-    txt(u, K('컨디션 %1  ·  피로 %2').replace('%1',cond).replace('%2',fat),
-        80, VH-26, 9, fat>65?PAL.red:PAL.dim, 'center');
+    /* 장착한 스킬 — 어느 탭에 있든 '이 선수가 뭘 켜고 있나'가 보여야 한다.
+       ⚠ 슬롯 점을 함께 찍는다. 이름만 있으면 '몇 칸을 놀리고 있나'가 안 보인다. */
+    if(typeof SKILL!=='undefined'){
+      const eq=SKILL.equipped(a), cap=SKILL.slots(a);
+      /* ⚠ 자리는 계산해서 잡는다. UIK.itemBox 의 라벨은 y+size+2 = 181+36+2 = 219 에
+         size 8 로 그려진다(219~229). 222 에 뒀더니 '스파이크' 위에 '스킬'이 얹혀
+         '스킬발'로 읽혔다. 푸터는 VH-16(=254)부터다 — 231~249 만 쓸 수 있다. */
+      txt(u, K('스킬'), 16, 231, 8, PAL.dim, 'left');
+      for(let k=0;k<cap;k++){
+        u.fillStyle = k<eq.length ? PAL.green : 'rgba(255,255,255,.18)';
+        u.fillRect(40+k*7, 232, 5, 5);
+      }
+      u.save(); u.beginPath(); u.rect(14, 239, 132, 11); u.clip();
+      txt(u, eq.length ? eq.map(id=>SKILL.def(id).name).join(' · ') : K('아직 없음'),
+          16, 240, 9, eq.length?PAL.green:PAL.dim, 'left');
+      u.restore();
+    }
+
 
     /* ── 오른쪽: 탭 + 목록 ── */
     UIK.frame(u, 160, 6, VW-166, VH-14);
     txt(u, K('훈련 포인트'), VW-12, 12, 9, PAL.dim, 'right');
     txt(u, String(a.tp||0), VW-12, 21, 20, (a.tp>0?PAL.gold:PAL.dim), 'right', 700);
-    ['스탯 올리기','장비'].forEach((nm,i)=>{
-      const on=i===this.tab, x=168+i*74;
+    GrowScreen.TABS.forEach((nm,i)=>{
+      const on=i===this.tab, x=168+i*60;
       u.fillStyle = on?'rgba(255,215,94,.20)':'rgba(20,26,40,.8)';
-      u.fillRect(x, 14, 70, 15);
-      u.strokeStyle = on?PAL.gold:'#3a4258'; u.lineWidth=1; u.strokeRect(x+.5,14.5,69,14);
-      txt(u, K(nm), x+35, 17, 9, on?PAL.gold:PAL.dim, 'center', on?700:400);
+      u.fillRect(x, 14, 56, 15);
+      u.strokeStyle = on?PAL.gold:'#3a4258'; u.lineWidth=1; u.strokeRect(x+.5,14.5,55,14);
+      txt(u, K(nm), x+28, 17, 9, on?PAL.gold:PAL.dim, 'center', on?700:400);
     });
-    UI.list(u, this.rows, this.sel, 166, 36, VW-178, 22, 8);
-    UI.footer(u, this.tab===1 ? '확인 착용 · ▲ 합성 · ▼ 팔기 · ◀▶ 탭 · 취소 뒤로'
-                              : '확인 +1 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소 뒤로');
+    /* 스킬 탭이면 슬롯 사용량을 못 박는다 — 이게 이 탭의 유일한 제약이다 */
+    if(this.tab===2){
+      const used=SKILL.equipped(a).length, cap=SKILL.slots(a), nx=SKILL.nextSlotAt(a);
+      /* ⚠ VW-12 에 우측정렬했더니 바로 위 훈련 포인트 숫자(size 20)와 겹쳤다.
+         탭 줄 바로 아래 왼쪽은 비어 있다 — 거기로. */
+      txt(u, K('슬롯 %1 / %2').replace('%1',used).replace('%2',cap)
+            + (nx? ` · ${K('다음 칸 Lv.%1').replace('%1',nx)}` : ''),
+          168, 31, 8, used>=cap?PAL.gold:PAL.dim, 'left');
+    }
+    UI.list(u, this.rows, this.sel, 166, this.tab===2?42:36, VW-178, 22, this.tab===2?7:8);
+    UI.footer(u, this.tab===2 ? '확인 배우기 / 켜고 끄기 · ◀▶ 탭 · 취소 뒤로'
+                : this.tab===1 ? '확인 착용 · ▲ 합성 · ▼ 팔기 · ◀▶ 탭 · 취소 뒤로'
+                               : '확인 +1 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소 뒤로');
   }
 }
 

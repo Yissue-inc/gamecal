@@ -142,7 +142,12 @@ function simulateMiddle(a, opt){
       r.stride(side, Math.round(t), 'off'); side = -side;
       /* 후반 페이스 붕괴 — 지구력이 낮으면 크게 무너진다 */
       const prog = r.distM/simM;
-      const fade = prog>P.fadeAt ? 1 + (prog-P.fadeAt)*lerp(P.fadeHi,P.fadeLo,st) : 1;
+      /* ⚠ 여기서 a.eff('lateFade') 를 **안 읽고 있었다.** 그래서 '뒷심(closer —
+         후반에 안 죽는다)' 특성이 정작 오래 달리는 종목에서 아무 일도 안 했다
+         (실측: 800m 에서 0.00%). 스프린트는 읽고 있었다 — 한쪽만 빠져 있었다.
+         특성 설명이 약속한 것을 코드가 안 하고 있었으므로 맞춘다. */
+      const fade = prog>P.fadeAt
+        ? 1 + (prog-P.fadeAt)*lerp(P.fadeHi,P.fadeLo,st)*(1+a.eff('lateFade')) : 1;
       next = t + targetIv()*fade + gauss(rng)*sigma;
       if(next <= t + RULES.minInputIntervalMs) next = t + RULES.minInputIntervalMs + 4;
     }

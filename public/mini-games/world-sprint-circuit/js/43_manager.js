@@ -86,7 +86,13 @@ const MG = {
     const next = ()=>{
       if(i >= list.length){ done(); return; }
       const slot = list[i++];
+      /* 스킬 — 이 종목에 나가는 우리 선수 중 **가장 앞선 한 명**의 창을 쓴다.
+         ⚠ 수동은 선수 스탯을 안 쓰므로 여기서 켜 주지 않으면 스킬을 배운 선수와
+            안 배운 선수가 직접 뛸 때 완전히 똑같다(=스킬이 반쪽만 산다). */
+      const mine = slot.rows.filter(r=>this.club.has(r.athlete)).map(r=>r.athlete);
+      if(typeof SKILL!=='undefined' && mine.length) SKILL.beginManual(mine[0]);
       G.playForManager(slot.ev, (res, quality)=>{
+        if(typeof SKILL!=='undefined') SKILL.endManual();
         this.applyManual(slot, quality);
         next();
       });
