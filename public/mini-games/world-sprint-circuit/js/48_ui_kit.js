@@ -254,6 +254,31 @@ const UIK = {
     return true;
   },
 
+  /* ── 원형 게이지 ─────────────────────────────────────────
+     gauge-ring(96×96) 은 **빈 고리**다 — 코드가 안쪽에 호를 채운다.
+     ⛔ 챕터 2 — 컨디션·피로·사기 세 줄이 각각 아이콘+라벨+막대+숫자(=12조각)를
+        먹고 있었다. 고리 셋이면 자리를 3분의 1로 줄이고 상태는 색과 길이로 읽힌다.
+     ⚠ 어셋이 없으면 false 를 돌려준다 — 부르는 쪽이 예전 막대로 물러난다. */
+  ring(u, cx, cy, r, v, color, label){
+    const img = BG.get('gauge-ring');
+    if(!img) return false;
+    const d = r*2;
+    u.drawImage(img, cx-r, cy-r, d, d);
+    /* 채움 — 12시에서 시계방향. 두께는 고리 안쪽에 맞춘다. */
+    const p = clamp(v, 0, 1);
+    if(p > 0.005){
+      u.save();
+      u.strokeStyle = color; u.lineWidth = Math.max(2, r*0.30);
+      u.lineCap = 'butt';
+      u.beginPath();
+      u.arc(cx, cy, r*0.70, -Math.PI/2, -Math.PI/2 + p*Math.PI*2);
+      u.stroke();
+      u.restore();
+    }
+    if(label!==undefined) txt(u, label, cx, cy-4, 9, PAL.white, 'center', 700);
+    return true;
+  },
+
   /* ── 탭 한 칸 ────────────────────────────────────────────
      tab-idle / tab-active (128×48). 없으면 예전처럼 사각형 두 겹으로 그린다. */
   tab(u, x, y, w, h, label, on){

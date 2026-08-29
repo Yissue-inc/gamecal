@@ -660,22 +660,40 @@ class AthleteScreen extends Screen0 {
     const icC=sIc(imC), icF=sIc(imF), icM=sIc(imM);
     /* ⚠ 아이콘이 라벨 앞에 붙으면 라벨 칸도 그만큼 넓어져야 한다 —
        안 그러면 긴 언어에서 '컨디션'이 막대를 파고든다(예전에 영어판에서 겪은 것). */
+    /* ⛔ 챕터 2(gauge-ring 도착) — 세 줄(아이콘+라벨+막대+숫자 = 12조각)을
+       **고리 셋**으로. 자리를 3분의 1로 줄이고 상태는 색과 길이로 읽힌다.
+       ⚠ 어셋이 없으면 ring 이 false 를 돌려준다 — 그때는 예전 막대 그대로다. */
+    const RY = 64, RR = 15;
+    const rings = [
+      { v:a.condition/100, c:UI.cond(a.condition), t:UI.condName(a.condition), ic:imC, x:26 },
+      { v:a.fatigue/100,   c:a.fatigue>65?PAL.red:a.fatigue>45?PAL.gold:PAL.green,
+        t:Math.round(a.fatigue)+'', ic:imF, x:76 },
+      { v:a.morale/100,    c:a.morale>65?PAL.green:a.morale>40?PAL.gold:PAL.red,
+        t:Math.round(a.morale)+'', ic:imM, x:126 },
+    ];
+    const ringsOk = UIK.ring(u, rings[0].x, RY, RR, rings[0].v, rings[0].c, rings[0].t);
+    if(ringsOk){
+      for(let i=1;i<3;i++) UIK.ring(u, rings[i].x, RY, RR, rings[i].v, rings[i].c, rings[i].t);
+      rings.forEach(r=>{ if(r.ic) u.drawImage(r.ic, r.x-4, RY-RR-10, 9, 9); });
+    }
     const SW = UI.labelW(u, ['컨디션','피로','사기'], 8, 36) + (imC?10:0);
     const sbx = 8+SW, sbw = 128-SW, snx = 8+SW+sbw+6;
+    if(!ringsOk){
     txt(u,'컨디션',8+icC(48),48,8,PAL.dim); UI.bar(u,sbx,50,sbw,6,a.condition,100,UI.cond(a.condition));
     txt(u,UI.condName(a.condition),snx,46,9,UI.cond(a.condition));
     txt(u,'피로',8+icF(60),60,8,PAL.dim);   UI.bar(u,sbx,62,sbw,6,a.fatigue,100, a.fatigue>65?PAL.red:a.fatigue>45?PAL.gold:PAL.green);
     txt(u,Math.round(a.fatigue)+'',snx,58,9,PAL.dim);
     txt(u,'사기',8+icM(72),72,8,PAL.dim);   UI.bar(u,sbx,74,sbw,6,a.morale,100, a.morale>65?PAL.green:a.morale>40?PAL.gold:PAL.red);
+    }
     /* ⚠ 사기는 한 시즌에 23~100 으로 흔들리며 **성장을 27.6% 좌우한다**(실측).
        그런데 화면에는 0~100 숫자만 있어서 그게 뭘 하는 값인지 알 길이 없었다.
        훈련이 실제로 곱하는 배수를 그대로 적는다(31_training 의 moraleF). */
     const mf = 0.82 + a.morale/100*0.32;
-    txt(u,Math.round(a.morale)+'',snx,70,9,PAL.dim);
+    if(!ringsOk) txt(u,Math.round(a.morale)+'',snx,70,9,PAL.dim);
     /* ⚠ snx+22 는 특성 칸(x=192)을 침범했다 — '성장 ×1.05' 가 '리듬이 흔들리지
-       않는다' 위에 얹혔다. 사기 막대 바로 아래로 내린다(왼쪽 칸 안). */
-    txt(u, `×${mf.toFixed(2)}`, snx, 80, 8,
-        mf>=1.05?PAL.green:mf<=0.95?PAL.red:PAL.dim);
+       않는다' 위에 얹혔다. 고리를 쓰면 사기 고리 아래, 아니면 막대 아래. */
+    txt(u, `×${mf.toFixed(2)}`, ringsOk?116:snx, ringsOk?(RY+RR+11):80, 8,
+        mf>=1.05?PAL.green:mf<=0.95?PAL.red:PAL.dim, ringsOk?'center':'left');
     if(a.injury) txt(u,`부상: ${a.injury.name} — ${a.injury.weeks}주 남음`,8,84,10,PAL.red,'left',700);
 
     // 스탯
