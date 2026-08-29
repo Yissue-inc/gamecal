@@ -32,7 +32,44 @@ const UI = {
     UIK.iconTint(u, icon, VW/2 - w/2 - 13, y-1, 9, col);
     txt(u, lbl, VW/2 + 5, y, 9, col, 'center', 700);
   },
-  /* 커서가 달린 세로 목록. rows = [{label, sub, right, color, dim}] */
+  /* ── 선수단 한 줄의 부제 ─────────────────────────────────
+     ⛔ 챕터 7. 등급 글자는 뺐다(별·색과 같은 값). 특성은 아이콘이 오면 아이콘으로.
+     ⚠ 아이콘이 하나도 없어도 **말이 되는 줄**이어야 한다 — 어셋은 한 장씩 온다. */
+  TRAIT_ICON: {
+    starter:'tr-starter', closer:'tr-closer', metronome:'tr-metronome',
+    glass:'tr-glass', ironman:'tr-ironman', bigGame:'tr-bigGame',
+    nervous:'tr-nervous', hurdler:'tr-hurdler', springy:'tr-springy',
+    cannon:'tr-cannon',
+  },
+  GROWTH_ICON: { early:'gr-early', normal:'gr-normal', late:'gr-late' },
+  /* 나쁜 특성은 붉게 — 형태만으로 못 가릴 때 색이 갈라 준다 */
+  BAD_TRAITS: ['glass', 'nervous'],
+
+  /* 아이콘으로 나갈 것들. 없으면 빈 배열이라 부제가 알아서 글자로 메운다. */
+  squadIcons(a){
+    const out = [];
+    const g = this.GROWTH_ICON[a.growth];
+    if(g && BG.get(g)) out.push({ name:g, color:PAL.dim });
+    for(const t of (a.traits||[])){
+      const n = this.TRAIT_ICON[t];
+      if(n && BG.get(n))
+        out.push({ name:n, color: this.BAD_TRAITS.indexOf(t)>=0 ? PAL.red : PAL.blue });
+    }
+    return out;
+  },
+  /* 아이콘이 못 챙긴 것만 글자로 */
+  squadSub(a){
+    /* ⚠ 이름·숫자를 문장에 조립하면 통문자열이라 번역표에서 못 찾는다 — 틀만 옮긴다 */
+    const bits = [ K('%1세').replace('%1', a.age) ];
+    if(!(this.GROWTH_ICON[a.growth] && BG.get(this.GROWTH_ICON[a.growth])))
+      bits.push(K(GROWTH[a.growth].name));
+    const left = (a.traits||[]).filter(t=>!(this.TRAIT_ICON[t] && BG.get(this.TRAIT_ICON[t])));
+    if(left.length) bits.push(K(TRAITS[left[0]].name) + (left.length>1 ? ` +${left.length-1}` : ''));
+    else if(!(a.traits||[]).length) bits.push(K('특성 없음'));
+    return bits.join(' · ');
+  },
+
+  /* 커서가 달린 세로 목록. rows = [{label, sub, right, color, dim, icons}] */
   list(u, rows, sel, x, y, w, rowH, maxRows){
     const n = Math.min(rows.length, maxRows);
     const first = clamp(sel - (maxRows>>1), 0, Math.max(0, rows.length-maxRows));
@@ -102,7 +139,20 @@ const UI = {
       const pad = twoLine ? Math.max(2, Math.round((rowH-1-19)/2))
                           : Math.max(2, Math.round((rowH-1-11)/2));
       txt(u, r.label, lx, ry+pad, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
-      if(showSub) txt(u, r.sub,   lx, ry+pad+11, 8, PAL.dim);
+      if(showSub){
+        txt(u, r.sub, lx, ry+pad+11, 8, PAL.dim);
+        /* 부제 뒤에 아이콘을 잇는다 — 글자로 쓰면 20자가 되는 것들이다.
+           ⚠ 폭을 재기 전에 부제와 **같은 폰트**를 지정해야 아이콘이 글자를 파고들지 않는다. */
+        if(r.icons && r.icons.length && typeof UIK!=='undefined'){
+          u.font = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+          let ix = lx + Math.ceil(u.measureText(r.sub||'').width) + (r.sub ? 7 : 0);
+          for(const ic of r.icons){
+            if(ix > x + w - 74) break;             // 오른쪽 값과 안 부딪히게
+            UIK.iconTint(u, ic.name, ix, ry+pad+10, 9, ic.color);
+            ix += 11;
+          }
+        }
+      }
       /* 상태 배지 — `!` `●3` 같은 짧은 표시는 글자만 떠 있으면 안 걸린다.
          chip-bg(9-slice)가 오면 그 뒤에 칩을 깐다.
          ⚠ 긴 값(4,605 · 클럽 경기력)에는 안 깐다 — 칩은 **짧은 상태**용이다.
@@ -638,15 +688,24 @@ class SquadScreen extends Screen0 {
        별·종족·이름을 **한 문자열로 조립**하면 txt() 가 그 통문자열을 K() 에 넘겨
        표에서 못 찾기 때문이다. 종족만 먼저 옮겨 붙인다(이름은 데이터라 그대로). */
     label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${K(a.speciesName)} ${a.name}`, nation:a.nation,
-    /* 로스터는 표다 — 나이·등급·성장형·특성을 훑을 수 있어야 한다.
-       ⛔ 챕터 1 규칙: 부제가 **설명**이면 숨기고 **데이터**면 남긴다. */
+    /* 로스터는 표다 — 나이·성장형·특성을 훑을 수 있어야 한다.
+       ⛔ 챕터 1 규칙: 부제가 **설명**이면 숨기고 **데이터**면 남긴다.
+       ⛔ 챕터 7 — 이 화면이 **73개 중 제일 빽빽했다**(36조각·455자 · ink.html).
+          한 줄 57자를 뜯어 보니 **등급이 세 번** 있었다: 별(★★☆☆☆)·글자(우수)·글자색.
+          같은 값을 세 번 말하는 자리가 제일 긴 줄을 만들고 있었다 → 글자를 뺀다.
+          특성 이름 나열도 길다(`승부사, 허들 감각`) — 아이콘이 오면 아이콘으로,
+          오기 전엔 **하나만 이름 + `+N`** 으로 줄인다. 정보는 상세 화면에 그대로 있다. */
     subAlways:true,
-    sub:`${a.age}세 · ${UI.rareName(a)} · ${GROWTH[a.growth].name} · ${a.traits.map(t=>TRAITS[t].name).join(', ')||'특성 없음'}`,
+    sub: UI.squadSub(a),
+    icons: UI.squadIcons(a),
     /* ⚠ 목록의 큰 글씨도 경기력으로 바꾼다. OVR 만 보이면 Lv30 에 전설 장비를
-       끼운 선수와 신인이 같은 숫자로 나란히 선다 — 누굴 내보낼지 알 수가 없다. */
+       끼운 선수와 신인이 같은 숫자로 나란히 선다 — 누굴 내보낼지 알 수가 없다.
+       ⚠ 그래서 오른쪽 둘째 줄의 OVR 은 뺀다 — 경기력이 그것을 품은 상위 지표이고,
+          OVR 은 상세 화면과 정렬 기준에 그대로 있다. 여기선 **컨디션**만 필요하다. */
     right: (typeof Power!=='undefined') ? UIK.n(Power.of(a)) : `${a.overall} / ${a.potOverall}`,
     rightColor: a.injury?PAL.red:PAL.gold,
-    right2: a.injury?`부상 ${a.injury.weeks}주` : `OVR ${a.overall} · ${UI.condName(a.condition)}`,
+    right2: a.injury ? K('부상 %1주').replace('%1', a.injury.weeks)
+                     : UI.condName(a.condition),
     color: a.injury?PAL.red:UI.rareColor(a) })); }
   confirm(){ const a=this.view()[this.sel]; if(a) this.mg.push(new AthleteScreen(this.mg, a)); }
   draw(u){
