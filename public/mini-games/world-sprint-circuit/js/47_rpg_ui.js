@@ -104,7 +104,10 @@ class GrowPickScreen extends Screen0 {
       const tops=DEPTH.topApt(a,2);
       tops.forEach((t2,ti)=>{
         const ap=DEPTH.aptOf(a,t2.k);
-        txt(u, (STAT_NAME[t2.k]||t2.k).slice(0,2)+ap.key, tx+ti*26, y+37, 8, ap.color, 'left', 700);
+        /* ⚠ 한글 이름을 2글자로 자른 뒤 등급을 붙여서 '스피A' 같은 문자열이 만들어졌다 —
+           그건 번역표에 없는 조합이라 영어판에서 그대로 한글로 남았다.
+           **자르기 전에 번역**한다: Speed → Sp + A. */
+        txt(u, K(STAT_NAME[t2.k]||t2.k).slice(0,2)+ap.key, tx+ti*26, y+37, 8, ap.color, 'left', 700);
       });
       UIK.xpBar(u, tx, y+ch-17, cw-(tx-x)-6, a.lv, a.xp, RPG.xpToNext(a.lv), {showText:false});
       /* 포인트 있으면 눈에 띄게 — 할 일이 있는 카드 */

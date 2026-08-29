@@ -340,9 +340,15 @@ class OfficeScreen extends Screen0 {
     /* 시즌 목표 — 감독이 무엇으로 평가받는지 늘 보여야 한다 */
     if(S.goal){
       const okP=S.points>=S.goal.points, okG=S.medals.gold>=S.goal.gold;
-      txt(u, `목표 승점 ${S.goal.points} · 금 ${S.goal.gold}`, 8, 40, 9,
-          (okP&&okG)?PAL.green:PAL.dim, 'left');
-      txt(u, `${S.points} / ${S.medals.gold}`, 108, 40, 9,
+      /* ⚠ 진행값을 x=108 에 못 박아 뒀다. 한국어 '목표 승점 220 · 금 2' 는 100px 안에
+         들어가지만 영어 'Target 220 pts · 2 gold' 는 넘어가 **글자가 겹쳤다.**
+         라벨을 재서 그 뒤에 놓는다 — 이 코드베이스가 언어 때문에 여러 번 물린 자리다
+         (UI.labelW 도 같은 이유로 생겼다). */
+      const gl = K(`목표 승점 ${S.goal.points} · 금 ${S.goal.gold}`);
+      txt(u, gl, 8, 40, 9, (okP&&okG)?PAL.green:PAL.dim, 'left');
+      u.font = '400 9px "Galmuri11","Nanum Gothic Coding",monospace';
+      const gw = Math.ceil(u.measureText(gl).width);
+      txt(u, `${S.points} / ${S.medals.gold}`, 8+gw+10, 40, 9,
           (okP&&okG)?PAL.green:(okP||okG)?PAL.gold:PAL.red, 'left', 700);
     }
 
