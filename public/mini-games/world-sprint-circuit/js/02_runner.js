@@ -67,6 +67,8 @@ class Runner {
     /* 타격 순간 — 발밑 고리·미세 펀치가 읽는다.
        ⚠ reset 에서 안 지우면 재도전할 때 **출발선에서 고리가 한 번 터진다**. */
     this.hitAt = undefined; this.hitJ = '';
+    this._tapPhase = false;         // 재도전하면 다시 시간 구동부터
+    this.strideRate = 0;
     this.recoverUntilMs = 0;
     this.stridePhase = 0;                 // 다리 애니메이션용 0..1
     this.hurdlesClean = 0; this.hurdlesClip = 0; this.hurdlesCrash = 0;
@@ -150,7 +152,15 @@ class Runner {
     this.lastJudge = j; this.lastJudgeMs = tMs;
     this.lastSide = side; this.lastInputMs = tMs;
     this.impulse(j);   // SPAM 도 0.25 만큼은 굴러간다 — 멈춰버리면 화면이 죽은 걸로 보인다
-    this.stridePhase = (this.stridePhase + 0.5) % 1;
+    /* ⛔ 디딤이 위상의 **주인**이지만, 위상을 **여기서 밀지는 않는다.**
+       예전엔 여기서 +0.5 를 했다 — 그러면 타 사이에는 위상이 굳어서
+       8프레임 중 **2개(0과 4)만** 쓰였다(실측). 238ms 씩 멈춘 2프레임 애니메이션이다.
+       대신 ① 발이 닿는 순간을 **반 박자 경계로 스냅**하고
+            ② 다음 구간의 **속도**를 실제 간격에서 뽑아 simulate 가 매끄럽게 민다.
+       박자가 고르면 스냅은 아무 일도 안 하고, 흔들리면 그때만 발을 맞춘다. */
+    this.stridePhase = (Math.round(this.stridePhase*2)/2) % 1;
+    if(!first && dt > 60 && dt < 1500) this.strideRate = 0.5 / (dt/1000);   // 바퀴/초
+    this._tapPhase = true;          // 이제부터 위상은 디딤이 정한다(위 simulate 참고)
     return j;
   }
 
@@ -215,7 +225,14 @@ class Runner {
       }
       this.distM += this.speed * dt;
       this.fatigue = Math.min(1, this.fatigue + dt*0.01);
-      this.stridePhase = (this.stridePhase + dt * this.speed * 0.35) % 1;
+      /* ⚠ 다리 위상을 **두 곳에서** 밀고 있었다 — stride() 가 한 타에 +0.5,
+         여기서 매 프레임 속도에 비례해 또. 실측: **타당 1.016 바퀴**가 돌았다.
+         한 번 디디면 반 바퀴(0.5)가 맞다 — 다리가 정확히 두 배 빨랐다(재봉틀).
+         ⛔ 디딤이 있는 주자는 **디딤이 위상의 주인**이다. 발이 닿는 순간과 그림이
+            어긋나면 조작감이 통째로 죽는다. 시간 구동은 디딤이 없는 주자(관전용
+            더미 등)에게만 남긴다. */
+      this.stridePhase = (this.stridePhase +
+        dt * (this._tapPhase ? (this.strideRate || 2.1) : this.speed * 0.35)) % 1;
       for(const m of [30,60,90,this.trackM]){
         const k = String(Math.round(m));
         if(this.splits[k]===undefined && this.distM >= m) this.splits[k] = (nowMs-this.gunMs)/1000;
