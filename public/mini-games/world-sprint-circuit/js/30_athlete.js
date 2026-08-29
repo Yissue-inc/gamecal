@@ -56,6 +56,26 @@ const NAME_EN = { last:['OKAFOR','ROSSI','HADDAD','MBEKI','SILVA','NOVAK','SHARM
                   first:['JAMAL','LUCA','OMAR','NIA','KOFI','ELENA','RAVI','MAYA','TARO','SOFIA',
                          'ANDRE','LEILA','HUGO','AMARA','NOAH'] };
 
+/* 주 종목군에 맞는 가중치 — 던지기 선수의 '전체'를 스피드로 재면 안 된다.
+   ⚠ 예전엔 overall 게터 안에 숨어 있었다. 그래서 **화면이 이걸 못 읽었고**,
+      단거리 선수의 파워 잠재치를 70포인트 써서 올려도 OVR 이 1도 안 움직이는데
+      플레이어는 이유를 알 길이 없었다(실측: 파워 81→88 에 잠재 OVR 94→94).
+      가중치는 이제 화면이 별로 보여 준다. */
+const SPEC_W = {
+  sprint : { speed:.30, acceleration:.22, stamina:.14, technique:.12, rhythm:.18, power:.04 },
+  hurdles: { speed:.24, acceleration:.16, stamina:.14, technique:.24, rhythm:.18, power:.04 },
+  jump   : { speed:.22, acceleration:.18, stamina:.06, technique:.24, rhythm:.10, power:.20 },
+  throw  : { speed:.08, acceleration:.10, stamina:.06, technique:.26, rhythm:.10, power:.40 },
+  endure : { speed:.14, acceleration:.08, stamina:.42, technique:.12, rhythm:.20, power:.04 },
+};
+const SPEC_W_DEFAULT = { speed:.2, acceleration:.15, stamina:.2, technique:.2, rhythm:.15, power:.1 };
+function specWeights(spec){ return SPEC_W[spec] || SPEC_W_DEFAULT; }
+/* 이 선수에게 이 스탯이 얼마나 중요한가 — 0~3 개의 별로 */
+function specStars(spec, key){
+  const w = specWeights(spec)[key] || 0;
+  return w>=.24 ? 3 : w>=.14 ? 2 : w>=.08 ? 1 : 0;
+}
+
 class Athlete {
   constructor(o){
     Object.assign(this, {
@@ -79,14 +99,7 @@ class Athlete {
     });
   }
   get overall(){
-    // 주 종목군에 맞는 가중 평균 — 던지기 선수의 '전체'를 스피드로 재면 안 된다
-    const W = {
-      sprint : { speed:.30, acceleration:.22, stamina:.14, technique:.12, rhythm:.18, power:.04 },
-      hurdles: { speed:.24, acceleration:.16, stamina:.14, technique:.24, rhythm:.18, power:.04 },
-      jump   : { speed:.22, acceleration:.18, stamina:.06, technique:.24, rhythm:.10, power:.20 },
-      throw  : { speed:.08, acceleration:.10, stamina:.06, technique:.26, rhythm:.10, power:.40 },
-      endure : { speed:.14, acceleration:.08, stamina:.42, technique:.12, rhythm:.20, power:.04 },
-    }[this.spec] || { speed:.2, acceleration:.15, stamina:.2, technique:.2, rhythm:.15, power:.1 };
+    const W = specWeights(this.spec);
     let s=0; for(const k of STAT_KEYS) s += this.stats[k]*W[k];
     return Math.round(s);
   }

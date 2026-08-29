@@ -586,8 +586,12 @@ class Club {
         this.squad.splice(this.squad.indexOf(a),1);
       }
     }
+    /* ⚠ 실측(tools/economy.js): 신인이 tier 0.3~0.72 뿐이라 리그 성장(LEAGUE_GROWTH)을
+       못 따라간다. 9년차 평균 OVR 81 이 17년차 66 으로 내려가고 상금이 131→18 로 마른다.
+       유소년 아카데미가 이 자리를 민다 — 시설이 없으면 lift 는 0 이라 예전과 같다. */
+    const lift = (typeof FACIL!=='undefined') ? FACIL.rookieLift(this) : 0;
     while(this.squad.length < 8){
-      const a = rollAthlete(rng, { age:17+((rng()*2)|0), tier:0.3+rng()*0.42 });
+      const a = rollAthlete(rng, { age:17+((rng()*2)|0), tier:Math.min(1, 0.3+rng()*0.42+lift) });
       this.squad.push(a); out.joined.push(a);
     }
     /* ⚠ 여기서 year++ 를 했었다. 시즌 마감은 '지난 시즌을 닫는 일'인데 연차를 먼저

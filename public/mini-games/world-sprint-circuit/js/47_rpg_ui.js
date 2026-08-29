@@ -139,14 +139,32 @@ class GrowScreen extends Screen0 {
   get rows(){
     const a=this.a;
     if(this.tab===0){
+      /* ⚠ 예전엔 잠재치에 닿으면 줄이 '최대'로 죽어 버렸다 — 그리고 포인트는 계속 쌓였다
+         (실측 634). 이제 닿은 줄은 **돌파**로 바뀐다. 확인 하나로 둘 다 된다. */
+      const bCap=RPG.breakCap(a), bUsed=RPG.brokeTotal(a);
+      /* ⚠ 이 선수에게 **얼마나 중요한 스탯인지**를 줄에 못 박는다.
+         안 그러면 단거리 선수의 파워를 돌파해 놓고 OVR 이 왜 그대로인지 모른다. */
+      /* ⚠ 흐린 회색 마름모 셋은 안 읽힌다 — 중요한 스탯일수록 밝게.
+         "이 선수에게 중요한 칸"이 목록에서 **먼저** 눈에 들어와야 한다. */
+      const starN = k => (typeof specStars==='function') ? specStars(a.spec,k) : 2;
+      const star  = k => '◆'.repeat(starN(k)) + '◇'.repeat(3-starN(k));
+      const starC = k => [PAL.dim,'#8a94ad',PAL.white,PAL.gold][starN(k)];
       return STAT_KEYS.map(k=>{
         const cap=a.potential[k], cur=a.stats[k];
         const full = cur>=cap-0.01;
-        return { label:STAT_NAME[k]||k,
-          sub: full ? '잠재치에 닿았다' : `${cur.toFixed(1)} → 잠재 ${Math.round(cap)}`,
-          right: full ? '최대' : '+1',
-          rightColor: full?PAL.dim:(a.tp>0?PAL.green:PAL.dim),
-          color: full?PAL.dim:PAL.white, _k:k, _full:full };
+        if(!full) return { label:STAT_NAME[k]||k, icon:UI.STAT_ICON&&UI.STAT_ICON[k],
+          sub:`${cur.toFixed(1)} → 잠재 ${Math.round(cap)}`,
+          right:'+1', rightColor:(a.tp>0?PAL.green:PAL.dim), color:PAL.white,
+          right2:star(k), right2Color:starC(k), _k:k, _full:false };
+        const why=RPG.whyBreak(a,k), br=RPG.broke(a,k);
+        return { label:STAT_NAME[k]||k, icon:UI.STAT_ICON&&UI.STAT_ICON[k],
+          sub: why===null
+             ? `잠재 ${Math.round(cap)} 돌파 — 남은 한도 ${bCap-bUsed}` + (br?` · 이미 +${br}`:'')
+             : `잠재치에 닿았다 · ${why}`,
+          right: why===null ? `돌파 −${RPG.BREAK_COST}` : '최대',
+          rightColor: why===null?PAL.gold:PAL.dim,
+          color: why===null?PAL.gold:PAL.dim,
+          right2:star(k), right2Color:starC(k), _k:k, _full:true, _break: why===null };
       });
     }
     if(this.tab===2){
@@ -263,7 +281,16 @@ class GrowScreen extends Screen0 {
       return;
     }
     if(this.tab===0){
-      if(r._full){ Sfx.fail(); this.mg.toast('잠재치에 닿았습니다'); return; }
+      if(r._full){
+        /* 닿은 스탯은 **돌파**한다 — 포인트가 갈 곳이 없어 쌓이던 자리 */
+        if(!r._break){ Sfx.fail(); this.mg.toast(K(RPG.whyBreak(a, r._k)||'잠재치에 닿았습니다')); return; }
+        RPG.breakPot(a, r._k);
+        Sfx.record(); Screen.shake(0.35); this.fxAt=this.t||0;
+        this.mg.toast(K('%1 잠재치 돌파 → %2  (남은 포인트 %3)')
+          .replace('%1', STAT_NAME[r._k]||r._k)
+          .replace('%2', Math.round(a.potential[r._k])).replace('%3', a.tp));
+        return;
+      }
       const err=RPG.spendTp(a, r._k, 1);
       if(err){ Sfx.fail(); this.mg.toast(err); return; }
       Sfx.record(); Screen.shake(0.3);
@@ -357,11 +384,7 @@ class GrowScreen extends Screen0 {
     txt(u, K('훈련 포인트'), VW-12, 12, 9, PAL.dim, 'right');
     txt(u, String(a.tp||0), VW-12, 21, 20, (a.tp>0?PAL.gold:PAL.dim), 'right', 700);
     GrowScreen.TABS.forEach((nm,i)=>{
-      const on=i===this.tab, x=168+i*60;
-      u.fillStyle = on?'rgba(255,215,94,.20)':'rgba(20,26,40,.8)';
-      u.fillRect(x, 14, 56, 15);
-      u.strokeStyle = on?PAL.gold:'#3a4258'; u.lineWidth=1; u.strokeRect(x+.5,14.5,55,14);
-      txt(u, K(nm), x+28, 17, 9, on?PAL.gold:PAL.dim, 'center', on?700:400);
+      UIK.tab(u, 168+i*60, 14, 56, 16, K(nm), i===this.tab);
     });
     /* 스킬 탭이면 슬롯 사용량을 못 박는다 — 이게 이 탭의 유일한 제약이다 */
     if(this.tab===2){
@@ -375,7 +398,7 @@ class GrowScreen extends Screen0 {
     UI.list(u, this.rows, this.sel, 166, this.tab===2?42:36, VW-178, 22, this.tab===2?7:8);
     UI.footer(u, this.tab===2 ? '확인 배우기 / 켜고 끄기 · ◀▶ 탭 · 취소 뒤로'
                 : this.tab===1 ? '확인 착용 · ▲ 합성 · ▼ 팔기 · ◀▶ 탭 · 취소 뒤로'
-                               : '확인 +1 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소 뒤로');
+                               : '확인 +1 / 잠재치 돌파 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소');
   }
 }
 
@@ -570,7 +593,7 @@ class ScoutReportScreen extends Screen0 {
   get rows(){ return []; }
   update(now){ this.t+=16.7; if(Input.pressed('back')||Input.pressed('action')) this.mg.pop(); }
   draw(u){
-    const a=this.a, conf=DEPTH.confidence(a);
+    const a=this.a, conf=DEPTH.confidence(a, this.mg && this.mg.club);
     const col=(typeof UI!=='undefined'&&UI.rareColor)?UI.rareColor(a):PAL.white;
     UIK.frame(u, 6, 6, VW-12, VH-12, { glow:col });
     txt(u, K('스카우트 리포트'), VW/2, 12, 13, PAL.gold, 'center', 700);
@@ -587,7 +610,7 @@ class ScoutReportScreen extends Screen0 {
     /* 스탯별 범위 — 현재값 위에 '여기까지 갈 수도' 를 띠로 */
     let y=64;
     for(const k of STAT_KEYS){
-      const r=DEPTH.potentialRange(a, k), cur=a.stats[k];
+      const r=DEPTH.potentialRange(a, k, this.mg && this.mg.club), cur=a.stats[k];
       txt(u, STAT_NAME[k], 16, y, 9, PAL.white, 'left');
       /* 적성 — 이 종이 그 스탯을 얼마나 빨리 올리나. 데이터는 처음부터 있었다. */
       const ap=DEPTH.aptOf(a, k);
@@ -604,7 +627,7 @@ class ScoutReportScreen extends Screen0 {
       y += 15;
     }
     /* 총평 + 특기 종목 */
-    txt(u, K(DEPTH.verdict(a)), VW/2, y+8, 12,
+    txt(u, K(DEPTH.verdict(a, this.mg && this.mg.club)), VW/2, y+8, 12,
         conf<0.4?PAL.dim:PAL.gold, 'center', 700);
     const be=DEPTH.bestEvents(a);
     if(be.length){
@@ -981,9 +1004,7 @@ class CodexScreen extends Screen0 {
       const on=t2===this.tier, c=Codex.countTier(t2);
       const rr=(typeof RARITY!=='undefined')?RARITY[t2]:{name:'',color:PAL.white};
       const x=VW-8-(5-t2)*62;
-      u.fillStyle = on?'rgba(255,255,255,.14)':'rgba(20,26,40,.7)';
-      u.fillRect(x-58, 16, 58, 15);
-      u.strokeStyle = on?rr.color:'#3a4258'; u.lineWidth=1; u.strokeRect(x-57.5,16.5,57,14);
+      UIK.tab(u, x-58, 16, 58, 15, '', on);
       txt(u, K(rr.name), x-38, 19, 9, on?rr.color:PAL.dim, 'center', on?700:400);
       txt(u, `${c.owned}/${c.total}`, x-6, 20, 7,
           (c.owned>=c.total&&c.total)?PAL.green:PAL.dim, 'right');
@@ -1061,5 +1082,64 @@ class CodexScreen extends Screen0 {
     if(this.fxAt!==undefined && this.t-this.fxAt<900)
       BG.fx(u, 'fx-item-get', VW/2, VH-22, 40, clamp((this.t-this.fxAt)/900,0,0.999), 4);
     UI.footer(u, '◀▶ 고르기 · ▲▼ 등급 · 확인 보상 · 취소 뒤로');
+  }
+}
+
+/* ── 시설 (4F_facility) ─────────────────────────────────────
+   쌓인 코인을 영구 성장으로 바꾸는 자리.
+   ⚠ 실측(tools/economy.js): 20시즌 뒤 자금이 1,529 까지 **놀고 있었다.**
+      코인을 쓸 곳이 모자랐다. 그리고 클럽은 9년차부터 쇠퇴한다 —
+      유소년 아카데미가 그 자리를 민다. */
+class FacilityScreen extends Screen0 {
+  get hdBg(){ return 'bg-office'; }  get hdBgDim(){ return 0.78; }
+  constructor(mg){ super(mg); this.t=0; FACIL.ensure(mg.club); }
+  get rows(){
+    const C=this.mg.club;
+    return FACIL.ids().map(id=>{
+      const K=FACIL.KINDS[id], l=FACIL.lv(C,id), cost=FACIL.nextCost(C,id);
+      const max = l>=FACIL.MAX;
+      return { label:`${K.name}  ${'●'.repeat(l)}${'○'.repeat(FACIL.MAX-l)}`,
+        sub: l ? `${K.line(l)}${max?'':`  →  ${K.line(l+1)}`}` : K.desc,
+        right: max ? '최대' : `−${cost}`,
+        rightColor: max ? PAL.green : ((C.budget>=cost) ? PAL.gold : PAL.dim),
+        color: max ? PAL.green : ((C.budget>=cost) ? PAL.white : PAL.dim),
+        _id:id, _lv:l, _max:max };
+    });
+  }
+  confirm(){
+    const r=this.rows[this.sel]; if(!r) return;
+    const why = FACIL.canBuild(this.mg.club, r._id);
+    if(why){ Sfx.fail(); this.mg.toast(K(why)); return; }
+    const K2=FACIL.KINDS[r._id];
+    FACIL.build(this.mg.club, r._id);
+    Sfx.record(); Screen.shake(0.35); this.fxAt=this.t;
+    this.mg.toast(K('%1 %2단계').replace('%1',K2.name).replace('%2',FACIL.lv(this.mg.club,r._id)));
+  }
+  draw(u){
+    this.t+=16.7;
+    const C=this.mg.club;
+    UIK.resourceBar(u, 0, [{ value:Math.round(C.budget), color:'#ffcf4a', icon:'icon-coin' }]);
+    txt(u, K('시설'), VW-26, 3, 11, PAL.gold, 'right', 700);
+    txt(u, K('코인을 영구 성장으로 바꿉니다 — 클럽에 남고, 모든 선수에게 적용됩니다'),
+        8, 20, 9, PAL.dim, 'left');
+    /* ⚠ 26 줄높이로 5줄이면 화면 아래 40% 가 빈다(시설은 딱 5종이라 늘 5줄이다).
+       줄을 키워 화면을 채운다 — 육성 카드 격자에서 배운 것과 같다. */
+    UI.list(u, this.rows, this.sel, 8, 34, VW-16, 36, 5);
+    /* 아래 — 지금 클럽이 받고 있는 총합. 시설이 '뭘 해 주고 있나'를 한 곳에 */
+    const B=FACIL.bonus(C);
+    UIK.frame(u, 8, VH-42, VW-16, 34, {});
+    txt(u, K('지금 받는 것'), 16, VH-37, 8, PAL.dim, 'left');
+    const bits=[];
+    if(B.grow)   bits.push(K('성장 +%1%').replace('%1',(B.grow*100).toFixed(1)));
+    if(B.hurt)   bits.push(K('부상 %1%').replace('%1',(B.hurt*100).toFixed(0)));
+    if(B.rest)   bits.push(K('회복 +%1').replace('%1',B.rest.toFixed(1)));
+    if(B.cond)   bits.push(K('컨디션 +%1').replace('%1',B.cond.toFixed(1)));
+    if(B.conf)   bits.push(K('스카우트 +%1%').replace('%1',(B.conf*100).toFixed(0)));
+    if(B.rookie) bits.push(K('신인 자질 +%1%').replace('%1',(B.rookie*100).toFixed(1)));
+    txt(u, bits.length? bits.join('  ·  ') : K('아직 아무것도 짓지 않았습니다'),
+        16, VH-26, 10, bits.length?PAL.green:PAL.dim, 'left');
+    if(this.fxAt!==undefined && this.t-this.fxAt<900)
+      BG.fx(u, 'fx-levelup', VW/2, VH-20, 40, clamp((this.t-this.fxAt)/900,0,0.999), 4);
+    UI.footer(u, '확인 짓기 · 취소 뒤로');
   }
 }

@@ -58,6 +58,12 @@ function trainWeek(a, program, focus, rng, club){
   /* 종족 도감(4D_codex) — 등록한 종족 수만큼 영구히. 유산과 같은 통로, 같은 성격이다.
      ⚠ 도감은 감독에게 붙으므로 **클럽을 새로 만들어도 남는다** — 두 번째 판이 조금 수월하다 */
   if(typeof Codex!=='undefined' && Codex.growBonus) RB.grow += Codex.growBonus().grow;
+  /* 시설(4F_facility) — 클럽에 쌓이는 것. 전부 0단계면 0 이라 예전과 같다. */
+  if(typeof FACIL!=='undefined' && club){
+    const FB = FACIL.bonus(club);
+    RB.grow += FB.grow; RB.rest += FB.rest; RB.hurt += FB.hurt;
+    RB.cond = (RB.cond||0) + FB.cond;
+  }
   /* 스킬 — 육성형만. 경기형은 Athlete.eff 통로로 따로 간다(4E_skill 머리말 참고) */
   if(typeof SKILL!=='undefined'){
     const SB = SKILL.growBonus(a);

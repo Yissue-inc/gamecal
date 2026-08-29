@@ -81,13 +81,16 @@ const DEPTH = {
      '지켜봐야 안다'가 게임이 된다.
 
      ⚠ 난수를 매번 굴리면 볼 때마다 범위가 흔들린다. 선수 id 로 고정한다. */
-  confidence(a){
+  /* ⚠ club 은 선택이다 — 안 넘기면 시설이 없는 셈이라 옛 호출부가 그대로 돈다 */
+  confidence(a, club){
     const w = a.trainingWeeks || 0;
-    return clamp(0.25 + w/60, 0.25, 1);          // 60주 함께하면 확신
+    /* 분석실(4F_facility)이 있으면 더 빨리 알아본다. 없으면 0 이라 예전과 같다. */
+    const lift = (typeof FACIL!=='undefined' && club) ? FACIL.confLift(club) : 0;
+    return clamp(0.25 + w/60 + lift, 0.25, 1);   // 60주 함께하면 확신
   },
-  potentialRange(a, key){
+  potentialRange(a, key, club){
     const truth = a.potential[key];
-    const conf = this.confidence(a);
+    const conf = this.confidence(a, club);
     const span = (1-conf) * 26;                  // 확신이 낮으면 ±13
     /* 선수마다 고정된 치우침 — 같은 선수는 늘 같은 방향으로 잘못 본다 */
     let h = 0; const sid = String(a.id||a.name) + key;
@@ -101,9 +104,9 @@ const DEPTH = {
     return c>=0.9 ? '확실함' : c>=0.7 ? '높음' : c>=0.45 ? '보통' : '낮음';
   },
   /* 한 줄 총평 — 리포트의 얼굴 */
-  verdict(a){
+  verdict(a, club){
     const gap = a.potOverall - a.overall;
-    const conf = this.confidence(a);
+    const conf = this.confidence(a, club);
     if(conf < 0.4) return '아직 판단하기 이르다';
     if(gap >= 22) return '크게 자랄 수 있다';
     if(gap >= 12) return '아직 여지가 있다';

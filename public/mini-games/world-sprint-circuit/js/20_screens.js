@@ -401,7 +401,10 @@ const G = {
     Track.drawBack(ctx, 40, 100);
     ctx.fillStyle='rgba(5,6,10,.82)'; ctx.fillRect(0,0,VW,VH);
     plate(uctx, 0, 0, VW, 22, .86);
-    txt(uctx,'설정', 8, 5, 13, PAL.gold,'left',700);
+    /* 제목 옆 아이콘 — 어셋이 없으면 글자만 나온다(예전 그대로) */
+    { const im=BG.get('ic-settings');
+      if(im){ uctx.drawImage(im, 8, 4, 13, 13); txt(uctx,'설정', 25, 5, 13, PAL.gold,'left',700); }
+      else txt(uctx,'설정', 8, 5, 13, PAL.gold,'left',700); }
     const rows=this.settingRows;
     const x=64, w=VW-128;
     /* ⚠ 줄 간격 28px 는 7줄 기준이었다 — '박자 소리'를 넣자 마지막 줄이 하단

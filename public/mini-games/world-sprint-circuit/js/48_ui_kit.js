@@ -83,11 +83,32 @@ const UIK = {
     const fill = opt.fill || 'rgba(12,16,26,.92)';
     const edge = opt.edge || '#3a4870';
     const glow = opt.glow || null;
-    /* HD 액자가 있으면 그걸 쓴다. 없으면 아래 선 그림이 그대로 돈다. */
-    const art = opt.art===false ? null : (glow ? (opt.art || 'frame-gold') : (opt.art || 'frame-panel'));
+    /* HD 액자가 있으면 그걸 쓴다. 없으면 아래 선 그림이 그대로 돈다.
+       ⚠ 액자 어셋이 두 벌 있다. 새로 온 panel-frame(모서리 24)은 **테두리만** 있고
+          안쪽 바탕이 panel-fill 로 따로 온다 — 그래서 두 장을 겹쳐야 완성된다.
+          강조(glow)는 아직 frame-gold 한 장짜리뿐이라 그쪽을 쓴다. */
+    const art = opt.art===false ? null : (glow ? (opt.art || 'frame-gold') : (opt.art || null));
     if(art){
       u.fillStyle = fill; u.fillRect(x, y, w, h);
       if(this.nine(u, art, x, y, w, h, 16)) return;
+    }
+    if(opt.art!==false && !glow){
+      const fillImg = BG.get('panel-fill');
+      if(fillImg){
+        /* 안쪽 바탕은 이어 붙인다(64×64 타일). 밖으로 새지 않게 잘라 둔다 */
+        u.save(); u.beginPath(); u.rect(x, y, w, h); u.clip();
+        const tw = 24, th = 24;                    // 화면 좌표에서의 타일 크기
+        for(let ty=y; ty<y+h; ty+=th)
+          for(let tx=x; tx<x+w; tx+=tw) u.drawImage(fillImg, tx, ty, tw, th);
+        u.globalAlpha=0.55; u.fillStyle=fill; u.fillRect(x,y,w,h); u.globalAlpha=1;
+        u.restore();
+        if(this.nine(u, 'panel-frame', x, y, w, h, 24)) return;
+      } else {
+        u.fillStyle = fill; u.fillRect(x, y, w, h);
+        if(this.nine(u, 'panel-frame', x, y, w, h, 24)) return;
+      }
+      u.fillStyle = fill; u.fillRect(x, y, w, h);
+      if(this.nine(u, 'frame-panel', x, y, w, h, 16)) return;
     }
     u.fillStyle = fill; u.fillRect(x, y, w, h);
     if(glow){                                  // 강조 패널은 바깥에 옅은 띠
@@ -174,6 +195,16 @@ const UIK = {
     const pulse = 0.5 + 0.5*Math.sin((t||0)*0.005);
     const base = opt.color || '#2f6fd0';
     /* HD 버튼 — 맥동에 맞춰 평상/발광 두 장을 겹친다 */
+    /* ⚠ 버튼 어셋도 두 벌이다. 새로 온 button-idle/focus(192×64·모서리 16)를 먼저 쓰고,
+       없으면 예전 btn-primary(모서리 24)로 물러난다. 모서리 값이 달라 함께 못 쓴다. */
+    if(opt.art!==false && BG.get && BG.get('button-idle')){
+      this.nine(u, 'button-idle', x, y, w, h, 16);
+      u.globalAlpha = 0.25 + pulse*0.55;
+      this.nine(u, 'button-focus', x, y, w, h, 16);
+      u.globalAlpha = 1;
+      txt(u, label, x+w/2, y+Math.round((h-13)/2), 13, PAL.white, 'center', 700);
+      return;
+    }
     if(opt.art!==false && BG.get && BG.get('btn-primary')){
       this.nine(u, 'btn-primary', x, y, w, h, 24);
       u.globalAlpha = 0.25 + pulse*0.55;
@@ -190,6 +221,34 @@ const UIK = {
     u.globalAlpha = 0.25+pulse*0.4; u.strokeStyle='#ffffff';
     u.strokeRect(x-1.5, y-1.5, w+3, h+3); u.globalAlpha=1;
     txt(u, label, x+w/2, y+Math.round((h-13)/2), 13, PAL.white, 'center', 700);
+  },
+
+  /* ── 탭 한 칸 ────────────────────────────────────────────
+     tab-idle / tab-active (128×48). 없으면 예전처럼 사각형 두 겹으로 그린다. */
+  tab(u, x, y, w, h, label, on){
+    if(!this.nine(u, on?'tab-active':'tab-idle', x, y, w, h, 12)){
+      u.fillStyle = on?'rgba(255,215,94,.20)':'rgba(20,26,40,.8)';
+      u.fillRect(x, y, w, h);
+      u.strokeStyle = on?PAL.gold:'#3a4258'; u.lineWidth=1;
+      u.strokeRect(x+.5, y+.5, w-1, h-1);
+    }
+    txt(u, label, x+w/2, y+Math.round((h-9)/2), 9, on?PAL.gold:PAL.dim, 'center', on?700:400);
+  },
+  /* ── 구분선 ──────────────────────────────────────────────
+     divider-line (256×8) — 가운데가 밝고 양끝이 흐려진다. 이어 붙이지 않고 한 장을 늘인다. */
+  divider(u, x, y, w){
+    const img = BG.get('divider-line');
+    if(img){ u.drawImage(img, x, y, w, 3); return; }
+    u.fillStyle='rgba(255,255,255,.10)'; u.fillRect(x, y+1, w, 1);
+  },
+  /* ── 말풍선 꼬리 ─────────────────────────────────────────
+     tooltip-tail (32×24) — 위를 가리킨다. 설명 상자가 '무엇에 대한 말인지' 잇는다. */
+  tail(u, cx, y, w){
+    const img = BG.get('tooltip-tail');
+    if(!img) return false;
+    const ww = w||9, hh = Math.round(ww*24/32);
+    u.drawImage(img, Math.round(cx-ww/2), Math.round(y), ww, hh);
+    return true;
   },
 
   /* ── 자원 막대 ───────────────────────────────────────────
@@ -209,14 +268,33 @@ const UIK = {
   },
 
   /* ── 경험치 막대 (레벨 + 진행) ───────────────────────────── */
+  /* 게이지 한 벌 — bar-track(홈) + bar-fill(채움).
+     ⚠ bar-fill 은 **흰색으로 그려져 왔다**(발주서 지정). 색은 코드가 입힌다.
+        어셋이 없으면 예전 그림이 그대로 돈다. */
+  bar(u, x, y, w, h, p, color){
+    const track = BG.get('bar-track');
+    if(!track) return false;
+    this.nine(u, 'bar-track', x, y, w, h, 8);
+    const fw = Math.round(w*clamp(p,0,1));
+    if(fw > 2){
+      u.save(); u.beginPath(); u.rect(x, y, fw, h); u.clip();
+      this.nine(u, 'bar-fill', x, y, w, h, 8);
+      if(color){ u.globalCompositeOperation='source-atop';
+                 u.globalAlpha=0.72; u.fillStyle=color; u.fillRect(x,y,fw,h); }
+      u.restore();
+    }
+    return true;
+  },
   xpBar(u, x, y, w, lv, cur, need, opt){
     opt=opt||{};
     const p = clamp(cur/Math.max(1,need), 0, 1);
+    if(!this.bar(u, x, y, w, 8, p, '#5aaaff')){
     u.fillStyle='rgba(6,9,16,.85)'; u.fillRect(x, y, w, 7);
     u.strokeStyle='#2a3450'; u.lineWidth=1; u.strokeRect(x+.5, y+.5, w-1, 6);
     const g=u.createLinearGradient(x,y,x,y+7);
     g.addColorStop(0,'#7fd0ff'); g.addColorStop(1,'#2f6fd0');
     u.fillStyle=g; u.fillRect(x+1, y+1, Math.round((w-2)*p), 5);
+    }
     /* ⚠ 숫자를 막대 위(y-1)에 그렸더니 막대와 겹쳐 읽히지 않았다. 막대 밖으로 뺀다. */
     if(opt.showText!==false)
       txt(u, `${this.n(cur)} / ${this.n(need)}`, x+w-1, y+9, 8, PAL.dim, 'right');

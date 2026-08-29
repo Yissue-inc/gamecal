@@ -89,6 +89,39 @@ const RPG = {
     return null;
   },
 
+  /* ── 잠재치 돌파 ─────────────────────────────────────────
+     ⚠ 실측(tools/economy.js): 선수단에 훈련 포인트가 **634까지 안 쓰이고 쌓인다.**
+        스탯이 잠재치에 닿으면 포인트가 갈 곳이 없어서다 — 벌긴 계속 버는데.
+        그래서 포인트로 **잠재치 자체를 민다.** 비싸게, 그리고 한도를 두고.
+
+     ⛔ 한도는 **종족 등급**이 정한다(흔함 4 … 전설 12).
+        이걸로 5단계 등급이 세 번째 역할을 얻는다 —
+        잠재치 보너스(+0~15) · 상위 스킬 조건 · 그리고 여기.
+     ⚠ 99 는 절대 안 넘는다. 세계기록 곡선이 그 위에서 무너진다. */
+  BREAK_COST: 10,
+  breakCap(a){
+    const r = (typeof rarityOf==='function') ? rarityOf(a) : 1;
+    return [0, 4, 6, 8, 10, 12][r] || 4;
+  },
+  broke(a, key){ return (a.broken && a.broken[key]) || 0; },
+  brokeTotal(a){ let n=0; for(const k in (a.broken||{})) n += a.broken[k]; return n; },
+  whyBreak(a, key){
+    if((a.tp||0) < this.BREAK_COST) return `훈련 포인트 ${this.BREAK_COST} 필요`;
+    if(this.brokeTotal(a) >= this.breakCap(a)){
+      const nm = (typeof RARITY!=='undefined' && RARITY[rarityOf(a)]) ? RARITY[rarityOf(a)].name : '';
+      return `${nm} 등급은 ${this.breakCap(a)}까지`;
+    }
+    if(!a.potential || !(a.potential[key] < 99)) return '99 가 한계입니다';
+    return null;
+  },
+  breakPot(a, key){
+    if(this.whyBreak(a, key) !== null) return false;
+    a.tp -= this.BREAK_COST;
+    a.potential[key] = Math.min(99, a.potential[key] + 1);
+    (a.broken ||= {}); a.broken[key] = (a.broken[key]||0) + 1;
+    return true;
+  },
+
   /* ── 장비 ────────────────────────────────────────────────
      ⛔ 장비는 **성장·컨디션에만** 작용한다. 경기 계산에 곱해지지 않는다.
         grow  : 훈련으로 오르는 양 배수

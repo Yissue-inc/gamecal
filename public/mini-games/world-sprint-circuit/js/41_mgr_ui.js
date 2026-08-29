@@ -27,15 +27,32 @@ const UI = {
       u.fillRect(x, ry, w, rowH-1);
       u.fillStyle='rgba(255,255,255,.07)'; u.fillRect(x, ry+rowH-1, w, 1);
       if(on){ u.fillStyle=PAL.gold; u.fillRect(x, ry, 2, rowH-1); }
-      /* 국기 — 목록에서 소속이 바로 보여야 한다 */
-      let lx = x+8;
-      if(r.nation && typeof drawFlag==='function'){
-        drawFlag(u, x+7, ry+5, 13, 9, r.nation); lx = x+25;
+      /* 커서 화살표(cursor-arrow) — 금색 세로줄만으로는 '어디를 보고 있나'가 약했다.
+         ⛔ 자리는 **모든 줄에 미리 비운다.** 선택된 줄에서만 밀면 위아래로 옮길 때마다
+            글자가 좌우로 튄다. 어셋이 없으면 폭 0 이라 예전 자리 그대로다. */
+      const cs = (typeof BG!=='undefined' && BG.get('cursor-arrow')) ? Math.min(11, rowH-6) : 0;
+      const gut = cs ? cs+3 : 0;
+      if(on && cs) u.drawImage(BG.get('cursor-arrow'), x+2, ry+Math.round((rowH-1-cs)/2), cs, cs);
+      let lx = x+8+gut;
+      /* 줄 아이콘 — 사무실 메뉴처럼 줄마다 성격이 다른 목록에서 글을 읽기 전에 구분된다.
+         ⚠ 국기와 같은 자리를 쓴다(둘 다 있는 목록은 없다). 어셋이 없으면 폭 0. */
+      if(r.icon && typeof BG!=='undefined'){
+        const im = BG.get(r.icon);
+        if(im){ const is=Math.min(13, rowH-6);
+                u.drawImage(im, x+7+gut, ry+Math.round((rowH-1-is)/2), is, is);
+                lx = x+9+gut+is; }
       }
-      txt(u, r.label, lx, ry+2, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
-      if(r.sub)   txt(u, r.sub,   lx, ry+13, 8, PAL.dim);
-      if(r.right) txt(u, r.right, x+w-8, ry+4, 10, r.rightColor||PAL.white, 'right');
-      if(r.right2)txt(u, r.right2,x+w-8, ry+15, 8, PAL.dim, 'right');
+      /* 국기 — 목록에서 소속이 바로 보여야 한다 */
+      if(r.nation && typeof drawFlag==='function'){
+        drawFlag(u, x+7+gut, ry+5, 13, 9, r.nation); lx = x+25+gut;
+      }
+      /* ⚠ 위쪽에 붙여 그리면 줄 높이가 커질 때(시설 화면 36) 아래가 텅 빈다.
+         두 줄 묶음을 줄 한가운데에 놓는다 — 26 일 때는 예전과 같은 자리다. */
+      const pad = Math.max(2, Math.round((rowH-1-19)/2));
+      txt(u, r.label, lx, ry+pad, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
+      if(r.sub)   txt(u, r.sub,   lx, ry+pad+11, 8, PAL.dim);
+      if(r.right) txt(u, r.right, x+w-8, ry+pad+2,  10, r.rightColor||PAL.white, 'right');
+      if(r.right2)txt(u, r.right2,x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
     }
     if(rows.length > maxRows){
       const th = Math.max(8, (maxRows/rows.length)*(rowH*maxRows));
@@ -70,9 +87,16 @@ const UI = {
     return m;
   },
   /* 스탯 한 줄: 이름 · 현재/잠재 막대 */
+  /* 스탯마다 아이콘 하나 — 이름을 읽지 않아도 어느 줄인지 안다.
+     ⚠ 어셋이 없으면 폭 0 이라 예전 자리 그대로다(아이콘은 8종 다 와야 켜진다). */
+  STAT_ICON: { speed:'ic-speed', acceleration:'ic-accel', stamina:'ic-stamina',
+               technique:'ic-technique', rhythm:'ic-rhythm', power:'ic-power' },
   statRow(u, x, y, w, key, cur, pot){
-    txt(u, STAT_NAME[key], x, y, 9, PAL.dim);
-    const LW = this.labelW(u, STAT_KEYS.map(k=>STAT_NAME[k]), 9, 42);
+    const ic = (typeof BG!=='undefined') ? BG.get(this.STAT_ICON[key]) : null;
+    const iw = ic ? 11 : 0;
+    if(ic) u.drawImage(ic, x, y-1, 10, 10);
+    txt(u, STAT_NAME[key], x+iw, y, 9, PAL.dim);
+    const LW = this.labelW(u, STAT_KEYS.map(k=>STAT_NAME[k]), 9, 42) + iw;
     const bx = x+LW, bw = w-LW-30;
     u.fillStyle='rgba(255,255,255,.10)'; u.fillRect(bx,y+2,bw,7);
     u.fillStyle='rgba(90,170,255,.30)';  u.fillRect(bx,y+2,Math.round(bw*pot/100),7);  // 잠재
@@ -126,36 +150,45 @@ class OfficeScreen extends Screen0 {
       /* 감독(4C_master) — '나'. 레벨이 선수 레벨 상한·코치 자리·정원을 연다 */
       (()=>{ const lv=(typeof Master!=='undefined')?Master.lv():1;
              const nx=(typeof Master!=='undefined')?Master.nextUnlock():null;
-             return { label:`감독  ${(typeof Master!=='undefined')?Master.name:''}`,
+             return { icon:'ic-career', label:`감독  ${(typeof Master!=='undefined')?Master.name:''}`,
                       sub:`Lv.${lv} · 선수 레벨 상한 ${(typeof Master!=='undefined')?Master.athleteCap():60}`
                           + (nx? ` · 다음 Lv.${nx.lv}: ${nx.text}` : ''),
                       right:'Lv.'+lv, rightColor:PAL.gold,
                       go:()=>new MasterScreen(this.mg) }; })(),
-      { label:'훈련 지시', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶',
+      { label:'훈련 지시', icon:'ic-train', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶',
         go:()=>new TrainScreen(this.mg) },
-      { label:'선수단',   sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶',
+      { label:'선수단',   icon:'ic-squad', sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶',
         go:()=>new SquadScreen(this.mg) },
       /* 육성(46_rpg) — 포인트가 남아 있으면 눈에 띄게 */
       (()=>{ const tp=this.mg.club.squad.reduce((s,a)=>s+(a.tp||0),0);
              const inv=(this.mg.club.inventory||[]).length;
              /* 켤 수 있는데 안 켠 스킬이 있으면 알려 준다 — 배우고 안 켜는 게 함정이다 */
              const idle = (typeof SKILL==='undefined') ? 0 : C_squadIdleSkills(this.mg.club);
-             return { label:'육성',
+             return { label:'육성', icon:'icon-levelup',
                       sub:`훈련 포인트 ${tp} · 창고 ${inv}개`
                           + (idle? ` · 안 켠 스킬 ${idle}개` : ''),
                       right: (tp>0||idle)?'●'+(tp||idle):'▶',
                       rightColor: (tp>0||idle)?PAL.gold:PAL.dim,
                       color: (tp>0||idle)?PAL.gold:undefined,
                       go:()=>new GrowPickScreen(this.mg) }; })(),
-      { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶',
+      { label:'팀 프로그램', icon:'ic-rest', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶',
         go:()=>new ProgramScreen(this.mg) },
       /* 코치진(49_depth) — 뽑으면 그 분야가 잘 자란다. 주급을 먹는다. */
       (()=>{ const n=(typeof DEPTH!=='undefined')?DEPTH.hired(this.mg.club).length:0;
              const w=(typeof DEPTH!=='undefined')?DEPTH.wageBill(this.mg.club):0;
-             return { label:'코치진', sub:n? `${n}명 · 주급 ${w}` : '아직 없음 — 분야별로 3명까지', right:'▶',
+             return { label:'코치진', icon:'ic-injury', sub:n? `${n}명 · 주급 ${w}` : '아직 없음 — 분야별로 3명까지', right:'▶',
                       go:()=>new CoachScreen(this.mg) }; })(),
-      { label:'선수 사무소', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶',
+      { label:'선수 사무소', icon:'ic-market', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶',
         go:()=>new MarketScreen(this.mg) },
+      /* 시설(4F_facility) — 코인을 영구 성장으로. 지을 수 있으면 눈에 띄게 */
+      (()=>{ const C=this.mg.club;
+             const can=(typeof FACIL!=='undefined') &&
+               FACIL.ids().some(id=>FACIL.canBuild(C,id)===null);
+             return { label:'시설', icon:'icon-gear',
+                      sub:(typeof FACIL!=='undefined')?FACIL.summary(C):'—',
+                      right: can?'!':'▶', rightColor: can?PAL.gold:PAL.dim,
+                      color: can?PAL.gold:undefined,
+                      go:()=>new FacilityScreen(this.mg) }; })(),
       /* 일일 도전(4B_daily) — 매일 열 이유. 안 한 종목이 있으면 눈에 띄게 */
       (()=>{ const d=(typeof Daily!=='undefined')?Daily.load():null;
              if(!d) return { label:'기록실', sub:'클럽 기록과 대회 이력', right:'▶' };
@@ -168,13 +201,13 @@ class OfficeScreen extends Screen0 {
                right: d.claimed ? '✓' : left ? String(left) : '!',
                rightColor: d.claimed?PAL.dim:PAL.gold,
                color: d.claimed?undefined:PAL.gold,
-               go:()=>new DailyScreen(this.mg) }; })(),
+               icon:'icon-medal', go:()=>new DailyScreen(this.mg) }; })(),
       /* 명예의 전당(49_depth) — 은퇴 선수가 남는 자리이자 신인이 물려받는 자리 */
       (()=>{ const h=(typeof DEPTH!=='undefined')?DEPTH.hall(this.mg.club):[];
              const t=(typeof DEPTH!=='undefined')?DEPTH.legacyTotal(this.mg.club):0;
              return { label:'명예의 전당',
                       sub: h.length? `${h.length}명 · 유산 ${t}` : '아직 비어 있습니다',
-                      right:'▶', go:()=>new HallScreen(this.mg) }; })(),
+                      right:'▶', icon:'icon-xp', go:()=>new HallScreen(this.mg) }; })(),
       /* 종족 도감(4D_codex) — 5단계 등급에 '모을 것'을 준다 */
       (()=>{ const T=(typeof Codex!=='undefined')?Codex.totals():{owned:0,total:0};
              const claim=(typeof Codex!=='undefined') && Codex.hasClaim();
@@ -185,12 +218,13 @@ class OfficeScreen extends Screen0 {
                       rightColor: claim?PAL.gold:PAL.dim,
                       color: claim?PAL.gold:undefined,
                       go:()=>new CodexScreen(this.mg) }; })(),
-      { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶',
+      { label:'기록실',   icon:'ic-record', sub:'클럽 기록과 대회 이력', right:'▶',
         go:()=>new RecordScreen(this.mg) },
-      { label:'리그 순위표', sub:leagueSub(S), right:'▶',
+      { label:'리그 순위표', icon:'icon-coin', sub:leagueSub(S), right:'▶',
         go:()=>new LeagueScreen(this.mg) },
     ];
-    if(S.isMeetWeek) r.push({ label:`▶ ${MEET_INFO[S.meetKind].name} 출전`, sub:'출전표를 짜고 경기를 본다',
+    if(S.isMeetWeek) r.push({ label:`▶ ${MEET_INFO[S.meetKind].name} 출전`, icon:'ic-meet',
+                              sub:'출전표를 짜고 경기를 본다',
                               color:PAL.green, right:'!', go:()=>new EntryScreen(this.mg) });
     else r.push({ label:'다음 주로', sub: meetW? `${meetW}주차 대회까지 ${meetW-S.week}주` : '시즌 마무리', right:'▶',
                   next:true });
@@ -267,6 +301,9 @@ class OfficeScreen extends Screen0 {
         txt(u, e.msg, 14, VH-46+i*11, 9,
           e.t==='injury'?PAL.red : e.t==='break'?PAL.green : e.t==='slump'?'#ffa04c' : PAL.white));
     } else {
+      /* 이 상자가 '무엇에 대한 말인지' 잇는다 — 목록에서 고른 줄을 꼬리로 가리킨다 */
+      UIK.tail(u, 30, VH-62, 10);
+      UIK.divider(u, 14, VH-60, VW-28);
       txt(u,'감독 노트',14,VH-56,8,PAL.dim);
       txt(u,'매주 3명까지 직접 지도할 수 있습니다. 나머지는 팀 프로그램대로 훈련합니다.',14,VH-46,9,PAL.white);
       txt(u,'피로가 쌓이면 성장이 멈추고 부상이 급증합니다 — 대회 직전엔 쉬게 하세요.',14,VH-35,9,PAL.dim);
@@ -413,13 +450,25 @@ class AthleteScreen extends Screen0 {
     }
 
     // 상태
-    const SW = UI.labelW(u, ['컨디션','피로','사기'], 8, 36);
+    /* 상태 세 줄에도 아이콘 — 스탯 줄과 같은 어휘로 읽히게.
+       ⚠ 어셋이 없으면 폭 0 이라 예전 자리 그대로다.
+       ⛔ 아이콘을 **먼저** 잡는다. SW 가 이 값을 쓰는데 아래에 두면
+          선언 전 참조(TDZ)로 화면이 통째로 터진다. */
+    const has = (typeof BG!=='undefined');
+    const imC = has ? BG.get('ic-condition') : null;
+    const imF = has ? BG.get('ic-fatigue')   : null;
+    const imM = has ? BG.get('ic-morale')    : null;
+    const sIc = (im)=> im ? (yy)=>{ u.drawImage(im, 8, yy-1, 9, 9); return 10; } : ()=>0;
+    const icC=sIc(imC), icF=sIc(imF), icM=sIc(imM);
+    /* ⚠ 아이콘이 라벨 앞에 붙으면 라벨 칸도 그만큼 넓어져야 한다 —
+       안 그러면 긴 언어에서 '컨디션'이 막대를 파고든다(예전에 영어판에서 겪은 것). */
+    const SW = UI.labelW(u, ['컨디션','피로','사기'], 8, 36) + (imC?10:0);
     const sbx = 8+SW, sbw = 128-SW, snx = 8+SW+sbw+6;
-    txt(u,'컨디션',8,48,8,PAL.dim); UI.bar(u,sbx,50,sbw,6,a.condition,100,UI.cond(a.condition));
+    txt(u,'컨디션',8+icC(48),48,8,PAL.dim); UI.bar(u,sbx,50,sbw,6,a.condition,100,UI.cond(a.condition));
     txt(u,UI.condName(a.condition),snx,46,9,UI.cond(a.condition));
-    txt(u,'피로',8,60,8,PAL.dim);   UI.bar(u,sbx,62,sbw,6,a.fatigue,100, a.fatigue>65?PAL.red:a.fatigue>45?PAL.gold:PAL.green);
+    txt(u,'피로',8+icF(60),60,8,PAL.dim);   UI.bar(u,sbx,62,sbw,6,a.fatigue,100, a.fatigue>65?PAL.red:a.fatigue>45?PAL.gold:PAL.green);
     txt(u,Math.round(a.fatigue)+'',snx,58,9,PAL.dim);
-    txt(u,'사기',8,72,8,PAL.dim);   UI.bar(u,sbx,74,sbw,6,a.morale,100, a.morale>65?PAL.green:a.morale>40?PAL.gold:PAL.red);
+    txt(u,'사기',8+icM(72),72,8,PAL.dim);   UI.bar(u,sbx,74,sbw,6,a.morale,100, a.morale>65?PAL.green:a.morale>40?PAL.gold:PAL.red);
     txt(u,Math.round(a.morale)+'',snx,70,9,PAL.dim);
     if(a.injury) txt(u,`부상: ${a.injury.name} — ${a.injury.weeks}주 남음`,8,84,10,PAL.red,'left',700);
 
