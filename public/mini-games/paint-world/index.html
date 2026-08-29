@@ -75,7 +75,7 @@ const VW = 1280, VH = 720;
      '배포했는데 화면은 그대로'가 된다. 실측: 고릴라 파일을 지웠는데도
      브라우저가 캐시에서 줘서 검사가 통과했다.
    stamp.py 가 어셋 폴더의 최신 수정 시각으로 갈아 끼운다. */
-const AREV = '1788012380';
+const AREV = '1788018318';
 
 const PAL = {
   ink:'#12212e',
@@ -2979,6 +2979,25 @@ const MAnchor = {
   }
 };
 
+/* 부위 그림이 256 캔버스 안에서 실제로 차지하는 가로 범위 — 팔을 몸 폭에 맞출 때 쓴다 */
+const PartSpan = {
+  cache:new WeakMap(),
+  of(tex){
+    let v=this.cache.get(tex); if(v) return v;
+    v={x0:0,x1:256};
+    try{
+      const c=document.createElement('canvas'); c.width=256; c.height=256;
+      const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(tex,0,0);
+      const d=x.getImageData(0,0,256,256).data;
+      let a=256,b=-1;
+      for(let px=0;px<256;px+=2) for(let y=0;y<256;y+=2)
+        if(d[((y*256+px)*4)+3]>40){ if(px<a)a=px; if(px>b)b=px; break; }
+      if(b>a) v={x0:a,x1:b};
+    }catch(e){}
+    this.cache.set(tex,v); return v;
+  }
+};
+
 /* 몸통 텍스처에서 그림이 실제로 차지하는 네모 — anchor 가 없을 때 쓴다 */
 const PartFit = {
   cache:new WeakMap(),
@@ -3151,10 +3170,21 @@ class ModeBeing extends Creature {
     this.reactKind=k; this.reactMax=this.reactT= (k==='chomp'?38: k==='whirl'?46: 42);
     return k;
   }
+  /* ⚠ 로봇 팔은 **몸 앞에 얹으면 얼굴을 가리고, 위로 올리면 더듬이가 된다.**
+     실측(P25 이후): 12종 중 10종의 팔이 몸통 위로 29~44% 나와 있었다.
+     팔 그림(256px)이 몸통(400~500px)보다 좁아 어디에 둬도 몸 안에 들어간다.
+     **몸 뒤에서, 몸보다 조금 넓게** 그리면 손만 양옆으로 나오고 얼굴이 산다.
+     (로봇 arm 에만 적용한다 — 사마귀 앞다리·헬기 날개는 앞이 맞다) */
+  armBehind(){ return this.mode==='robot' && this.partKind==='arm'; }
   draw(c, world){
+    if(this.armBehind() && this.partTex) this.drawPart(c, true);
     super.draw(c, world);
     /* 발끝을 재는 중에는 부위까지만 그린다(이름표·표시는 빼야 정확하다) */
     if(!this.partTex) return;
+    if(this.armBehind()) return;                 // 이미 뒤에 그렸다
+    this.drawPart(c, false);
+  }
+  drawPart(c, behind){
     /* 부위 — 몸통 위에서 회전한다. 회전축은 그림 위쪽 가운데(발주 규격) */
     const s=this.s*(typeof growth==='function'?growth(this.born):1);
     const t=this.t, ph=this.ph;
@@ -3179,7 +3209,16 @@ class ModeBeing extends Creature {
        다리는 배 밑, 날개는 등 위, 지느러미는 뒤쪽 아래. */
     const box=PartFit.of(this.tex);
     const P = 256/TW*TEX_W;
-    const w = P*s, h = P*s;
+    let w = P*s, h = P*s;
+    /* 몸 뒤에 그리는 팔은 몸보다 조금 넓어야 손이 밖으로 나온다 */
+    if(behind){
+      const span=PartSpan.of(this.partTex);
+      const armW=Math.max(1,(span.x1-span.x0))/256;        // 그림 안에서 팔이 차지하는 비율
+      const bodyW=(box.x1-box.x0)*s;
+      const want=bodyW*1.16/armW;
+      const k=Math.min(2.2, Math.max(1, want/w));          // 너무 커지지는 않게
+      w*=k; h*=k;
+    }
     const bw=(box.x1-box.x0)*s, bh=(box.y1-box.y0)*s;
     const cx=((box.x0+box.x1)/2 - TEX_W/2)*s;      // 몸 중심(텍스처 기준)
     const cy=((box.y0+box.y1)/2 - TEX_H/2)*s;
@@ -3189,6 +3228,8 @@ class ModeBeing extends Creature {
     if(an){
       ax=(an[0]/TW*TEX_W - TEX_W/2)*s;
       ay=(an[1]/TH*TEX_H - TEX_H/2)*s;
+      /* 뒤에 그릴 때는 좌우가 대칭이어야 한 쪽만 보이지 않는다 — 몸 가운데에 맞춘다 */
+      if(behind) ax=cx;
     } else
     switch(this.partKind){
       case 'wing':  ax=cx-bw*0.06; ay=cy-bh*0.30; break;   // 등 위
@@ -6175,6 +6216,9 @@ const SelfTest = {
       await new Promise(r=>setTimeout(r,150));
     if(!(Screen && Screen.scale>0.05 && Screen.cssW>50))
       L.push('✗ 3초를 기다려도 화면 크기가 안 잡힌다 — 버튼 검사를 못 했다');
+    /* ⚠ 어떤 화면에서 쟀는지 안 적으면, 작은 창에서 난 '버튼이 작다' 129건을
+       보고 진짜 결함으로 오해한다. 버튼 크기는 창 크기에 비례한다. */
+    else L.push(`· 이 화면에서 쟀다 — ${Screen.cssW}×${Screen.cssH} (배율 ${Screen.scale.toFixed(2)})`);
 
     const push=a=>{ for(const x of a) L.push('✗ '+x); };
 
