@@ -107,6 +107,7 @@ class Screen0 {
 
 /* ── 사무실(허브) ────────────────────────────────────────── */
 class OfficeScreen extends Screen0 {
+  get hdBg(){ return 'bg-office'; }  get hdBgDim(){ return 0.76; }
   get rows(){
     const S=this.mg.season, meetW=S.nextMeetWeek;
     const r=[
@@ -157,6 +158,16 @@ class OfficeScreen extends Screen0 {
              return { label:'명예의 전당',
                       sub: h.length? `${h.length}명 · 유산 ${t}` : '아직 비어 있습니다',
                       right:'▶', go:()=>new HallScreen(this.mg) }; })(),
+      /* 종족 도감(4D_codex) — 5단계 등급에 '모을 것'을 준다 */
+      (()=>{ const T=(typeof Codex!=='undefined')?Codex.totals():{owned:0,total:0};
+             const claim=(typeof Codex!=='undefined') && Codex.hasClaim();
+             const gb=(typeof Codex!=='undefined') ? (Codex.growBonus().grow*100).toFixed(1) : '0';
+             return { label:'종족 도감',
+                      sub:`등록 ${T.owned} / ${T.total} · 성장 +${gb}%` + (claim?' · 받을 보상이 있습니다':''),
+                      right: claim?'!':`${T.owned}/${T.total}`,
+                      rightColor: claim?PAL.gold:PAL.dim,
+                      color: claim?PAL.gold:undefined,
+                      go:()=>new CodexScreen(this.mg) }; })(),
       { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶',
         go:()=>new RecordScreen(this.mg) },
       { label:'리그 순위표', sub:leagueSub(S), right:'▶',
@@ -249,6 +260,8 @@ class OfficeScreen extends Screen0 {
 
 /* ── 훈련 지시 ───────────────────────────────────────────── */
 class TrainScreen extends Screen0 {
+  /* ⚠ 0.68 로는 '단거리 · OVR 38' 같은 회색 보조글이 밝은 훈련장에 묻혔다(실측) */
+  get hdBg(){ return 'bg-training'; }  get hdBgDim(){ return 0.82; }
   constructor(mg){ super(mg); this.pick=null; }
   get squad(){ return this.mg.club.squad; }
   get rows(){

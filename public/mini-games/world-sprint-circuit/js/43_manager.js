@@ -37,6 +37,9 @@ const MG = {
   nextWeek(){
     const S=this.season;
     S.advanceTraining(this.focus);
+    /* 도감 — 지금 데리고 있는 종족은 매주 기록한다(대회 전에 은퇴/방출돼도 남게) */
+    if(typeof Codex!=='undefined') Codex.bulk(()=>{
+      for(const a of this.club.squad) Codex.own(a.species); });
     this.lastLog = S.weekLog.slice();
     this.focus = {};
     S.week++;
@@ -131,6 +134,21 @@ const MG = {
      ⚠ 0.80 덮개로는 부족했다 — 트랙 레인 번호가 글자 사이로 비쳐 목록이 안 읽혔다(실측).
         경기장은 상단 띠에만 남기고 본문은 불투명 판으로 덮는다. */
   bg(ctx){
+    /* ⛔ 이 칠은 **불투명**하다 — 게임 레이어를 통째로 덮으므로 그 아래 BG(HD) 레이어에
+       그린 것은 전부 사라진다. 화면이 BG.fill 로 배경을 깔아 놓고도 안 보이는 사고가
+       이 코드베이스에서 세 번째다(볼트 어셋 3종 · 홀 바닥 · 이번 bg-office).
+       실측: MasterScreen 이 bg-office 를 BG 에 그리고 있었고 픽셀에도 남아 있었지만
+       (21,15,12 = 사무실의 갈색) 화면은 (22,21,34) 단색이었다.
+       그래서 화면이 hdBg 를 들고 있고 그 그림이 **실제로 그려졌으면** 이 칠을 건너뛴다.
+       ⚠ 대신 글자가 읽히도록 반투명 어둠막만 얹는다 — 메뉴는 읽는 화면이다. */
+    const top = this.stack[this.stack.length-1];
+    if(top && top.hdBg && typeof BG!=='undefined' && BG.fill
+       && BG.fill(BG.ctx(), top.hdBg, 0, VH)){
+      ctx.clearRect(0,0,VW,VH);
+      ctx.fillStyle = 'rgba(6,9,18,' + (top.hdBgDim!==undefined ? top.hdBgDim : 0.62) + ')';
+      ctx.fillRect(0,0,VW,VH);
+      return;
+    }
     /* 관중 텍스처를 띠로 남겼더니 주차 스트립 뒤에서 잡음처럼 보였다 — 통째로 뺀다.
        메뉴는 읽는 화면이다. 분위기는 아주 옅은 트랙 모티프로만 준다. */
     const g=ctx.createLinearGradient(0,0,0,VH);

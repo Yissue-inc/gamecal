@@ -25,6 +25,7 @@ function drawXpBar(u, a, x, y, w){
    카드마다 등급 테두리 · Lv 뱃지 · 경험치 막대 · 포인트 표시.
    ⚠ 줄 목록은 정보는 담아도 '내 선수단'으로 안 읽힌다. 얼굴이 보여야 애착이 생긴다. */
 class GrowPickScreen extends Screen0 {
+  get hdBg(){ return 'bg-training'; }  get hdBgDim(){ return 0.80; }
   constructor(mg){ super(mg); this.t=0; }
   get list(){ return this.mg.club.squad; }
   get rows(){ return this.list; }
@@ -117,6 +118,7 @@ class GrowPickScreen extends Screen0 {
 
 /* ── 육성 — 한 선수 ─────────────────────────────────────── */
 class GrowScreen extends Screen0 {
+  get hdBg(){ return 'bg-training'; }  get hdBgDim(){ return 0.82; }
   constructor(mg, a){ super(mg); this.a=RPG.ensure(a); this.tab=0; }   // 0=스탯 1=장비
   get rows(){
     const a=this.a;
@@ -318,6 +320,7 @@ function drawRpgFeed(u, feed, x, y, w){
    ⚠ 예전 화면은 글자만 있었다. 방치형에서 이 화면은 '다시 켤 이유'다 —
       여기가 초라하면 다음에 안 켠다. */
 class IdleReturnScreen extends Screen0 {
+  get hdBg(){ return 'bg-reward'; }  get hdBgDim(){ return 0.50; }
   constructor(mg, rep){ super(mg); this.rep=rep; this.t=0; this.claimed=false; }
   get rows(){ return []; }
   update(now){
@@ -332,12 +335,8 @@ class IdleReturnScreen extends Screen0 {
   }
   draw(u){
     const R=this.rep;
-    /* 배경 — 밤 경기장을 어둡게 깔아 '돌아온 자리'를 만든다 */
-    if(!BG.fill(BG.ctx(),'title-backdrop', 0, VH)){
-      const g=u.createLinearGradient(0,0,0,VH);
-      g.addColorStop(0,'#141c36'); g.addColorStop(1,'#070a12');
-      u.fillStyle=g; u.fillRect(0,0,VW,VH);
-    }
+    /* 배경 — 밤 경기장(bg-reward). 가운데가 비어 있어 패널이 올라간다.
+       hdBg 로 선언해 두었으므로 여기서 다시 그리지 않는다. */
     u.fillStyle='rgba(6,9,18,.62)'; u.fillRect(0,0,VW,VH);
 
     /* 제목 */
@@ -762,6 +761,7 @@ class HallScreen extends Screen0 {
       코치 자리와 스카우트 지역을 연다 — 그걸 여기서 한눈에 보여 줘야
       "나를 왜 키우나"에 답이 된다. */
 class MasterScreen extends Screen0 {
+  get hdBg(){ return 'bg-office'; }
   constructor(mg){ super(mg); this.t=0; this.editing=false; }
   get rows(){ return []; }
   update(now){
@@ -786,12 +786,8 @@ class MasterScreen extends Screen0 {
   cancel(){ if(this.mg) this.mg.pop(); else G.state=ST.TITLE; }
   draw(u){
     const lv=Master.lv(), cp=Master.cp(), nx=Master.nextUnlock();
-    if(!BG.fill(BG.ctx(),'bg-office', 0, VH)){
-      const g=u.createLinearGradient(0,0,0,VH);
-      g.addColorStop(0,'#101a30'); g.addColorStop(1,'#070a12');
-      u.fillStyle=g; u.fillRect(0,0,VW,VH);
-    }
-    u.fillStyle='rgba(6,9,18,.55)'; u.fillRect(0,0,VW,VH);
+    /* 배경은 hdBg 로 선언만 한다 — MG.bg 가 게임 레이어를 안 덮고 어둠막만 얹는다.
+       ⚠ 여기서 직접 BG.fill 을 부르면 그 뒤에 MG.bg 의 불투명 칠이 덮어 버린다(실측). */
 
     /* 왼쪽 — 감독 카드 */
     UIK.frame(u, 8, 8, 150, VH-16, { glow:PAL.gold });
@@ -848,5 +844,129 @@ class MasterScreen extends Screen0 {
     txt(u, K('경기를 하면 커리어 점수가 쌓입니다 — 아케이드도, 감독 모드도'),
         VW/2+82, VH-26, 8, PAL.dim, 'center');
     UI.footer(u, '확인 이름 · ◀▶ 얼굴 · 취소 돌아가기');
+  }
+}
+
+/* ── 종족 도감 (4D_codex) ───────────────────────────────────
+   등급 5단계에 '모을 이유'를 준다. 60종족을 격자로 늘어놓고
+   본 것 · 데리고 있던 것 · 전당에 올린 것을 구분해 보여 준다.
+   ⚠ 안 본 종족은 **실루엣**으로 남긴다 — 비어 있는 칸이 곧 다음 목표다. */
+class CodexScreen extends Screen0 {
+  get hdBg(){ return 'bg-reward'; }  get hdBgDim(){ return 0.72; }
+  constructor(mg){ super(mg); this.t=0; this.tier=5; }   // 전설부터 — 제일 궁금한 칸
+  get list(){ return Codex.byTier(this.tier); }
+  get rows(){ return this.list; }
+  update(now){
+    this.t+=16.7;
+    const n=this.list.length, COLS=8;
+    if(Input.repeat('left',now))  { this.sel=(this.sel+n-1)%n; Sfx.ui(); }
+    if(Input.repeat('right',now)) { this.sel=(this.sel+1)%n;   Sfx.ui(); }
+    if(Input.pressed('up'))   { this.tier=this.tier>=5?1:this.tier+1; this.sel=0; Sfx.ui(); }
+    if(Input.pressed('down')) { this.tier=this.tier<=1?5:this.tier-1; this.sel=0; Sfx.ui(); }
+    if(Input.pressed('action')){
+      const r = Codex.hasClaim() ? Codex.claimAll(this.mg && this.mg.club) : null;
+      if(r){ Sfx.record(); Sfx.roar(); Screen.shake(0.5); this.fxAt=this.t;
+             if(this.mg) this.mg.toast(K('코인 +%1 · 전원 훈련 포인트 +%2')
+               .replace('%1', r.coin).replace('%2', r.tp)); }
+      else Sfx.fail();
+    }
+    if(Input.pressed('back')) this.cancel();
+  }
+  cancel(){ if(this.mg) this.mg.pop(); else G.state=ST.TITLE; }
+  draw(u){
+    const T=Codex.totals(), R=(typeof RARITY!=='undefined')?RARITY[this.tier]:{name:'',color:PAL.white};
+    if(this.mg) UIK.resourceBar(u, 0, [{ value:Math.round(this.mg.club.budget), color:'#ffcf4a', icon:'icon-coin' }]);
+    /* ⚠ VW-8 에 오른쪽 정렬하면 일시정지 아이콘과 겹친다(실측). 아이콘 폭만큼 비운다 */
+    txt(u, K('종족 도감'), VW-26, 3, 11, PAL.gold, 'right', 700);
+    /* 전체 진행 */
+    txt(u, K('등록'), 8, 20, 8, PAL.dim, 'left');
+    txt(u, `${T.owned} / ${T.total}`, 32, 18, 12, PAL.gold, 'left', 700);
+    txt(u, K('본 것 %1').replace('%1', T.seen), 92, 20, 9, PAL.dim, 'left');
+    txt(u, K('전당 %1').replace('%1', T.hall), 140, 20, 9, PAL.blue, 'left');
+    /* 등급 탭 — ▲▼ 로 옮긴다 */
+    for(let t2=1;t2<=5;t2++){
+      const on=t2===this.tier, c=Codex.countTier(t2);
+      const rr=(typeof RARITY!=='undefined')?RARITY[t2]:{name:'',color:PAL.white};
+      const x=VW-8-(5-t2)*62;
+      u.fillStyle = on?'rgba(255,255,255,.14)':'rgba(20,26,40,.7)';
+      u.fillRect(x-58, 16, 58, 15);
+      u.strokeStyle = on?rr.color:'#3a4258'; u.lineWidth=1; u.strokeRect(x-57.5,16.5,57,14);
+      txt(u, K(rr.name), x-38, 19, 9, on?rr.color:PAL.dim, 'center', on?700:400);
+      txt(u, `${c.owned}/${c.total}`, x-6, 20, 7,
+          (c.owned>=c.total&&c.total)?PAL.green:PAL.dim, 'right');
+    }
+    /* ── 격자 ─────────────────────────────────────────────
+       ⚠ 전설은 5종뿐이라 한 줄로 끝난다. 위에 붙여 그리면 아래가 통째로 빈다 —
+          줄 수에 맞춰 세로 가운데로 내린다. */
+    const list=this.list, COLS=8, cw=54, ch=46;
+    const gapX=(VW-16-COLS*cw)/(COLS-1), gapY=6;
+    const rows=Math.ceil(list.length/COLS);
+    const top=36, bot=VH-46, gh=rows*ch+(rows-1)*gapY;
+    const gy=top + Math.max(0, (bot-top-gh)/2), gx=8;
+    list.forEach((sp,i)=>{
+      const c=i%COLS, r=(i/COLS)|0;
+      const x=gx+c*(cw+gapX), y=gy+r*(ch+gapY);
+      if(y+ch > bot+4) return;
+      const owned=!!Codex.d.owned[sp], seen=!!Codex.d.seen[sp], hall=!!Codex.d.hall[sp];
+      UIK.card(u, x, y, cw, ch, owned?R.color:'#39415a', {on:i===this.sel});
+      if(owned){
+        /* 등급 발광을 그대로 쓴다 — 전설은 카드 안에서도 빛난다 */
+        if(!CharHD.draw(u, sp, x+cw/2, y+ch-9, 0.05, { t:this.t+i*220, scale:0.74, rare:this.tier })){
+          u.fillStyle=R.color; u.fillRect(x+cw/2-6, y+12, 12, 22);
+        }
+        txt(u, K(SPECIES[sp].name), x+cw/2, y+ch-9, 8, PAL.white, 'center');
+        if(hall) txt(u, '★', x+cw-7, y+2, 9, PAL.gold, 'center', 700);
+      } else if(seen){
+        /* 본 적은 있다 — **까만 실루엣**으로.
+           ⚠ 처음엔 globalAlpha 0.3 만 걸었다. CharHD 가 발광 때문에 같은 그림을
+              두세 번 겹쳐 그려서 실제로는 0.66 이 됐고, 화면에서 보유와 구분이 안 갔다.
+              filter 로 아예 색을 죽인다. rare:0 을 함께 넘겨 겹쳐 그리기도 막는다. */
+        u.save();
+        u.filter='grayscale(1) brightness(0.28)'; u.globalAlpha=0.85;
+        if(!CharHD.draw(u, sp, x+cw/2, y+ch-9, 0.05, { t:0, scale:0.74, rare:0 })){
+          u.fillStyle='#2b3245'; u.fillRect(x+cw/2-6, y+12, 12, 22);
+        }
+        u.restore();
+        txt(u, K(SPECIES[sp].name), x+cw/2, y+ch-9, 8, PAL.dim, 'center');
+      } else {
+        txt(u, '?', x+cw/2, y+ch/2-9, 18, '#333c52', 'center', 700);
+      }
+    });
+    /* ── 아래 띠 ───────────────────────────────────────────
+       이 화면의 값은 '등급 완성'이 아니라 **등록 수**다.
+       ⚠ 실측(tools/codex_fill.js): 40시즌을 굴려도 등급 완성은 흔함 27% · 전설 3%.
+          완성만 보상하면 죽은 콘텐츠가 된다. 그래서 마릿수 이정표를 앞에 세운다. */
+    const nx=Codex.nextMilestone(), can=Codex.hasClaim();
+    UIK.frame(u, 8, VH-42, VW-16, 34, { glow: can?PAL.gold:null });
+    /* ⚠ 띠 안은 **두 줄뿐**이다(VH-39 라벨 · VH-29 값). 세 줄째를 쓰면 액자 밖으로
+       나가 잘린다 — 실측으로 '종족당 +0.3%' 와 '30 / 36' 두 줄을 잃었다.
+       그래서 셋째 줄에 있던 것은 전부 첫째 줄 라벨 안으로 접어 넣는다. */
+    /* ① 등록 수가 곧 영구 성장 보너스 */
+    txt(u, K('영구 성장  종족당 +0.3%'), 16, VH-37, 7, PAL.dim, 'left');
+    txt(u, '+' + (Codex.growBonus().grow*100).toFixed(1) + '%', 16, VH-30, 13, PAL.green, 'left', 700);
+    /* ② 다음 이정표 */
+    const mx=100, bw=110;
+    if(nx){
+      const prev=(Codex.MILESTONES.filter(m=>m.n<=T.owned).pop()||{n:0}).n;
+      const p=clamp((T.owned-prev)/Math.max(1,nx.n-prev), 0, 1);
+      txt(u, K('다음 이정표') + `  ${T.owned} / ${nx.n}`, mx, VH-37, 7, PAL.dim, 'left');
+      u.fillStyle='rgba(255,255,255,.12)'; u.fillRect(mx, VH-27, bw, 8);
+      u.fillStyle=PAL.gold; u.fillRect(mx, VH-27, Math.round(bw*p), 8);
+      u.strokeStyle='rgba(255,255,255,.20)'; u.lineWidth=1; u.strokeRect(mx+.5, VH-26.5, bw-1, 7);
+      UIK.itemBox(u, mx+bw+7,  VH-39, 18, { color:'#ffcf4a', qty:nx.coin, icon:'icon-coin' });
+      UIK.itemBox(u, mx+bw+29, VH-39, 18, { color:PAL.gold,  qty:nx.tp,   icon:'icon-tp' });
+      /* ⚠ 훈련 포인트는 **한 명당**이다. 그냥 ×4 라고만 쓰면 총합으로 읽힌다
+         (실측: 선수 10명 화면에서 ×4 를 받았더니 합계가 120 늘었다) */
+      txt(u, K('1인당'), mx+bw+38, VH-19, 6, PAL.dim, 'center');
+    } else txt(u, K('전 종족 등록 완료'), mx, VH-32, 11, PAL.gold, 'left', 700);
+    /* ③ 받기 */
+    if(can){
+      const pend=Codex.pendingMilestones().length + Codex.pendingTiers().length;
+      txt(u, K('받을 보상 %1건').replace('%1', pend), VW-16, VH-37, 7, PAL.dim, 'right');
+      txt(u, K('확인 — 받기'), VW-16, VH-29, 11, PAL.gold, 'right', 700);
+    } else txt(u, K('모으면 자동으로 쌓입니다'), VW-16, VH-29, 8, PAL.dim, 'right');
+    if(this.fxAt!==undefined && this.t-this.fxAt<900)
+      BG.fx(u, 'fx-item-get', VW/2, VH-22, 40, clamp((this.t-this.fxAt)/900,0,0.999), 4);
+    UI.footer(u, '◀▶ 고르기 · ▲▼ 등급 · 확인 보상 · 취소 뒤로');
   }
 }

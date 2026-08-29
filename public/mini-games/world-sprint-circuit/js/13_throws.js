@@ -265,6 +265,14 @@ class HammerEvent extends FieldEvent {
       const kick = (this.kick && this.t-this.kickAt<120) ? (1-(this.t-this.kickAt)/120)*this.kick : 0;
       const rr = r + kick*4;
       const hx=CX+Math.cos(this.angle)*rr, hy=GROUND-16-Math.sin(this.angle)*rr*0.6;
+      /* 연타 링(fx-tap-ring) — 두드린 자리에서 고리가 퍼진다.
+         ⚠ 소리와 화면 흔들림만으로는 '내가 쳤다'가 눈에 안 보였다. 타격 지점에
+            고리를 띄우면 연타가 손끝에서 화면으로 이어진다. 4프레임 · 180ms. */
+      if(this.kick>0){
+        const age=this.t-this.kickAt;
+        if(age<180) BG.fx(BG.ctx(),'fx-tap-ring', hx, hy+6, 22+kick*10,
+                          clamp(age/180,0,0.999), 4);
+      }
       ctx.strokeStyle= kick>0 ? '#ffffff' : '#c9cede'; ctx.lineWidth= kick>0?2:1;
       ctx.beginPath(); ctx.moveTo(CX,GROUND-16); ctx.lineTo(hx,hy); ctx.stroke();
       if(BG.obj(BG.ctx(),'shot-hd',hx,hy+8,16)){ /* HD */ }

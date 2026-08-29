@@ -311,6 +311,13 @@ class Season {
     /* 커리어 — 감독 모드도 같은 사다리를 오른다 */
     if(typeof Career!=='undefined') Career.finishMeet(meet.points, this.medals.gold - goldBefore);
     meet.prize = prize;
+    /* 도감(4D_codex) — 이 대회에 나온 모든 종족을 '본 것'으로. 우리 선수는 '데리고 있던 것'으로.
+       ⚠ 라이벌까지 세는 이유: 자기 선수단만 세면 60종 중 10종에서 영영 멈춘다 */
+    if(typeof Codex!=='undefined') Codex.bulk(()=>{
+      for(const a of this.club.squad) Codex.own(a.species);
+      for(const e of meet.events) for(const row of e.rows)
+        if(row.athlete) Codex.see(row.athlete.species);
+    });
     this.results.push(meet);
     return meet;
   }
@@ -574,6 +581,7 @@ class Club {
            전당에 올리고 유산을 남긴다(49_depth). 없으면 예전 그대로 사라진다. */
         if(typeof DEPTH!=='undefined' && DEPTH.enshrine)
           out.enshrined = (out.enshrined||[]).concat([DEPTH.enshrine(this, a, this.year)]);
+        if(typeof Codex!=='undefined') Codex.enshrine(a.species);
         out.retired.push(a);
         this.squad.splice(this.squad.indexOf(a),1);
       }

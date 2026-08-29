@@ -55,6 +55,9 @@ function trainWeek(a, program, focus, rng, club){
   const LB = (typeof DEPTH!=='undefined' && club && DEPTH.legacyBonus)
            ? DEPTH.legacyBonus(club) : { grow:0 };
   RB.grow += LB.grow;
+  /* 종족 도감(4D_codex) — 등록한 종족 수만큼 영구히. 유산과 같은 통로, 같은 성격이다.
+     ⚠ 도감은 감독에게 붙으므로 **클럽을 새로 만들어도 남는다** — 두 번째 판이 조금 수월하다 */
+  if(typeof Codex!=='undefined' && Codex.growBonus) RB.grow += Codex.growBonus().grow;
 
   /* 부상 중이면 회복만 한다 */
   if(a.injury){
