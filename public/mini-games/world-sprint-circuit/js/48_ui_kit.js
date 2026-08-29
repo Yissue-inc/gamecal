@@ -223,6 +223,23 @@ const UIK = {
     txt(u, label, x+w/2, y+Math.round((h-13)/2), 13, PAL.white, 'center', 700);
   },
 
+  /* ── 등급 뱃지 ───────────────────────────────────────────
+     rarity-1 … rarity-5 (96×96). ⚠ 지금은 1·2만 도착했다 —
+     **없는 등급은 false 를 돌려주고 부르는 쪽이 별표로 물러난다.**
+     한 벌을 다 기다렸다가 붙이면 온 것도 안 쓰이고 놀게 된다. */
+  /* ⚠ 이름을 `'rarity-'+tier` 로 조립했더니 어셋 검사기가 그걸 종족 이름과 엮어
+     rarity-cheetah 같은 있지도 않은 이름 60개를 만들어 냈다(실측).
+     **이름은 리터럴로 못 박는다** — 검사기가 읽을 수 있어야 검사가 산다. */
+  /* ⚠ 맵 이름에 ICON 이 들어가야 어셋 검사기가 읽는다(check_assets.py 의 규약). */
+  RARITY_ICON: { 1:'rarity-1', 2:'rarity-2', 3:'rarity-3', 4:'rarity-4', 5:'rarity-5' },
+  rarityBadge(u, x, y, size, tier){
+    const name = this.RARITY_ICON[tier|0]; if(!name) return false;
+    const img = BG.get(name);
+    if(!img) return false;
+    u.drawImage(img, x, y, size, size);
+    return true;
+  },
+
   /* ── 탭 한 칸 ────────────────────────────────────────────
      tab-idle / tab-active (128×48). 없으면 예전처럼 사각형 두 겹으로 그린다. */
   tab(u, x, y, w, h, label, on){

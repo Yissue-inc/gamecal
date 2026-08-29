@@ -256,8 +256,21 @@ class GrowScreen extends Screen0 {
     }
     super.update(now);
   }
+  /* 행동 앞뒤로 종합력을 재서 +N 을 띄운다 — 뭘 해도 숫자가 움직이는 게 보여야 한다 */
+  act(fn){
+    const club = this.mg && this.mg.club;
+    if(typeof Power!=='undefined') Power.mark(this.a, club);
+    fn();
+    if(typeof Power!=='undefined'){
+      const d = Power.delta(this.a, club);
+      if(d.p || d.g || d.r){ this.pwD=d; this.pwAt=this.t||0; }
+    }
+  }
   confirm(){
     const a=this.a, r=this.rows[this.sel]; if(!r) return;
+    return this.act(()=>this._confirm(a, r));
+  }
+  _confirm(a, r){
     if(this.tab===2){
       if(!r._known){
         if(r._why){ Sfx.fail(); this.mg.toast(K(r._why)); return; }
@@ -341,20 +354,51 @@ class GrowScreen extends Screen0 {
     if(this.getFxAt!==undefined && this.t-this.getFxAt < 800)
       BG.fx(u, 'fx-item-get', 80, 200, 34, clamp((this.t-this.getFxAt)/800,0,0.999), 4);
     UIK.lvBadge(u, 12, 12, a.lv, col);
+    /* 종족 등급 — 뱃지 어셋이 왔으면 그림으로. 없으면 별표가 카드 위에 남는다 */
+    if(!UI.rareBadge(u, a, 128, 10, 20))
+      txt(u, UI.rareStars(a), 146, 13, 8, col, 'right');
     /* 경험치 */
-    UIK.xpBar(u, 14, 120, 132, a.lv, a.xp, RPG.xpToNext(a.lv));
-    /* 종합 */
-    txt(u, 'OVR', 16, 143, 8, PAL.dim, 'left');
-    txt(u, String(a.overall), 16, 152, 19, PAL.gold, 'left', 700);
-    txt(u, K('잠재'), 88, 143, 8, PAL.dim, 'left');
-    txt(u, String(a.potOverall), 88, 152, 19, PAL.dim, 'left', 700);
+    /* ⚠ 막대 옆 '0 / 1.6만' 은 껐다 — 바로 아래 '성장력' 라벨과 겹쳤고(실측),
+       레벨은 이미 왼쪽 위 뱃지에 있다. 카드의 주인공은 종합력이다. */
+    UIK.xpBar(u, 14, 116, 132, a.lv, a.xp, RPG.xpToNext(a.lv), { showText:false });
+    /* ── 종합력 — 이 카드의 주인공 ────────────────────────
+       ⚠ 예전엔 OVR 만 컸다. 그런데 OVR 은 **스탯만 본다** — Lv30 에 전설 장비를
+          셋 끼워도 신인과 같은 36 이 떴다(실측). 플레이어의 투자가 화면에서 사라졌다.
+          그래서 큰 자리는 종합력이 갖고, OVR·잠재는 그 밑 한 줄로 내린다. */
+    if(typeof Power!=='undefined'){
+      const pw = Power.of(a), gw = Power.growthOf(a, this.mg && this.mg.club);
+      txt(u, K('경기력'), 16, 128, 8, PAL.dim, 'left');
+      txt(u, UIK.n(pw), 16, 136, 21, PAL.gold, 'left', 700);
+      /* 성장력은 옆에 작게 — "지금 세다"와 "앞으로 큰다"는 다른 말이다 */
+      txt(u, K('성장력'), 88, 128, 8, PAL.dim, 'left');
+      txt(u, UIK.n(gw), 88, 139, 13, '#5aaaff', 'left', 700);
+      txt(u, `OVR ${a.overall} · ${K('잠재')} ${a.potOverall}`, 16, 159, 9, PAL.dim, 'left');
+      /* 방금 뭘 해서 오른 만큼 — 조용히 바뀌면 아무도 못 느낀다 */
+      /* 각자 자기 숫자 위로 떠오른다 — 어느 쪽이 올랐는지가 바로 보인다 */
+      if(this.pwD && this.t-this.pwAt < 1400){
+        const k = 1 - (this.t-this.pwAt)/1400;
+        u.globalAlpha = Math.min(1, k*2);
+        const pop=(v,x)=>{ if(!v) return;
+          txt(u, (v>0?'+':'')+UIK.n(v), x, 120-(1-k)*10, 13,
+              v>0?PAL.green:PAL.red, 'left', 700); };
+        pop(this.pwD.p, 16); pop(this.pwD.g, 88);
+        /* 잠재치 돌파는 경기력을 안 올린다 — 천장을 민다. 그 자리에 따로 띄운다 */
+        if(this.pwD.r) txt(u, '잠재 +'+UIK.n(this.pwD.r), 100, 159, 9, PAL.blue, 'left', 700);
+        u.globalAlpha = 1;
+      }
+    } else {
+      txt(u, 'OVR', 16, 143, 8, PAL.dim, 'left');
+      txt(u, String(a.overall), 16, 152, 19, PAL.gold, 'left', 700);
+      txt(u, K('잠재'), 88, 143, 8, PAL.dim, 'left');
+      txt(u, String(a.potOverall), 88, 152, 19, PAL.dim, 'left', 700);
+    }
     /* 장비 3칸 — 늘 보이게.
        ⚠ 아래에 스킬 두 줄이 새로 붙었다. 예전 자리(186)면 상자 라벨과 스킬 줄이,
           그리고 컨디션 줄이 푸터와 겹친다(실측). 블록을 통째로 6px 올린다. */
-    txt(u, K('장비'), 16, 172, 8, PAL.dim, 'left');
+    txt(u, K('장비'), 16, 171, 8, PAL.dim, 'left');
     RPG.SLOTS.forEach((sl,k)=>{
       const it=a.equip && a.equip[sl];
-      UIK.itemBox(u, 14+k*45, 181, 36, {
+      UIK.itemBox(u, 14+k*45, 180, 36, {
         color: it ? RPG.rarityOf(it.r).color : '#39415a',
         icon: it ? RPG.itemIcon(it) : RPG.SLOT_ICON[sl],
         qty: it ? RPG.rarityOf(it.r).name : K('빈칸'),
@@ -367,10 +411,10 @@ class GrowScreen extends Screen0 {
       /* ⚠ 자리는 계산해서 잡는다. UIK.itemBox 의 라벨은 y+size+2 = 181+36+2 = 219 에
          size 8 로 그려진다(219~229). 222 에 뒀더니 '스파이크' 위에 '스킬'이 얹혀
          '스킬발'로 읽혔다. 푸터는 VH-16(=254)부터다 — 231~249 만 쓸 수 있다. */
-      txt(u, K('스킬'), 16, 231, 8, PAL.dim, 'left');
+      txt(u, K('스킬'), 16, 230, 8, PAL.dim, 'left');
       for(let k=0;k<cap;k++){
         u.fillStyle = k<eq.length ? PAL.green : 'rgba(255,255,255,.18)';
-        u.fillRect(40+k*7, 232, 5, 5);
+        u.fillRect(40+k*7, 231, 5, 5);
       }
       u.save(); u.beginPath(); u.rect(14, 239, 132, 11); u.clip();
       txt(u, eq.length ? eq.map(id=>SKILL.def(id).name).join(' · ') : K('아직 없음'),

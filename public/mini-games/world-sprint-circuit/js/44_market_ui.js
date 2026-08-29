@@ -11,13 +11,13 @@ class MarketScreen extends Screen0 {
   get rows(){
     const M=this.M;
     return [
-      { label:'스카우트 파견', sub:`파견 중 ${M.scouts.length} / ${MarketTune.scoutSlots}` +
+      { label:'스카우트 파견', icon:'ic-scout', sub:`파견 중 ${M.scouts.length} / ${MarketTune.scoutSlots}` +
           (M.scouts.length?` — ${M.scouts.map(s=>`${s.name}(${s.weeksLeft}주)`).join(', ')}`:''), right:'▶' },
-      { label:'영입 후보', sub: M.prospects.length? `${M.prospects.length}명 대기 중` : '스카우트를 보내야 후보가 생깁니다',
+      { label:'영입 후보', icon:'ic-market', sub: M.prospects.length? `${M.prospects.length}명 대기 중` : '스카우트를 보내야 후보가 생깁니다',
         right:String(M.prospects.length), rightColor:M.prospects.length?PAL.green:PAL.dim },
-      { label:'이적 제안', sub: M.offers.length? `우리 선수에게 들어온 제안 ${M.offers.length}건` : '받은 제안 없음',
+      { label:'이적 제안', icon:'ic-offer', sub: M.offers.length? `우리 선수에게 들어온 제안 ${M.offers.length}건` : '받은 제안 없음',
         right:String(M.offers.length), rightColor:M.offers.length?PAL.gold:PAL.dim },
-      { label:'선수 방출', sub:'선수단을 정리한다 (몸값의 25%만 회수)', right:'▶' },
+      { label:'선수 방출', icon:'ic-release', sub:'선수단을 정리한다 (몸값의 25%만 회수)', right:'▶' },
     ];
   }
   confirm(){

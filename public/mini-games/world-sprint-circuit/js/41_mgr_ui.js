@@ -112,6 +112,11 @@ const UI = {
     return (typeof RARITY!=='undefined' && RARITY[r]) ? RARITY[r].name : ''; },
   rareStars(a){ const r=(typeof rarityOf==='function')?rarityOf(a):1;
     return '★'.repeat(r)+'☆'.repeat(5-r); },
+  /* 뱃지 어셋이 그 등급만큼 왔으면 그림으로, 아니면 별표로 — 오는 대로 붙는다 */
+  rareBadge(u, a, x, y, size){
+    const r=(typeof rarityOf==='function')?rarityOf(a):1;
+    return (typeof UIK!=='undefined') ? UIK.rarityBadge(u, x, y, size, r) : false;
+  },
   condName(v){ return v>=85?'최상' : v>=70?'좋음' : v>=55?'보통' : v>=40?'나쁨' : '최악'; },
 };
 
@@ -141,12 +146,67 @@ function C_squadIdleSkills(club){
   return n;
 }
 
+/* ── 지금 할 것 ──────────────────────────────────────────
+   ⚠ 사무실 메뉴가 **14줄**이다. 층을 아홉 개 쌓는 동안 "지금 뭘 해야 하나"에
+      답하는 자리가 없었다. 우마무스메는 매 턴 다섯 개만 묻는다.
+
+   그래서 맨 위에 **한 줄**을 둔다. 상태를 보고 제일 값진 것 하나를 골라
+   사람 말로 말하고, 확인 한 번에 그 화면으로 간다.
+   ⛔ 새 시스템이 아니다 — 이미 있는 것들을 가리키는 손가락일 뿐이다.
+
+   순서는 **놓치면 손해인 것**부터다: 공짜 보상 → 잠긴 자원 → 대회 → 관리. */
+function officeTodo(mg){
+  const C = mg.club, S = mg.season;
+  const put = (text, why, go, icon) => ({ text, why, go, icon });
+
+  /* ① 그냥 받으면 되는 것 — 안 받으면 순손해다 */
+  if(typeof Daily!=='undefined'){
+    const d=Daily.load();
+    if(d && !d.claimed && Daily.events().every(e=>d.marks[e.id]!==undefined))
+      return put('일일 도전 보상을 받으세요', '세 종목을 다 마쳤습니다',
+                 ()=>new DailyScreen(mg), 'icon-medal');
+  }
+  if(typeof Codex!=='undefined' && Codex.hasClaim())
+    return put('도감 보상을 받으세요', '이정표에 닿았습니다',
+               ()=>new CodexScreen(mg), 'icon-xp');
+
+  /* ② 놀고 있는 자원 — 쌓아 두면 아무 일도 안 한다 */
+  if(typeof SKILL!=='undefined'){
+    const idle = C_squadIdleSkills(C);
+    if(idle) return put(`안 켠 스킬 ${idle}개가 있습니다`, '배웠는데 장착을 안 했습니다',
+                        ()=>new GrowPickScreen(mg), 'icon-levelup');
+  }
+  const tp = C.squad.reduce((n,a)=>n+(a.tp||0),0);
+  if(tp >= 10) return put(`훈련 포인트 ${tp}점이 놀고 있습니다`, '스탯을 올리거나 잠재치를 돌파하세요',
+                          ()=>new GrowPickScreen(mg), 'icon-tp');
+  if(typeof FACIL!=='undefined' && FACIL.ids().some(id=>FACIL.canBuild(C,id)===null))
+    return put('시설을 지을 수 있습니다', '코인을 영구 성장으로 바꿉니다',
+               ()=>new FacilityScreen(mg), 'icon-gear');
+
+  /* ③ 이번 주에 반드시 할 것 */
+  if(S.isMeetWeek) return put(`${MEET_INFO[S.meetKind].name} 출전`, '출전표를 짜세요',
+                              ()=>new EntryScreen(mg), 'ic-meet');
+  const hurt = C.squad.filter(a=>a.injury).length;
+  if(hurt) return put(`부상 ${hurt}명 — 치료를 지정하세요`, '치료 지도는 회복이 2배 빠릅니다',
+                      ()=>new TrainScreen(mg), 'ic-injury');
+  if(Object.keys(mg.focus).length < 3)
+    return put(`직접 지도 ${Object.keys(mg.focus).length} / 3`, '남은 자리를 쓰지 않으면 그냥 사라집니다',
+               ()=>new TrainScreen(mg), 'ic-train');
+  return null;                                  // 할 일이 없으면 줄을 안 만든다
+}
+
 /* ── 사무실(허브) ────────────────────────────────────────── */
 class OfficeScreen extends Screen0 {
   get hdBg(){ return 'bg-office'; }  get hdBgDim(){ return 0.76; }
   get rows(){
     const S=this.mg.season, meetW=S.nextMeetWeek;
-    const r=[
+    const todo = officeTodo(this.mg);
+    const r=[];
+    /* 맨 위 한 줄 — 지금 할 것. 없으면 아예 안 뜬다(빈 줄로 자리를 먹지 않는다) */
+    if(todo) r.push({ label:'▶ '+todo.text, sub:todo.why, icon:todo.icon,
+                      right:'!', rightColor:PAL.green, color:PAL.green,
+                      go:todo.go });
+    r.push(...[
       /* 감독(4C_master) — '나'. 레벨이 선수 레벨 상한·코치 자리·정원을 연다 */
       (()=>{ const lv=(typeof Master!=='undefined')?Master.lv():1;
              const nx=(typeof Master!=='undefined')?Master.nextUnlock():null;
@@ -157,7 +217,10 @@ class OfficeScreen extends Screen0 {
                       go:()=>new MasterScreen(this.mg) }; })(),
       { label:'훈련 지시', icon:'ic-train', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶',
         go:()=>new TrainScreen(this.mg) },
-      { label:'선수단',   icon:'ic-squad', sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶',
+      { label:'선수단',   icon:'ic-squad',
+        sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`,
+        right: (typeof Power!=='undefined') ? UIK.n(Power.clubOf(this.mg.club)) : '▶',
+        rightColor: PAL.gold, right2: (typeof Power!=='undefined') ? '클럽 경기력' : undefined,
         go:()=>new SquadScreen(this.mg) },
       /* 육성(46_rpg) — 포인트가 남아 있으면 눈에 띄게 */
       (()=>{ const tp=this.mg.club.squad.reduce((s,a)=>s+(a.tp||0),0);
@@ -201,7 +264,7 @@ class OfficeScreen extends Screen0 {
                right: d.claimed ? '✓' : left ? String(left) : '!',
                rightColor: d.claimed?PAL.dim:PAL.gold,
                color: d.claimed?undefined:PAL.gold,
-               icon:'icon-medal', go:()=>new DailyScreen(this.mg) }; })(),
+               icon:'ic-stopwatch', go:()=>new DailyScreen(this.mg) }; })(),
       /* 명예의 전당(49_depth) — 은퇴 선수가 남는 자리이자 신인이 물려받는 자리 */
       (()=>{ const h=(typeof DEPTH!=='undefined')?DEPTH.hall(this.mg.club):[];
              const t=(typeof DEPTH!=='undefined')?DEPTH.legacyTotal(this.mg.club):0;
@@ -220,9 +283,9 @@ class OfficeScreen extends Screen0 {
                       go:()=>new CodexScreen(this.mg) }; })(),
       { label:'기록실',   icon:'ic-record', sub:'클럽 기록과 대회 이력', right:'▶',
         go:()=>new RecordScreen(this.mg) },
-      { label:'리그 순위표', icon:'icon-coin', sub:leagueSub(S), right:'▶',
+      { label:'리그 순위표', icon:'ic-medal', sub:leagueSub(S), right:'▶',
         go:()=>new LeagueScreen(this.mg) },
-    ];
+    ]);
     if(S.isMeetWeek) r.push({ label:`▶ ${MEET_INFO[S.meetKind].name} 출전`, icon:'ic-meet',
                               sub:'출전표를 짜고 경기를 본다',
                               color:PAL.green, right:'!', go:()=>new EntryScreen(this.mg) });
@@ -277,18 +340,25 @@ class OfficeScreen extends Screen0 {
     const avgF = C.squad.reduce((s,a)=>s+a.fatigue,0)/C.squad.length;
     plate(u, 8, 50, VW-16, 28, .78);
     const inj=C.squad.filter(a=>a.injury);
+    /* ⚠ 예전엔 배열 세 칸([라벨, 값, 색])이었다. 아이콘을 네 번째 칸으로 붙였더니
+       어셋 검사기가 못 읽었다(이름 붙은 icon: 만 읽는다). 객체로 바꾼다 —
+       칸이 늘어도 자리로 세지 않아도 되고 검사기도 읽는다. */
     const cells=[
-      ['자금', String(Math.round(C.budget)), C.budget<20?PAL.red:PAL.gold],
-      ['승점', String(S.points), PAL.white],
-      ['메달', `${S.medals.gold}·${S.medals.silver}·${S.medals.bronze}`, PAL.white],
-      ['컨디션', UI.condName(avgC), UI.cond(avgC)],
-      ['피로', Math.round(avgF)+'', avgF>65?PAL.red:avgF>45?PAL.gold:PAL.green],
-      ['부상', inj.length?`${inj.length}명`:'없음', inj.length?PAL.red:PAL.green],
+      { k:'자금', v:String(Math.round(C.budget)), c:C.budget<20?PAL.red:PAL.gold, icon:'ic-coin' },
+      { k:'승점', v:String(S.points), c:PAL.white },
+      { k:'메달', v:`${S.medals.gold}·${S.medals.silver}·${S.medals.bronze}`, c:PAL.white },
+      { k:'컨디션', v:UI.condName(avgC), c:UI.cond(avgC) },
+      { k:'피로', v:Math.round(avgF)+'', c:avgF>65?PAL.red:avgF>45?PAL.gold:PAL.green },
+      { k:'부상', v:inj.length?`${inj.length}명`:'없음', c:inj.length?PAL.red:PAL.green },
     ];
     cells.forEach((c,i)=>{
       const cx=16+i*Math.floor((VW-32)/cells.length);
-      txt(u,c[0],cx,54,8,PAL.dim);
-      txt(u,c[1],cx,64,12,c[2],'left',700);
+      /* 아이콘이 있는 칸은 라벨 앞에 — 어셋이 없으면 폭 0 이라 예전 자리 그대로다 */
+      let lx=cx;
+      if(c.icon){ const im=BG.get(c.icon);
+                  if(im){ u.drawImage(im, cx, 53, 8, 8); lx=cx+10; } }
+      txt(u,c.k,lx,54,8,PAL.dim);
+      txt(u,c.v,cx,64,12,c.c,'left',700);
     });
 
     UI.list(u, this.rows, this.sel, 8, 82, VW-16, 22, 6);
@@ -407,8 +477,11 @@ class SquadScreen extends Screen0 {
   get rows(){ return this.mg.club.squad.map(a=>({
     label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${a.speciesName} ${a.name}`, nation:a.nation,
     sub:`${a.age}세 · ${UI.rareName(a)} · ${GROWTH[a.growth].name} · ${a.traits.map(t=>TRAITS[t].name).join(', ')||'특성 없음'}`,
-    right:`${a.overall} / ${a.potOverall}`, rightColor: a.overall>=a.potOverall-2?PAL.green:PAL.gold,
-    right2: a.injury?`부상 ${a.injury.weeks}주`:UI.condName(a.condition),
+    /* ⚠ 목록의 큰 글씨도 경기력으로 바꾼다. OVR 만 보이면 Lv30 에 전설 장비를
+       끼운 선수와 신인이 같은 숫자로 나란히 선다 — 누굴 내보낼지 알 수가 없다. */
+    right: (typeof Power!=='undefined') ? UIK.n(Power.of(a)) : `${a.overall} / ${a.potOverall}`,
+    rightColor: a.injury?PAL.red:PAL.gold,
+    right2: a.injury?`부상 ${a.injury.weeks}주` : `OVR ${a.overall} · ${UI.condName(a.condition)}`,
     color: a.injury?PAL.red:UI.rareColor(a) })); }
   confirm(){ this.mg.push(new AthleteScreen(this.mg, this.mg.club.squad[this.sel])); }
   draw(u){
