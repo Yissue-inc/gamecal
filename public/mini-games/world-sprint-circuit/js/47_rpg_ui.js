@@ -88,6 +88,12 @@ class GrowPickScreen extends Screen0 {
       txt(u, a.name, tx, y+15, 10, on?PAL.gold:PAL.white, 'left', on?700:400);
       u.restore();
       txt(u, `OVR ${a.overall}`, tx, y+27, 8, PAL.dim, 'left');
+      /* 잘 자라는 스탯 둘 — '이 선수는 뭐지'에 카드가 답한다 */
+      const tops=DEPTH.topApt(a,2);
+      tops.forEach((t2,ti)=>{
+        const ap=DEPTH.aptOf(a,t2.k);
+        txt(u, (STAT_NAME[t2.k]||t2.k).slice(0,2)+ap.key, tx+ti*26, y+37, 8, ap.color, 'left', 700);
+      });
       UIK.xpBar(u, tx, y+ch-17, cw-(tx-x)-6, a.lv, a.xp, RPG.xpToNext(a.lv), {showText:false});
       /* 포인트 있으면 눈에 띄게 — 할 일이 있는 카드 */
       if(a.tp>0){
@@ -168,6 +174,7 @@ class GrowScreen extends Screen0 {
         if(it && RPG.canFuse(inv, it)){
           const made=RPG.fuse(inv, it);
           Sfx.record(); Screen.shake(0.35);
+          this.getFxAt = this.t||0;                 // 아이템이 생긴 순간
           this.mg.toast(K('합성 → %1').replace('%1', RPG.itemName(made)));
           this.sel=Math.min(this.sel, this.rows.length-1);
         } else { Sfx.fail(); this.mg.toast(K('같은 등급 3개가 필요합니다')); }
@@ -198,6 +205,7 @@ class GrowScreen extends Screen0 {
       const err=RPG.spendTp(a, r._k, 1);
       if(err){ Sfx.fail(); this.mg.toast(err); return; }
       Sfx.record(); Screen.shake(0.3);
+      this.fxAt = this.t||0;                       // 스탯이 오른 순간 — 연출을 띄운다
       this.mg.toast(`${STAT_NAME[r._k]||r._k} +1  (남은 포인트 ${a.tp})`);
       return;
     }
@@ -216,6 +224,7 @@ class GrowScreen extends Screen0 {
       inv.splice(r._inv,1);
       if(res.removed) inv.push(res.removed);
       Sfx.record(); Screen.shake(0.25);
+      this.getFxAt = this.t||0;
       this.mg.toast(RPG.itemName(it)+' 착용');
     }
   }
@@ -230,6 +239,12 @@ class GrowScreen extends Screen0 {
     if(!CharHD.draw(u, a.species, 80, 108, 0.05, { t:this.t, scale:1.5 })){
       u.fillStyle=col; u.fillRect(70, 60, 20, 48);
     }
+    /* 스탯이 오른 순간 발밑에서 금빛 고리 — 숫자만 바뀌면 오른 줄 모른다 */
+    if(this.fxAt!==undefined && this.t-this.fxAt < 800)
+      BG.fx(u, 'fx-levelup', 80, 112, 40, clamp((this.t-this.fxAt)/800,0,0.999), 4);
+    /* 장비를 얻거나 합성한 순간 — 빛기둥 */
+    if(this.getFxAt!==undefined && this.t-this.getFxAt < 800)
+      BG.fx(u, 'fx-item-get', 80, 200, 34, clamp((this.t-this.getFxAt)/800,0,0.999), 4);
     UIK.lvBadge(u, 12, 12, a.lv, col);
     /* 경험치 */
     UIK.xpBar(u, 14, 120, 132, a.lv, a.xp, RPG.xpToNext(a.lv));
@@ -330,12 +345,14 @@ class IdleReturnScreen extends Screen0 {
     txt(u, K('자리를 비운 동안 선수들이 훈련했습니다'), VW/2, 34, 9, PAL.dim, 'center');
 
     /* 시간 — 이 화면의 주인공 */
-    UIK.frame(u, VW/2-92, 46, 184, 44, { glow:PAL.gold });
+    /* ⚠ 액자를 44 높이로 두고 상한 문구를 82 에 찍었더니 **아래 테두리에 가렸다**.
+       9-slice 액자는 테두리가 두껍다 — 안쪽 여백을 넉넉히 잡는다. */
+    UIK.frame(u, VW/2-92, 44, 184, 50, { glow:PAL.gold });
     txt(u, K('비운 시간'), VW/2, 50, 8, PAL.dim, 'center');
-    UIK.clock(u, VW/2, 60, R.sec, 24);
+    UIK.clock(u, VW/2, 59, R.sec, 23);
     const capH = RPG.IDLE.capHours;
     const capped = R.sec >= capH*3600 - 1;
-    txt(u, K('최대 %1시간').replace('%1', capH), VW/2, 82, 8,
+    txt(u, K('최대 %1시간').replace('%1', capH), VW/2, 80, 8,
         capped?PAL.red:PAL.dim, 'center', capped?700:400);
 
     /* 분당 획득률 — 레퍼런스가 예외 없이 보여 주는 것 */
@@ -344,7 +361,10 @@ class IdleReturnScreen extends Screen0 {
     const perMin = Math.round(RPG.IDLE.xpPerSec*60);
     const gearAvg = this.gearBonusAvg();
     UIK.rate(u, 14, 98, K('1명당'), perMin, Math.round(perMin*gearAvg), PAL.blue);
-    UIK.rate(u, 150, 98, K('코인'), Math.round(RPG.IDLE.coinPerSec*60*10)/10, 0, '#ffcf4a');
+    /* ⚠ 코인은 분당 0.18 이라 반올림하면 0 으로 보였다 — 시간당으로 말한다 */
+    txt(u, K('코인'), 150, 98, 9, PAL.dim, 'left', 700);
+    txt(u, UIK.n(Math.round(RPG.IDLE.coinPerSec*3600)), 184, 97, 11, '#ffcf4a', 'left', 700);
+    txt(u, K('/시간'), 204, 98, 8, PAL.dim, 'left');
     txt(u, K('훈련 중 %1명').replace('%1', R.rows.length), VW-14, 98, 9, PAL.dim, 'right');
 
     /* 얻은 것 — 아이템 상자 행 */
@@ -379,7 +399,13 @@ class IdleReturnScreen extends Screen0 {
     } else {
       const age=this.t-this.claimAt;
       txt(u, K('받았습니다'), VW/2, VH-36, 15, PAL.green, 'center', 700);
-      if(age<900) BG.fx(u, 'confetti-burst', VW/2, VH-24, 70, clamp(age/900,0,0.999), 4);
+      if(age<900){
+        BG.fx(u, 'confetti-burst', VW/2, VH-24, 70, clamp(age/900,0,0.999), 4);
+        /* 상자마다 코인이 튀어 오른다 — '받았다'가 눈에 보여야 한다 */
+        const boxes=this.boxes(), bs=34, gap=8, tw=boxes.length*bs+(boxes.length-1)*gap;
+        boxes.forEach((b,i)=>BG.fx(u, 'fx-coin-pop', VW/2-tw/2+i*(bs+gap)+bs/2, 140,
+                                   22, clamp(age/900,0,0.999), 4));
+      }
       txt(u, K('아무 키나 눌러 계속'), VW/2, VH-18, 9, PAL.dim, 'center');
     }
   }
@@ -472,6 +498,9 @@ class ScoutReportScreen extends Screen0 {
     for(const k of STAT_KEYS){
       const r=DEPTH.potentialRange(a, k), cur=a.stats[k];
       txt(u, STAT_NAME[k], 16, y, 9, PAL.white, 'left');
+      /* 적성 — 이 종이 그 스탯을 얼마나 빨리 올리나. 데이터는 처음부터 있었다. */
+      const ap=DEPTH.aptOf(a, k);
+      txt(u, ap.key, 62, y, 10, ap.color, 'left', 700);
       const x0=76, w=VW-76-70;
       const px=(v)=>x0 + (clamp(v,20,99)-20)/79*w;
       u.fillStyle='rgba(255,255,255,.08)'; u.fillRect(x0, y+2, w, 7);
@@ -483,13 +512,19 @@ class ScoutReportScreen extends Screen0 {
       txt(u, `${Math.round(cur)} → ${r.lo}~${r.hi}`, VW-16, y+1, 9, PAL.dim, 'right');
       y += 15;
     }
-    /* 총평 */
+    /* 총평 + 특기 종목 */
     txt(u, K(DEPTH.verdict(a)), VW/2, y+8, 12,
         conf<0.4?PAL.dim:PAL.gold, 'center', 700);
+    const be=DEPTH.bestEvents(a);
+    if(be.length){
+      const names=be.map(id=>(EVENT_BY_ID[id]?K(EVENT_BY_ID[id].name):id)).join(' · ');
+      txt(u, K('특기 %1').replace('%1', names), VW/2, y+22, 9, PAL.green, 'center');
+    }
     /* 성장 이력 꺾은선 */
     const log=a.ovrLog||[];
     if(log.length>2){
-      const gx=16, gy=y+26, gw=VW-32, gh=28;
+      /* ⚠ 특기 한 줄이 들어오면서 그래프 제목과 겹쳤다 — 그만큼 내린다 */
+      const gx=16, gy=y+36, gw=VW-32, gh=26;
       const lo=Math.min(...log), hi=Math.max(...log), sp=Math.max(1,hi-lo);
       u.strokeStyle='rgba(255,255,255,.10)'; u.lineWidth=1;
       u.strokeRect(gx+.5, gy+.5, gw-1, gh-1);
@@ -574,7 +609,8 @@ class PodiumScreen extends Screen0 {
     const px = cx + (w.rank===1?0:w.rank===2?-38:38);
     if(!CharHD.draw(u, w.a.species, px, py, 0.05, { t:this.t, scale:1.05 }))
       { u.fillStyle=PAL.gold; u.fillRect(px-7, py-28, 14, 28); }
-    if(!BG.obj(u, 'medal-gold', px, py-24, 14)){
+    const medalArt = w.rank===1 ? 'medal-gold' : 'icon-medal';
+    if(!BG.obj(u, medalArt, px, py-24, 14)){
       u.fillStyle = w.rank===1?PAL.gold:w.rank===2?'#c9cede':'#c9884a';
       u.beginPath(); u.arc(px, py-30, 5, 0, 6.284); u.fill();
     }
@@ -716,5 +752,101 @@ class HallScreen extends Screen0 {
           VW/2, 50, 10, PAL.gold, 'center', 700);
     UI.list(u, this.rows, this.sel, 8, this.rookie?62:50, VW-16, 22, this.rookie?7:8);
     UI.footer(u, this.rookie ? '확인 계승   취소 돌아가기' : '취소 돌아가기');
+  }
+}
+
+/* ── 감독 (4C_master) ───────────────────────────────────────
+   '나'의 화면. 포켓몬의 트레이너 카드, AFK아레나의 플레이어 프로필에 해당한다.
+
+   ⚠ 이 화면의 목적은 자랑이 아니라 **연결**이다. 감독 레벨이 선수 레벨의 상한이고
+      코치 자리와 스카우트 지역을 연다 — 그걸 여기서 한눈에 보여 줘야
+      "나를 왜 키우나"에 답이 된다. */
+class MasterScreen extends Screen0 {
+  constructor(mg){ super(mg); this.t=0; this.editing=false; }
+  get rows(){ return []; }
+  update(now){
+    this.t+=16.7;
+    if(this.editing) return;                       // 이름 입력 중엔 목록을 안 움직인다
+    if(Input.pressed('action')){ this.rename(); return; }
+    if(Input.pressed('left')||Input.pressed('right')){
+      Master.setFace((Master.d.face + (Input.pressed('left')?-1:1) + 8) % 8); Sfx.ui(); return;
+    }
+    if(Input.pressed('back')){ this.cancel(); }
+  }
+  rename(){
+    /* ⚠ 캔버스 게임이라 글자 입력 UI 가 없다. 브라우저 prompt 를 쓴다 —
+       이름을 짓는 건 게임에서 한 번뿐인 일이라 이 정도가 맞다. */
+    this.editing = true;
+    try{
+      const n = window.prompt(K('감독 이름'), Master.d.name || '');
+      if(n!==null && n.trim()) { Master.setName(n.trim()); Sfx.record(); }
+    }catch(e){}
+    this.editing = false;
+  }
+  cancel(){ if(this.mg) this.mg.pop(); else G.state=ST.TITLE; }
+  draw(u){
+    const lv=Master.lv(), cp=Master.cp(), nx=Master.nextUnlock();
+    if(!BG.fill(BG.ctx(),'bg-office', 0, VH)){
+      const g=u.createLinearGradient(0,0,0,VH);
+      g.addColorStop(0,'#101a30'); g.addColorStop(1,'#070a12');
+      u.fillStyle=g; u.fillRect(0,0,VW,VH);
+    }
+    u.fillStyle='rgba(6,9,18,.55)'; u.fillRect(0,0,VW,VH);
+
+    /* 왼쪽 — 감독 카드 */
+    UIK.frame(u, 8, 8, 150, VH-16, { glow:PAL.gold });
+    txt(u, K('감독'), 83, 14, 9, PAL.dim, 'center');
+    txt(u, Master.name, 83, 26, 15, PAL.gold, 'center', 700);
+    /* 얼굴 — 아직 초상 어셋이 없으니 종족 스프라이트를 빌려 쓴다(◀▶ 로 고른다) */
+    const faces=['cheetah','greyfox','lynx','bear','horse','hare','monkey','eagle'];
+    const sp=faces[(Master.d.face|0)%faces.length];
+    if(!CharHD.draw(u, sp, 83, 108, 0.05, { t:this.t, scale:1.5 })){
+      u.fillStyle=PAL.gold; u.fillRect(74, 62, 18, 46);
+    }
+    txt(u, '◀ ▶', 83, 114, 9, PAL.dim, 'center');
+    UIK.lvBadge(u, 14, 14, lv, PAL.gold);
+    /* 레벨 진행 */
+    UIK.xpBar(u, 16, 130, 134, lv, cp-Master.cpFor(lv), Master.cpFor(lv+1)-Master.cpFor(lv));
+    txt(u, K('커리어 점수 %1').replace('%1', UIK.n(cp)), 83, 146, 8, PAL.dim, 'center');
+    /* 이력 */
+    const c=(typeof Career!=='undefined')?Career.d:{};
+    let y=164;
+    for(const [k,v] of [[K('경기'), c.races||0], [K('개인 최고'), c.pbs||0],
+                        [K('금메달'), c.golds||0], [K('시즌'), c.seasons||0]]){
+      txt(u, k, 18, y, 8, PAL.dim, 'left');
+      txt(u, UIK.n(v), 148, y-1, 10, PAL.white, 'right', 700);
+      y+=13;
+    }
+    /* ⚠ VH-20 은 9-slice 액자의 아래 테두리에 걸린다 — 안쪽으로 들인다 */
+    txt(u, K('확인 이름 바꾸기'), 83, VH-26, 8, PAL.dim, 'center');
+
+    /* 오른쪽 — 감독 레벨이 여는 것 */
+    UIK.frame(u, 164, 8, VW-172, VH-16);
+    txt(u, K('감독 레벨이 여는 것'), VW/2+82, 14, 10, PAL.gold, 'center', 700);
+    const rows=[
+      { k:K('선수 레벨 상한'), v:'Lv.'+Master.athleteCap(), hot:true },
+      { k:K('코치 자리'),      v:Master.coachSlots()+K('명') },
+      { k:K('선수단 정원'),    v:Master.squadCap()+K('명') },
+      { k:K('스카우트 지역'),  v:Master.scoutRegions()+K('곳') },
+    ];
+    let ry=34;
+    for(const r of rows){
+      u.fillStyle='rgba(255,255,255,.05)'; u.fillRect(172, ry, VW-188, 20);
+      txt(u, r.k, 180, ry+5, 10, PAL.white, 'left');
+      txt(u, r.v, VW-20, ry+4, 12, r.hot?PAL.gold:PAL.blue, 'right', 700);
+      ry+=24;
+    }
+    /* 왜 키워야 하나 — 다음에 열리는 것 */
+    if(nx){
+      UIK.frame(u, 172, ry+6, VW-188, 40, { glow:PAL.blue });
+      txt(u, K('다음 Lv.%1 에서').replace('%1', nx.lv), VW/2+82, ry+12, 9, PAL.dim, 'center');
+      txt(u, K(nx.text), VW/2+82, ry+23, 12, PAL.blue, 'center', 700);
+      const need=Master.toNext();
+      if(need>0) txt(u, K('커리어 점수 %1 더').replace('%1', UIK.n(need)),
+                     VW/2+82, ry+52, 9, PAL.dim, 'center');
+    }
+    txt(u, K('경기를 하면 커리어 점수가 쌓입니다 — 아케이드도, 감독 모드도'),
+        VW/2+82, VH-26, 8, PAL.dim, 'center');
+    UI.footer(u, '확인 이름 · ◀▶ 얼굴 · 취소 돌아가기');
   }
 }

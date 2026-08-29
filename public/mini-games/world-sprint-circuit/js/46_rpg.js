@@ -40,14 +40,21 @@ const RPG = {
     const before = a.lv;
     a.xp += Math.round(amount);
     let tp = 0;
-    while(a.lv < this.MAX_LV && a.xp >= this.xpToNext(a.lv)){
+    /* ⚠ 감독 레벨이 선수 레벨의 상한이다(4C_master) — 포켓몬의 배지, AFK아레나의
+       플레이어 레벨과 같은 고리다. 내 선수를 더 키우려면 나도 커야 한다.
+       ⚠ 상한에 닿아도 **경험치는 계속 쌓인다.** 감독이 크는 순간 한꺼번에 오른다 —
+          쌓은 것을 버리지 않는다. */
+    const cap = (typeof Master!=='undefined' && Master.athleteCap)
+              ? Math.min(this.MAX_LV, Master.athleteCap()) : this.MAX_LV;
+    while(a.lv < cap && a.xp >= this.xpToNext(a.lv)){
       a.xp -= this.xpToNext(a.lv);
       a.lv++;
       tp += this.tpPerLevel(a.lv);
     }
     if(a.lv >= this.MAX_LV) a.xp = Math.min(a.xp, this.xpToNext(this.MAX_LV)-1);
     a.tp += tp;
-    const out = { gained:Math.round(amount), levels:a.lv-before, tp, why:why||'' };
+    const out = { gained:Math.round(amount), levels:a.lv-before, tp, why:why||'',
+                  capped: a.lv>=cap && a.xp >= this.xpToNext(a.lv) };
     if(out.levels>0){ (a.rpgLog ||= []).push({ lv:a.lv, tp }); }
     return out;
   },

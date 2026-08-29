@@ -38,7 +38,10 @@ const DEPTH = {
     const c=this.coachOf(id); if(!c) return '없는 코치';
     club.coaches = club.coaches || [];
     if(club.coaches.includes(id)) return '이미 고용했습니다';
-    if(club.coaches.length >= 3) return '코치는 3명까지입니다';
+    /* 코치 자리도 감독이 연다(4C_master) — 감독 Lv3·6·12 에서 늘어난다 */
+    const slots = (typeof Master!=='undefined' && Master.coachSlots) ? Master.coachSlots() : 3;
+    if(club.coaches.length >= slots)
+      return `코치는 ${slots}명까지입니다 (감독 레벨을 올리면 늘어납니다)`;
     const fee = c.wage*4;                       // 계약금 = 4주치
     if((club.budget||0) < fee) return `코인이 부족합니다 (필요 ${fee})`;
     club.budget = +(club.budget - fee).toFixed(1);
@@ -185,5 +188,43 @@ Object.assign(DEPTH, {
     }
     rookie.inherited = { from: rec.name, year: rec.year };
     return null;
+  },
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   적성 — 이미 있는데 안 보이던 것
+
+   ⚠ speciesBias 는 처음부터 있었다. 치타는 스피드가 1.75배 빨리 오르고
+      코끼리는 파워가 그렇다. 그런데 **플레이어는 그걸 모른다** — 화면 어디에도
+      없다. 데이터가 있는데 안 보이면 없는 것과 같다.
+      "이 선수를 어디에 쓸까"는 육성 게임의 첫 번째 질문인데, 답할 근거가
+      화면에 없었다.
+
+   등급으로 바꿔 보여 준다 — 숫자(1.75)보다 글자(S)가 빨리 읽힌다.
+   ══════════════════════════════════════════════════════════════════ */
+Object.assign(DEPTH, {
+  /* 편향 값(0.75~1.95)을 등급으로. 1.0 이 보통이다. */
+  APT: [
+    { min:1.60, key:'S', color:'#ffd75e' },
+    { min:1.35, key:'A', color:'#5cff9c' },
+    { min:1.12, key:'B', color:'#5aaaff' },
+    { min:0.92, key:'C', color:'#c9cede' },
+    { min:0.78, key:'D', color:'#9aa4b8' },
+    { min:0,    key:'E', color:'#ff7b6b' },
+  ],
+  aptOf(a, stat){
+    const b = (typeof speciesBias==='function') ? speciesBias(a, stat) : 1;
+    return this.APT.find(t=>b>=t.min) || this.APT[this.APT.length-1];
+  },
+  /* 이 선수가 가장 잘 자라는 스탯 둘 — 카드 한 줄에 쓴다 */
+  topApt(a, n){
+    const K=(typeof STAT_KEYS!=='undefined')?STAT_KEYS:[];
+    return K.map(k=>({ k, b:(typeof speciesBias==='function')?speciesBias(a,k):1 }))
+            .sort((x,y)=>y.b-x.b).slice(0, n||2);
+  },
+  /* 종이 특히 잘하는 종목 — 이미 SPECIES.best 에 있다 */
+  bestEvents(a){
+    const s = (typeof SPECIES!=='undefined') ? SPECIES[a.species] : null;
+    return (s && s.best) || [];
   },
 });

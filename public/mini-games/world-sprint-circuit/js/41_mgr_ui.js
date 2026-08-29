@@ -110,6 +110,14 @@ class OfficeScreen extends Screen0 {
   get rows(){
     const S=this.mg.season, meetW=S.nextMeetWeek;
     const r=[
+      /* 감독(4C_master) — '나'. 레벨이 선수 레벨 상한·코치 자리·정원을 연다 */
+      (()=>{ const lv=(typeof Master!=='undefined')?Master.lv():1;
+             const nx=(typeof Master!=='undefined')?Master.nextUnlock():null;
+             return { label:`감독  ${(typeof Master!=='undefined')?Master.name:''}`,
+                      sub:`Lv.${lv} · 선수 레벨 상한 ${(typeof Master!=='undefined')?Master.athleteCap():60}`
+                          + (nx? ` · 다음 Lv.${nx.lv}: ${nx.text}` : ''),
+                      right:'Lv.'+lv, rightColor:PAL.gold,
+                      go:()=>new MasterScreen(this.mg) }; })(),
       { label:'훈련 지시', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶',
         go:()=>new TrainScreen(this.mg) },
       { label:'선수단',   sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶',
@@ -474,9 +482,11 @@ class LeagueScreen extends Screen0 {
       u.fillStyle = r.mine ? 'rgba(255,215,94,.16)' : (i%2?'rgba(255,255,255,.04)':'transparent');
       u.fillRect(8, y-2, VW-16, rh-3);
       if(r.mine){ u.strokeStyle=PAL.gold; u.lineWidth=1; u.strokeRect(8.5, y-1.5, VW-17, rh-4); }
-      txt(u, String(r.rank), 18, y+2, 12, r.rank<=3?PAL.gold:PAL.dim,'center',700);
-      if(typeof drawFlag==='function') drawFlag(u, 28, y+1, 14, 10, r.nation);
-      txt(u, r.name, 48, y+2, 11, r.mine?PAL.gold:PAL.white,'left', r.mine?700:400);
+      txt(u, String(r.rank), 16, y+2, 12, r.rank<=3?PAL.gold:PAL.dim,'center',700);
+      /* 클럽 문장 — 라이벌이 이름만 있으면 '표의 한 줄'이지 클럽이 아니다 */
+      const hasCrest = r.crest && BG.obj(u, r.crest, 32, y+rh-4, rh-5);
+      if(typeof drawFlag==='function') drawFlag(u, hasCrest?42:26, y+1, 14, 10, r.nation);
+      txt(u, r.name, hasCrest?60:46, y+2, 11, r.mine?PAL.gold:PAL.white,'left', r.mine?700:400);
       txt(u, String(r.g), VW-92, y+2, 11, PAL.white,'right');
       txt(u, String(r.pts), VW-16, y+2, 12, r.mine?PAL.gold:PAL.white,'right',700);
     });

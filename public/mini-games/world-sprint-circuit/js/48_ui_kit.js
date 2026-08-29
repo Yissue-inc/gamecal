@@ -44,6 +44,37 @@ const UIK = {
   },
   n(v){ return (typeof LANG!=='undefined' && LANG==='en') ? this.numEn(v) : this.num(v); },
 
+  /* ── 9-slice ─────────────────────────────────────────────
+     테두리가 있는 그림을 **아무 크기로나** 늘여 쓰는 표준 수법.
+     모서리 4개는 그대로, 변 4개는 한 방향으로만, 가운데는 양방향으로 늘인다.
+     ⚠ 그냥 drawImage 로 늘이면 모서리 장식이 같이 늘어나 뭉개진다.
+     ⚠ 우리 화면은 480×270 이고 어셋은 3배로 그려져 있다 — 모서리 픽셀 수를
+        화면 좌표로 환산해서 넘겨야 한다(96px 어셋의 16px 모서리 = 화면 5.3). */
+  nine(u, name, x, y, w, h, cornerPx){
+    const img = BG.get(name); if(!img) return false;
+    const S = cornerPx || Math.round(img.width/6);        // 어셋 좌표의 모서리
+    const d = Math.max(2, Math.round(S * (w/img.width) * (img.width/ (img.width))));
+    /* 화면에서의 모서리 크기 — 너무 크면 작은 패널이 모서리만 남는다 */
+    const c = Math.max(2, Math.min(Math.floor(Math.min(w,h)/2 - 1), Math.round(S/3)));
+    const iw = img.width, ih = img.height;
+    const put=(sx,sy,sw,sh,dx,dy,dw,dh)=>{
+      if(sw<=0||sh<=0||dw<=0||dh<=0) return;
+      u.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh);
+    };
+    const mw = iw-S*2, mh = ih-S*2;             // 어셋 가운데
+    const cw = w-c*2,  ch = h-c*2;              // 화면 가운데
+    put(0,0,S,S,           x,     y,     c,  c );   // ↖
+    put(iw-S,0,S,S,        x+w-c, y,     c,  c );   // ↗
+    put(0,ih-S,S,S,        x,     y+h-c, c,  c );   // ↙
+    put(iw-S,ih-S,S,S,     x+w-c, y+h-c, c,  c );   // ↘
+    put(S,0,mw,S,          x+c,   y,     cw, c );   // ↑
+    put(S,ih-S,mw,S,       x+c,   y+h-c, cw, c );   // ↓
+    put(0,S,S,mh,          x,     y+c,   c,  ch);   // ←
+    put(iw-S,S,S,mh,       x+w-c, y+c,   c,  ch);   // →
+    put(S,S,mw,mh,         x+c,   y+c,   cw, ch);   // 가운데
+    return true;
+  },
+
   /* ── 액자 패널 ───────────────────────────────────────────
      안쪽은 어둡게, 테두리는 두 겹(바깥 짙은 선 + 안쪽 밝은 선).
      ⚠ 한 겹 선만 쓰면 우리 해상도에서 '판'으로 안 읽힌다 — 두 겹이 최소다. */
@@ -52,6 +83,12 @@ const UIK = {
     const fill = opt.fill || 'rgba(12,16,26,.92)';
     const edge = opt.edge || '#3a4870';
     const glow = opt.glow || null;
+    /* HD 액자가 있으면 그걸 쓴다. 없으면 아래 선 그림이 그대로 돈다. */
+    const art = opt.art===false ? null : (glow ? (opt.art || 'frame-gold') : (opt.art || 'frame-panel'));
+    if(art){
+      u.fillStyle = fill; u.fillRect(x, y, w, h);
+      if(this.nine(u, art, x, y, w, h, 16)) return;
+    }
     u.fillStyle = fill; u.fillRect(x, y, w, h);
     if(glow){                                  // 강조 패널은 바깥에 옅은 띠
       u.strokeStyle = glow; u.globalAlpha=0.35; u.lineWidth=1;
@@ -74,6 +111,15 @@ const UIK = {
   card(u, x, y, w, h, color, opt){
     opt = opt||{};
     const c = color || '#9aa4b8';
+    /* HD 카드 테두리 — 안쪽이 비어 있어 등급 색을 밑에 깐다 */
+    if(opt.art!==false && BG.get && BG.get('frame-card')){
+      u.fillStyle = 'rgba(12,16,26,.94)'; u.fillRect(x,y,w,h);
+      u.globalAlpha = opt.on ? 0.26 : 0.14; u.fillStyle = c;
+      u.fillRect(x, y, w, h); u.globalAlpha = 1;
+      this.nine(u, 'frame-card', x, y, w, h, 10);
+      if(opt.on){ u.strokeStyle=c; u.lineWidth=1; u.strokeRect(x+.5,y+.5,w-1,h-1); }
+      return;
+    }
     /* 등급 색을 아주 옅게 깐다 — 색만으로 등급이 읽히게 */
     u.fillStyle = 'rgba(12,16,26,.94)'; u.fillRect(x,y,w,h);
     u.globalAlpha = opt.on ? 0.22 : 0.12; u.fillStyle = c;
@@ -127,6 +173,15 @@ const UIK = {
     opt=opt||{};
     const pulse = 0.5 + 0.5*Math.sin((t||0)*0.005);
     const base = opt.color || '#2f6fd0';
+    /* HD 버튼 — 맥동에 맞춰 평상/발광 두 장을 겹친다 */
+    if(opt.art!==false && BG.get && BG.get('btn-primary')){
+      this.nine(u, 'btn-primary', x, y, w, h, 24);
+      u.globalAlpha = 0.25 + pulse*0.55;
+      this.nine(u, 'btn-primary-on', x, y, w, h, 24);
+      u.globalAlpha = 1;
+      txt(u, label, x+w/2, y+Math.round((h-13)/2), 13, PAL.white, 'center', 700);
+      return;
+    }
     u.fillStyle = base; u.fillRect(x, y, w, h);
     u.globalAlpha = 0.20 + pulse*0.22; u.fillStyle='#ffffff';
     u.fillRect(x, y, w, Math.round(h*0.45)); u.globalAlpha=1;

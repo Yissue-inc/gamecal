@@ -6,13 +6,14 @@
 /* 종목 갈래 — 39종목을 가로 캐러셀로 두면 끝까지 38번을 눌러야 한다(실측).
    ⚠ 14종목일 땐 괜찮았고 39종목에서 무너졌다. 갈래로 묶고 격자로 펼친다. */
 const EVENT_GROUPS = [
-  { key:'track', name:'트랙',   kinds:['sprint','middle','hurdles','walk','relay'] },
-  { key:'field', name:'필드',   kinds:['jump','throw'] },
-  { key:'swim',  name:'수영',   kinds:['swim'] },
-  { key:'combo', name:'복합',   kinds:['combined','tri'] },
+  /* icon 은 발주서와 같은 이름이다. 없으면 글자만 나온다(화면은 안 깨진다). */
+  { key:'track', name:'트랙',   icon:'icon-track', kinds:['sprint','middle','hurdles','walk','relay'] },
+  { key:'field', name:'필드',   icon:'icon-field', kinds:['jump','throw'] },
+  { key:'swim',  name:'수영',   icon:'icon-swim',  kinds:['swim'] },
+  { key:'combo', name:'복합',   icon:'icon-combo', kinds:['combined','tri'] },
   /* ⚠ '그 외'가 13개가 되면서 잡동사니가 됐다 — 맞붙는 종목은 성격이 뚜렷하니 뗀다 */
-  { key:'duel',  name:'맞대결', kinds:['fence','rally','grap'] },
-  { key:'other', name:'그 외',  kinds:null },   // 나머지 전부
+  { key:'duel',  name:'맞대결', icon:'icon-duel',  kinds:['fence','rally','grap'] },
+  { key:'other', name:'그 외',  icon:'icon-other', kinds:null },   // 나머지 전부
 ];
 function groupOf(def){
   for(const g of EVENT_GROUPS) if(g.kinds && g.kinds.includes(def.kind)) return g.key;
@@ -687,7 +688,8 @@ const G = {
     EVENT_GROUPS.forEach((g,i)=>{
       const on=i===this.selGroup, cnt=eventsInGroup(g.key).length;
       const label=`${K(g.name)} ${cnt}`;
-      const w=Math.max(46, label.length*7+14);
+      const hasIcon = !!(g.icon && BG.cache && BG.cache[g.icon]);
+      const w=Math.max(46, label.length*7+14+(hasIcon?12:0));
       uctx.fillStyle = on?'rgba(255,215,94,.18)':'rgba(22,26,38,.7)';
       uctx.fillRect(tx, tabY, w, 16);
       uctx.strokeStyle = on?PAL.gold:'#3a4258'; uctx.lineWidth=1;

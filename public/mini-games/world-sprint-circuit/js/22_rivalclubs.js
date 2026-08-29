@@ -17,12 +17,12 @@ const RIVAL_CLUBS = [
   /* ⚠ base 를 1.02~1.07 로 뒀더니 **상대 전체가 강해져** 우리 클럽이 3시즌 내내 꼴찌에
      금메달 0개였다. 클럽은 '누구인가'를 주는 장치지 난이도 손잡이가 아니다 —
      평균이 1.00 이 되도록 두고, 차이는 특기 종목군에서만 낸다. */
-  { id:'panther', name:'검은표범 클럽', nation:'KEN', spec:'sprint',  base:1.02, color:'#ff6b8a' },
-  { id:'granite', name:'화강암 체육회', nation:'GER', spec:'throw',   base:1.00, color:'#c9a06a' },
-  { id:'tide',    name:'조류 수영단',   nation:'AUS', spec:'swim',    base:1.01, color:'#5aaaff' },
-  { id:'highland',name:'고원 육상부',   nation:'ETH', spec:'endure',  base:1.03, color:'#8affb0' },
-  { id:'skyward', name:'하늘길 클럽',   nation:'USA', spec:'jump',    base:0.99, color:'#ffd75e' },
-  { id:'ironbar', name:'무쇠 클럽',     nation:'JPN', spec:'hurdles', base:0.97, color:'#b48aff' },
+  { id:'panther', crest:'club-crest-black-panther', name:'검은표범 클럽', nation:'KEN', spec:'sprint',  base:1.02, color:'#ff6b8a' },
+  { id:'granite', crest:'club-crest-granite', name:'화강암 체육회', nation:'GER', spec:'throw',   base:1.00, color:'#c9a06a' },
+  { id:'tide', crest:'club-crest-birds',    name:'조류 수영단',   nation:'AUS', spec:'swim',    base:1.01, color:'#5aaaff' },
+  { id:'highland', crest:'club-crest-highland',name:'고원 육상부',   nation:'ETH', spec:'endure',  base:1.03, color:'#8affb0' },
+  { id:'skyward', crest:'club-crest-skyway', name:'하늘길 클럽',   nation:'USA', spec:'jump',    base:0.99, color:'#ffd75e' },
+  { id:'ironbar', crest:'club-crest-iron', name:'무쇠 클럽',     nation:'JPN', spec:'hurdles', base:0.97, color:'#b48aff' },
 ];
 
 /* ⚠ 국가 코드는 **3글자**다(KOR·JPN·USA). 2글자로 적었더니 drawFlag 가 조용히
@@ -76,7 +76,7 @@ const RivalLeague = {
   /* 우리를 포함한 순위표 — 감독이 보고 싶은 건 '내가 몇 등인가' 다 */
   table(season){
     const rows = RIVAL_CLUBS.map(c=>({
-      id:c.id, name:c.name, nation:c.nation, color:c.color,
+      id:c.id, name:c.name, nation:c.nation, color:c.color, crest:c.crest,
       pts:(season.leagueTable&&season.leagueTable[c.id]?season.leagueTable[c.id].pts:0),
       g:(season.leagueTable&&season.leagueTable[c.id]?season.leagueTable[c.id].g:0),
       mine:false,
