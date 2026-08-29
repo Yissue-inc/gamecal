@@ -584,7 +584,14 @@ class SquadScreen extends Screen0 {
 }
 class AthleteScreen extends Screen0 {
   constructor(mg,a){ super(mg); this.a=a; }
-  update(now){ if(Input.pressed('back')||Input.pressed('action')) this.mg.pop(); }
+  /* ⛔ 챕터 2 — 종합력 **내역은 접어 둔다.**
+     이 화면이 35조각으로 제일 빽빽했는데 그중 15조각이 내역이었다.
+     내역은 "왜 이 숫자인가"를 **배울 때** 보는 것이지 매번 볼 것이 아니다.
+     ⚠ 없애지 않는다 — ▲ 한 번이면 나온다. 접혀 있을 때도 안내 한 줄이 남는다. */
+  update(now){
+    if(Input.pressed('up')){ this.showWhy=!this.showWhy; Sfx.ui(); return; }
+    if(Input.pressed('back')||Input.pressed('action')) this.mg.pop();
+  }
   draw(u){
     const a=this.a;
     /* ⚠ 예전엔 헤더의 오른쪽 문구와 등급 줄을 둘 다 VW-8, y≈5 에 우측정렬로 그려
@@ -633,7 +640,9 @@ class AthleteScreen extends Screen0 {
        훈련이 실제로 곱하는 배수를 그대로 적는다(31_training 의 moraleF). */
     const mf = 0.82 + a.morale/100*0.32;
     txt(u,Math.round(a.morale)+'',snx,70,9,PAL.dim);
-    txt(u, `성장 ×${mf.toFixed(2)}`, snx+22, 71, 8,
+    /* ⚠ snx+22 는 특성 칸(x=192)을 침범했다 — '성장 ×1.05' 가 '리듬이 흔들리지
+       않는다' 위에 얹혔다. 사기 막대 바로 아래로 내린다(왼쪽 칸 안). */
+    txt(u, `×${mf.toFixed(2)}`, snx, 80, 8,
         mf>=1.05?PAL.green:mf<=0.95?PAL.red:PAL.dim);
     if(a.injury) txt(u,`부상: ${a.injury.name} — ${a.injury.weeks}주 남음`,8,84,10,PAL.red,'left',700);
 
@@ -656,15 +665,26 @@ class AthleteScreen extends Screen0 {
       txt(u,TRAITS[t].name,192,58+i*20,10, t==='glass'||t==='nervous'?PAL.red:PAL.green,'left',700);
       txt(u,TRAITS[t].desc,192,69+i*20,8,PAL.dim);
     });
-    // 개인 기록
-    txt(u,'개인 최고',192,110,8,PAL.dim);
-    const bs=Object.entries(a.best);
-    if(!bs.length) txt(u,'아직 없음',192,120,9,PAL.dim);
-    bs.slice(0,4).forEach(([k,v],i)=>{
-      const ev=EVENT_BY_ID[k];
-      txt(u,ev.short,192,120+i*11,9,PAL.white);
-      txt(u,fmtRec(ev, v),VW-8,120+i*11,9,PAL.gold,'right');
-    });
+    /* 개인 기록 — ⛔ 챕터 2: 종합력 내역을 접으면서 **오른쪽 아래가 통째로 비었다.**
+       위쪽 좁은 칸에서 4개만 겨우 보이던 걸 그 자리로 내린다. 6개까지 들어간다.
+       ⚠ 글자를 더 쓰는 게 아니라 **있던 것을 넓은 자리로 옮기는** 것이다. */
+    /* ⚠ 여기서 두 번 겹쳤다. ① x=192 는 '성장력' 라벨 자리다(bx+108, bx=84) —
+       글자 두 개가 포개져 '쳉핑력쳢고' 로 나왔다. ② 내역을 펴면 그것과도 겹친다.
+       → 오른쪽 절반(x=270~)으로 옮기고, **내역이 펴져 있으면 안 그린다.**
+          같은 자리를 두 개가 쓰면 결국 겹친다 — 하나만 나오게 한다. */
+    if(!this.showWhy){
+      const PBX = 270;
+      txt(u,'개인 최고',PBX,182,8,PAL.dim);
+      const bs=Object.entries(a.best);
+      if(!bs.length) txt(u,'아직 없음',PBX,193,9,PAL.dim);
+      bs.slice(0,6).forEach(([k,v],i)=>{
+        const ev=EVENT_BY_ID[k]; if(!ev) return;
+        const by2 = 193 + i*11;
+        if(by2 > VH-24) return;
+        txt(u,ev.short,PBX,by2,9,PAL.white);
+        txt(u,fmtRec(ev, v),VW-8,by2,9,PAL.gold,'right');
+      });
+    }
     /* 초상 — 스탯 줄이 y=176 에서 끝나고 푸터까지 비어 있던 자리.
        ⚠ 로스터가 인물로 안 읽히던 이유가 얼굴이 없어서였다. 얼굴이 없는 종족은
           달리는 그림으로 물러나므로 어느 선수를 열어도 빈칸은 안 나온다. */
@@ -688,18 +708,23 @@ class AthleteScreen extends Screen0 {
       txt(u, UIK.n(pw2), bx+40, pyy-2, 15, PAL.gold, 'left', 700);
       txt(u, K('성장력'), bx+108, pyy, 8, PAL.dim, 'left');
       txt(u, UIK.n(gw), bx+148, pyy-1, 12, '#5aaaff', 'left', 700);
-      /* 내역 — 무엇이 얼마를 보태고 깎았나 */
-      const rows = Power.breakdown(a);
-      rows.forEach((r,i)=>{
-        const y = pyy+14+i*11;
-        if(y > VH-20) return;
-        txt(u, K(r.k), bx, y, 9, PAL.white, 'left');
-        txt(u, r.note||'', bx+44, y+1, 8, PAL.dim, 'left');
-        txt(u, (r.v>0?'+':'')+UIK.n(r.v), bx+bw, y, 9,
-            r.v>0?PAL.green:(r.v<0?PAL.red:PAL.dim), 'right');
-      });
+      /* 내역 — 접혀 있다. ▲ 로 편다. */
+      if(!this.showWhy){
+        txt(u, K('▲ 무엇이 이 숫자를 만들었나'), bx, pyy+16, 8, PAL.dim, 'left');
+      } else {
+        const rows = Power.breakdown(a);
+        rows.forEach((r,i)=>{
+          const y = pyy+14+i*11;
+          if(y > VH-20) return;
+          txt(u, K(r.k), bx, y, 9, PAL.white, 'left');
+          txt(u, r.note||'', bx+44, y+1, 8, PAL.dim, 'left');
+          txt(u, (r.v>0?'+':'')+UIK.n(r.v), bx+bw, y, 9,
+              r.v>0?PAL.green:(r.v<0?PAL.red:PAL.dim), 'right');
+        });
+      }
     }
-    UI.footer(u,'확인/취소 돌아가기');
+    UI.footer(u, this.showWhy ? '▲ 내역 접기 · 확인/취소 돌아가기'
+                              : '▲ 종합력 내역 · 확인/취소 돌아가기');
   }
 }
 

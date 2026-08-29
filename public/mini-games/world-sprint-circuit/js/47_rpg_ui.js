@@ -156,12 +156,16 @@ class GrowScreen extends Screen0 {
       return STAT_KEYS.map(k=>{
         const cap=a.potential[k], cur=a.stats[k];
         const full = cur>=cap-0.01;
+        /* 스탯 표도 **데이터**다 — 어느 칸에 여유가 있는지 훑을 수 있어야 한다
+           (챕터 1 규칙: 설명은 숨기고 데이터는 남긴다). */
         if(!full) return { label:STAT_NAME[k]||k, icon:UI.STAT_ICON&&UI.STAT_ICON[k],
+          subAlways:true,
           sub:`${cur.toFixed(1)} → 잠재 ${Math.round(cap)}`,
           right:'+1', rightColor:(a.tp>0?PAL.green:PAL.dim), color:PAL.white,
           right2:star(k), right2Color:starC(k), _k:k, _full:false };
         const why=RPG.whyBreak(a,k), br=RPG.broke(a,k);
         return { label:STAT_NAME[k]||k, icon:UI.STAT_ICON&&UI.STAT_ICON[k],
+          subAlways:true,
           sub: why===null
              ? `잠재 ${Math.round(cap)} 돌파 — 남은 한도 ${bCap-bUsed}` + (br?` · 이미 +${br}`:'')
              : `잠재치에 닿았다 · ${why}`,
