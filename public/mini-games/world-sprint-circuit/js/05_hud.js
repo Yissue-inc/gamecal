@@ -65,28 +65,55 @@ const HUD = {
     plate(ctx, 0, 0, VW, 30, 0.72);
     /* ⚠ 칸 폭을 100m(9.58)에 맞춰 박아 뒀다. 마라톤이 들어오자 시계가 '43:20.67' 이
        되면서 옆 칸(SPEED)을 파고들었다. 글자가 길면 크기를 줄여 칸 안에 넣는다. */
+    /* ⛔ 챕터 4 — **달리면서 읽을 수 있는 건 두세 개뿐이다.**
+       실측: 경기 중 텍스트 13조각 중 **8개가 라벨**이었다
+       (TIME·SPEED·DIST·QUALIFY·다음·빠름·늦음·폼). 대부분 한 번 배우면 그만이다.
+       아이콘이 오면 라벨을 안 그린다 — 챕터 1과 같은 규칙. */
+    const lab = (name, txt0, x, y) => {
+      const im = BG.get(name);
+      if(im){ ctx.drawImage(im, x, y-1, 9, 9); return 11; }
+      txt(ctx, txt0, x, y, 8, PAL.dim); return 0;
+    };
     const ts = fmtTime(o.timeS);
-    txt(ctx, 'TIME',  8, 3, 8, PAL.dim);
+    lab('ic-timer', 'TIME', 8, 3);
     txt(ctx, ts, 8, ts.length>7?13:12, ts.length>7?12:15, PAL.gold, 'left', 700);
 
-    txt(ctx, 'SPEED', 76, 3, 8, PAL.dim);
-    txt(ctx, o.speed.toFixed(1)+' m/s', 76, 13, 11, PAL.white);
+    /* ⚠ 'm/s' 는 매 프레임 읽히지 않는 잡음이다 — 숫자만 남긴다 */
+    lab('ic-speed-hud', 'SPEED', 76, 3);
+    txt(ctx, o.speed.toFixed(1), 76, 13, 11, PAL.white);
 
     /* 거리도 마찬가지 — '17616 / 42195' 는 11px 로 칸을 넘는다. km 로 줄인다. */
-    txt(ctx, 'DIST', 150, 3, 8, PAL.dim);
+    lab('ic-distance', 'DIST', 150, 3);
     const dist = o.trackM > 10000
       ? (o.distM/1000).toFixed(1)+' / '+(o.trackM/1000).toFixed(1)+'km'
       : o.distM.toFixed(0)+' / '+o.trackM;
     txt(ctx, dist, 150, 13, 11, PAL.white);
 
-    // 기준기록 — 지금 페이스로 통과할 수 있나
-    const ok = o.timeS <= o.qualify;
-    txt(ctx, 'QUALIFY', VW-8, 3, 8, PAL.dim, 'right');
-    txt(ctx, fmtTime(o.qualify), VW-8, 12, 13, ok?PAL.green:PAL.red, 'right', 700);
+    /* ⛔ 기준기록이 **고정 숫자**였다 — 달리는 중엔 아무것도 못 한다.
+       "지금 페이스로 통과하나"로 바꾼다. 그건 지금 행동을 바꿀 수 있는 정보다.
+       ⚠ 초반 예측은 요동친다(20m 에서 0.1초 흔들리면 100m 예측이 0.5초 튄다).
+          20% 를 지나야 보여 준다 — 그 전에는 기준기록 자체를 띄운다. */
+    /* ⚠ 오른쪽 위는 **일시정지 버튼(DOM #p-pause)이 덮는다.** 실측하니 게임 좌표로
+       x 461~480 · y -6~8 을 가린다 — VW-8 에 우측정렬하면 라벨이 그 밑에 깔려
+       'QUALI…' 로 잘렸다. 캔버스 밖 요소라 화면만 봐서는 원인이 안 보인다.
+       오른쪽 블록을 버튼 폭만큼 안으로 물린다. */
+    const RX = VW - 30;
+    const prog = o.trackM ? o.distM/o.trackM : 0;
+    if(prog >= 0.2 && o.timeS > 0){
+      const proj = o.timeS / prog;
+      const d = proj - o.qualify;
+      const ahead = d <= 0;
+      txt(ctx, K(ahead?'통과 페이스':'기준 미달'), RX, 3, 8, ahead?PAL.green:PAL.red, 'right');
+      txt(ctx, (d<=0?'−':'+')+Math.abs(d).toFixed(2), RX, 12, 13,
+          ahead?PAL.green:PAL.red, 'right', 700);
+    } else {
+      txt(ctx, 'QUALIFY', RX, 3, 8, PAL.dim, 'right');
+      txt(ctx, fmtTime(o.qualify), RX, 12, 13, PAL.dim, 'right', 700);
+    }
 
     if(o.best!==undefined){
-      txt(ctx, 'BEST', VW-84, 3, 8, PAL.dim, 'right');
-      txt(ctx, fmtTime(o.best), VW-84, 13, 11, PAL.blue, 'right');
+      txt(ctx, 'BEST', RX-76, 3, 8, PAL.dim, 'right');
+      txt(ctx, fmtTime(o.best), RX-76, 13, 11, PAL.blue, 'right');
     }
   },
 
@@ -96,9 +123,9 @@ const HUD = {
     const GY=Track.GAUGE_Y, GH=Track.GAUGE_H;
     plate(ctx, 0, GY, VW, GH, 0.82);
     // 다음에 눌러야 할 발 — 크게, 색으로
+    /* ⛔ 챕터 4 — '다음' 라벨은 **큰 화살표가 이미 말한다.** 지운다. */
     const nextL = o.nextSide < 0;
-    txt(ctx, '다음', 10, GY+4, 8, PAL.dim);
-    txt(ctx, nextL?'◀ 왼발':'오른발 ▶', 10, GY+13, 12, nextL?PAL.gold:PAL.blue, 'left', 700);
+    txt(ctx, nextL?'◀ 왼발':'오른발 ▶', 10, GY+8, 13, nextL?PAL.gold:PAL.blue, 'left', 700);
 
     const w=190, h=10, x=(VW-w)/2, y=GY+9;
     ctx.fillStyle='rgba(242,245,250,.14)'; ctx.fillRect(x,y,w,h);
@@ -110,8 +137,13 @@ const HUD = {
     // 바늘 — 왼쪽=아직 이르다, 오른쪽=늦었다
     const px = clamp(x + w/2 + o.phaseErr*w*0.5, x-2, x+w+2);
     ctx.fillStyle=PAL.white; ctx.fillRect(Math.round(px)-1, y-3, 2, h+6);
+    /* ⚠ '빠름/늦음' 은 게이지 읽는 법을 가르치는 글자다 — 한 번 배우면 잡음이다.
+       스트라이드 열 번을 넘기면 흐려진다. 지우지는 않는다(가끔 다시 눈에 들어와야 한다). */
+    const taught = (o.strides||0) > 10;
+    ctx.save(); ctx.globalAlpha = taught ? 0.28 : 1;
     txt(ctx, '빠름', x-2, y+h+1, 7, PAL.dim, 'right');
     txt(ctx, '늦음', x+w+2, y+h+1, 7, PAL.dim, 'left');
+    ctx.restore();
     // 폼·피로
     txt(ctx, '폼', VW-64, GY+4, 8, PAL.dim);
     const bw=52; ctx.fillStyle='rgba(242,245,250,.14)'; ctx.fillRect(VW-58, GY+14, bw, 6);

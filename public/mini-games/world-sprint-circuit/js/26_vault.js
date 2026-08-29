@@ -240,7 +240,7 @@ class VaultEvent {
       txt(u, left>0? K('구름판까지 %1m').replace('%1',left.toFixed(1)) : K('지금!'),
           VW/2, 44, left<=VAULT.boardWindowM*1.6?14:11,
           left<=VAULT.boardWindowM*1.6?PAL.green:PAL.white,'center',700);
-      HUD.rhythm && HUD.rhythm(u,{nextSide:-this.side||1,
+      HUD.rhythm && HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.side||1,
         phaseErr:clamp(((this.t-this.lastStride)-VAULT.strideIv)/VAULT.strideIv,-1,1), form:1});
     }
     /* 손 짚기 창 — 이 종목의 핵심이라 크게 */

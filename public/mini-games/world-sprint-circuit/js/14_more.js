@@ -152,7 +152,7 @@ class TripleJumpEvent extends LongJumpEvent {
           VW/2, 44, near?16:12, near?PAL.green:PAL.white,'center',700);
       const now=this.t, tgt=this.runner.targetIntervalMs();
       const err = this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tgt)/tgt,-1,1);
-      HUD.rhythm(u,{nextSide:-this.runner.lastSide||1, phaseErr:err, form:this.runner.form});
+      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.runner.lastSide||1, phaseErr:err, form:this.runner.form});
     } else if(this.phase==='HOP'){
       /* ⚠ hopPhase 는 0=홉·1=스텝·2=점프 인데 HOP_NAMES[0] 은 **구름판**이다 —
          두 인덱스는 한 칸 어긋나 있다. 그 관계를 여기 적어 둔다(hopName 하나로 통일). */
@@ -459,7 +459,7 @@ class PoleVaultEvent extends FieldEvent {
       txt(u,'속도가 곧 높이입니다',VW/2,60,9,PAL.dim,'center');
       const now=this.t,tg=this.runner.targetIntervalMs();
       const err=this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tg)/tg,-1,1);
-      HUD.rhythm(u,{nextSide:-this.runner.lastSide||1,phaseErr:err,form:this.runner.form});
+      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.runner.lastSide||1,phaseErr:err,form:this.runner.form});
     } else if(this.phase==='FLIGHT'){
       txt(u,'좌·우를 두드려 몸을 끌어올리세요',VW/2,44,13,PAL.gold,'center',700);
       txt(u,`${this.pulls} / 8`,VW/2,62,15,this.pulls>=8?PAL.green:PAL.white,'center',700);

@@ -289,7 +289,7 @@ class SwimEvent {
     if(this.phase==='RUN'){
       const now=this.t;
       const err = this.lastStroke<-1e8?0:clamp(((now-this.lastStroke)-this.targetIv)/this.targetIv,-1,1);
-      HUD.rhythm(u,{nextSide:-this.side||1, phaseErr:err, form:this.form});
+      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.side||1, phaseErr:err, form:this.form});
       /* 한 타의 피드백 — 판정 수명·타격 고리·자리 기준은 HUD.tap 한 곳에 있다.
          ⚠ 620ms 고정이면 다음 타 전에 안 사라져 매 타가 뭉갠다(달리기 실측: 2.6타 겹침). */
       HUD.tap(u, { j:this.lastJudge, ageMs:now-this.lastJudgeMs,

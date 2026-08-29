@@ -252,7 +252,7 @@ class RelayEvent extends SprintEvent {
       const r=this.legs[this.cur];
       const now=this.t, tgt=r.targetIntervalMs();
       const err = r.lastInputMs<-1e8?0:clamp(((now-r.lastInputMs)-tgt)/tgt,-1,1);
-      HUD.rhythm(u,{nextSide:-r.lastSide||1, phaseErr:err, form:r.form});
+      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-r.lastSide||1, phaseErr:err, form:r.form});
       HUD.judge(u, r.lastJudge, now-r.lastJudgeMs,
                 Math.min(620, r.targetIntervalMs()*0.8));
       if(this.cur<this.nLegs-1){
