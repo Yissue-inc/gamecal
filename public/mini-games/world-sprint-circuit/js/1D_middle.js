@@ -134,6 +134,10 @@ class MiddleEvent {
       if(this.walk && dt < iv*0.62) this.warn(r, p);
     }
     r.judge[j]++; r.side=side; r.lastStroke=tMs;
+    /* ⚠ 판정을 **세기만 하고 마지막 값을 안 남겼다** — 그래서 1500m·5000m 를 치는
+       내내 타당 피드백이 하나도 없었다(10종목 전수 점검에서 잡힌 제일 큰 구멍).
+       화면이 읽을 수 있게 남긴다. */
+    r.lastJudge = j; r.lastJudgeMs = tMs;
     if(!p) Sfx.step(j, r.tier);     // 콤보 단계마다 반음 오른다 — 귀로도 쌓이는 게 보인다
     /* ⚠ 속도 비례 저항으로 바꾼 뒤 MISS 0.30 은 너무 비쌌다 — 보통 실력이 135초에서
        181초로 무너졌다. 중장거리는 스프린트만큼 정밀할 이유가 없다. */
@@ -266,11 +270,17 @@ class MiddleEvent {
       this._hd.push({sp:SP[i%4], x, y:Track.laneFoot(r.lane),
         ph:(this.t*0.005*(r.speed/4+0.5)+i*0.2)%1,
         o:{rare:3, t:this.t, moving:true, lean:r.spurting, scale:Track.laneScale(r.lane)}});
+      if(i===0){ this._meX=x; this._meY=Track.laneFoot(r.lane); }
     });
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
   }
   drawUI(u){
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
+    /* 한 타의 피드백 — 기준은 HUD.tap 한 곳에 있다(05_hud). */
+    { const r=this.runners[0];
+      if(r && r.lastJudge && this._meX!==undefined)
+        HUD.tap(u, { j:r.lastJudge, ageMs:this.t-r.lastJudgeMs, ivMs:this.ivOf(r),
+                     x:this._meX, y:this._meY+2, labelY:this._meY-26 }); }
     /* 다인전이면 사람마다 레인 위에 번호와 페이스를 띄운다 — 누가 누구인지.
        ⚠ 카메라가 선두를 따라가서 뒤처진 사람은 **화면에서 사라졌다**. 1500m 에서 86m
           벌어지면 330px 라 아예 안 보인다 — 밀린 사람은 화면 가장자리에 격차와 함께

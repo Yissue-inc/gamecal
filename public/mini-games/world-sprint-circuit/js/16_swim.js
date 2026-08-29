@@ -121,7 +121,9 @@ class SwimEvent {
     }
     S.judge[j]++; S.lastJudge=j; S.lastJudgeMs=tMs;
     S.side=side; S.lastStroke=tMs;
-    Sfx.step(j);
+    /* 콤보 단계는 없지만 연속 PERFECT 를 세면 같은 '쌓이는 소리'를 줄 수 있다 */
+    S.streak = (j==='PERFECT'||j==='GOOD') ? Math.min(60,(S.streak||0)+1) : 0;
+    Sfx.step(j, [0,6,10,20,40,60].filter(n=>S.streak>=n).length-1);
     /* 추진 */
     const mult={PERFECT:1.0,GOOD:0.80,EARLY:0.62,LATE:0.62,REPEAT:0.40,SPAM:0.18}[j];
     /* ⚠ 2.35 로는 완벽하게 저어도 100m 62초였다(세계기록 46.4초).
@@ -253,6 +255,7 @@ class SwimEvent {
         BG.fx(BG.ctx(), 'water-splash', mx+6, y+8, 14, ((this.t - S.lastStroke)/260)%1, 4);
       if(this.swimmers.length>1)
         txt(Screen.uctx, 'P'+(p+1), mx, y-18, 8, col, 'center', 700);
+      if(p===0){ this._meX=mx; this._meY=y; }
     });
 
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
@@ -287,10 +290,12 @@ class SwimEvent {
       const now=this.t;
       const err = this.lastStroke<-1e8?0:clamp(((now-this.lastStroke)-this.targetIv)/this.targetIv,-1,1);
       HUD.rhythm(u,{nextSide:-this.side||1, phaseErr:err, form:this.form});
-      /* 판정 수명을 스트라이드 간격에 맞춘다 — 620ms 고정이면 다음 타가 오기 전에
-         안 사라져서 매 타가 뭉갠다(달리기에서 실측: 2.6타 겹침). */
-      HUD.judge(u, this.lastJudge, now-this.lastJudgeMs,
-                Math.min(620, this.targetIvOf(this.swimmers[0])*0.8));
+      /* 한 타의 피드백 — 판정 수명·타격 고리·자리 기준은 HUD.tap 한 곳에 있다.
+         ⚠ 620ms 고정이면 다음 타 전에 안 사라져 매 타가 뭉갠다(달리기 실측: 2.6타 겹침). */
+      HUD.tap(u, { j:this.lastJudge, ageMs:now-this.lastJudgeMs,
+                   ivMs:this.targetIvOf(this.swimmers[0]),
+                   x:this._meX, y:(this._meY!==undefined?this._meY+8:undefined),
+                   labelY:(this._meY!==undefined?this._meY-30:undefined) });
       /* 숨 게이지 */
       txt(u,'숨',8,Track.GAUGE_Y-24,8,PAL.dim);
       const bw=64;

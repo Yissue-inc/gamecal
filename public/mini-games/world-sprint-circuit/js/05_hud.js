@@ -119,6 +119,25 @@ const HUD = {
     ctx.fillRect(VW-58, GY+14, Math.round(bw*clamp((o.form-RULES.formFloor)/(RULES.formCeil-RULES.formFloor),0,1)), 6);
   },
 
+  /* ── 한 타의 피드백 ──────────────────────────────────────
+     ⚠ 종목마다 따로 만들면 기준이 흩어진다(실측: 10종목 중 판정 표시가 있는 건 4개,
+        타격 고리 2개, 콤보 음정 3개 — 같은 리듬 게임인데 종목마다 손맛이 달랐다).
+        한 타에 무엇을 보여 줄지는 여기 한 곳에서 정한다.
+
+     o = { j, ageMs, ivMs, x, y, labelY }
+       ivMs  목표 간격 — 판정 수명을 여기 맞춘다(다음 타 전에 사라져야 또렷하다)
+       x,y   두드린 자리(발밑) — 없으면 고리를 안 그린다 */
+  tap(ctx, o){
+    if(!o || !o.j) return;
+    const age = o.ageMs;
+    /* 고리는 **잘 친 타에만**. 다 주면 실수해도 똑같이 터져 의미가 없다.
+       수명 160ms 는 어떤 종목의 간격보다도 짧다 — 겹치면 다시 뭉갠다. */
+    if(o.x !== undefined && age < 160 && (o.j==='PERFECT' || o.j==='GOOD'))
+      BG.fx(ctx, 'fx-tap-ring', o.x, o.y, o.j==='PERFECT'?20:14,
+            clamp(age/160, 0, 0.999), 4);
+    this.judge(ctx, o.j, age, Math.min(620, (o.ivMs||760)*0.8), o.labelY);
+  },
+
   /* 판정 표시 */
   /* ⚠ 지속이 620ms 고정이었다. 목표 스트라이드 간격이 238ms 이므로
      **한 판정이 살아 있는 동안 다음 타가 2.6번 들어온다** — 라벨이 안 끊기고

@@ -162,6 +162,7 @@ class CyclingEvent {
     if(!BG.obj(BG.ctx(),'bicycle-hd', mx, my, 16)){
       ctx.fillStyle='#ffd75e'; ctx.fillRect(mx-9,my-7,18,3);
     }
+    this._meX=mx; this._meY=my;
     if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:'cheetah', x:mx, y:my-6, ph:(this.t*0.008)%1,
       o:{rare:5, moving:this.phase==='RUN', t:this.t, lean:true, scale:Track.laneScale(1)}});
     /* 스퍼트 속도선 */
@@ -174,6 +175,12 @@ class CyclingEvent {
   }
   drawUI(u){
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
+    /* ⚠ 판정을 lastJudge 에 **저장해 놓고 한 번도 안 그리고 있었다** — 상태는 있는데
+       표시만 빠져 있었다(10종목 전수 점검에서 조정과 함께 잡혔다).
+       기준은 HUD.tap 한 곳에 있다. */
+    if(this.phase==='RUN' && this._meX!==undefined)
+      HUD.tap(u, { j:this.lastJudge, ageMs:this.t-this.lastJudgeMs, ivMs:this.targetIv,
+                   x:this._meX, y:this._meY, labelY:this._meY-30 });
     HUD.race(u, { timeS:Math.max(0,this.elapsed), speed:this.speed,
                   distM:this.dist, trackM:this.trackM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });

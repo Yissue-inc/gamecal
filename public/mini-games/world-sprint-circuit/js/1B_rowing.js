@@ -178,6 +178,7 @@ class RowingEvent {
     /* 노 각도는 마지막 스트로크로부터의 경과로 — 화면이 실제 리듬을 보여 준다 */
     const msw = clamp((this.t-this.lastStroke)/Math.max(300,this.targetIv), 0, 1);
     boat(mx,my,true,mk,msw); (this._deck=this._deck||[]).push({x:mx,y:my,k:mk,mine:true,sw:msw});
+    this._meX=mx; this._meY=my;
     if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:'beaver', x:mx-Math.round(4*mk), y:my-Math.round(2*mk),
       ph:msw, o:{rare:1, t:this.t, scale:mk*0.66}});
     /* 노 젓는 물결 */
@@ -187,6 +188,10 @@ class RowingEvent {
   }
   drawUI(u){
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
+    /* ⚠ 사이클과 똑같이 — 판정을 저장만 하고 안 그리고 있었다. */
+    if(this.phase==='RUN' && this._meX!==undefined)
+      HUD.tap(u, { j:this.lastJudge, ageMs:this.t-this.lastJudgeMs, ivMs:this.targetIv,
+                   x:this._meX, y:this._meY, labelY:this._meY-32 });
     /* ⚠ 선체는 배경 층에 있어 캐릭터를 덮을 수 없다 — 달리기 포즈의 다리가 그대로 드러나
        '물 위를 달리는' 그림이 됐다. 갑판만 UI 층에 한 번 더 그려 하반신을 가린다.
        앉은 포즈 어셋(scull-hd)이 오면 이 덮개는 그냥 그 아래로 들어간다. */

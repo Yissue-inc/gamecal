@@ -244,9 +244,9 @@ class SprintEvent {
       for(const c of this._hd){
         if(c.speedFrac>0.35)
           BG.fx(uctx, 'dust-kick', c.x-6, c.y+2, 9, ((this.t*0.006)+c.x*0.01)%1, 4);
-        /* 두드린 자리에서 퍼지는 고리 — **매 타가 눈에 보여야** 쫀쫀하다.
-           ⚠ 잘 친 타에만 준다. 다 주면 실수해도 똑같이 터져서 의미가 없다.
-           ⚠ 수명은 스트라이드 간격보다 짧게(160ms) — 겹치면 다시 뭉갠다. */
+        /* 두드린 자리에서 퍼지는 고리 — 사람이 여럿이면 각자 자기 타이밍으로 튄다.
+           ⚠ 기준(잘 친 타에만·수명 160ms)은 HUD.tap 과 같아야 한다. 여기는 여러 명을
+              동시에 그려야 해서 고리만 따로 부른다 — 값이 갈라지지 않게 조심할 것. */
         if(c.hitAge < 160 && (c.hitJ==='PERFECT' || c.hitJ==='GOOD'))
           BG.fx(uctx, 'fx-tap-ring', c.x, c.y+2,
                 c.hitJ==='PERFECT' ? 20 : 14, clamp(c.hitAge/160, 0, 0.999), 4);
