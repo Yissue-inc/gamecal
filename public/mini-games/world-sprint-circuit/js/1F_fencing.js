@@ -156,13 +156,13 @@ class FencingEvent {
       A.lungeHit=true; A.recoverUntil=this.t+FENCE.recoverParriedMs;
       B.riposteUntil=this.t+FENCE.riposteMs; B.move=0;
       this.lastTouch='파리! ' + (B.ai?'상대가':'2P가') + ' 받아넘겼다 — 리포스트';
-      this.lastTouchAt=this.t; Sfx.beep(1180,0.09,'square',0.14); inA=false;
+      this.lastTouchAt=this.t; Sfx.clang(); inA=false;
     }
     if(inB && parried(B,A)){
       B.lungeHit=true; B.recoverUntil=this.t+FENCE.recoverParriedMs;
       A.riposteUntil=this.t+FENCE.riposteMs; A.move=0;
       this.lastTouch='파리! 받아넘겼다 — 리포스트'; this.lastTouchAt=this.t;
-      Sfx.beep(1180,0.09,'square',0.14); inB=false;
+      Sfx.clang(); inB=false;
     }
     if(inA && inB){
       /* ⚠ 에페는 동시 타격이 **둘 다 점수**다. 이게 있어야 '같이 죽는' 선택이 생긴다. */

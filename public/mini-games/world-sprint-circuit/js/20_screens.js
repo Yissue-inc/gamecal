@@ -201,9 +201,20 @@ const G = {
       // 기록 갱신 확인
       const r=ev.result;
       if(r.status==='OK'){
+        /* 일일 도전(4B_daily) — 아케이드에서 그냥 뛰어도 오늘 종목이면 담긴다.
+           ⚠ 따로 '일일 도전 모드'에서만 인정하면 같은 경기를 두 번 뛰게 된다. */
+        if(typeof Daily!=='undefined' && Daily.pending(this.def.id))
+          Daily.record(this.def.id, r.value, r.status);
         this.newRecord = Save.record(this.def.id, r.value, this.def.higher);
-        if(this.newRecord) Sfx.record();
-      } else this.newRecord=false;
+        /* 관중은 한 겹이 아니다 — 신기록엔 함성, 실패엔 탄식. 소리 정체성의 절반이 관중이다. */
+        if(this.newRecord){ Sfx.record(); Sfx.roar(); }
+        else if(r.rank===1) Sfx.roar();
+      } else {
+        this.newRecord=false;
+        if(typeof Daily!=='undefined' && Daily.pending(this.def.id))
+          Daily.record(this.def.id, r.value, r.status);
+        if(r.status!=='OK') Sfx.gasp();
+      }
       /* 턴제 — 아직 남은 사람이 있으면 같은 종목을 다음 사람으로 다시 시작한다 */
       if(Party.on && Party.modeFor(this.def)==='turn'){
         Party.recordMark(r.value, r.status==='OK');

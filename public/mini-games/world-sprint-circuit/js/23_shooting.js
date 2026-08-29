@@ -102,6 +102,7 @@ class ShootingEvent {
     this.hit={x:r.x, y:r.y, score:sc};
     this.scores.push(sc); this.total=Math.round((this.total+sc)*10)/10;
     this.phase='SHOT'; this.shotAt=this.t; this.flash=0.5;
+    Sfx.shot();
     if(sc>=10.5){ this.say('완벽한 한 발!'); Sfx.finish(); Track.cheer(0.55); }
     else if(sc>=9.5){ this.say('좋다'); Sfx.step('PERFECT'); }
     else if(sc>=8) Sfx.step('GOOD');

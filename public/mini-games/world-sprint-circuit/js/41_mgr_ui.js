@@ -110,42 +110,59 @@ class OfficeScreen extends Screen0 {
   get rows(){
     const S=this.mg.season, meetW=S.nextMeetWeek;
     const r=[
-      { label:'훈련 지시', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶' },
-      { label:'선수단',   sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶' },
+      { label:'훈련 지시', sub:`이번 주 직접 지도 ${Object.keys(this.mg.focus).length} / 3`, right:'▶',
+        go:()=>new TrainScreen(this.mg) },
+      { label:'선수단',   sub:`${this.mg.club.squad.length}명 · 부상 ${this.mg.club.squad.filter(a=>a.injury).length}명`, right:'▶',
+        go:()=>new SquadScreen(this.mg) },
       /* 육성(46_rpg) — 포인트가 남아 있으면 눈에 띄게 */
       (()=>{ const tp=this.mg.club.squad.reduce((s,a)=>s+(a.tp||0),0);
              const inv=(this.mg.club.inventory||[]).length;
              return { label:'육성', sub:`훈련 포인트 ${tp} · 창고 ${inv}개`,
                       right: tp>0?'●'+tp:'▶', rightColor: tp>0?PAL.gold:PAL.dim,
-                      color: tp>0?PAL.gold:undefined }; })(),
-      { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶' },
+                      color: tp>0?PAL.gold:undefined,
+                      go:()=>new GrowPickScreen(this.mg) }; })(),
+      { label:'팀 프로그램', sub:PROGRAMS[this.mg.club.program].name+' — '+PROGRAMS[this.mg.club.program].desc, right:'▶',
+        go:()=>new ProgramScreen(this.mg) },
       /* 코치진(49_depth) — 뽑으면 그 분야가 잘 자란다. 주급을 먹는다. */
       (()=>{ const n=(typeof DEPTH!=='undefined')?DEPTH.hired(this.mg.club).length:0;
              const w=(typeof DEPTH!=='undefined')?DEPTH.wageBill(this.mg.club):0;
-             return { label:'코치진', sub:n? `${n}명 · 주급 ${w}` : '아직 없음 — 분야별로 3명까지', right:'▶' }; })(),
-      { label:'선수 사무소', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶' },
-      { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶' },
-      { label:'리그 순위표', sub:leagueSub(S), right:'▶' },
+             return { label:'코치진', sub:n? `${n}명 · 주급 ${w}` : '아직 없음 — 분야별로 3명까지', right:'▶',
+                      go:()=>new CoachScreen(this.mg) }; })(),
+      { label:'선수 사무소', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶',
+        go:()=>new MarketScreen(this.mg) },
+      /* 일일 도전(4B_daily) — 매일 열 이유. 안 한 종목이 있으면 눈에 띄게 */
+      (()=>{ const d=(typeof Daily!=='undefined')?Daily.load():null;
+             if(!d) return { label:'기록실', sub:'클럽 기록과 대회 이력', right:'▶' };
+             const evs=Daily.events(), left=evs.filter(e=>d.marks[e.id]===undefined).length;
+             const st=Daily.streak();
+             return { label:'일일 도전',
+               sub: d.claimed ? '오늘은 끝났습니다' + (st.n>1?` · ${st.n}일 연속`:'')
+                  : left ? `남은 종목 ${left} / ${evs.length}`
+                  : '보상을 받을 수 있습니다',
+               right: d.claimed ? '✓' : left ? String(left) : '!',
+               rightColor: d.claimed?PAL.dim:PAL.gold,
+               color: d.claimed?undefined:PAL.gold,
+               go:()=>new DailyScreen(this.mg) }; })(),
+      { label:'기록실',   sub:'클럽 기록과 대회 이력', right:'▶',
+        go:()=>new RecordScreen(this.mg) },
+      { label:'리그 순위표', sub:leagueSub(S), right:'▶',
+        go:()=>new LeagueScreen(this.mg) },
     ];
     if(S.isMeetWeek) r.push({ label:`▶ ${MEET_INFO[S.meetKind].name} 출전`, sub:'출전표를 짜고 경기를 본다',
-                              color:PAL.green, right:'!' });
-    else r.push({ label:'다음 주로', sub: meetW? `${meetW}주차 대회까지 ${meetW-S.week}주` : '시즌 마무리', right:'▶' });
+                              color:PAL.green, right:'!', go:()=>new EntryScreen(this.mg) });
+    else r.push({ label:'다음 주로', sub: meetW? `${meetW}주차 대회까지 ${meetW-S.week}주` : '시즌 마무리', right:'▶',
+                  next:true });
     return r;
   }
+  /* ⚠ 예전엔 줄 목록과 switch(this.sel) 두 벌을 손으로 맞췄다. 줄을 하나 더할 때마다
+     인덱스가 밀려 **다른 화면이 열린다**(이 코드베이스가 같은 이유로 여러 번 물렸다).
+     줄이 자기가 열 화면을 들고 있으면 어긋날 자리가 없다. */
   confirm(){
-    const S=this.mg.season;
-    switch(this.sel){
-      case 0: this.mg.push(new TrainScreen(this.mg)); break;
-      case 1: this.mg.push(new SquadScreen(this.mg)); break;
-      case 2: this.mg.push(new GrowPickScreen(this.mg)); break;
-      case 3: this.mg.push(new ProgramScreen(this.mg)); break;
-      case 4: this.mg.push(new CoachScreen(this.mg)); break;
-      case 5: this.mg.push(new MarketScreen(this.mg)); break;
-      case 6: this.mg.push(new RecordScreen(this.mg)); break;
-      case 7: this.mg.push(new LeagueScreen(this.mg)); break;
-      case 8: S.isMeetWeek ? this.mg.push(new EntryScreen(this.mg)) : this.mg.nextWeek(); break;
-    }
+    const r=this.rows[this.sel]; if(!r) return;
+    if(r.next){ this.mg.nextWeek(); return; }
+    if(r.go){ this.mg.push(r.go()); return; }
   }
+
   cancel(){}
   draw(u){
     const S=this.mg.season, C=this.mg.club;

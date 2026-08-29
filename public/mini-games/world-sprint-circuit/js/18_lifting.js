@@ -101,7 +101,7 @@ class LiftingEvent {
       const passed = this.best >= this.qualify;
       this.phase='DONE'; this.doneAt=this.t;
       this.result = { status: passed?'OK':'MISSED_QUALIFY', value:this.best, rank:1 };
-      passed ? Sfx.finish() : Sfx.fail();
+      passed ? (Sfx.thud(), Sfx.finish()) : Sfx.fail();
     } else this.newAttempt();
   }
   update(dt){

@@ -75,7 +75,7 @@ class CyclingEvent {
     }
     this.judge[j]++; this.lastJudge=j; this.lastJudgeMs=tMs;
     this.side=side; this.lastPedal=tMs;
-    Sfx.step(j);
+    Sfx.chain(), Sfx.step(j);
     const mult={PERFECT:1.0,GOOD:0.82,EARLY:0.6,LATE:0.6,REPEAT:0.35,SPAM:0.15}[j];
     /* 관성이 크다 — 목표 속도로 천천히 다가간다 */
     const target = CYCLE.maxSpeed * this.G.mul * this.form * this.stamina * mult;

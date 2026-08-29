@@ -113,7 +113,7 @@ class CanoeEvent {
       if(gt.done || this.dist < gt.m) continue;
       gt.done=true;
       const off=Math.abs(this.x-gt.x);
-      if(off<=CANOE.gateW*0.72){ gt.ok=true; this.judge.PERFECT++; Sfx.step('PERFECT'); Track.cheer(0.25); }
+      if(off<=CANOE.gateW*0.72){ gt.ok=true; this.judge.PERFECT++; Sfx.paddle(), Sfx.step('PERFECT'); Track.cheer(0.25); }
       else if(off<=CANOE.gateW){ gt.ok=true; gt.touch=true; this.penalty+=CANOE.touchPenalty; this.touched++;
         this.say('봉을 건드렸다 +2초', true); Sfx.step('LATE'); }
       else { this.penalty+=CANOE.missPenalty; this.missed++;

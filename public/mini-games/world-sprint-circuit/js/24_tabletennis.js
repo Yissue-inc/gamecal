@@ -77,7 +77,7 @@ class TableTennisEvent {
     if(quality==='PERFECT') this.travel=Math.max(TT.minTravelMs, this.travel*TT.speedUp);
     this.arriveAt=this.t+this.travel;
     this.rally++; this.bestRally=Math.max(this.bestRally,this.rally);
-    Sfx.beep(quality==='PERFECT'?880:660, 0.035,'square',0.09);
+    Sfx.hit(quality==='PERFECT'?2100:1650);
   }
   /* 받는 쪽의 판정 창 — 서 있는 곳에서 멀수록, 그리고 **랠리가 길어질수록** 좁다.
      ⚠ 랠리 길이를 안 넣었더니 실력이 비슷하면 **1110구**까지 갔다. 난이도가 평평하면

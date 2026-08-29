@@ -7,7 +7,7 @@
 'use strict';
 
 const VW = 480, VH = 270;                 // 내부 해상도 (16:9)
-const ASSET_VER = '1787959976';
+const ASSET_VER = '1787961776';
 function assetUrl(p){ return `${p}?v=${ASSET_VER}`; }
 
 /* ── 화면 ────────────────────────────────────────────────── */

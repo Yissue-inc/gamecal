@@ -191,6 +191,8 @@ const MG = {
          플레이어는 평가를 못 보고, 다음 주로 넘기는 순간 오프시즌이 두 번 돈다. */
       /* 방치 정산 — 자리를 비운 동안 선수들이 훈련했다.
          ⚠ 주차는 안 흐른다(대회를 건너뛰면 안 된다). 경험치만 준다. */
+      /* 아케이드만 하다가 클럽을 만든 사람의 밀린 일일 보상 */
+      if(typeof Daily!=='undefined') Daily.drainPending(c);
       if(typeof RPG!=='undefined' && d.seen){
         this.idleReport = RPG.settleIdle(c, d.seen, Date.now());
       }

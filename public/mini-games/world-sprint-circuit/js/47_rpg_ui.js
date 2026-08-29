@@ -572,3 +572,73 @@ class PodiumScreen extends Screen0 {
     UI.footer(u, this.idx < this.winners.length-1 ? '확인 다음 시상' : '확인 계속');
   }
 }
+
+/* ── 일일 도전 (4B_daily) ───────────────────────────────────
+   레퍼런스의 '오늘의 보상' 자리. 오늘의 종목 3개를 한 번씩 뛰고 합산 점수로 보상.
+   ⚠ 아케이드를 그대로 빌려 쓴다 — 판정도 기록도 종목이 하던 그대로다. */
+class DailyScreen extends Screen0 {
+  constructor(mg){ super(mg); this.t=0; this.evs=Daily.events(); }
+  get rows(){
+    const d=Daily.load();
+    const r=this.evs.map(e=>{
+      const v=d.marks[e.id];
+      const done=v!==undefined;
+      return { label:(done?'✓ ':'▶ ')+e.name,
+        sub: done ? (v===null ? K('기록 없음')
+                              : `${fmtRec(e,v)} · ${UIK.n(Daily.scoreOf(e,v))}점`)
+                  : K('아직 안 뛰었다'),
+        right: done ? (v===null?'0':UIK.n(Daily.scoreOf(e,v))) : K('도전'),
+        rightColor: done ? (v===null?PAL.red:PAL.green) : PAL.gold,
+        color: done ? PAL.dim : PAL.white, _e:e, _done:done };
+    });
+    if(d.done && !d.claimed) r.push({ label:'★ '+K('보상 받기'), sub:K('코인과 경험치를 받는다'),
+                                      color:PAL.gold, right:'!', _claim:true });
+    return r;
+  }
+  update(now){ this.t+=16.7; super.update(now); }
+  confirm(){
+    const r=this.rows[this.sel]; if(!r) return;
+    if(r._claim){
+      const got=Daily.claim(this.mg && this.mg.club);
+      if(got){
+        Sfx.record(); Sfx.roar(); Screen.shake(0.5);
+        if(typeof Music!=='undefined'){ Music._last=null; Music.play('win'); }
+        Daily.bumpStreak();
+        const m = this.mg && this.mg.toast;
+        if(m) this.mg.toast(K('코인 +%1 · 경험치 +%2').replace('%1',got.coin).replace('%2',UIK.n(got.xp)));
+      }
+      return;
+    }
+    if(r._done){ Sfx.fail(); if(this.mg&&this.mg.toast) this.mg.toast(K('오늘은 이미 뛰었습니다')); return; }
+    /* 아케이드로 — 끝나면 기록을 담고 돌아온다 */
+    Sfx.ui();
+    const back = this.mg ? ST.MANAGER : ST.SELECT;
+    G.playForManager(r._e, (res)=>{
+      if(res) Daily.record(r._e.id, res.value, res.status);
+      G.state = back;
+    });
+  }
+  cancel(){ if(this.mg) this.mg.pop(); else G.state=ST.SELECT; }
+  draw(u){
+    const d=Daily.load(), tot=Daily.total(d), rw=Daily.reward(d), st=Daily.streak();
+    if(this.mg) UIK.resourceBar(u, 0, [{ value:Math.round(this.mg.club.budget), color:'#ffcf4a', icon:'icon-coin' }]);
+    txt(u, K('일일 도전'), VW-8, 3, 11, PAL.gold, 'right', 700);
+    /* 오늘 · 연속 */
+    const dd=String(d.day);
+    txt(u, `${dd.slice(4,6)}/${dd.slice(6,8)}`, 8, 20, 9, PAL.dim, 'left');
+    if(st.n>0) txt(u, K('%1일 연속').replace('%1', st.n), 44, 20, 9, PAL.gold, 'left', 700);
+    txt(u, K('오늘의 종목 3개 — 한 번씩만'), VW-8, 20, 9, PAL.dim, 'right');
+    UI.list(u, this.rows, this.sel, 8, 32, VW-16, 22, 4);
+    /* 합계와 보상 */
+    const y=VH-58;
+    UIK.frame(u, 8, y, VW-16, 30, { glow: d.done?PAL.gold:null });
+    txt(u, K('합계'), 16, y+4, 8, PAL.dim, 'left');
+    txt(u, UIK.n(tot), 16, y+12, 17, PAL.gold, 'left', 700);
+    const bs=22;
+    UIK.itemBox(u, VW-118, y+4, bs, { color:'#ffcf4a', qty:rw.coin, icon:'icon-coin' });
+    UIK.itemBox(u, VW-88,  y+4, bs, { color:PAL.blue,  qty:rw.xp,   icon:'icon-xp' });
+    txt(u, d.claimed ? K('받았습니다') : d.done ? K('받을 수 있습니다') : K('세 종목을 마치면 받습니다'),
+        VW-56, y+30, 8, d.claimed?PAL.dim:d.done?PAL.gold:PAL.dim, 'center');
+    UI.footer(u, '확인 도전/받기   취소 돌아가기');
+  }
+}

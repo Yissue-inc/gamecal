@@ -116,4 +116,111 @@ const Sfx = {
     g.gain.exponentialRampToValueAtTime(0.0001, t+0.045);
     o.connect(g); g.connect(this.master); o.start(t); o.stop(t+0.05);
   },
+
+  /* ══ 종목의 소리 ══════════════════════════════════════════
+     ⚠ 지금까지 48종목이 **전부 같은 소리**로 돌았다 — 두드리면 삑, 끝나면 팡파르.
+        수영도 삑, 양궁도 삑, 탁구도 삑이었다. 종목이 48개인데 귀로는 하나다.
+        스포츠 게임의 기억은 소리에 붙는다(하이퍼 올림픽의 총성처럼).
+     ⛔ 규칙은 안 건드린다. 같은 자리에서 **다른 소리**를 낼 뿐이다.
+
+     합성으로 만드는 법:
+       · 물   → 낮은 잡음 + 빠르게 닫히는 필터
+       · 타격 → 아주 짧은 잡음 + 높은 사인 한 점
+       · 줄   → 톱니 짧게 + 급격한 하강
+       · 금속 → 두 사인의 불협(살짝 어긋난 주파수) */
+
+  /* 물에 들어가는 소리 — 수영 턴·다이빙 입수 */
+  water(big){
+    if(!this.ac||this.muted) return;
+    const t=this.ac.currentTime, dur=big?0.42:0.18;
+    const n=this.ac.createBufferSource();
+    const len=Math.floor(this.ac.sampleRate*dur);
+    const buf=this.ac.createBuffer(1,len,this.ac.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    n.buffer=buf;
+    const f=this.ac.createBiquadFilter(); f.type='lowpass';
+    f.frequency.setValueAtTime(big?2600:1800, t);
+    f.frequency.exponentialRampToValueAtTime(180, t+dur);
+    const g=this.ac.createGain();
+    g.gain.setValueAtTime((big?0.26:0.14)*this.vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    n.connect(f); f.connect(g); g.connect(this.master); n.start(t); n.stop(t+dur);
+  },
+
+  /* 딱 하고 맞는 소리 — 탁구공·야구식 타격 */
+  hit(pitch){
+    this.noise(0.03, 0.06, 6000);
+    this.beep(pitch||1900, 0.035, 'sine', 0.10, (pitch||1900)*0.6);
+  },
+
+  /* 줄이 튕기는 소리 — 활시위 */
+  bow(){
+    this.beep(420, 0.10, 'sawtooth', 0.11, 90);
+    this.noise(0.04, 0.10, 3400);
+  },
+
+  /* 총·소총 — 시작 총성보다 짧고 건조하게 */
+  shot(){ this.noise(0.16, 0.32, 4200); this.beep(140, 0.08, 'square', 0.14, 50); },
+
+  /* 금속이 부딪는 소리 — 펜싱 검, 역도 바 */
+  clang(){
+    if(!this.ac||this.muted) return;
+    const t=this.ac.currentTime;
+    for(const f of [1180, 1243]){          // 살짝 어긋난 두 음 = 금속의 불협
+      const o=this.ac.createOscillator(), g=this.ac.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.09*this.vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.30);
+      o.connect(g); g.connect(this.master); o.start(t); o.stop(t+0.32);
+    }
+    this.noise(0.05, 0.10, 5000);
+  },
+
+  /* 무거운 것이 놓이는 소리 — 역도 바를 내릴 때 */
+  thud(){
+    this.beep(70, 0.22, 'sine', 0.20, 38);
+    this.noise(0.10, 0.16, 700);
+  },
+
+  /* 바람 가르기 — 원반·해머 회전, 창던지기 */
+  whoosh(level){
+    if(!this.ac||this.muted) return;
+    const t=this.ac.currentTime, dur=0.22;
+    const n=this.ac.createBufferSource();
+    const len=Math.floor(this.ac.sampleRate*dur);
+    const buf=this.ac.createBuffer(1,len,this.ac.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++){ const k=i/len; d[i]=(Math.random()*2-1)*Math.sin(k*Math.PI); }
+    n.buffer=buf;
+    const f=this.ac.createBiquadFilter(); f.type='bandpass';
+    f.frequency.setValueAtTime(500, t);
+    f.frequency.exponentialRampToValueAtTime(1400+1600*(level||0.5), t+dur);
+    f.Q.value=2.4;
+    const g=this.ac.createGain();
+    g.gain.setValueAtTime(0.10*this.vol*(0.5+(level||0.5)), t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    n.connect(f); f.connect(g); g.connect(this.master); n.start(t); n.stop(t+dur);
+  },
+
+  /* 자전거 체인·기어 */
+  chain(){ this.noise(0.03, 0.05, 7000); this.beep(2400, 0.02, 'square', 0.05); },
+
+  /* 노가 물을 젓는 소리 — 조정·카누 */
+  paddle(){ this.water(false); this.beep(240, 0.07, 'sine', 0.06, 140); },
+
+  /* 발이 매트를 치는 소리 — 트램폴린·도마 */
+  bounce(){ this.beep(120, 0.13, 'sine', 0.16, 70); this.noise(0.05, 0.09, 900); },
+
+  /* 관중 — 한 겹이 아니라 상황에 따라 다르게 낸다.
+     ⚠ 지금까지 관중은 '레벨 하나'였다(0~1). 실제 경기장은 기다릴 때·터질 때·
+        탄식할 때가 다 다르다. 소리 정체성의 절반이 관중이다. */
+  gasp(){                                  // 탄식 — 실패했을 때
+    this.noise(0.30, 0.5, 900);
+    this.beep(300, 0.35, 'sine', 0.05, 180);
+  },
+  roar(){                                  // 함성 — 1위·신기록
+    this.noise(0.55, 0.9, 2200);
+    [520,660,784].forEach((f,i)=>setTimeout(()=>this.beep(f,0.5,'sine',0.05),i*60));
+  },
 };

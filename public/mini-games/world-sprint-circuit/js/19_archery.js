@@ -75,6 +75,7 @@ class ArcheryEvent {
     this.scores.push(score); this.total += score;
     this.phase='RESULT'; this.resultAt=this.t; this.flash=1;
     this.say(score===10?'정중앙!':score===0?'과녁을 벗어났다':`${score}점`, score<=4);
+    Sfx.bow();
     Sfx.beep(score>=9?1320:score>=6?880:420, 0.12,'square',0.12);
   }
   update(dt){

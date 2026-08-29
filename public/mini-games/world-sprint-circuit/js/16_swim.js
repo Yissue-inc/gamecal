@@ -143,7 +143,7 @@ class SwimEvent {
       S.lap++;
       S.speed = lerp(S.speed*0.72, S.speed*1.55, q);
       this.say(q>0.75?`완벽한 턴! ${Math.round(q*100)}%`:`턴 ${Math.round(q*100)}%`, q<0.45);
-      Sfx.beep(q>0.75?1320:700, 0.12,'square',0.14);
+      Sfx.beep(q>0.75?1320:700, 0.12,'square',0.14); Sfx.water(false);
       return;
     }
     /* 숨쉬기 */

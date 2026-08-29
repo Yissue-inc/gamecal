@@ -187,7 +187,7 @@ class HammerEvent extends FieldEvent {
       this.kick = 1;                                   // 이번 타의 튐(그리기에서 쓴다)
       this.kickAt = tMs;
       Sfx.beep(220+this.spin*70, 0.05,'square',0.09+hot*0.06);
-      if(hot>0.35) Screen.shake(0.15 + hot*0.55);      // 회전이 붙으면 화면이 떤다
+      if(hot>0.35){ Screen.shake(0.15 + hot*0.55); Sfx.whoosh(hot); }
       Track.cheer(hot*0.5);
     }
     this.lastSide=side; this.lastTapMs=tMs;

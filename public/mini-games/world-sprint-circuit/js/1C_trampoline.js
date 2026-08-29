@@ -61,7 +61,7 @@ class TrampolineEvent {
     if(this.toLand < 0.22) return;             // 착지 직전엔 못 돈다
     this.spin = Math.min(TRAMP.maxSpin, this.spin + TRAMP.spinPerTap);
     this.tucking=true;
-    Sfx.step(this.spin>=TRAMP.maxSpin?'GOOD':'PERFECT');
+    Sfx.bounce(); Sfx.step(this.spin>=TRAMP.maxSpin?'GOOD':'PERFECT');
   }
   onAction(tMs){
     if(this.phase==='READY'){ this.bounce=1; this.launch(TRAMP.baseH); return; }

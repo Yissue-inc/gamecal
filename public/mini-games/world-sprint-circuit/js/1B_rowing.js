@@ -82,7 +82,7 @@ class RowingEvent {
     }
     this.judge[j]++; this.lastJudge=j; this.lastJudgeMs=tMs;
     this.side=side; this.lastStroke=tMs; this.strokes++;
-    Sfx.step(j);
+    Sfx.paddle(), Sfx.step(j);
     const mult={PERFECT:1.0,GOOD:0.84,EARLY:0.58,LATE:0.58,REPEAT:0.0,SPAM:0.0}[j];
     if(j==='REPEAT'){ this.speed=Math.max(0,this.speed-0.35); this.say('같은 쪽만 저었다', true); }
     /* 스트로크 한 번이 배를 민다 — 일정할수록 크게 민다(0.35 → 1.0) */

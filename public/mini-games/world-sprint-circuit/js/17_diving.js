@@ -64,7 +64,7 @@ class DivingEvent {
       /* 입수 — 수면 직전에 펴야 한다 */
       const left = DIVE.fallDur - this.airT;
       this.entryQ = clamp(1 - Math.abs(left - 0.10)/DIVE.entryWindow, 0, 1);
-      this.splashAt = this.t;                    // 입수 순간 — 물보라를 여기서 띄운다
+      this.splashAt = this.t; Sfx.water(true);                    // 입수 순간 — 물보라를 여기서 띄운다
       this.opened = true;
       this.say(this.entryQ>0.75?'물보라 없이!':`입수 ${Math.round(this.entryQ*100)}%`, this.entryQ<0.35);
       Sfx.beep(this.entryQ>0.75?1320:520, 0.10,'square',0.12);
