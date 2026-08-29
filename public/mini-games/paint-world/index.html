@@ -84,7 +84,7 @@ const VW = 1280, VH = 720;
      '배포했는데 화면은 그대로'가 된다. 실측: 고릴라 파일을 지웠는데도
      브라우저가 캐시에서 줘서 검사가 통과했다.
    stamp.py 가 어셋 폴더의 최신 수정 시각으로 갈아 끼운다. */
-const AREV = '1788018318';
+const AREV = '1788034443';
 
 const PAL = {
   ink:'#12212e',
@@ -1021,6 +1021,11 @@ const Paint = {
   },
   toTpl(x,y){ const b=this.box(); return {x:(x-b.x)/b.w*TW, y:(y-b.y)/b.h*TH}; },
 
+  /* 백지로 그릴 때 아이가 고르는 크기 — 종이 없으니 크기도 아이가 정한다.
+     ⚠ 도안이 있는 종은 종마다 크기가 정해져 있다(고래는 크고 새우는 작다).
+       백지는 그게 없어서 전부 같은 크기로 나갔다. */
+  FREE_SIZES:[ {ko:'작게', k:0.62}, {ko:'보통', k:1.0}, {ko:'크게', k:1.7} ],
+  freeSize:1,
   open(spId, mode){
     this.mode = mode || null;
     if(typeof BG!=='undefined'){ BG.get('paper'); BG.get('frame-wood'); }
@@ -3357,10 +3362,8 @@ const ModeWorld = {
   FRONT:{
     dino:  [['dino-tree-near',0.02,0.64,3.6],['dino-rock-near',0.66,0.24,3.2],
             ['dino-grass-front',0.90,0.10,4.4]],
-    /* ⚠ city-crate 는 **X자 와이어프레임 상자 네 개**다 — 화면에서는 상자가 아니라
-       '이미지 깨진 자리표시'로 읽힌다(실기기 확인). 제대로 된 그림이 올 때까지 뺀다.
-       발주 → prompts/P26. */
-    robot: [['city-factory',0.02,0.64,3.6],
+    /* P26: 채워진 나무 상자로 교체해 전경에 다시 넣는다. */
+    robot: [['city-factory',0.02,0.64,3.6],['city-crate',0.66,0.24,3.2],
             ['city-front',0.90,0.10,4.4]],
     bug:   [['bug-leaf-near',0.02,0.64,3.6],['bug-stone-near',0.66,0.24,3.2],
             ['bug-grass-front',0.90,0.10,4.4]],
@@ -4275,6 +4278,155 @@ const JWorld = {
 
 </script>
 <script>
+/* ===== js/47_allworld.js ===== */
+/* ══════════════════════════════════════════════════════════════════
+   「다 같이」 — 다섯 세계의 생물이 한 화면에 모이는 곳.
+
+   ⚠ 왜 따로 만드나: 세계마다 무대·땅높이·움직임이 달라서, 한 세계의 배경에
+     다른 세계 생물을 얹으면 발이 뜨거나 파묻힌다.
+     여기는 **어느 세계도 아닌 자리**다 — 하늘과 들판만 있고 모두가 함께 있다.
+     물고기는 공중을 헤엄친다. 그게 이 세계의 규칙이고, 아이는 그걸 재미있어한다.
+
+   생물이 세계에 요구하는 것은 많지 않다(실측):
+     neighbors · nearestFood · eatFood · findT · callAt · scareAt · touchAt
+     · flock · perchYAt · groundY
+   그것만 갖추면 바다·정글·새 모드가 그대로 살아 움직인다.
+   ══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+const AllWorld = {
+  t:0, scroll:0, timeIdx:1, foods:[], scareAt:null, findT:0, callAt:null,
+  touchAt:null, flock:true,
+  hills:null, clouds:null,
+
+  GROUND: 0.78,                       // 정글(0.755)과 새 모드(0.80) 사이
+  groundY(){ return VH*this.GROUND; },
+  perchYAt(){ return this.groundY(); },
+
+  init(){
+    if(this.hills) return;
+    this.hills=[];
+    for(let b=0;b<3;b++){
+      const pts=[];
+      for(let i=0;i<=14;i++) pts.push(0.30+Math.sin(i*0.9+b*2.1)*0.05+Math.sin(i*2.3+b)*0.03);
+      this.hills.push({pts, y:0.44+b*0.11, a:0.30+b*0.22});
+    }
+    this.clouds=[];
+    for(let i=0;i<7;i++) this.clouds.push({
+      x:rnd()*VW*1.4, y:VH*(0.06+rnd()*0.26), w:120+rnd()*220,
+      sp:0.06+rnd()*0.14, a:0.10+rnd()*0.16});
+  },
+  prefetch(){ /* 코드로만 그린다 — 어셋을 기다리지 않는다 */ },
+  set(){ },
+
+  update(dt){
+    this.t+=dt*60; this.scroll+=0.16;
+    if(this.findT>0) this.findT--;
+    if(this.callAt && --this.callAt.life<=0) this.callAt=null;
+    for(const cl of this.clouds||[]){
+      cl.x -= cl.sp; if(cl.x < -cl.w) cl.x = VW+cl.w*0.5;
+    }
+    /* 먹이는 바닥으로 떨어진다 */
+    for(let i=this.foods.length-1;i>=0;i--){
+      const f=this.foods[i];
+      const rest=f.rest||this.groundY();
+      if(f.y<rest){ f.vy=Math.min(2.0,(f.vy||0.3)+0.05); f.y+=f.vy; if(f.y>rest) f.y=rest; }
+      if(--f.life<=0) this.foods.splice(i,1);
+    }
+  },
+
+  draw(c){
+    this.init();
+    /* 하늘 — 새벽빛에서 크림색으로 */
+    const g=c.createLinearGradient(0,0,0,VH*this.GROUND);
+    g.addColorStop(0,'#8fa6d8'); g.addColorStop(0.45,'#cfd3ea'); g.addColorStop(1,'#f2e3c8');
+    c.fillStyle=g; c.fillRect(0,0,VW,VH);
+    /* 해 */
+    const sx=VW*0.72, sy=VH*0.20;
+    const sg=c.createRadialGradient(sx,sy,10, sx,sy, VH*0.42);
+    sg.addColorStop(0,'rgba(255,246,214,.85)'); sg.addColorStop(1,'rgba(255,246,214,0)');
+    c.fillStyle=sg; c.beginPath(); c.arc(sx,sy,VH*0.42,0,TAU); c.fill();
+    /* 구름 */
+    for(const cl of this.clouds){
+      c.save(); c.globalAlpha=cl.a; c.fillStyle='#fff';
+      for(let k=0;k<3;k++){
+        c.beginPath();
+        c.ellipse(cl.x+k*cl.w*0.24, cl.y+Math.sin(k*1.7)*8, cl.w*0.28, cl.w*0.12, 0,0,TAU);
+        c.fill();
+      }
+      c.restore();
+    }
+    /* 언덕 셋 — 뒤에서 앞으로 */
+    const cols=['#9fb98e','#7ea173','#5f855c'];
+    this.hills.forEach((h,bi)=>{
+      c.save(); c.globalAlpha=h.a+0.45; c.fillStyle=cols[bi];
+      c.beginPath();
+      const off=(this.scroll*(0.3+bi*0.35))%VW;
+      c.moveTo(-off, VH);
+      for(let i=0;i<=14;i++){
+        const x=-off + i*(VW/12);
+        c.lineTo(x, VH*(h.y+h.pts[i]*0.28));
+      }
+      c.lineTo(VW*1.4, VH); c.closePath(); c.fill();
+      c.restore();
+    });
+    /* 들판 */
+    const gy=this.groundY();
+    const fg=c.createLinearGradient(0,gy,0,VH);
+    fg.addColorStop(0,'#79a35f'); fg.addColorStop(1,'#4f7440');
+    c.fillStyle=fg; c.fillRect(0,gy,VW,VH-gy);
+    /* 풀 몇 포기 */
+    c.save(); c.strokeStyle='rgba(60,92,48,.55)'; c.lineWidth=3; c.lineCap='round';
+    for(let i=0;i<40;i++){
+      const x=((i*137.5 - this.scroll*1.6)%(VW+40))-20;
+      const h=10+((i*37)%16);
+      c.beginPath(); c.moveTo(x, gy+6+((i*23)%18));
+      c.quadraticCurveTo(x+3, gy-h*0.4, x+ (i%2?7:-7), gy-h);
+      c.stroke();
+    }
+    c.restore();
+    /* 먹이 */
+    for(const f of this.foods){
+      if(!Props.draw(c,'fruit',f.x,f.y+8,18)){
+        c.fillStyle=PAL.gold; c.beginPath(); c.arc(f.x,f.y,6,0,TAU); c.fill(); }
+    }
+  },
+  drawFront(){ },
+
+  /* ── 생물이 쓰는 약속들 ───────────────────────────── */
+  CELL:230, grid:{}, gridT:-1,
+  rebuildGrid(arr){
+    if(this.gridT===Game.t) return;
+    this.gridT=Game.t;
+    const g={};
+    for(const o of arr){ const k=(o.x/this.CELL)|0; (g[k]=g[k]||[]).push(o); }
+    this.grid=g;
+  },
+  neighbors(x,y,self){
+    this.rebuildGrid(Game.beings);
+    const gx=(x/this.CELL)|0, out=[];
+    for(let i=-1;i<=1;i++){
+      const cell=this.grid[gx+i]; if(!cell) continue;
+      for(const o of cell){ if(o===self) continue; out.push(o); if(out.length>12) return out; }
+    }
+    return out;
+  },
+  dropFood(x){
+    for(let i=0;i<18;i++)
+      this.foods.push({x:x+(rnd()-0.5)*260, y:VH*0.16, vy:0.12+rnd()*0.1,
+                       life:1400, rest:this.groundY()-rnd()*24});
+    Sfx.plop();
+  },
+  nearestFood(x,y){ let b=null,bd=1e9;
+    for(const f of this.foods){ const d=dist(x,y,f.x,f.y); if(d<bd){bd=d;b=f;} } return b; },
+  eatFood(f,c){ f.bites=(f.bites||0)+1; FX.heart(c.x,c.y-20); Sfx.eat();
+    if(f.bites>=3){ const i=this.foods.indexOf(f); if(i>=0) this.foods.splice(i,1); } },
+  scare(x,y){ this.scareAt={x,y}; for(const b of Game.beings) b.scared=40; },
+  callMine(x,y){ this.findT=720; this.callAt={x,y,life:720}; },
+};
+
+</script>
+<script>
 /* ===== js/60_ui.js ===== */
 /* UI — 아이가 쓰는 버튼. 크고, 글자 없이 그림으로. */
 'use strict';
@@ -4627,6 +4779,7 @@ const Game = {
         /* 백지 그림 — 종이 없다. 움직임은 되살린 그림의 비율에서 다시 정한다 */
         const fc=new Creature(img, 'clownfish', rec.n, {mine:rec.m, born:rec.b, item:rec.it});
         fc.free=true;
+        if(rec.fk){ fc.baseS=(0.82/(typeof TEX_K!=='undefined'?TEX_K:1))*rec.fk; fc.s=fc.baseS; }
         raw.onload=()=>{ fc.motion=freeMotion(raw.naturalWidth/Math.max(1,raw.naturalHeight));
                          try{ img.getContext('2d').drawImage(raw,0,0,TEX_W,TEX_H); }catch(e){} };
         this.creatures.push(fc);
@@ -4840,11 +4993,24 @@ const Game = {
   get W(){
     if(this.realm==='sea') return World;
     if(this.realm==='jungle') return JWorld;
+    if(this.realm==='all') return AllWorld;
     ModeWorld.set(this.realm); return ModeWorld;
   },
   get beings(){
     if(this.realm==='sea') return this.creatures;
     if(this.realm==='jungle') return this.animals;
+    if(this.realm==='all'){
+      /* ⚠ 매 프레임 200개짜리 배열을 새로 만들면 정렬 캐시가 계속 깨진다.
+         마리 수가 바뀔 때만 다시 세운다. */
+      const n=this.creatures.length+this.animals.length
+            + this.modeBeings.dino.length+this.modeBeings.robot.length+this.modeBeings.bug.length;
+      if(!this._allList || this._allN!==n){
+        this._allList=[].concat(this.creatures, this.animals,
+          this.modeBeings.dino, this.modeBeings.robot, this.modeBeings.bug);
+        this._allN=n;
+      }
+      return this._allList;
+    }
     return this.modeBeings[this.realm] || (this.modeBeings[this.realm]=[]);
   },
   /* 세계 차례 — 어셋이 준비된 모드만 돈다.
@@ -4857,10 +5023,12 @@ const Game = {
     const out=['sea','jungle'];
     for(const m of ['dino','robot','bug'])
       if(typeof MODES!=='undefined' && MODES[m] && MODES[m].list().length) out.push(m);
+    /* 「다 같이」 — 맨 끝. 다른 세계가 있어야 의미가 있다 */
+    if(typeof AllWorld!=='undefined' && out.length>=2) out.push('all');
     return out;
   },
   readyRealm(r){
-    if(r==='sea'||r==='jungle') return true;
+    if(r==='sea'||r==='jungle'||r==='all') return true;
     return !!(typeof MTemplate!=='undefined' && MTemplate.ready(r).length);
   },
   /* 특정 세계로 곧장 — 순환(switchRealm)이 아니라 지목해서 간다 */
@@ -4944,6 +5112,13 @@ const Game = {
         x:-140, y:VH*(0.26+rnd()*0.42)});
       c.motion = freeMotion(tex && tex.freeAR ? tex.freeAR : 1);
       c.free = true;
+      /* 아이가 고른 크기 — 저장에도 남겨 다시 켰을 때 그대로 나온다.
+         ⚠ baseS 에는 종마다 0.62~1.02 의 무작위 편차가 있다. 그걸 그대로 두면
+           **'크게'를 골라도 '보통'보다 작게 나올 수 있다**(편차 1.65배 = 선택 폭과
+           비슷). 백지는 크기를 아이가 정하는 것이니 무작위를 빼고 선택만 남긴다. */
+      const fk=(Paint.FREE_SIZES[Paint.freeSize]||{k:1}).k;
+      c.baseS = (0.82/(typeof TEX_K!=='undefined'?TEX_K:1)) * fk;
+      c.s = c.baseS; this.pendingFK = fk;
       while(this.creatures.length>=250) this.creatures.shift();
       this.creatures.push(c);
       this.realm='sea';
@@ -4985,13 +5160,14 @@ const Game = {
     /* 저장 */
     try{
       const rec={d:Save.encode(tex), sp:spId, n:this.myName, m:true, b:Date.now()};
+      if(isFree && this.pendingFK) rec.fk=this.pendingFK;   // 아이가 고른 크기
       Save.data.creatures.push(rec);
       /* 도감 — 그림은 밀려나도 '그려 봤다'는 남는다 */
       if(!Save.data.seen) Save.data.seen={};
       Save.data.seen[spId]=(Save.data.seen[spId]||0)+1;
       Save.data.made=(Save.data.made||0)+1; Save.write();
       /* 여러 대 운영 — 큰 화면으로 보낸다. 서버가 없으면 조용히 넘어간다 */
-      if(typeof Net!=='undefined') Net.push({d:rec.d, sp:spId, n:this.myName});
+      if(typeof Net!=='undefined') Net.push({d:rec.d, sp:spId, n:this.myName, fk:rec.fk});
     }catch(_){}
     this.W.findT=200;      // ⚠ World 로 박아 두면 정글에서 안 켜진다
     if(typeof Grow!=='undefined') Grow.add('draw', VW/2, VH*0.4);
@@ -5102,7 +5278,11 @@ const Game = {
     const p=Input.takeTap();
     if(!p) return;
     const id=UI.hit(p);
-    if(id==='new'){ this.state=ST.PICK; this.pickPage=0; Sfx.ui(); return; }
+    if(id==='new'){
+      /* ⚠ 「다 같이」 는 보는 세계다 — 여기서 고르게 하면 229종이 16쪽이 된다.
+         막다른 길을 만들지 말고 바다 목록으로 보낸다(세계 줄에서 바로 옮길 수 있다). */
+      if(this.realm==='all') this.goRealm('sea', true);
+      this.state=ST.PICK; this.pickPage=0; Sfx.ui(); return; }
     if(id==='feed'){ this.W.dropFood(VW/2+(rnd()-0.5)*400, VH*0.25); this.say('먹이를 뿌렸어요'); return; }
     if(id==='find'){
       const mine=this.beings.filter(b=>b.mine).length;
@@ -5211,6 +5391,7 @@ const Game = {
       }
       this.askName();
     }
+    else if(id && id.startsWith('fsz:')){ Paint.freeSize=+id.slice(4); Sfx.ui(); }
     else if(id==='undo'){ Paint.doUndo(); }
     else if(id==='clear'){ Paint.clear(); }
     else if(id==='size'){ Paint.sizeIdx=(Paint.sizeIdx+1)%Paint.sizes.length;
@@ -5505,7 +5686,9 @@ const Game = {
     const verb = this.realm==='sea' ? '헤엄치고'
                : this.realm==='bug' ? '기어다니고'
                : this.realm==='robot' ? '움직이고' : '걷고';
-    c.fillText(`${n}마리가 ${verb} 있어요`, 28, 44);
+    /* 「다 같이」 는 헤엄치고 걷고 날고가 섞여 있다 — 한 동사로 못 묶는다 */
+    c.fillText(this.realm==='all' ? `${n}마리가 다 같이 있어요`
+                                  : `${n}마리가 ${verb} 있어요`, 28, 44);
   },
   drawPick(c){
     c.fillStyle='#123047'; c.fillRect(0,0,VW,VH);
@@ -5638,7 +5821,7 @@ const Game = {
     return (jong===0 || jong===8) ? '로' : '으로';   // 받침 없음·ㄹ 받침은 '로'
   },
   worldName(r){
-    return r==='sea' ? '바다' : r==='jungle' ? '정글'
+    return r==='sea' ? '바다' : r==='jungle' ? '정글' : r==='all' ? '다 같이'
          : ((typeof MODES!=='undefined' && MODES[r]) ? MODES[r].ko : r);
   },
   /* 세계 표식 — 어셋(btn-realm-*)이 있으면 쓰고, 없는 세 세계는 코드로 그린다.
@@ -5668,6 +5851,12 @@ const Game = {
         i?g.lineTo(px,py):g.moveTo(px,py); }
       g.closePath(); g.stroke();
       g.beginPath(); g.arc(0,0,4,0,TAU); g.fill();
+    } else if(r==='all'){                            // 다 같이 — 셋이 모인 표식
+      g.beginPath(); g.arc(-9,2,6,0,TAU); g.fill();
+      g.beginPath(); g.arc(9,2,6,0,TAU); g.fill();
+      g.beginPath(); g.arc(0,-10,7,0,TAU); g.fill();
+      g.lineWidth=2.5;
+      g.beginPath(); g.arc(0,0,15,0,TAU); g.stroke();
     } else {                                         // 풀숲 — 딱정벌레
       g.beginPath(); g.ellipse(0,3,9,11,0,0,TAU); g.stroke();
       g.beginPath(); g.moveTo(0,-8); g.lineTo(0,13); g.stroke();
@@ -5762,6 +5951,26 @@ const Game = {
       (g,r)=>{ if(!Icons.draw(g,'undo',S*0.72)) UI.icon.undo(g,r); });
     UI.btn(c,'clear',VW-S-20, 116+S+10, S,S,
       (g,r)=>{ if(!Icons.draw(g,'clear',S*0.72)) UI.icon.trash(g,r); });
+    /* 백지로 그릴 때만 — 얼마나 크게 내보낼지 아이가 고른다.
+       도안이 있는 종은 종마다 크기가 정해져 있어 고를 필요가 없다. */
+    if(Paint.free){
+      const top=116+(S+10)*2+22;
+      c.save();
+      c.font='700 17px Galmuri11, sans-serif'; c.textAlign='center';
+      c.fillStyle='rgba(255,255,255,.72)';
+      c.fillText('얼마나 크게?', VW-S/2-20, top-8);
+      c.restore();
+      Paint.FREE_SIZES.forEach((sz,i)=>{
+        const on = (Paint.freeSize===i);
+        UI.btn(c,'fsz:'+i, VW-S-20, top+i*(S+8), S, S, (g)=>{
+          g.fillStyle = on ? PAL.gold : 'rgba(255,255,255,.55)';
+          g.beginPath(); g.arc(0,-6, 9+i*7, 0, TAU); g.fill();
+          g.font='700 15px Galmuri11, sans-serif'; g.textAlign='center';
+          g.fillStyle = on ? PAL.gold : 'rgba(255,255,255,.62)';
+          g.fillText(sz.ko, 0, S/2-10);
+        }, on);
+      });
+    }
     UI.btn(c,'back', 20, VH-96, S,S, (g,r)=>{ if(!Icons.draw(g,'btn-back',S*0.72)) UI.icon.back(g,r); });
     /* 제출 — 가장 크게 */
     /* ⚠ 라벨이 '정글이냐 바다냐' 둘 뿐이었다 — 티라노를 칠한 아이도 '바다로!' 를 봤다.
@@ -5891,6 +6100,7 @@ const Game = {
         /* 백지 그림 — 종이 없다. 비율에서 움직임을 정한다 */
         c=new Creature(tex, 'clownfish', rec.n||'', {join:true, x:-140});
         c.free=true;
+        if(rec.fk){ c.baseS=(0.82/(typeof TEX_K!=='undefined'?TEX_K:1))*rec.fk; c.s=c.baseS; }
         try{ c.motion=freeMotion(img.naturalWidth/Math.max(1,img.naturalHeight)); }catch(e){}
         while(this.creatures.length>=250) this.creatures.shift();
         this.creatures.push(c);
@@ -6013,7 +6223,9 @@ const Game = {
     /* ⚠ 세계가 다섯인데 도감이 바다·정글만 보여 주고 있었다 — 수집표가 반쪽이면
        '다음엔 저거'가 절반만 생긴다. 지금 세계의 것을 보여 준다. */
     let list;
-    if(typeof MODES!=='undefined' && MODES[this.realm]){
+    if(this.realm==='all'){        // 「다 같이」 는 모아 보는 세계 — 도감은 바다부터
+      list = SPECIES.filter(sp=>!SEA_LIKE_JUNGLE[sp.id]).map(sp=>({id:sp.id, ko:sp.ko, jungle:false}));
+    } else if(typeof MODES!=='undefined' && MODES[this.realm]){
       list = MODES[this.realm].list().map(D=>({id:D.id, ko:D.ko, mode:this.realm}));
     } else if(this.realm==='jungle'){
       list = Object.entries(JUNGLE).map(([id,d])=>({id, ko:d.ko, jungle:true}));
@@ -6573,8 +6785,9 @@ const SelfTest = {
     /* 세계 차례 — 어셋이 준비된 모드만 돈다 */
     if(typeof Game!=='undefined' && Game.realmOrder){
       const order=Game.realmOrder();
-      const names=order.map(r=> r==='sea'?'바다' : r==='jungle'?'정글'
-                              : ((typeof MODES!=='undefined'&&MODES[r])?MODES[r].ko:r));
+      /* 이름은 게임이 아는 것을 그대로 쓴다 — 점검기가 따로 표를 들면 세계가
+         늘 때마다 여기만 'all' 처럼 날것으로 새어 나온다(실측). */
+      const names=order.map(r=> (Game.worldName? Game.worldName(r) : r));
       L.push('· 세계 '+order.length+'개 — '+names.join(' → '));
       if(typeof MTemplate!=='undefined')
         for(const m of ['dino','robot','bug'])
