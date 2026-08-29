@@ -639,7 +639,12 @@ class AthleteScreen extends Screen0 {
     txt(u, `${UI.rareStars(a)} ${UI.rareName(a)} · ${a.age}세 · ${GROWTH[a.growth].name}`,
         VW-8, 6, 9, UI.rareColor(a), 'right', 700);
     txt(u,`OVR ${a.overall}`,8,28,15,PAL.gold,'left',700);
-    txt(u,`/ 잠재 ${a.potOverall}`,62,32,10,PAL.dim);
+    /* 잠재치 — 아이콘이 오면 '잠재' 라벨을 대신한다(챕터 1 규칙) */
+    { const im=BG.get('ic-potential');
+      if(im){ txt(u,'/',62,32,10,PAL.dim);
+              u.drawImage(im, 70, 31, 10, 10);
+              txt(u,String(a.potOverall),83,32,10,PAL.dim); }
+      else    txt(u,`/ 잠재 ${a.potOverall}`,62,32,10,PAL.dim); }
     const SP = (typeof SPECIES!=='undefined') ? SPECIES[a.species] : null;
     txt(u,{sprint:'단거리',hurdles:'허들',jump:'도약',throw:'투척'}[a.spec],VW-8,28,11,PAL.blue,'right');
     if(SP){

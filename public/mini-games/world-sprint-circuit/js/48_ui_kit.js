@@ -254,6 +254,19 @@ const UIK = {
     return true;
   },
 
+  /* ── 작은 배지 ───────────────────────────────────────────
+     badge-slot(48×48) — 등급·적성 글자 한두 자를 담는 육각 틀.
+     ⚠ 지금은 글자만 떠 있어서 'S' 인지 '5' 인지 배경이 없으면 눈에 안 걸린다.
+     ⚠ 어셋이 없으면 false — 부르는 쪽이 예전처럼 글자만 그린다. */
+  badge(u, cx, cy, size, label, color){
+    const img = BG.get('badge-slot');
+    if(!img) return false;
+    u.drawImage(img, Math.round(cx-size/2), Math.round(cy-size/2), size, size);
+    if(label) txt(u, label, cx, cy-Math.round(size*0.30), Math.round(size*0.62),
+                  color||PAL.white, 'center', 700);
+    return true;
+  },
+
   /* ── 원형 게이지 ─────────────────────────────────────────
      gauge-ring(96×96) 은 **빈 고리**다 — 코드가 안쪽에 호를 채운다.
      ⛔ 챕터 2 — 컨디션·피로·사기 세 줄이 각각 아이콘+라벨+막대+숫자(=12조각)를

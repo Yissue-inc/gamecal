@@ -706,8 +706,10 @@ class ScoutReportScreen extends Screen0 {
       const r=DEPTH.potentialRange(a, k, this.mg && this.mg.club), cur=a.stats[k];
       txt(u, STAT_NAME[k], 16, y, 9, PAL.white, 'left');
       /* 적성 — 이 종이 그 스탯을 얼마나 빨리 올리나. 데이터는 처음부터 있었다. */
+      /* 적성 등급 — 글자만 떠 있으면 눈에 안 걸린다. 배지가 오면 그 안에. */
       const ap=DEPTH.aptOf(a, k);
-      txt(u, ap.key, 62, y, 10, ap.color, 'left', 700);
+      if(!UIK.badge(u, 66, y+5, 14, ap.key, ap.color))
+        txt(u, ap.key, 62, y, 10, ap.color, 'left', 700);
       const x0=76, w=VW-76-70;
       const px=(v)=>x0 + (clamp(v,20,99)-20)/79*w;
       u.fillStyle='rgba(255,255,255,.08)'; u.fillRect(x0, y+2, w, 7);
