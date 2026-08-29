@@ -151,10 +151,17 @@ const MG = {
     Input.flush();
   },
   draw(ctx, u){
-    ctx.fillStyle='#0a0d16'; ctx.fillRect(0,0,VW,VH);
     const top=this.top; if(!top) return;
-    if(top.draw && top.drawUI){ top.draw(ctx); top.drawUI(u); }     // 관전 화면
+    if(top.draw && top.drawUI){
+      /* ⚠ 관전 화면에서 게임 캔버스를 **불투명하게 칠하면 BG 층을 통째로 덮는다** —
+         하늘·관중·트랙 HD 는 전부 BG.ctx() 에 그려지고 그건 이 캔버스 뒤에 있다.
+         그래서 자동 경기가 검은 바탕에 레인선만 나왔다(수동 경기는 멀쩡했다).
+         이 코드베이스가 여러 번 물린 자리다 — 아케이드는 clearRect 를 쓴다. */
+      ctx.clearRect(0, 0, VW, VH);
+      top.draw(ctx); top.drawUI(u);
+    }
     else {
+      ctx.fillStyle='#0a0d16'; ctx.fillRect(0,0,VW,VH);
       this.bg(ctx);
       top.draw(u);
     }

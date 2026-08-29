@@ -105,10 +105,18 @@ const CharHD = {
         u.restore();
       }
       if(opt.swim){
-        /* 수영 — 몸을 눕힌다. 달리는 자세 그대로는 물 위를 뛰는 것처럼 보인다. */
+        /* 수영 — 몸을 눕힌다. 달리는 자세 그대로는 물 위를 뛰는 것처럼 보인다.
+           ⚠ 어두운 종은 밝은 물 위에서 **덩어리로 읽힌다**(실측: 가마우지 #2a2a33,
+              오리 #8a6a3a 가 검은 사각형처럼 보였다). 등급 발광은 수영에서 꺼 놨으니
+              대신 옅은 흰 테두리를 둘러 어떤 종이든 물에서 형태가 보이게 한다. */
         u.save();
         u.translate(dx+W/2, dy+H*0.72);
         u.rotate(-Math.PI/2 * 0.86);
+        u.save();
+        u.shadowColor = 'rgba(255,255,255,.95)'; u.shadowBlur = 5;
+        if(sx===undefined) u.drawImage(img, -W/2, -H*0.5, W, H);
+        else u.drawImage(img, sx, 0, sw, sh, -W/2, -H*0.5, W, H);
+        u.restore();
         if(sx===undefined) u.drawImage(img, -W/2, -H*0.5, W, H);
         else u.drawImage(img, sx, 0, sw, sh, -W/2, -H*0.5, W, H);
         u.restore();
