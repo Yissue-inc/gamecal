@@ -1136,10 +1136,21 @@ class CodexScreen extends Screen0 {
     /* ── 격자 ─────────────────────────────────────────────
        ⚠ 전설은 5종뿐이라 한 줄로 끝난다. 위에 붙여 그리면 아래가 통째로 빈다 —
           줄 수에 맞춰 세로 가운데로 내린다. */
-    const list=this.list, COLS=8, cw=54, ch=46;
-    const gapX=(VW-16-COLS*cw)/(COLS-1), gapY=6;
+    /* ⛔ 챕터 3 — **격자가 내용에 맞춰 큰다.**
+       8칸 고정이라 전설(5종)·흔함(7종) 을 볼 때 카드 다섯 개가 가운데 띠에만 있고
+       화면의 위아래 3분의 2가 비었다. 60종 스프라이트가 아까운 자리다.
+       종 수가 적으면 칸을 줄이고 카드를 키운다 — 같은 공간에 그림이 크게 들어간다. */
+    const list=this.list;
+    const COLS = list.length<=6 ? Math.max(3, list.length)
+               : list.length<=12 ? 6 : 8;
+    const top=36, bot=VH-46;
+    const gapX0=6, gapY=6;
+    const cw = Math.floor((VW-16-(COLS-1)*gapX0)/COLS);
     const rows=Math.ceil(list.length/COLS);
-    const top=36, bot=VH-46, gh=rows*ch+(rows-1)*gapY;
+    /* 높이는 남는 공간을 나눠 갖되 카드 비율(가로:세로 ≈ 54:46)을 넘지 않게 */
+    const ch = Math.min(Math.floor(cw*0.85),
+                        Math.floor((bot-top-(rows-1)*gapY)/rows));
+    const gapX=gapX0, gh=rows*ch+(rows-1)*gapY;
     const gy=top + Math.max(0, (bot-top-gh)/2), gx=8;
     list.forEach((sp,i)=>{
       const c=i%COLS, r=(i/COLS)|0;

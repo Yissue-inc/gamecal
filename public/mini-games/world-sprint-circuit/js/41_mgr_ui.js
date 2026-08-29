@@ -557,7 +557,34 @@ function drawSweat(u, a, x, y){
 }
 
 class SquadScreen extends Screen0 {
-  get rows(){ return this.mg.club.squad.map(a=>({
+  /* ⛔ 챕터 3 — **정렬.** 선수단은 최대 18명인데 등록순 하나뿐이라
+     "누가 제일 센가" "누가 지쳤나" "누가 다쳤나"를 눈으로 훑어야 했다.
+     ◀▶ 로 기준을 바꾼다. 목록이 질문에 답하게 만드는 게 목적이다.
+
+     ⚠ 표시 순서를 바꾸면 **this.sel 로 club.squad 를 바로 인덱싱하면 안 된다** —
+        이 코드베이스가 병렬 목록으로 여러 번 물린 자리다(READY↔classFor 등).
+        보이는 목록을 view() 한 곳에서 만들고, 모든 곳이 그걸 쓴다. */
+  static SORTS = [
+    { k:'등록순', f:null },
+    { k:'경기력', f:(x,y)=>Power.of(y)-Power.of(x) },
+    { k:'컨디션', f:(x,y)=>x.condition-y.condition },        // 나쁜 순 — 손 볼 사람부터
+    { k:'피로',   f:(x,y)=>y.fatigue-x.fatigue },
+    { k:'나이',   f:(x,y)=>y.age-x.age },
+  ];
+  view(){
+    const S = SquadScreen.SORTS[this.sortI||0];
+    const v = this.mg.club.squad.slice();
+    /* 부상자는 언제나 위로 — 어느 기준이든 "지금 못 뛰는 사람"이 먼저다 */
+    v.sort((x,y)=> (y.injury?1:0)-(x.injury?1:0) || (S.f ? S.f(x,y) : 0));
+    return v;
+  }
+  update(now){
+    const n = SquadScreen.SORTS.length;
+    if(Input.pressed('left')) { this.sortI=((this.sortI||0)+n-1)%n; this.sel=0; Sfx.ui(); return; }
+    if(Input.pressed('right')){ this.sortI=((this.sortI||0)+1)%n;   this.sel=0; Sfx.ui(); return; }
+    super.update(now);
+  }
+  get rows(){ return this.view().map(a=>({
     label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${a.speciesName} ${a.name}`, nation:a.nation,
     /* 로스터는 표다 — 나이·등급·성장형·특성을 훑을 수 있어야 한다.
        ⛔ 챕터 1 규칙: 부제가 **설명**이면 숨기고 **데이터**면 남긴다. */
@@ -569,17 +596,22 @@ class SquadScreen extends Screen0 {
     rightColor: a.injury?PAL.red:PAL.gold,
     right2: a.injury?`부상 ${a.injury.weeks}주` : `OVR ${a.overall} · ${UI.condName(a.condition)}`,
     color: a.injury?PAL.red:UI.rareColor(a) })); }
-  confirm(){ this.mg.push(new AthleteScreen(this.mg, this.mg.club.squad[this.sel])); }
+  confirm(){ const a=this.view()[this.sel]; if(a) this.mg.push(new AthleteScreen(this.mg, a)); }
   draw(u){
-    UI.header(u,'선수단',`${this.mg.club.squad.length}명`);
+    const v = this.view(), S = SquadScreen.SORTS[this.sortI||0];
+    UI.header(u,'선수단',`${v.length}명`);
+    /* 지금 무슨 기준으로 줄 세웠나 — 안 보이면 왜 순서가 바뀌었는지 모른다 */
+    txt(u, `◀ ${K(S.k)} ▶`, VW/2, 17, 9, (this.sortI||0)?PAL.gold:PAL.dim, 'center', 700);
     UI.list(u,this.rows,this.sel,8,28,VW-16,26,8);
     /* 피로한 선수는 땀방울로 — 목록에서 '쉬게 해야 할 사람'이 바로 보인다.
-       ⚠ 목록은 8줄씩 스크롤되므로 화면에 실제로 그려진 줄만 표시한다. */
-    const first = Math.max(0, Math.min(this.sel-3, this.mg.club.squad.length-8));
-    this.mg.club.squad.slice(first, first+8).forEach((a,i)=>{
+       ⚠ 목록은 8줄씩 스크롤되므로 화면에 실제로 그려진 줄만 표시한다.
+       ⚠ 정렬을 넣은 뒤로는 **보이는 순서(view)** 를 써야 한다 — squad 를 쓰면
+          땀방울이 엉뚱한 줄에 붙는다. */
+    const first = Math.max(0, Math.min(this.sel-3, v.length-8));
+    v.slice(first, first+8).forEach((a,i)=>{
       drawSweat(u, a, VW-16, 28+i*26+9);
     });
-    UI.footer(u,'확인 상세   취소 돌아가기');
+    UI.footer(u,'◀▶ 정렬 · 확인 상세 · 취소 돌아가기');
   }
 }
 class AthleteScreen extends Screen0 {
