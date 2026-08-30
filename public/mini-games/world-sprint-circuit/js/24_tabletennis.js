@@ -234,7 +234,15 @@ class TableTennisEvent {
       const y = far ? T.ty-6 : T.by+30;
       const x = courtX(pl.at, far);
       const sp = i===0 ? 'hare' : 'jerboa';
-      if(!CharHD.draw(u, sp, x, y, 0.1, {rare:i?2:3, t:this.t, scale:far?0.62:0.86, crouch:true}))
+      /* ⛔ 0.1 고정이라 랠리 내내 **정지 자세**였다. 친 순간부터 스윙이 풀린다.
+         ⚠ 첫 판은 여전히 안 움직였다 — 아직 안 쳤으면 hitAt 이 -1e9 라
+            (t-hitAt)/260 이 곧장 1 로 잘려 **스윙 끝 자세에 고정**됐다(실측 1가지).
+            친 직후에만 스윙을 풀고, 그 밖에는 **대기 자세로 천천히 흔든다.** */
+      const since = this.t - this.hitAt;
+      const swingPh = (since >= 0 && since < 320)
+        ? 0.12 + (since/320)*0.38
+        : 0.12 + (Math.sin(this.t*0.004 + i)*0.5 + 0.5)*0.10;
+      if(!CharHD.draw(u, sp, x, y, swingPh, {rare:i?2:3, t:this.t, scale:far?0.62:0.86, crouch:true}))
         { u.fillStyle=i?'#8fa0b4':PAL.gold; u.fillRect(x-4,y-16,8,16); }
       if(this.humanCount>1)
         txt(u,(i+1)+'P', x, y-(far?20:28), 9, Party.color?Party.color(i):PAL.white,'center',700);

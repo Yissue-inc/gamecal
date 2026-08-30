@@ -215,7 +215,9 @@ class CanoeEvent {
       u.fillStyle='rgba(0,0,0,.3)'; u.fillRect(-4,4,8,2);
     }
     u.restore();
-    if(!CharHD.draw(u,'otter', bx, by+2, 0.2, {rare:3, t:this.t, scale:0.5, crouch:true})){}
+    /* ⛔ 0.2 고정이라 **노를 젓는데 몸이 안 움직였다.** 마지막 스트로크부터 풀어 준다. */
+    { const strokePh = 0.15 + clamp((this.t - this.lastPaddle)/420, 0, 1)*0.35;
+      CharHD.draw(u,'otter', bx, by+2, strokePh, {rare:3, t:this.t, scale:0.5, crouch:true}); }
     /* 노 — 어느 쪽을 저었는지 */
     if(this.t-this.lastPaddle<200){
       u.strokeStyle='rgba(255,255,255,.8)'; u.lineWidth=2;

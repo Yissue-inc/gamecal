@@ -250,7 +250,9 @@ class JudoEvent {
       }
       const sp = i===0 ? 'bear' : 'gorilla';
       u.save(); if(dir<0){ u.translate(x*2,0); u.scale(-1,1); }
-      if(!CharHD.draw(u, sp, x, y, 0.1, {rare:i?2:3, t:this.t, scale:1.3, crouch, lean:!crouch}))
+      /* ⛔ 0.1 고정이었다. 유도는 **깃 싸움의 밀고 당김**이 곧 움직임이다(grip −1~1). */
+      const gripPh = 0.25 + this.edgeOf(f)*0.2;
+      if(!CharHD.draw(u, sp, x, y, gripPh, {rare:i?2:3, t:this.t, scale:1.3, crouch, lean:!crouch}))
         { u.fillStyle=i?'#8fa0b4':PAL.gold; u.fillRect(x-7,y-30,14,30); }
       u.restore();
       if(this.humanCount>1)

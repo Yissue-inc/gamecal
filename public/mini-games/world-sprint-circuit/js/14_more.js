@@ -128,7 +128,10 @@ class TripleJumpEvent extends LongJumpEvent {
       y -= Math.sin(p*Math.PI)*26;
     }
     const air = this.phase==='HOP' || this.phase==='RESULT';
-    if(CharHD.enabled) CharHD.draw(Screen.uctx, 'monkey', x, y, 0.25, { airborne:air, rare:1, t:this.t });
+    /* ⛔ 폴백은 stridePhase 를 쓰는데 HD 만 0.25 고정이었다 — 조주가 안 움직였다.
+       같은 값을 쓴다(두 갈래가 다른 자세를 그리면 모드 전환 때 티가 난다). */
+    if(CharHD.enabled) CharHD.draw(Screen.uctx, 'monkey', x, y,
+      this.phase==='RUNUP' ? this.runner.stridePhase : 0.25, { airborne:air, rare:1, t:this.t });
     else drawRunner(ctx, x, y, this.phase==='RUNUP'?this.runner.stridePhase:0.25, '#ffd75e', { airborne:air });
   }
   drawUI(u){
@@ -250,8 +253,12 @@ class ShotPutEvent extends JavelinEvent {
     for(let m=5;m<=25;m+=5){ const x=px(m); if(x<=CX||x>=VW) continue;
       ctx.fillStyle='rgba(242,245,250,.4)';  ctx.fillRect(x,GROUND-8,1,8);
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
-    if(CharHD.enabled) CharHD.draw(Screen.uctx,'hippo',CX,GROUND,0.25,{throwing:true,rare:3,t:this.t});
-    else drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:true });
+    /* 포환은 제자리 종목이라 달리진 않지만 **힘을 모으는 동안 몸이 움츠러든다.**
+       차징 진행도를 위상으로 준다 — 0.1(선 자세) → 0.45(웅크림). */
+    const held = this.holdStart>0 ? clamp((this.t-this.holdStart)/900, 0, 1) : 0;
+    if(CharHD.enabled) CharHD.draw(Screen.uctx,'hippo',CX,GROUND, 0.1+held*0.35,
+      {throwing:true, crouch: held>0.55, rare:3, t:this.t});
+    else drawRunner(ctx, CX, GROUND, 0.1+held*0.35, '#ff6b8a', { throwing:true });
     // 포환
     const sx = this.phase==='CHARGE' ? CX+8 : px(this.px);
     /* (해머 자리 — 폴은 아래 PoleVault 에서 따로 그린다) */

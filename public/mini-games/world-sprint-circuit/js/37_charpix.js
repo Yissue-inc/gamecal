@@ -27,8 +27,12 @@
 'use strict';
 
 const CharPix = {
-  /* 게임 좌표에서 캐릭터 높이 — HD 와 같은 크기로 맞춘다(같은 무대를 쓴다) */
-  DRAW_H: 42,
+  /* 게임 좌표에서 캐릭터 높이.
+     ⚠ 처음엔 HD 와 같은 42 였는데 **도형처럼 보인다**는 지적을 받았다(CK).
+        픽셀은 칸이 곧 표현력이라 같은 키에서 HD 보다 정보가 적다 — 조금 키운다.
+        52 / 26칸 = 한 칸 2px 을 유지하면서 세로 칸이 22 → 26 으로 늘어
+        귀·뿔·부리·꼬리 같은 **종족의 생김새**를 넣을 자리가 생긴다. */
+  DRAW_H: 52,
 
   /* 특기별 체형 — 숫자는 '몸 높이에 대한 비율' 이다.
      ⚠ 종족 60개에 하나씩 적으면 손으로 맞추는 목록이 또 생긴다.
@@ -44,6 +48,56 @@ const CharPix = {
     swim:   { leg:0.42, arm:0.34, torso:0.30, wide:0.86, ear:0, tail:4 },
     tech:   { leg:0.45, arm:0.30, torso:0.27, wide:0.80, ear:2, tail:2 },
   },
+  /* ── 종족 생김새 ────────────────────────────────────────
+     ⛔ 색만 다른 같은 몸이면 60종이 **도형 하나**로 보인다(CK 지적).
+        생김새를 갈라 준다 — 귀 모양·뿔·부리·꼬리·덩치.
+     ⚠ 60줄을 손으로 적으면 종족이 늘 때마다 어긋나는 목록이 또 생긴다.
+        **낱말 묶음**으로 갈래를 잡고, 아래 verify() 가 빠진 종족을 잡는다. */
+  KIND: {
+    cat:    ['cheetah','puma','lynx','serval'],
+    dog:    ['hound','wolf','jackal','greyfox','husky','hyena'],
+    hopper: ['rabbit','hare','jerboa','kangaroo','wallaby','frog','squirrel','lemur'],
+    hoof:   ['horse','pronghorn','gazelle','impala','springbok','deer','caribou','antelope',
+             'ibex','goat','bison','camel'],
+    bird:   ['ostrich','roadrunner','swift','albatross','eagle','penguin','cormorant',
+             'swan','duck'],
+    sea:    ['dolphin','orca','walrus','sealion','otter','furseal','beaver','seaturtle',
+             'octopus','crab'],
+    bug:    ['ant','flea','mantis','cricket','grasshopper'],
+    heavy:  ['elephant','rhino','hippo','bear','gorilla','monkey'],
+  },
+  kindOf(sp){
+    if(!this._kmap){
+      this._kmap = {};
+      for(const k in this.KIND) for(const n of this.KIND[k]) this._kmap[n] = k;
+    }
+    return this._kmap[sp] || 'hoof';
+  },
+
+  /* ⛔ 갈래가 **실루엣**을 정한다. 귀·뿔 같은 1칸짜리 장식만 갈라서는
+     60종이 여전히 '색만 다른 막대'로 보인다(CK 지적, 실측 시연 12종).
+     한눈에 보이는 것부터 바꾼다 — 덩치·팔다리 굵기·머리 크기·다리 길이·자세.
+       wide  몸통 폭 배수      limb 팔다리 굵기(칸)
+       headW/headH 머리 크기   legK 다리 길이 배수   neck 목 길이(칸) */
+  SHAPE: {
+    cat:    { wide:0.95, limb:2, headW:4, headH:3, legK:1.05, neck:2 },
+    dog:    { wide:1.00, limb:2, headW:4, headH:3, legK:1.00, neck:2 },
+    hopper: { wide:0.85, limb:3, headW:4, headH:3, legK:1.20, neck:1 },
+    hoof:   { wide:0.95, limb:2, headW:3, headH:3, legK:1.15, neck:4 },
+    bird:   { wide:1.25, limb:2, headW:3, headH:3, legK:0.80, neck:3 },
+    sea:    { wide:1.45, limb:2, headW:4, headH:3, legK:0.55, neck:1 },
+    bug:    { wide:0.60, limb:1, headW:3, headH:2, legK:1.25, neck:2 },
+    heavy:  { wide:1.75, limb:3, headW:5, headH:4, legK:0.80, neck:1 },
+  },
+  shapeOf(sp){ return this.SHAPE[this.kindOf(sp)] || this.SHAPE.hoof; },
+  /* 종족이 늘었는데 갈래에 안 넣으면 **조용히 기본 생김새**가 된다 — 그걸 막는다.
+     ⚠ 부팅 때 한 번 부른다(99_main.js). 문서에만 있는 규약은 다음 리팩터링에 사라진다. */
+  verifyKinds(){
+    if(typeof SPECIES === 'undefined') return;
+    const miss = Object.keys(SPECIES).filter(n => !this.kindOf(n) || !this._kmap[n]);
+    if(miss.length) throw new Error('CharPix.KIND 에 안 들어간 종족 — ' + miss.join(' '));
+  },
+
   buildOf(sp){
     const s = (typeof SPECIES!=='undefined' && SPECIES[sp]) ? SPECIES[sp] : null;
     return this.BUILD[(s && s.spec) || 'tech'] || this.BUILD.tech;
@@ -75,7 +129,7 @@ const CharPix = {
     /* 픽셀 크기 — 몸 높이를 **22칸**으로 나눈다.
        ⚠ 16칸이면 한 칸이 3px 이라 팔다리(2칸=6px)가 통나무가 된다. 22칸이면 2px 이라
           같은 키에 형태가 두 배로 실린다 — 픽셀아트는 칸 수가 곧 표현력이다. */
-    const GRID = 22;
+    const GRID = 26;
     const P = Math.max(1, Math.round(H / GRID));
     const B = this.buildOf(species);
     const col = this.colorOf(species);
@@ -103,8 +157,11 @@ const CharPix = {
     else if(opt.lean) u.rotate(-0.16);              // 결승선 기울임
     /* 격자 원점을 발밑으로. 이후 좌표는 전부 '칸' 단위다(위가 음수). */
 
-    const legH  = GRID * B.leg,  armH = GRID * B.arm, torH = GRID * B.torso;
-    const bodyW = Math.max(3, Math.round(5 * B.wide));
+    const S = this.shapeOf(species);
+    /* 특기(BUILD)와 생김새(SHAPE)를 곱한다 — 같은 치타라도 투척형이면 어깨가 넓다 */
+    const legH  = GRID * B.leg * S.legK, armH = GRID * B.arm, torH = GRID * B.torso;
+    const bodyW = Math.max(3, Math.round(5 * B.wide * S.wide));
+    const LIMB  = S.limb;                       // 팔다리 굵기(칸) — 갈래가 정한다
 
     /* 웅크림·공중은 다리를 접는다 — 자세가 상태를 말한다 */
     const fold = crouch ? 0.55 : (air ? 0.72 : 1);
@@ -113,7 +170,7 @@ const CharPix = {
 
     const hipY  = -(L) + bob;                        // 골반
     const shY   = hipY - torH;                       // 어깨
-    const headY = shY - 4;                           // 목 한 칸을 띄운다
+    const headY = shY - S.neck - S.headH + 1;        // 목 길이만큼 띄운다
 
     /* ── 다리 — **두 마디**(허벅지·정강이) ─────────────────
        ⛔ 처음엔 한 마디 막대였다. 벌어짐도 작아서 **서 있는 막대**로 보였다(실측).
@@ -127,15 +184,15 @@ const CharPix = {
       const stepsA = Math.max(2, Math.round(L * 0.5));
       for(let i = 0; i < stepsA; i++){
         const t = i / stepsA;
-        px(hipX + (kneeX - hipX) * t - 0.5, hipY + (kneeY - hipY) * t, 2, 1, c);
+        px(hipX + (kneeX - hipX) * t - LIMB/2, hipY + (kneeY - hipY) * t, LIMB, 1, c);
       }
       /* 정강이 — 무릎에서 발로 */
       const stepsB = Math.max(2, Math.round(L * 0.5));
       for(let i = 0; i < stepsB; i++){
         const t = i / stepsB;
-        px(kneeX + (footX - kneeX) * t - 0.5, kneeY + (footY - kneeY) * t, 2, 1, c);
+        px(kneeX + (footX - kneeX) * t - LIMB/2, kneeY + (footY - kneeY) * t, LIMB, 1, c);
       }
-      px(footX - 1, footY, 3, 1, cFoot);             // 발
+      px(footX - LIMB/2, footY, LIMB + 1, 1, cFoot);   // 발
     };
     const spread = air ? 3.0 : (crouch ? 1.4 : 5.0);
     const lLift = air ? 2.4 : Math.max(0, cw) * 2.6;
@@ -161,10 +218,10 @@ const CharPix = {
         const elX = swing * 0.5, elY = shY + 1 + armH * 0.5;
         const stepsA = Math.max(2, Math.round(armH * 0.5));
         for(let i = 0; i < stepsA; i++){ const t = i / stepsA;
-          px(elX * t - 0.5, shY + 1 + (elY - shY - 1) * t, 2, 1, c); }
+          px(elX * t - LIMB/2, shY + 1 + (elY - shY - 1) * t, LIMB, 1, c); }
         const stepsB = Math.max(2, Math.round(armH * 0.5));
         for(let i = 0; i < stepsB; i++){ const t = i / stepsB;
-          px(elX + (swing - elX) * t - 0.5, elY + (armH * 0.45) * t, 2, 1, c); }
+          px(elX + (swing - elX) * t - LIMB/2, elY + (armH * 0.45) * t, LIMB, 1, c); }
       };
       armSeg(-sw * aSw, dark);
       armSeg( sw * aSw, col);
@@ -172,22 +229,61 @@ const CharPix = {
 
     /* ── 목과 머리 ─────────────────────────────────────
        ⚠ 목이 없으면 머리가 몸통에 파묻혀 '통나무'가 된다. 한 칸이면 충분하다. */
-    px(-0.5, shY - 1, 1, 2, dark);
+    px(-LIMB/2, shY - S.neck + 1, LIMB, S.neck, dark);
     const hx = tilt * 0.4 + (thr ? -0.6 : 0);
-    px(hx - 2, headY, 4, 3, col);
-    px(hx - 2, headY, 4, 1, light);
-    /* 주둥이 — 진행 방향(오른쪽)을 가리켜 '앞'을 분명히 한다 */
-    px(hx + 2, headY + 1, 1, 1, light);
+    px(hx - S.headW/2, headY, S.headW, S.headH, col);
+    px(hx - S.headW/2, headY, S.headW, 1, light);
     /* 눈 — 한 칸. 있고 없고가 얼굴을 만든다. */
     px(hx + 1, headY + 1, 1, 1, '#101018');
-    /* 귀 — 종족 체형이 정한다(수영종은 없다) */
-    for(let e = 0; e < B.ear; e++)
-      px(hx - 1 + e, headY - 1 - (e === 1 ? 1 : 0), 1, e === 1 ? 2 : 1, dark);
 
-    /* ── 꼬리 — 위상에 따라 흔들린다 ───────────────────── */
-    if(B.tail){
-      const t = B.tail;
-      px(-bodyW/2 - t, shY + 1 + cw * 0.8, t, 1, dark);
+    /* ── 종족 생김새 ────────────────────────────────────
+       ⛔ 여기가 없으면 60종이 **색만 다른 같은 도형**이다(CK 지적).
+          갈래마다 머리 위·앞·뒤를 다르게 그린다 — 실루엣이 곧 종족이다. */
+    const kind = this.kindOf(species);
+    const tailSway = cw * 0.8;
+    switch(kind){
+      case 'cat':                                   // 둥근 귀 둘 · 길고 낭창한 꼬리
+        px(hx - 2, headY - 1, 1, 1, col); px(hx + 1, headY - 1, 1, 1, col);
+        px(hx + 2, headY + 1, 1, 1, light);         // 짧은 주둥이
+        px(-bodyW/2 - 4, shY + 1 + tailSway, 4, 1, col);
+        px(-bodyW/2 - 5, shY + tailSway, 1, 1, col);
+        break;
+      case 'dog':                                   // 뾰족 귀 · 덤불 꼬리
+        px(hx - 2, headY - 2, 1, 2, dark); px(hx + 1, headY - 2, 1, 2, dark);
+        px(hx + 2, headY + 1, 2, 1, light);         // 긴 주둥이
+        px(-bodyW/2 - 3, shY + tailSway, 3, 2, col);
+        break;
+      case 'hopper':                                // 아주 긴 귀 · 큰 뒷다리는 BUILD 가 담당
+        px(hx - 1, headY - 4, 1, 4, col); px(hx + 1, headY - 4, 1, 4, col);
+        px(hx + 2, headY + 1, 1, 1, light);
+        px(-bodyW/2 - 2, shY + 2 + tailSway * 0.4, 2, 1, dark);
+        break;
+      case 'hoof':                                  // 뿔 · 긴 목 · 갈기
+        px(hx - 1, headY - 3, 1, 3, light); px(hx + 1, headY - 3, 1, 3, light);
+        px(hx + 2, headY + 1, 2, 1, light);
+        px(-0.5, shY - 2, 1, 1, dark);              // 목이 하나 더 길다
+        px(-bodyW/2 - 2, shY + 1 + tailSway, 2, 1, dark);
+        break;
+      case 'bird':                                  // 부리 · 접은 날개 · 볏
+        px(hx + 2, headY + 1, 3, 1, '#e8a33a');     // 부리는 색을 따로 준다
+        px(hx, headY - 2, 1, 2, light);             // 볏
+        px(-bodyW/2 - 1, shY + 2, bodyW, 2, dark);  // 접은 날개
+        break;
+      case 'sea':                                   // 매끈한 머리 · 지느러미 꼬리
+        px(hx + 2, headY + 1, 2, 1, light);
+        px(-bodyW/2 - 3, shY + 2 + tailSway * 0.5, 3, 1, col);
+        px(-bodyW/2 - 4, shY + 1 + tailSway * 0.5, 1, 3, col);   // 꼬리 지느러미
+        break;
+      case 'bug':                                   // 더듬이 둘 · 마디 몸
+        px(hx - 1, headY - 3, 1, 3, dark); px(hx + 2, headY - 3, 1, 3, dark);
+        px(-bodyW/2, shY + torH * 0.5, bodyW, 1, dark);          // 허리 마디
+        break;
+      case 'heavy':                                 // 큰 머리 · 짧은 귀 · 두꺼운 목
+        px(hx - 2, headY - 1, 5, 1, col);           // 이마가 넓다
+        px(hx + 3, headY + 1, 1, 2, light);         // 굵은 주둥이
+        px(-1, shY - 2, 2, 2, dark);                // 목이 두껍다
+        px(-bodyW/2 - 2, shY + 2 + tailSway * 0.4, 2, 1, dark);
+        break;
     }
 
     /* 등급 발광 — HD 와 같은 규약(rare 5 는 빛난다). 픽셀에서도 티가 나야 한다. */

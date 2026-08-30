@@ -140,7 +140,10 @@ class ArcheryEvent {
     /* 선수 — 왼쪽 */
     const SX=64;
     if(CharHD.enabled){
-      (this._hd=this._hd||[]).push({ sp:'eagle', x:SX, y:GROUND, ph:0.25,
+      /* ⛔ 0.25 고정이었다. 양궁은 **시위를 당기는 정도**가 곧 자세다. */
+      const pullPh = 0.2 + (this.drawStart<0 ? 0
+        : clamp((this.t-this.drawStart)/ARCH.drawFullMs, 0, 1)) * 0.3;
+      (this._hd=this._hd||[]).push({ sp:'eagle', x:SX, y:GROUND, ph:pullPh,
         o:{ throwing:true, rare:3, t:this.t, scale:1.35 } });
     } else { ctx.fillStyle='#5aaaff'; ctx.fillRect(SX-6, GROUND-26, 12, 26); }
     /* 활 */

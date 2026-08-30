@@ -259,7 +259,11 @@ class HammerEvent extends FieldEvent {
       ctx.fillStyle='rgba(242,245,250,.4)';  ctx.fillRect(x,GROUND-8,1,8);
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
     /* 해머·원반 — 위와 같은 이유. 회전 종목이라 곰처럼 무거운 종족을 쓴다. */
-    if(!(CharHD.enabled && CharHD.draw(Screen.uctx, 'bear', CX, GROUND, 0.25,
+    /* ⛔ 위상이 0.25 고정이라 **회전 종목인데 선수가 얼어 있었다.**
+       해머·원반은 자기 회전각(this.angle)을 갖고 있다 — 그게 곧 자세다. */
+    const spinPh = this.phase==='SPIN'
+      ? ((this.angle/(Math.PI*2)) % 1 + 1) % 1 : 0.25;
+    if(!(CharHD.enabled && CharHD.draw(Screen.uctx, 'bear', CX, GROUND, spinPh,
           { throwing:this.phase!=='SPIN', rare:3, t:this.t, scale:1.3 })))
       drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:this.phase!=='SPIN' });
     if(this.phase==='SPIN'){
