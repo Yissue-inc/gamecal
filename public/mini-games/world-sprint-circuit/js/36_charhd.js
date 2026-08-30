@@ -72,6 +72,12 @@ const CharHD = {
   draw(u, species, x, y, phase, opt){
     opt=opt||{};
     if(!this.enabled) return false;
+    /* ⛔ 픽셀 모드는 **경기 화면에서만** 갈아 끼운다(CK 확정 2026-08-30).
+       여기서 무조건 갈면 같은 함수를 쓰는 감독 화면(선수단·육성 카드·도감·스카우트)까지
+       픽셀이 되어 **한 화면에 두 모드가 섞인다** — 그게 금지된 것이다.
+       CharMode.active() 가 그 경계를 판정한다(ST.PLAY / ST.RESULT 일 때만 참). */
+    if(typeof CharMode!=='undefined' && CharMode.active() && typeof CharPix!=='undefined')
+      return CharPix.draw(u, species, x, y, phase, opt);
     const pose = opt.crouch?'crouch' : opt.throwing?'throw' : opt.airborne?'jump' : opt.lean?'lean' : null;
     const H = this.DRAW_H * (opt.scale||1);
     const rare = opt.rare|0;

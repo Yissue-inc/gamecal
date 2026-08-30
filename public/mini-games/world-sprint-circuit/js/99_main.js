@@ -80,6 +80,7 @@ function boot(){
      목록은 tools/gen_preload.py 가 만든다 — 손으로 적지 않는다. */
   if(typeof PRELOAD!=='undefined') PRELOAD.start();
   if(typeof Music!=='undefined') Music.loadPrefs();
+  if(typeof CharMode!=='undefined') CharMode.load();
   CharHD.verifyCasts();
   verifyReady();
   verifyStatuses();

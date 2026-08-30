@@ -162,6 +162,13 @@ const G = {
     if(!Input.keys['BracketRight']) this._eLatch=false;
     if(Input.keys['BracketLeft'] && !this._qLatch){ this._qLatch=true; Party.count=Math.max(1,Party.count-1); Sfx.ui(); }
     if(!Input.keys['BracketLeft']) this._qLatch=false;
+    /* 캐릭터 모드 — **경기 직전 이 자리에서** 고른다(CK: 경기 할 때만 고른다).
+       ⚠ 다른 키와 안 겹치는 M 을 쓴다. 감독 화면에는 이 키가 없다 — 거기선 안 바뀐다. */
+    if(Input.keys['KeyM'] && !this._mLatch){
+      this._mLatch=true;
+      if(typeof CharMode!=='undefined'){ CharMode.toggle(); Sfx.ui(); }
+    }
+    if(!Input.keys['KeyM']) this._mLatch=false;
     this.clampSel();
     if(Input.pressed('action')){
       const def=this.selEvents[this.sel]; if(!def) return;
@@ -775,6 +782,13 @@ const G = {
        슬래시를 넣어 '두 개의 키' 임을 못 박는다 — ◀▶ 처럼 붙일 수는 없다([]는 배열로 읽힌다). */
     txt(uctx, `[ / ] ${K('인원')}  ${n}${K('인')} ${mode}`, VW-10, VH-55, 11,
         n>1?PAL.gold:PAL.dim,'right', n>1?700:400);
+    /* 캐릭터 모드 — 지금 무엇으로 뛰는지 시작 전에 보인다.
+       ⚠ 픽셀은 **경기 중에만** 적용된다. 감독 화면은 언제나 HD 다. */
+    if(typeof CharMode!=='undefined'){
+      const px = CharMode.mode==='pixel';
+      txt(uctx, `M  ${K('캐릭터')}  ${K(CharMode.label)}`, VW-10, VH-42, 9,
+          px?PAL.blue:PAL.dim, 'right', px?700:400);
+    }
     if(n>1){
       let px=VW-10;
       for(let p=n-1;p>=0;p--){
