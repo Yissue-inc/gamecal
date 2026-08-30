@@ -49,4 +49,13 @@ const AI = {
   jitter(base){
     return base * (this.JITTER[this.level] || 1);
   },
+
+  /* ⛔ **시간 배수**(클수록 느린 라이벌)에 쓴다 — skill 과 부호가 반대다.
+     등반·중거리는 라이벌을 '기준기록 × k' 로 만든다. 여기에 skill 을 쓰면
+     어려움이 라이벌을 **느리게** 만든다(정반대). 그래서 함수를 따로 둔다.
+     ⚠ 같은 0.14 를 그냥 빼면 종목마다 체감이 다르다 — 실력 폭(0.80)으로 나눠 비율로 옮긴다. */
+  pace(mult){
+    const b = this.BONUS[this.level] || 0;
+    return Math.max(0.55, mult * (1 - b/0.80));
+  },
 };

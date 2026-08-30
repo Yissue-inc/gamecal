@@ -88,7 +88,7 @@ class MiddleEvent {
        최고속에서 뽑던 시절엔 라이벌이 플레이어 상한보다 빨라 **모든 플레이가 3위**였다. */
     const parS = this.def.parS || this.def.qualify;
     for(let i=humans;i<lanes;i++){
-      const k = 1.00 + (i-humans)*0.085 + Math.random()*0.035;   // parS 대비
+      const k = AI.pace(1.00 + (i-humans)*0.085 + Math.random()*0.035);   // parS 대비 · 난이도 반영
       this.rivals.push({ lane:i, dist:0, sk:0.86+(i-humans)*0.06,
         base: this.trackM/(parS*k),
         kickAt: 0.62+Math.random()*0.26, kicked:false });

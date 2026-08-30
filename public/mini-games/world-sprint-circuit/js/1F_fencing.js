@@ -55,7 +55,7 @@ class FencingEvent {
     FencingEvent.proxy(this);
     this.resetUntil=-1e9; this.flash=0; this.result=null; this.doneAt=0;
     this.lastTouch=''; this.lastTouchAt=-1e9;
-    this.aiSkill = 0.62 + Math.random()*0.10;
+    this.aiSkill = AI.skill(0.62 + Math.random()*0.10);
   }
   get people(){ return this.fencers; }
   get qualify(){ return this.def.qualify; }

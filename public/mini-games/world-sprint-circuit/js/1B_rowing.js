@@ -36,7 +36,7 @@ class RowingEvent {
     this.result=null; this.doneAt=0; this.camM=0;
     this.rivals=[];
     for(let i=0;i<2;i++){
-      const sk=0.72+i*0.10+Math.random()*0.07;
+      const sk=AI.skill(0.72+i*0.10+Math.random()*0.07);
       this.rivals.push({ lane:i===0?0:2, dist:0, spd:ROW.maxSpeed*sk });
     }
   }

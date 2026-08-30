@@ -67,7 +67,7 @@ class SwimEvent {
     if(typeof Track!=='undefined' && Track.setLanes) Track.setLanes(lanes);
     this.rivals=[];
     for(let i=humans;i<lanes;i++){
-      const sk=0.66+(i-humans)*0.13+Math.random()*0.08;
+      const sk=AI.skill(0.66+(i-humans)*0.13+Math.random()*0.08);
       /* ⚠ 상대 속도를 qualify 로 계산하면 기준을 조일 때 상대까지 빨라진다.
          상대는 '사람이 낼 만한 기록' 을 기준으로 잡는다 — 기준선과 분리한다. */
       const parS = this.def.parS || this.def.qualify;

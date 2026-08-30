@@ -62,7 +62,7 @@ class ClimbEvent {
     this.rivals=[];
     for(let i=0;i<Math.max(1, 3-humans);i++)
       this.rivals.push({ lane:humans+i, h:0, done:false,
-        rate: CLIMB.wallM/(parS*(1.00+i*0.10+Math.random()*0.05)) });
+        rate: CLIMB.wallM/(parS*AI.pace(1.00+i*0.10+Math.random()*0.05)) });
   }
   get people(){ return this.climbers; }
   get qualify(){ return this.def.qualify; }

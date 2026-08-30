@@ -39,7 +39,7 @@ class CyclingEvent {
     /* 상대 2명 */
     this.rivals=[];
     for(let i=0;i<2;i++){
-      const sk=0.70+i*0.11+Math.random()*0.08;
+      const sk=AI.skill(0.70+i*0.11+Math.random()*0.08);
       this.rivals.push({ lane:i===0?0:2, dist:0, spd:CYCLE.maxSpeed*sk*0.82 });
     }
   }

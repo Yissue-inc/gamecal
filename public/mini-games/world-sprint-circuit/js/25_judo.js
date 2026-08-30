@@ -58,7 +58,7 @@ class JudoEvent {
     this.throwAt=-1e9; this.thrower=null; this.resetUntil=-1e9;
     this.result=null; this.doneAt=0; this.flash=0;
     this.lastCall=''; this.lastCallAt=-1e9;
-    this.aiSkill=0.60+Math.random()*0.12;
+    this.aiSkill=AI.skill(0.60+Math.random()*0.12);
     this.aiNext=0;
   }
   get people(){ return this.fighters; }

@@ -52,7 +52,7 @@ class TableTennisEvent {
     this.rally=0; this.bestRally=0; this.lastCourt=0;
     this.serveAt=0; this.result=null; this.doneAt=0; this.flash=0;
     this.lastPoint=''; this.lastPointAt=-1e9;
-    this.aiSkill=0.66+Math.random()*0.10;
+    this.aiSkill=AI.skill(0.66+Math.random()*0.10);
     this.startServe(0);
   }
   get people(){ return this.players; }
