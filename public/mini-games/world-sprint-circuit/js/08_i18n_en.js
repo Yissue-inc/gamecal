@@ -1072,4 +1072,7 @@ const I18N_EN = {
   '확인 — 받기':'Confirm — claim',
   '%1 %2단계':'%1 tier %2',
   '/분':'/min',
+  /* 세이브 손상 안내 */
+  '저장된 클럽을 읽지 못했습니다':'Could not read the saved club',
+  '저장된 클럽이 손상되어 열 수 없습니다':'The saved club is damaged and cannot be opened',
 };

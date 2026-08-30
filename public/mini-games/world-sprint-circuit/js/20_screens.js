@@ -139,7 +139,12 @@ const G = {
       const off = tut ? 1 : 0;
       const hasSave=MG.hasSave();
       const pick = hasSave ? (this.titleSel-off) : (this.titleSel-off+1);   // 0=이어하기 1=새 클럽 2=직접 뛰기
-      if(pick===0){ MG.load() ? this.state=ST.MANAGER : MG.newGame() || (this.state=ST.MANAGER); this.state=ST.MANAGER; }
+      /* ⛔ 예전엔 load() 가 실패해도 **조용히 새 클럽**을 만들고 감독 모드로 들어갔다.
+         이어하기를 눌렀는데 팀이 새것이 되는데 아무 말이 없었다. 이제는 말한다. */
+      if(pick===0){
+        if(MG.load()){ this.state=ST.MANAGER; }
+        else { this.toast('저장된 클럽을 읽지 못했습니다'); Sfx.fail(); }
+      }
       else if(pick===1){ this.state=ST.NATION; this.natSel=0; }   // 새 클럽 → 국가부터 고른다
       else this.state=ST.SELECT;
     }
@@ -735,6 +740,12 @@ const G = {
       txt(uctx, `뱃지 ${Career.badgeCount()} / ${BADGES.length}`, VW/2, by+8, 8, PAL.dim, 'center');
     }
     const hasSave=MG.hasSave();
+    /* ⚠ 세이브 칸에 뭔가 있는데 읽을 수 없다면 **없다고 하지 말고 말해 준다.**
+       (예전엔 '이어하기' 를 내밀고 누르면 조용히 새 클럽이 됐다) */
+    if(typeof MG.hasBrokenSave==='function' && MG.hasBrokenSave())
+      /* ⚠ y=108 에 뒀다가 **뱃지 줄 위에 겹쳤다**(실측 스크린샷). 메뉴(124~178)와
+         언어 줄(≈230) 사이가 비어 있다 — 튜토리얼 줄이 있든 없든 안전한 자리다. */
+      txt(uctx, K('저장된 클럽이 손상되어 열 수 없습니다'), VW/2, 206, 8, PAL.red, 'center');
     /* 튜토리얼 — 처음 켠 사람에게만, 맨 위에. 한 번 하면 사라진다. */
     const tutRow = (typeof Tutorial!=='undefined' && !Tutorial.seen())
       ? [['처음이라면','전설 선수로 한 판 · 최고 선수단으로 한 주']] : [];

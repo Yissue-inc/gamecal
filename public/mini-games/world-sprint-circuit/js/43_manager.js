@@ -222,7 +222,31 @@ const MG = {
       }));
     }catch(e){}
   },
-  hasSave(){ try{ return !!localStorage.getItem(MG_SAVE); }catch(e){ return false; } },
+  /* ⛔ 예전엔 '칸이 비어 있지 않으면' 세이브가 있다고 했다. 그래서 **깨진 세이브에도
+     타이틀이 '이어하기' 를 내밀었고**, 누르면 load() 가 거절한 뒤 조용히 **새 클럽**이 만들어졌다
+     (20_screens 의 `MG.load() ? … : MG.newGame()`). 플레이어는 이어하기를 눌렀는데 팀이 새것이 된다.
+     실측 6가지(잘린 JSON·빈 문자열·JSON 아님·배열·필드 누락·옛 모양) 중 **5가지가 그랬다.**
+     읽을 수 있는 세이브일 때만 있다고 말한다.
+     ⚠ 타이틀에서 매 프레임 세 번 불린다 — 4.8KB 를 매번 파싱하지 않도록 **같은 문자열이면 기억**한다. */
+  _hsRaw: null, _hsOk: false,
+  hasSave(){
+    let raw=null;
+    try{ raw = localStorage.getItem(MG_SAVE); }catch(e){ return false; }
+    if(!raw) { this._hsRaw=null; this._hsOk=false; return false; }
+    if(raw === this._hsRaw) return this._hsOk;
+    this._hsRaw = raw;
+    this._hsOk = false;
+    try{
+      const d = JSON.parse(raw);
+      this._hsOk = !!(d && d.v>=1 && d.v<=5 && d.club && Array.isArray(d.club.squad)
+                      && d.club.squad.length && d.season);
+    }catch(e){ this._hsOk = false; }
+    return this._hsOk;
+  },
+  /* 읽을 수 없는 세이브가 **있기는 한가** — 있으면 사람에게 말해 준다(조용히 새로 시작하지 않는다) */
+  hasBrokenSave(){
+    try{ return !!localStorage.getItem(MG_SAVE) && !this.hasSave(); }catch(e){ return false; }
+  },
   load(){
     try{
       const d=JSON.parse(localStorage.getItem(MG_SAVE));
