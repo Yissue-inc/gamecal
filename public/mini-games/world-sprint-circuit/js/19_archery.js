@@ -104,7 +104,11 @@ class ArcheryEvent {
     /* ⚠ 양궁장 어셋은 '낮'이다. 밤 경기장(관중·조명)을 함께 그리면 두 세계가 섞인다.
        어셋이 있으면 그것만 쓰고, 없을 때만 기존 무대를 그린다. */
     let GROUND=214;
-    if(BG.fill(BG.ctx(),'range-archery', 0, VH)){ /* HD 한 장이 화면을 채운다 */ }
+    if(BG.fill(BG.ctx(),'range-archery', 0, VH)){
+      /* 뒷그물 — 과녁 뒤에 이어 붙인다. 화살이 어디로 날아가는지 배경이 말해 준다.
+         ⚠ 무대(range-archery) 위에 얹으므로 무대가 있을 때만 그린다. */
+      BG.tile(BG.ctx(), 'range-backstop', 96, 0, 30);
+    }
     else {
       const gt=Track.fieldBack(ctx, 12);
       GROUND = Track.fieldGround(ctx,{grassTop:gt, surface:PAL.grass});
@@ -118,12 +122,15 @@ class ArcheryEvent {
         ctx.beginPath(); ctx.arc(TX, TY, TR*(i+1)/6, 0, Math.PI*2); ctx.fill();
       }
     }
-    /* 꽂힌 화살들 */
+    /* 꽂힌 화살들 — 어셋이 오면 화살 그림으로, 없으면 예전 점으로 */
     this.scores.forEach((sc,i)=>{
       if(sc===0) return;
       const h=this._hits && this._hits[i]; if(!h) return;
-      ctx.fillStyle='#2a2418';
-      ctx.fillRect(Math.round(TX+h.x*TR)-1, Math.round(TY+h.y*TR)-1, 3, 3);
+      const ax=Math.round(TX+h.x*TR), ay=Math.round(TY+h.y*TR);
+      if(!BG.obj(ctx, 'arrow-hd', ax, ay+4, 8)){
+        ctx.fillStyle='#2a2418';
+        ctx.fillRect(ax-1, ay-1, 3, 3);
+      }
     });
     /* 선수 — 왼쪽 */
     const SX=64;

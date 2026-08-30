@@ -150,9 +150,28 @@ class CanoeEvent {
         ctx.fillRect(cx-RW/2+((i*53)%RW), y, 10, 1);
       }
     }
-    /* 강둑 */
-    ctx.fillStyle='#3a4a3a'; ctx.fillRect(cx-RW/2-6, top, 6, bot-top);
-    ctx.fillRect(cx+RW/2, top, 6, bot-top);
+    /* 강둑 — 어셋이 오면 잔디·나무가 있는 둑, 없으면 예전 색 띠.
+       ⚠ 강은 세로로 흐른다(위→아래). river-bank 은 가로로 이어지는 띠라
+          좌우 둑에는 **세로로 세워** 쓴다. */
+    const bank = BG.get('river-bank');
+    if(bank){
+      const bw = 14, ih = bank.height, iw = bank.width;
+      for(const [bx, flip] of [[cx-RW/2-bw, 1], [cx+RW/2, -1]]){
+        ctx.save();
+        ctx.translate(bx + (flip<0?bw:0), top); ctx.scale(flip, 1);
+        /* 세로로 이어 붙인다 — 흐름에 맞춰 스크롤 */
+        const seg = bw*(iw/ih), off = (this.dist*6) % seg;
+        for(let y=-off; y<bot-top; y+=seg){
+          ctx.save(); ctx.translate(0, y); ctx.rotate(Math.PI/2);
+          ctx.drawImage(bank, 0, 0, iw, ih, 0, -bw, seg, bw);
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+    } else {
+      ctx.fillStyle='#3a4a3a'; ctx.fillRect(cx-RW/2-6, top, 6, bot-top);
+      ctx.fillRect(cx+RW/2, top, 6, bot-top);
+    }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,120,90,${this.flash*0.35})`; ctx.fillRect(0,0,VW,VH); }
   }
   drawUI(u){

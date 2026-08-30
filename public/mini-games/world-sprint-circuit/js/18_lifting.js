@@ -149,6 +149,12 @@ class LiftingEvent {
       (this._hd=this._hd||[]).push({ sp:'gorilla', x:CX, y, ph:0.25,
         o:{ throwing:this.phase!=='GRIP', rare:4, t:this.t, rot:tilt, scale:1.45 } });
     } else { ctx.fillStyle='#8a6a4a'; ctx.fillRect(CX-7, y-26, 14, 26); }
+    /* 탄마 가루 — 잡기 단계에서 손을 턴다. 역도의 시작 의식이다.
+       ⚠ 4프레임 시트다(BG.fx 가 진행도 0~1 로 고른다). 잡기 단계에서만 돈다. */
+    if(this.phase==='GRIP'){
+      const cyc = (this.t % 1600) / 1600;
+      if(cyc < 0.45) BG.fx(BG.ctx(), 'chalk-puff', CX-18, y-16, 22, cyc/0.45, 4);
+    }
     /* 원판 거치대 — 무대의 소품. 선수 뒤 양옆에 놓아 '역도장'이라는 걸 말한다.
        ⚠ 선수(CX)와 겹치지 않게 좌우로 충분히 물린다. 어셋이 없으면 아무것도 안 그린다. */
     BG.obj(BG.ctx(), 'plate-rack-hd', CX-96, y+2, 30);

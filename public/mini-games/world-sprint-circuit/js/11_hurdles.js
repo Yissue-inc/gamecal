@@ -152,10 +152,31 @@ class HurdlesEvent extends SprintEvent {
     for(let i=0;i<this.hurdleMarks.length;i++) if(!done.has(i)){ next=this.hurdleMarks[i]; break; }
     if(next!==null){
       const left = next - 0.2 - this.player.distM;
-      if(left < 6 && left > -1){
-        const near = left < RULES.hurdleCleanWindowM*3;
-        txt(uctx, near ? '지금 뛰어!' : `허들 ${left.toFixed(1)}m`,
-            VW/2, 56, near?15:11, near?PAL.green:PAL.white, 'center', 700);
+      if(left < 6 && left > -1.2){
+        /* ⛔ 예전엔 '허들 3.2m' → '지금 뛰어!' 라는 **글자**였다. 그런데 CLEAN 창은
+           ±0.35m = 9m/s 에서 **±39ms** 다. 글자를 읽고 누르면 이미 늦는다 —
+           실측: 도약이 60ms 늦으면 clean 10 → 0, 기록 11.50 → 12.89.
+           박자는 게이지로 가르치면서 도약은 글자로 알려 주고 있었다.
+           **리듬 게이지와 같은 눈금**을 준다 — 다가오는 표시를 보고 미리 준비한다.
+           띠의 폭이 곧 판정이다(Clean 초록 · Safe 연초록). 보이는 게 곧 규칙이다. */
+        const RANGE=4.0;                       // 4m 앞부터 보여 준다
+        const bw=132, bx=VW/2-bw/2, by=52, bh=9;
+        const toX = m => bx + bw*clamp(0.5 + (m/RANGE)*0.5, 0, 1);   // 0m = 가운데
+        plate(uctx, bx-6, by-9, bw+12, bh+16, 0.72);
+        uctx.fillStyle='rgba(242,245,250,.14)'; uctx.fillRect(bx, by, bw, bh);
+        /* 판정 띠 — 코드가 쓰는 값을 그대로 그린다(어긋날 자리를 안 만든다) */
+        const safe=RULES.hurdleSafeWindowM, clean=RULES.hurdleCleanWindowM;
+        uctx.fillStyle='rgba(92,255,156,.20)';
+        uctx.fillRect(toX(-safe), by, toX(safe)-toX(-safe), bh);
+        uctx.fillStyle='rgba(92,255,156,.55)';
+        uctx.fillRect(toX(-clean), by, toX(clean)-toX(-clean), bh);
+        uctx.fillStyle='rgba(92,255,156,.95)'; uctx.fillRect(bx+bw/2, by-2, 1, bh+4);
+        /* 다가오는 표시 — 오른쪽에서 가운데로 온다. 가운데에 닿는 순간이 도약이다. */
+        const px = toX(left);
+        uctx.fillStyle = Math.abs(left)<=clean ? PAL.green : PAL.white;
+        uctx.fillRect(Math.round(px)-1, by-3, 2, bh+6);
+        txt(uctx, left>0 ? `${left.toFixed(1)}m` : K('지금'),
+            VW/2, by-8, 8, Math.abs(left)<=clean?PAL.green:PAL.dim, 'center', 700);
       }
     }
     if(this.hurdleMsg && this.t - this.hurdleMsgAt < 700){
