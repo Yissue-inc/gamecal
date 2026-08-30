@@ -176,6 +176,19 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⚠ **메달 컷 재조정 (2026-08-30 2차)** — 8종목에서 '이기기만 하면 금' 이었다.
+     봇으로 전수 측정해 보니 거친 봇이 그냥 **금컷을 넘겼다**:
+       4×100 36.73s(금 43.36) · 4×400 147.31(184.63) · 조정 77.69(81.01) · 펜싱 18.91(39.56)
+       등반 4.64(4.90) · 마라톤 6716(7441) · 양궁 55점(47.94) · 링 12.61(12.33)
+     금이 아무나 받는 상이면 금이 아니다. **은컷 = 봇의 최선**에 맞췄다
+     (잘 맞춰진 종목들이 이미 그 자리다 — 800m parS 127 vs 봇 127.33 · 사이클·20km·3000SC 도 은).
+     ⚠ 시간 종목은 parS(은컷)만 옮겼다 — 통과 기준(동)은 따로 잡는다.
+        ⛔ **higher 종목(양궁·링)은 medalCuts 가 parS 를 안 본다** → qualify 로만 움직인다.
+     ⚠ 통과 기준도 헐거웠다(여유 19~26%) → 봇 최선 대비 **12%** 로(잘 맞춰진 800m 가 7%).
+     ⛔ 펜싱만 통과 기준을 안 건드렸다 — 여기서 qualify 는 '몇 초 안에 **이겼나**' 다.
+        조이면 **이기고도 실패**가 된다. 은·금만 조인다.
+     ⛔ 마라톤 parS 는 **라이벌 기준이기도 하다**(MiddleEvent). 7900 이었는데 실제 최선이 6716 —
+        값 자체가 틀렸다. 고치면 메달과 라이벌이 **함께** 맞는다. */
 /* ⚠ 기준 셋을 실측으로 다시 잡았다(2026-08-30) — 봇으로 48종목을 전수로 돌려 찾았다.
      ⛔ 평영 100m  50 → 56 : **흠 없이 저어도 52.36s** 라 기준 통과가 불가능했다
         (완벽한 스트로크 135번 · 다른 영법은 자유형 8%·배영 8%·접영 7% 여유인데 평영만 음수)
@@ -213,12 +226,12 @@ const EVENTS = [
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
         거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
-  { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:8700,
-    parS:7900, distanceM:42195, kind:'middle',
+  { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:7500,
+    parS:6720, distanceM:42195, kind:'middle',
     tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
-  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:49.50, distanceM:400, rivalPar:38.75, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
-  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:210.0, parS:196.0, distanceM:1600, rivalPar:178.50, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
+  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:41, distanceM:400, rivalPar:36.90, parS:36.75, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
+  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:165, parS:147.5, distanceM:1600, rivalPar:147.50, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다' },
   { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump', tip:'홉·스텝·점프 — 정점마다 액션' },
@@ -239,17 +252,17 @@ const EVENTS = [
   /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
   { id:'lifting',      name:'역도',         short:'LIFT',  unit:'kg', higher:true,  qualify:140.0, kind:'lift', tip:'좌·우로 자세를 잡고 액션을 길게 눌러 든다 · 기우는 반대쪽을 누른다' },
   /* 양궁 — 이 게임 유일의 '정지 조준'. 6발 합계 60점 만점. */
-  { id:'archery',      name:'양궁',         short:'ARCH',  unit:'점', higher:true,  qualify:42.0, kind:'aim', tip:'액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사' },
+  { id:'archery',      name:'양궁',         short:'ARCH',  unit:'점', higher:true,  qualify:51, kind:'aim', tip:'액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사' },
   /* 트랙 사이클 — 기어 변속과 스퍼트가 핵심. */
   { id:'cycling',      name:'트랙 사이클',   short:'CYCL',  unit:'s', higher:false, qualify:34.0, parS:29.0, distanceM:500, kind:'cycle', tip:'좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회' },
   /* 조정 — 이 게임 유일의 '일정함' 종목. 빠름이 아니라 흔들리지 않음이 점수다. */
-  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:96.0, parS:86.0, distanceM:500, kind:'row', tip:'좌·우를 천천히 고르게 — 빠름이 아니라 일정함이 속도다' },
+  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, distanceM:500, kind:'row', tip:'좌·우를 천천히 고르게 — 빠름이 아니라 일정함이 속도다' },
   /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
   { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:52.0, kind:'tramp', tip:'매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다' },
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
-  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:6.30, parS:5.20, rivalPar:4.65, kind:'climb', tip:'좌·우를 고르게 — 정확하면 빨라진다 · 액션 = 도약 1회' },
+  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:5.2, parS:4.65, rivalPar:4.65, kind:'climb', tip:'좌·우를 고르게 — 정확하면 빨라진다 · 액션 = 도약 1회' },
   /* 펜싱 — 이 게임에서 유일하게 '리듬'이 아니라 '거리'가 축인 종목. 5투셰 선취까지의 시간. */
-  { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, parS:42.0, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
+  { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, parS:19.0, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
   /* 10종 경기 — 새 물리가 아니라 **그릇**이다. 있는 열 종목을 이어 뛰고 IAAF 표로 합산한다. */
   { id:'decathlon',    name:'10종 경기',    short:'DEC',   unit:'점', higher:true,  qualify:6500, parS:7200, kind:'combined', tip:'열 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 철인3종 — 두 번째 그릇. 10종과 달리 **끊기지 않는다**(피로가 구간을 관통한다). */
@@ -277,7 +290,7 @@ const EVENTS = [
   /* 철봉 — 이 게임에서 유일하게 **놓았다가 다시 잡는** 종목. 스윙이 난도를 허락한다. */
   { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym', tip:'좌·우로 흔들어 스윙을 키우고 액션으로 이탈 · 다시 액션으로 잡는다' },
   /* 링 — 이 게임에서 유일하게 '누르지 않는 것'이 잘하는 종목 */
-  { id:'rings', name:'링', short:'RG', unit:'점', higher:true, qualify:10.8,
+  { id:'rings', name:'링', short:'RG', unit:'점', higher:true, qualify:11.7,
     parS:12.4, kind:'gym',
     tip:'좌·우로 흔들림을 되잡아 버틴다 — 많이 누를수록 감점' },
   /* 근대5종 — 펜싱·수영·승마·사격·달리기. 다섯 종목이 이미 다 있어서 그릇만 얹었다. */
