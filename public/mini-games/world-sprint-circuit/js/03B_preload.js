@@ -8,7 +8,7 @@
      **뒤늦게 튀어나온다.** 코드 그림으로 물러나므로 에러도 콘솔도 조용하다.
 
    두 물결
-     ① WAVE1 135장 ·    756 KB — UI 틀·아이콘. 첫 메뉴에 바로 필요하다.
+     ① WAVE1 137장 ·    757 KB — UI 틀·아이콘. 첫 메뉴에 바로 필요하다.
      ② WAVE2 128장 ·   2098 KB — 무대·소품·효과. 경기 전까지만 오면 된다.
    ⛔ 캐릭터 스프라이트·초상 360장(3.9 MB)은 **안 데운다** —
       종족별이라 그 종족이 나올 때 받는 게 맞다.
@@ -36,8 +36,9 @@ const PRELOAD = {
   'row-selected', 'sk-appetite', 'sk-beat', 'sk-beat-x', 'sk-burst', 'sk-burst-x', 'sk-clutch',
   'sk-clutch-x', 'sk-eager', 'sk-eager-x', 'sk-grit', 'sk-grit-x', 'sk-knee', 'sk-pro',
   'sk-skim', 'sk-spring', 'sk-sunny', 'sk-whip', 'slot-gear', 'slot-shoe', 'slot-wear',
-  'tab-active', 'tab-idle', 'title-backdrop', 'tooltip-tail', 'tr-closer', 'tr-glass',
-  'tr-hurdler', 'tr-ironman', 'tr-metronome', 'tr-springy', 'tr-starter',
+  'tab-active', 'tab-idle', 'title-backdrop', 'tooltip-tail', 'tr-cannon', 'tr-closer',
+  'tr-glass', 'tr-hurdler', 'tr-ironman', 'tr-metronome', 'tr-nervous', 'tr-springy',
+  'tr-starter',
   ],
   /* 경기 시작 전까지만 오면 되는 것 */
   WAVE2: [

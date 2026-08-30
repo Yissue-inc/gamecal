@@ -50,16 +50,53 @@ const UIK = {
      ⚠ 그냥 drawImage 로 늘이면 모서리 장식이 같이 늘어나 뭉개진다.
      ⚠ 우리 화면은 480×270 이고 어셋은 3배로 그려져 있다 — 모서리 픽셀 수를
         화면 좌표로 환산해서 넘겨야 한다(96px 어셋의 16px 모서리 = 화면 5.3). */
+  /* ── 어셋의 '진짜 테두리' ─────────────────────────────────
+     ⛔ 9-slice 는 **캔버스 네 귀퉁이**에서 모서리를 떠 온다. 그런데 어셋에 투명
+        여백이 있으면 그 귀퉁이가 **빈 곳**이다 — 테두리가 통째로 안 그려진다.
+        실측(2026-08-30): hud-frame 은 192×48 인데 그림이 1~31행뿐이고 33행 아래가
+        알파 0 이다. 모서리 S=16 이라 아래 모서리를 32~48행에서 떴다 = 전부 빈칸.
+        경기 HUD 띠의 **아래 테두리가 없었다.** 에러도 안 나고 화면도 안 비어서
+        (틀 일부는 그려지므로) 눈으로만 보이는 종류다. bar-track·ribbon-title 도 같다.
+     ⚠ 여백이 없는 어셋은 bbox 가 캔버스 전체라 **예전과 완전히 같다.**
+     ⚠ 한 번만 재고 캐시한다. 어셋은 안 바뀐다. */
+  _bbox(name, img){
+    this._bb = this._bb || {};
+    const hit = this._bb[name]; if(hit) return hit;
+    let box = { x:0, y:0, w:img.width, h:img.height };
+    try{
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      const g = c.getContext('2d', { willReadFrequently:true });
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let x0=c.width, y0=c.height, x1=-1, y1=-1;
+      for(let yy=0; yy<c.height; yy++)
+        for(let xx=0; xx<c.width; xx++)
+          if(d[(yy*c.width+xx)*4+3] > 8){
+            if(xx<x0) x0=xx; if(xx>x1) x1=xx;
+            if(yy<y0) y0=yy; if(yy>y1) y1=yy;
+          }
+      if(x1>=x0 && y1>=y0) box = { x:x0, y:y0, w:x1-x0+1, h:y1-y0+1 };
+    }catch(e){ /* 캔버스를 못 읽으면 캔버스 전체를 쓴다 — 예전 동작 */ }
+    return (this._bb[name] = box);
+  },
+
   nine(u, name, x, y, w, h, cornerPx){
     const img = BG.get(name); if(!img) return false;
-    const S = cornerPx || Math.round(img.width/6);        // 어셋 좌표의 모서리
-    const d = Math.max(2, Math.round(S * (w/img.width) * (img.width/ (img.width))));
+    /* 캔버스가 아니라 **그림이 실제로 있는 영역**을 9등분한다 */
+    const B = this._bbox(name, img);
+    const ox = B.x, oy = B.y, iw = B.w, ih = B.h;
+    /* ⚠ 여백을 걷어내면 내용이 작아진다 — 모서리 S 를 그대로 두면 위·아래 모서리가
+       내용 전체를 먹어 **가운데(mh)가 0** 이 된다(실측: hud-frame 32px 에 S=16).
+       그러면 네 귀퉁이만 남고 변과 속이 사라진다. 내용에 맞춰 조인다.
+       ⚠ 화면 모서리 c 는 S 에서 나오므로 **조인 뒤에** 계산해야 한다. */
+    const S = Math.max(1, Math.min(cornerPx || Math.round(iw/6),
+                                   Math.floor(Math.min(iw, ih) / 2) - 1));
     /* 화면에서의 모서리 크기 — 너무 크면 작은 패널이 모서리만 남는다 */
     const c = Math.max(2, Math.min(Math.floor(Math.min(w,h)/2 - 1), Math.round(S/3)));
-    const iw = img.width, ih = img.height;
     const put=(sx,sy,sw,sh,dx,dy,dw,dh)=>{
       if(sw<=0||sh<=0||dw<=0||dh<=0) return;
-      u.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh);
+      u.drawImage(img, ox+sx, oy+sy, sw,sh, dx,dy,dw,dh);
     };
     const mw = iw-S*2, mh = ih-S*2;             // 어셋 가운데
     const cw = w-c*2,  ch = h-c*2;              // 화면 가운데
