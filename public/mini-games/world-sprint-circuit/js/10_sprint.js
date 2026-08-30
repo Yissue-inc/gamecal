@@ -42,11 +42,13 @@ class SprintEvent {
     this.player = this.humans[0];             // 옛 호출부 호환
     this.rivals = [];
     for(let i=humans; i<lanes; i++){
-      const skill = 0.62 + (i-humans)*0.16 + Math.random()*0.1;
+      /* 난이도는 여기 한 줄로만 들어온다 — 기록·메달에는 안 닿는다(0C_difficulty) */
+      const skill = (typeof AI!=='undefined') ? AI.skill(0.62 + (i-humans)*0.16 + Math.random()*0.1)
+                                              : 0.62 + (i-humans)*0.16 + Math.random()*0.1;
       const r = new Runner(i, { speed:45+skill*45, acceleration:45+skill*40,
         stamina:50, technique:50, rhythm:50 }, false, this.trackM);
       r.reset(this.gunMs); r.name = AI_NAMES[(Math.random()*AI_NAMES.length)|0];
-      r.aiJitter = (1-skill)*90; r.aiNext = 0; r.aiSide = 1;
+      r.aiJitter = (typeof AI!=='undefined') ? AI.jitter((1-skill)*90) : (1-skill)*90; r.aiNext = 0; r.aiSide = 1;
       this.rivals.push(r);
     }
     this.all = [...this.humans, ...this.rivals];

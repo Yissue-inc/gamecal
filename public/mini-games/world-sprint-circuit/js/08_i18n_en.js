@@ -952,6 +952,8 @@ const I18N_EN = {
   /* 메달 3단계 — 종목마다 목표를 셋으로 */
   '%1 까지 %2':'%2 to %1', '최고 등급입니다':'Top tier',
   '금':'Gold', '은':'Silver', '동':'Bronze',
+  /* AI 난이도 — 기록에는 안 닿는다(상대만 바뀐다) */
+  'AI 난이도':'Rivals', '쉬움':'Easy', '보통':'Normal', '어려움':'Hard',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };

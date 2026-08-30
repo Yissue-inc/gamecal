@@ -50,7 +50,9 @@ class RelayEvent extends SprintEvent {
     /* 상대 팀 2개 */
     this.rivals=[];
     for(let i=0;i<2;i++){
-      const skill=0.66+i*0.14+Math.random()*0.08;
+      /* 난이도 — 0C_difficulty. 기록에는 안 닿는다 */
+      const skill=(typeof AI!=='undefined') ? AI.skill(0.66+i*0.14+Math.random()*0.08)
+                                            : 0.66+i*0.14+Math.random()*0.08;
       this.rivals.push({ lane:i===0?0:2, dist:0, speed:0, skill,
         /* 라이벌 목표 속도 — 기준 기록에서 끌어낸다. 예전엔 100m 구간을 전제로 한
            고정식이라 4x400 에서는 말이 안 됐다. */

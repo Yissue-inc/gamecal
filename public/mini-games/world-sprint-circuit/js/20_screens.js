@@ -181,6 +181,11 @@ const G = {
       if(typeof CharMode!=='undefined'){ CharMode.toggle(); Sfx.ui(); }
     }
     if(!Input.keys['KeyM']) this._mLatch=false;
+    if(Input.keys['KeyN'] && !this._nLatch){
+      this._nLatch=true;
+      if(typeof AI!=='undefined'){ AI.cycle(); Sfx.ui(); }
+    }
+    if(!Input.keys['KeyN']) this._nLatch=false;
     this.clampSel();
     if(Input.pressed('action')){
       const def=this.selEvents[this.sel]; if(!def) return;
@@ -412,6 +417,8 @@ const G = {
       /* ⚠ 종목 선택에서 인원은 [ ] 키로 바꾼다 — 화면 버튼에는 그 키가 없다.
          터치로만 하는 사람이 2인 플레이를 아예 못 켜면 안 되므로 여기에도 둔다. */
       { k:'party', label:'인원',    toggle:true },
+      /* AI 난이도 — 라이벌이 얼마나 센가. ⛔ 기록·메달에는 안 닿는다(상대만 바뀐다) */
+      { k:'ai',    label:'AI 난이도', toggle:true },
       { k:'back', label:'돌아가기', action:true },
     ];
   },
@@ -432,6 +439,10 @@ const G = {
       else if(r.k==='ctrl'){ Ctrl.set(Ctrl.mode==='touch'?'keyboard':'touch'); }
       else if(r.k==='party'){
         Party.count = dLeft ? Math.max(1,Party.count-1) : Math.min(4,Party.count+1);
+      }
+      else if(r.k==='ai' && typeof AI!=='undefined'){
+        const i = AI.LEVELS.indexOf(AI.level), n = AI.LEVELS.length;
+        AI.set(AI.LEVELS[(i + (dLeft ? n-1 : 1)) % n]);
       }
       else if(r.k==='back'){ this.state=ST.TITLE; }
       Sfx.ui();
@@ -478,6 +489,9 @@ const G = {
       } else if(r.k==='party'){
         txt(uctx, Party.count+K('인'), x+w-10, ty, 11,
             Party.count>1?PAL.gold:PAL.blue,'right',700);
+      } else if(r.k==='ai' && typeof AI!=='undefined'){
+        txt(uctx, K(AI.label), x+w-10, ty, 11,
+            AI.level==='hard'?PAL.red:AI.level==='easy'?PAL.green:PAL.blue,'right',700);
       }
     });
     txt(uctx,'▲▼ 이동 · ◀▶ 조절 · 확인 전환 · 취소 돌아가기', VW/2, VH-16, 9, PAL.dim,'center');
@@ -831,6 +845,12 @@ const G = {
       const px = CharMode.mode==='pixel';
       txt(uctx, `M  ${K('캐릭터')}  ${K(CharMode.label)}`, VW-10, VH-42, 9,
           px?PAL.blue:PAL.dim, 'right', px?700:400);
+    }
+    /* AI 난이도 — 경기 직전에 고른다. ⛔ 기록·메달에는 안 닿는다 */
+    if(typeof AI!=='undefined'){
+      const hard = AI.level==='hard', easy = AI.level==='easy';
+      txt(uctx, `N  ${K('AI 난이도')}  ${K(AI.label)}`, VW-10, VH-30, 9,
+          hard?PAL.red:easy?PAL.green:PAL.dim, 'right', AI.level!=='normal'?700:400);
     }
     if(n>1){
       let px=VW-10;
