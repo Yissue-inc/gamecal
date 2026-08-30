@@ -282,7 +282,7 @@ class FencingEvent {
       if(face<0){ u.translate(x*2, 0); u.scale(-1,1); }
       const dx = face<0 ? x : x;
       if(!CharHD.draw(u, SP[i%2], dx, y, lung?0.5:0.05,
-          {rare:i?2:3, t:this.t, scale:0.92, lean:lung, crouch:!lung}))
+          {act:'lunge', rare:i?2:3, t:this.t, scale:0.92, lean:lung, crouch:!lung}))
         { u.fillStyle=i?'#8fa0b4':PAL.gold; u.fillRect(dx-5,y-20,10,20); }
       u.restore();
       /* 검 — 사거리를 눈으로 보여 준다. 이게 없으면 거리 감각이 안 생긴다.

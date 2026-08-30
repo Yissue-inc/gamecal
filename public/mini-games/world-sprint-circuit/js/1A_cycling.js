@@ -158,7 +158,7 @@ class CyclingEvent {
         ctx.fillStyle='#7a8290'; ctx.fillRect(x-9,y-7,18,3);
       }
       if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:'hare', x, y:y-6, ph:(this.t*0.006+i)%1,
-        o:{rare:2, moving:true, t:this.t, lean:true, scale:Track.laneScale(rv.lane)}});
+        o:{act:'pedal', rare:2, moving:true, t:this.t, lean:true, scale:Track.laneScale(rv.lane)}});
     });
     /* 나 */
     const mx=px(this.dist), my=Track.laneFoot(1);
@@ -167,7 +167,7 @@ class CyclingEvent {
     }
     this._meX=mx; this._meY=my;
     if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:'cheetah', x:mx, y:my-6, ph:(this.t*0.008)%1,
-      o:{rare:5, moving:this.phase==='RUN', t:this.t, lean:true, scale:Track.laneScale(1)}});
+      o:{act:'pedal', rare:5, moving:this.phase==='RUN', t:this.t, lean:true, scale:Track.laneScale(1)}});
     /* 스퍼트 속도선 */
     if(this.sprintStart>=0 && this.t-this.sprintStart<CYCLE.sprintMs){
       BG.fx(BG.ctx(),'speed-lines', mx-40, my-8, 32, ((this.t/160)%1), 1);

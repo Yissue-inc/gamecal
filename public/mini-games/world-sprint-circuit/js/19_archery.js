@@ -144,7 +144,7 @@ class ArcheryEvent {
       const pullPh = 0.2 + (this.drawStart<0 ? 0
         : clamp((this.t-this.drawStart)/ARCH.drawFullMs, 0, 1)) * 0.3;
       (this._hd=this._hd||[]).push({ sp:'eagle', x:SX, y:GROUND, ph:pullPh,
-        o:{ throwing:true, rare:3, t:this.t, scale:1.35 } });
+        o:{ act:'draw', throwing:true, rare:3, t:this.t, scale:1.35 } });
     } else { ctx.fillStyle='#5aaaff'; ctx.fillRect(SX-6, GROUND-26, 12, 26); }
     /* 활 */
     const pull = this.drawStart<0 ? 0 : clamp((this.t-this.drawStart)/ARCH.drawFullMs, 0, 1);

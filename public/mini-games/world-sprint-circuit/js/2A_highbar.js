@@ -225,7 +225,7 @@ class HighBarEvent {
     if(rot){ u.translate(x,y); u.rotate(rot); u.translate(-x,-y); }
     /* ⛔ 0.2 고정이었다. 이 종목은 **스윙 위상**을 이미 갖고 있다(swingPhase). */
     if(!CharHD.draw(u,'lemur', x, y+14, this.swingPhase,
-        {rare:3, t:this.t, scale:0.8, crouch:tuck, airborne:this.phase==='AIR'}))
+        {act:'swing', rare:3, t:this.t, scale:0.8, crouch:tuck, airborne:this.phase==='AIR'}))
       { u.fillStyle=PAL.gold; u.fillRect(x-5,y,10,16); }
     u.restore();
 

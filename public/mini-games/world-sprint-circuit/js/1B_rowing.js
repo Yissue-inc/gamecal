@@ -171,7 +171,7 @@ class RowingEvent {
       const rk=Track.laneScale(rv.lane), rsw=(this.t*0.0009+i*0.37)%1;
       boat(x,y,false,rk,rsw); (this._deck=this._deck||[]).push({x,y,k:rk,mine:false,sw:rsw});
       if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:'otter', x:x-Math.round(4*rk), y:y-Math.round(2*rk),
-        ph:rsw, o:{rare:2, t:this.t, scale:rk*0.62}});
+        ph:rsw, o:{act:'row', rare:2, t:this.t, scale:rk*0.62}});
     });
     const mx=px(this.dist), my=Track.laneFoot(1);
     const mk=Track.laneScale(1);
@@ -180,7 +180,7 @@ class RowingEvent {
     boat(mx,my,true,mk,msw); (this._deck=this._deck||[]).push({x:mx,y:my,k:mk,mine:true,sw:msw});
     this._meX=mx; this._meY=my;
     if(CharHD.enabled) (this._hd=this._hd||[]).push({sp:'beaver', x:mx-Math.round(4*mk), y:my-Math.round(2*mk),
-      ph:msw, o:{rare:1, t:this.t, scale:mk*0.66}});
+      ph:msw, o:{act:'row', rare:1, t:this.t, scale:mk*0.66}});
     /* 노 젓는 물결 */
     if(this.phase==='RUN' && this.t-this.lastStroke < 260)
       BG.fx(BG.ctx(),'ripple-ring', mx-14, my+6, 16, (this.t-this.lastStroke)/260, 4);

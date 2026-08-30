@@ -262,7 +262,7 @@ class ClimbEvent {
     const SP=CLIMB_SP;
     this.rivals.forEach((rv,i)=>{
       const x=this.xOf(rv.lane), y=this.yOf(rv.h);
-      if(!CharHD.draw(u,'monkey',x,y,(this.t*0.006+i)%1,{rare:2,t:this.t,scale:0.62,crouch:true})){
+      if(!CharHD.draw(u,'monkey',x,y,(this.t*0.006+i)%1,{act:'reach', rare:2,t:this.t,scale:0.62,crouch:true})){
         u.fillStyle='#8fa0b4'; u.fillRect(x-4,y-11,8,11);
       }
     });

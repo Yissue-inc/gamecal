@@ -264,7 +264,7 @@ class HammerEvent extends FieldEvent {
     const spinPh = this.phase==='SPIN'
       ? ((this.angle/(Math.PI*2)) % 1 + 1) % 1 : 0.25;
     if(!(CharHD.enabled && CharHD.draw(Screen.uctx, 'bear', CX, GROUND, spinPh,
-          { throwing:this.phase!=='SPIN', rare:3, t:this.t, scale:1.3 })))
+          { act:'spin', throwing:this.phase!=='SPIN', rare:3, t:this.t, scale:1.3 })))
       drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:this.phase!=='SPIN' });
     if(this.phase==='SPIN'){
       const hot = clamp(this.spin/RULES.hammerMaxSpin, 0, 1);

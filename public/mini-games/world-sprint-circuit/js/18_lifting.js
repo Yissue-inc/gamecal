@@ -147,7 +147,7 @@ class LiftingEvent {
       y -= clamp((this.t-this.pullStart)/LIFT.pullMaxMs,0,1)*4;
     if(CharHD.enabled){
       (this._hd=this._hd||[]).push({ sp:'gorilla', x:CX, y, ph:0.25,
-        o:{ throwing:this.phase!=='GRIP', rare:4, t:this.t, rot:tilt, scale:1.45 } });
+        o:{ act:'press', throwing:this.phase!=='GRIP', rare:4, t:this.t, rot:tilt, scale:1.45 } });
     } else { ctx.fillStyle='#8a6a4a'; ctx.fillRect(CX-7, y-26, 14, 26); }
     /* 힘주기 — 버티는 동안 머리 위에 3단계로. 기울수록 세게 표시된다.
        ⚠ HOLD 단계에서만. 흔들림(sway)이 클수록 높은 단계를 쓴다. */

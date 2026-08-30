@@ -156,8 +156,14 @@ const CharPix = {
     u.save();
     u.translate(Math.round(x), Math.round(y));
     if(opt.rot) u.rotate(opt.rot);
+    /* ⛔ 사이클이 **자전거에서 떨어져 세로로 늘어났다**(실측). 원인 둘:
+       ① `lean:true` 로 몸을 기울였는데 동작(act)이 이미 자세를 정하고 있었다
+       ② 앉는 종목인데 **서 있는 키**로 그렸다
+       → act 가 있으면 lean 회전을 무시하고, 앉는 종목은 몸을 접는다. */
+    const ACT = opt.act || '';
+    const SIT = { pedal:0.42, row:0.40, paddle:0.44, swing:0.55 }[ACT] || 1;
     if(swim) u.rotate(-Math.PI/2 * 0.86);           // 수영은 몸이 눕는다
-    else if(opt.lean) u.rotate(-0.16);              // 결승선 기울임
+    else if(opt.lean && !ACT) u.rotate(-0.16);      // 결승선 기울임 — 동작이 없을 때만
     /* 격자 원점을 발밑으로. 이후 좌표는 전부 '칸' 단위다(위가 음수). */
 
     const S = this.shapeOf(species);
@@ -167,7 +173,8 @@ const CharPix = {
     const LIMB  = S.limb;                       // 팔다리 굵기(칸) — 갈래가 정한다
 
     /* 웅크림·공중은 다리를 접는다 — 자세가 상태를 말한다 */
-    const fold = crouch ? 0.55 : (air ? 0.72 : 1);
+    /* 앉는 종목은 다리를 접는다 — 자전거·보트 위에서 서 있으면 안 된다 */
+    const fold = (crouch ? 0.55 : (air ? 0.72 : 1)) * SIT;
     const L = legH * fold;
     const bob = air ? -1 : (crouch ? 1 : (Math.abs(sw) > 0.7 ? 0 : -0.5));
 
@@ -204,7 +211,29 @@ const CharPix = {
          던지기(thr)   축발을 버티고 뒷다리를 뺀다
          기울임(lean)  앞다리를 길게 내민다 — 결승선 */
     let spread, lLift, rLift;
-    if(crouch){ spread = 4.2; lLift = 0.4;  rLift = 2.2; }        // 앞뒤로 벌린 준비 자세
+    /* ⛔ 종목마다 몸이 하는 일이 다르다(CK). 달리기 자세 하나로 48종목을 덮으면
+       조정도 사격도 다 달리는 사람처럼 보인다. `act` 로 종목의 동작을 받는다.
+       ⚠ HD 모드는 이 값을 무시한다 — 안전하게 얹기만 한다. */
+    const act = ACT;
+    if(act === 'paddle' || act === 'row'){        // 노 젓기 — 앉아서 상체로 당긴다
+      spread = 1.2; lLift = 0.2; rLift = 0.2;
+    } else if(act === 'pedal'){                    // 페달 — 두 다리가 원을 그린다
+      spread = 2.4; lLift = 1.6 + cw*1.6; rLift = 1.6 - cw*1.6;
+    } else if(act === 'draw' || act === 'aim'){    // 활·총 — 다리는 고정, 상체만 산다
+      spread = 3.0; lLift = 0; rLift = 0;
+    } else if(act === 'grip'){                     // 깃 싸움 — 두 발을 넓게 버틴다
+      spread = 4.6; lLift = 0.3; rLift = 0.3;
+    } else if(act === 'reach'){                    // 클라이밍 — 한 발을 높이 올린다
+      spread = 2.2; lLift = 0.4; rLift = 3.4 + Math.max(0, cw)*2.0;
+    } else if(act === 'lunge'){                    // 펜싱 런지 — 앞다리를 깊게
+      spread = 7.0; lLift = 0.2; rLift = 0.2;
+    } else if(act === 'press'){                    // 역도 — 두 다리로 버틴다
+      spread = 3.2; lLift = 0.4; rLift = 0.4;
+    } else if(act === 'spin'){                     // 회전 던지기 — 축발 하나로 돈다
+      spread = 2.0 + Math.abs(sw)*2.4; lLift = 0.3; rLift = Math.max(0, cw)*2.2;
+    } else if(act === 'swing'){                    // 철봉·링 — 매달려 다리를 모은다
+      spread = 1.4; lLift = 2.6; rLift = 2.6;
+    } else if(crouch){ spread = 4.2; lLift = 0.4;  rLift = 2.2; }  // 앞뒤로 벌린 준비 자세
     else if(air){ spread = 2.0; lLift = 3.0; rLift = 2.4; }        // 두 다리를 모아 접는다
     else if(thr){ spread = 3.4; lLift = 0.6; rLift = 1.2; }        // 축발 버티기
     else if(opt.lean){ spread = 6.2; lLift = Math.max(0, cw)*1.4; rLift = 0.4; }
@@ -232,6 +261,27 @@ const CharPix = {
       px(1, shY + 1, 1, armH, dark);                 // 뒤로 젖힌 팔
       px(-bodyW/2 - 1, shY, 2, 1, col);
       px(bodyW/2 - 1, shY - 2, 2, armH * 0.8, col);
+    } else if(act === 'paddle' || act === 'row'){
+      /* 노 — 두 팔이 **함께** 앞뒤로 간다(달리기처럼 엇갈리지 않는다) */
+      const p = 2.0 + sw*4.0;
+      px(p - LIMB/2, shY + 1, LIMB, armH*1.4, dark);
+      px(p + 1.2 - LIMB/2, shY + 1, LIMB, armH*1.4, col);
+    } else if(act === 'draw' || act === 'aim'){
+      /* 활·총 — 한 팔은 앞으로 뻗고 한 팔은 당긴다. 당김 정도는 위상이 정한다. */
+      px(bodyW/2, shY + 1, armH*1.2, LIMB, col);                       // 뻗은 팔
+      px(-2 - ph*3, shY + 1, armH*0.9, LIMB, dark);                    // 당긴 팔
+    } else if(act === 'press'){
+      /* 역도 — 두 팔을 위로 밀어 올린다 */
+      px(-bodyW/2, shY - armH*0.9, LIMB, armH, dark);
+      px( bodyW/2 - LIMB, shY - armH*0.9, LIMB, armH, col);
+    } else if(act === 'swing'){
+      /* 매달림 — 두 팔이 위로 곧게 */
+      px(-1.5, shY - armH*1.3, LIMB, armH*1.3, dark);
+      px( 0.5, shY - armH*1.3, LIMB, armH*1.3, col);
+    } else if(act === 'grip'){
+      /* 깃 싸움 — 두 팔을 앞으로 내밀어 맞잡는다 */
+      px(bodyW/2, shY + 1, armH*1.1, LIMB, col);
+      px(bodyW/2, shY + 2.5, armH*0.9, LIMB, dark);
     } else {
       /* 팔도 두 마디 — 다리와 **반대로** 흔든다. 팔꿈치가 있어야 달리는 팔이 된다. */
       const aSw = swim ? 5.0 : 3.4;

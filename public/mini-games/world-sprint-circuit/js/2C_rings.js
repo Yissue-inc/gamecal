@@ -230,7 +230,7 @@ class RingsEvent {
     u.translate(px, py); u.rotate(lean*0.16); u.translate(-px, -py);
     /* ⛔ 0.1 고정이었다. 링은 **흔들림(wob)** 이 곧 자세다 — 그걸 위상으로 준다. */
     if(!CharHD.draw(u, 'monkey', px, py, 0.25 + clamp(this.wob,-1,1)*0.2,
-        { t:this.t, scale:1.15, lean:true }))
+        { act:'swing', t:this.t, scale:1.15, lean:true }))
       { u.fillStyle=PAL.gold; u.fillRect(px-7, py-30, 14, 30); }
     u.restore();
 
