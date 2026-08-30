@@ -200,8 +200,8 @@ const EVENTS = [
     parS:7900, distanceM:42195, kind:'middle',
     tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
-  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:49.50, distanceM:400, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
-  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:210.0, parS:196.0, distanceM:1600, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
+  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:49.50, distanceM:400, rivalPar:38.75, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
+  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:210.0, parS:196.0, distanceM:1600, rivalPar:178.50, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다' },
   { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump', tip:'홉·스텝·점프 — 정점마다 액션' },

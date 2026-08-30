@@ -56,7 +56,14 @@ class RelayEvent extends SprintEvent {
       this.rivals.push({ lane:i===0?0:2, dist:0, speed:0, skill,
         /* 라이벌 목표 속도 — 기준 기록에서 끌어낸다. 예전엔 100m 구간을 전제로 한
            고정식이라 4x400 에서는 말이 안 됐다. */
-        target: this.trackM / ((this.def.parS || this.def.qualify) * (1.04 + i*0.06)) });
+        /* ⛔ 기준이 qualify(49.50s) 였다 — 그런데 사람이 실제로 뛰는 기록은 38.7s 다.
+           라이벌이 10초나 느려 **누르기만 해도 1위**였다. 실측 사람 기록(rivalPar)으로 바꾼다.
+           난이도는 여기 배수 하나로만 들어온다(기록·메달에는 안 닿는다). */
+        /* ⚠ 라이벌 속도가 딱 고정이면 승패가 계단이 된다 — 0.01초 차이로 늘 같은 결과다.
+           팀마다 ±1.5% 흔들어 준다. 그래야 어려움이 '아슬아슬' 해진다. */
+        target: this.trackM / ((this.def.rivalPar || this.def.parS || this.def.qualify)
+                 * ((typeof AI!=='undefined' ? AI.parRatio() : 1.045) + i*0.05
+                    + (Math.random()*2-1)*0.015)) });
     }
     this.doneAt=0; this.result=null; this.camM=0; this.flash=0;
     this.msg=''; this.msgAt=-1e9;

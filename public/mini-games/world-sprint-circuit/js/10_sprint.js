@@ -42,13 +42,23 @@ class SprintEvent {
     this.player = this.humans[0];             // 옛 호출부 호환
     this.rivals = [];
     for(let i=humans; i<lanes; i++){
-      /* 난이도는 여기 한 줄로만 들어온다 — 기록·메달에는 안 닿는다(0C_difficulty) */
-      const skill = (typeof AI!=='undefined') ? AI.skill(0.62 + (i-humans)*0.16 + Math.random()*0.1)
-                                              : 0.62 + (i-humans)*0.16 + Math.random()*0.1;
+      /* ⛔ 예전엔 실력값을 직접 뽑았다(0.62 + i*0.16). 그런데 실력→기록 곡선은
+         0.78 위에서 포화한다 — 가장 빠른 라이벌이 9.10~9.28s 로 **사람의 상한(9.57s) 바깥**
+         이었고, 실측 1위 확률이 쉬움·보통·어려움 **전부 0%** 였다. 이길 수 없는 종목이었다.
+         이제 '사람 기록의 몇 배로 뛰나' 로 정하고 실력값으로 되돌린다(0E_paceskill).
+         난이도도 거기서 준다 — 기록·메달에는 여전히 안 닿는다. */
+      const nRiv  = lanes - humans;
+      const ratio = ((typeof AI!=='undefined') ? AI.parRatio() : 1.045)
+                    * (1 + (nRiv-1-(i-humans))*0.05 + Math.random()*0.02);
+      const skill = (typeof PaceSkill!=='undefined') ? PaceSkill.skillFor(ratio, this.trackM)
+                                                     : 0.55 + (i-humans)*0.05;
       const r = new Runner(i, { speed:45+skill*45, acceleration:45+skill*40,
         stamina:50, technique:50, rhythm:50 }, false, this.trackM);
       r.reset(this.gunMs); r.name = AI_NAMES[(Math.random()*AI_NAMES.length)|0];
-      r.aiJitter = (typeof AI!=='undefined') ? AI.jitter((1-skill)*90) : (1-skill)*90; r.aiNext = 0; r.aiSide = 1;
+      /* ⛔ 예전엔 여기에 AI.jitter 를 또 걸었다 — 난이도가 **두 번** 들어가
+         어려움 라이벌이 목표보다 0.3초 빨랐고(9.34s vs 목표 9.65s) 1위 확률이 0% 였다.
+         난이도는 위의 배수 하나로 끝난다. 손떨림은 실력에서만 나온다. */
+      r.aiJitter = (1-skill)*90; r.aiNext = 0; r.aiSide = 1;
       this.rivals.push(r);
     }
     this.all = [...this.humans, ...this.rivals];

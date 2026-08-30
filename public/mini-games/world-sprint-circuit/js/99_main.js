@@ -92,6 +92,7 @@ function boot(){
   /* 종족이 늘었는데 픽셀 갈래에 안 넣으면 조용히 기본 생김새가 된다 — 부팅 때 잡는다 */
   if(typeof CharPix!=='undefined') CharPix.verifyKinds();
   if(typeof Music!=='undefined') Music.verifyKinds();
+  if(typeof PaceSkill!=='undefined') PaceSkill.verify();
   CharHD.verifyCasts();
   verifyReady();
   verifyStatuses();
