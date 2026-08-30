@@ -745,13 +745,24 @@ const G = {
     EVENT_GROUPS.forEach((g,i)=>{
       const on=i===this.selGroup, cnt=eventsInGroup(g.key).length;
       const label=`${K(g.name)} ${cnt}`;
-      const hasIcon = !!(g.icon && BG.cache && BG.cache[g.icon]);
-      const w=Math.max(46, label.length*7+14+(hasIcon?12:0));
+      /* ⛔ 아이콘 자리를 **넓히기만 하고 정작 그리지 않았다**(실측: 탭이 글자만).
+         파일도 있고 이름도 선언돼 있는데 drawImage 가 없었다 —
+         자리만 비워 두면 아무도 못 알아챈다. */
+      const im = g.icon ? BG.get(g.icon) : null;
+      const w=Math.max(46, label.length*7+14+(im?13:0));
       uctx.fillStyle = on?'rgba(255,215,94,.18)':'rgba(22,26,38,.7)';
       uctx.fillRect(tx, tabY, w, 16);
       uctx.strokeStyle = on?PAL.gold:'#3a4258'; uctx.lineWidth=1;
       uctx.strokeRect(tx+.5, tabY+.5, w-1, 15);
-      txt(uctx, label, tx+w/2, tabY+3, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
+      if(im){
+        /* 고른 탭은 아이콘도 또렷하게 — 안 고른 탭은 물러난다 */
+        uctx.save(); uctx.globalAlpha = on ? 1 : 0.55;
+        uctx.drawImage(im, tx+5, tabY+3, 10, 10);
+        uctx.restore();
+        txt(uctx, label, tx+9+w/2-6, tabY+3, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
+      } else {
+        txt(uctx, label, tx+w/2, tabY+3, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
+      }
       tx += w+4;
     });
 
