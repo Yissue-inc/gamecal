@@ -8,7 +8,7 @@
      **뒤늦게 튀어나온다.** 코드 그림으로 물러나므로 에러도 콘솔도 조용하다.
 
    두 물결
-     ① WAVE1 137장 ·    757 KB — UI 틀·아이콘. 첫 메뉴에 바로 필요하다.
+     ① WAVE1 138장 ·    758 KB — UI 틀·아이콘. 첫 메뉴에 바로 필요하다.
      ② WAVE2 128장 ·   2098 KB — 무대·소품·효과. 경기 전까지만 오면 된다.
    ⛔ 캐릭터 스프라이트·초상 360장(3.9 MB)은 **안 데운다** —
       종족별이라 그 종족이 나올 때 받는 게 맞다.
@@ -22,8 +22,8 @@ const PRELOAD = {
   'btn-primary-on', 'button-focus', 'button-idle', 'card-1', 'card-2', 'card-3', 'card-4',
   'card-5', 'chip-bg', 'co-endure', 'co-medic', 'co-power', 'co-rhythm', 'co-sprint', 'co-tech',
   'cursor-arrow', 'divider-line', 'fc-dorm', 'fc-lab', 'fc-med', 'fc-train', 'fc-youth',
-  'frame-card', 'frame-gold', 'frame-panel', 'gauge-ring', 'hud-frame', 'ic-accel', 'ic-age',
-  'ic-career', 'ic-codex', 'ic-coin', 'ic-condition', 'ic-develop', 'ic-distance',
+  'frame-card', 'frame-gold', 'frame-panel', 'gauge-ring', 'gr-early', 'hud-frame', 'ic-accel',
+  'ic-age', 'ic-career', 'ic-codex', 'ic-coin', 'ic-condition', 'ic-develop', 'ic-distance',
   'ic-facility', 'ic-fatigue', 'ic-filter', 'ic-hall', 'ic-injury', 'ic-league', 'ic-market',
   'ic-medal', 'ic-meet', 'ic-morale', 'ic-offer', 'ic-points', 'ic-potential', 'ic-power',
   'ic-record', 'ic-release', 'ic-rest', 'ic-rhythm', 'ic-scout', 'ic-settings', 'ic-sort',
