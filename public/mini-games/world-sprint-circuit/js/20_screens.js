@@ -231,8 +231,12 @@ const G = {
         if(typeof Daily!=='undefined' && Daily.pending(this.def.id))
           Daily.record(this.def.id, r.value, r.status);
         this.newRecord = Save.record(this.def.id, r.value, this.def.higher);
-        /* 관중은 한 겹이 아니다 — 신기록엔 함성, 실패엔 탄식. 소리 정체성의 절반이 관중이다. */
+        /* 관중은 한 겹이 아니다 — 신기록엔 함성, 실패엔 탄식. 소리 정체성의 절반이 관중이다.
+           ⛔ 여기에 **메달이 빠져 있었다** — 금과 동이 같은 소리로 끝났다.
+              신기록은 여전히 제일 큰 순간이고, 그 아래를 메달이 나눈다. */
+        const med = (typeof medalOf==='function') ? medalOf(this.def, r.value) : null;
         if(this.newRecord){ Sfx.record(); Sfx.roar(); }
+        else if(med){ Sfx.medal(med); if(r.rank===1) Sfx.roar(); }
         else if(r.rank===1) Sfx.roar();
       } else {
         this.newRecord=false;
