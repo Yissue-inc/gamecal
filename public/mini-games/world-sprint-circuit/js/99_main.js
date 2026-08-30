@@ -39,8 +39,15 @@ function frameStep(now){
   const dt = clamp((now - lastT)/1000 || 0, 0, 0.05);
   lastT = now;
   G.update(dt);
-  /* 음악 — 화면이 바뀐 순간에만 바꾼다(매 프레임 부르면 곡이 다시 시작한다) */
-  if(typeof Music!=='undefined' && Music._last !== G.state){ Music._last = G.state; Music.forState(G.state); }
+  /* 음악 — 바뀐 순간에만 바꾼다(매 프레임 부르면 곡이 다시 시작한다).
+     ⛔ 예전엔 **G.state 만** 봤다. 그래서 종목을 바꿔도(둘 다 ST.PLAY) 곡이 그대로였고,
+        감독 모드에서 대회 주가 와도(둘 다 ST.MANAGER) 사무실 음악이 계속 나왔다.
+        **곡을 고르는 데 쓰이는 것들**을 열쇠에 함께 넣는다. */
+  if(typeof Music!=='undefined'){
+    const key = G.state + '|' + ((G.def && G.def.kind) || '') + '|' +
+                ((typeof MG!=='undefined' && MG.season && MG.season.isMeetWeek) ? 'M' : '');
+    if(Music._last !== key){ Music._last = key; Music.forState(G.state); }
+  }
   if(Screen.stepShake) Screen.stepShake(dt);
   Screen.clearUI();
   G.draw(Screen.ctx, Screen.uctx);
@@ -83,6 +90,7 @@ function boot(){
   if(typeof CharMode!=='undefined') CharMode.load();
   /* 종족이 늘었는데 픽셀 갈래에 안 넣으면 조용히 기본 생김새가 된다 — 부팅 때 잡는다 */
   if(typeof CharPix!=='undefined') CharPix.verifyKinds();
+  if(typeof Music!=='undefined') Music.verifyKinds();
   CharHD.verifyCasts();
   verifyReady();
   verifyStatuses();
