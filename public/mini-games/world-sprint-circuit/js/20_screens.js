@@ -225,12 +225,19 @@ const G = {
           return;
         }
       }
-      /* 커리어 — 판을 넘어 쌓인다. 기록 하나만 남고 끝나면 다시 켤 이유가 없다. */
+      /* 커리어 — 판을 넘어 쌓인다. 기록 하나만 남고 끝나면 다시 켤 이유가 없다.
+         ⛔ 그런데 **랭크가 오르거나 뱃지를 딸 때만** 화면에 뭔가 떴다.
+            실측: 한 판이 기준 통과 12 CP · 미달 4 · 개인 최고 +25 인데 다음 랭크는 300 이다
+            → 팝업은 **10~25판에 한 번**. 그 사이의 판들은 아무것도 안 쌓이는 것처럼 보인다.
+            시스템은 그대로 두고 **번 것을 결과 화면에 적는다** — 얼마를 벌었는지 모르면
+            쌓이는 줄도 모른다. 그래서 앞뒤로 재 둔다. */
+      const cp0 = (typeof Career!=='undefined') ? Career.d.cp : 0;
       if(typeof Career!=='undefined'){
         const ok = r.status==='OK' && (this.def.higher ? r.value>=this.def.qualify : r.value<=this.def.qualify);
         const tier = (ev.player && ev.player.tier) || 0;
         Career.finishRace(this.def, ok, this.newRecord, tier);
       }
+      this.cpGain = (typeof Career!=='undefined') ? Career.d.cp - cp0 : 0;
       this.state=ST.RESULT; this.resultAt=this.t;
     }
   },
@@ -238,6 +245,9 @@ const G = {
   /* 커리어 알림 — 랭크가 오르거나 뱃지를 땄을 때 결과 화면 위에 겹쳐 띄운다 */
   drawCareerPops(u){
     if(typeof Career==='undefined') return;
+    /* ⚠ 신기록 띠가 떠 있는 동안엔 **집지도 않는다** — 집으면 Career.take() 가 비워져
+       띠가 끝난 뒤에 보여 줄 것이 없어진다. */
+    if(this.newRecord && (this.t - this.resultAt) < 2600) return;
     if(!this._pops || !this._pops.length){
       const got = Career.take();
       if(got.length){ this._pops = got; this._popAt = this.t; }
@@ -248,7 +258,9 @@ const G = {
     const p = this._pops[0];
     const a = age<220 ? age/220 : (age>2300 ? (2600-age)/300 : 1);
     u.save(); u.globalAlpha = clamp(a,0,1);
-    const w=230, x=VW/2-w/2, y=44;
+    /* ⚠ y=44 였다 — 종목 이름(56)과 결과 숫자(82)를 덮었다. 커리어 줄 바로 위로 내린다.
+       (줄은 팝업이 떠 있는 동안 자리를 비켜 준다 — drawCareerLine 참고) */
+    const w=230, x=VW/2-w/2, y=(Ctrl.mode==='touch'? VH-100 : VH-76);
     plate(u, x, y, w, 40, .92);
     u.strokeStyle = p.kind==='rank' ? p.rank.color : PAL.gold;
     u.lineWidth=2; u.strokeRect(x+.5,y+.5,w-1,39);
@@ -611,20 +623,11 @@ const G = {
       case ST.PLAY:   this.event.draw(ctx); this.event.drawUI(uctx); break;
       case ST.RESULT: this.event.draw(ctx);
         (Party.on? this.drawVersusResult(uctx) : this.drawResult(uctx));
-        /* 신기록 띠 — 자기 최고를 세운 순간을 크게 짚어 준다 */
-        if(this.newRecord && typeof BG!=='undefined'){
-          const age = this.t - this.resultAt;
-          if(age < 2600){
-            const a = age<200? age/200 : (age>2300? (2600-age)/300 : 1);
-            uctx.save(); uctx.globalAlpha = clamp(a,0,1);
-            if(!BG.obj(uctx, 'record-banner', VW/2, 40, 32)){
-              plate(uctx, VW/2-84, 16, 168, 22, .9);
-              uctx.strokeStyle=PAL.gold; uctx.lineWidth=2; uctx.strokeRect(VW/2-83.5,16.5,167,21);
-            }
-            txt(uctx, '개인 최고 기록', VW/2, 21, 12, PAL.gold, 'center', 700);
-            uctx.restore();
-          }
-        }
+        /* ⛔ 여기 '신기록 띠' 가 y=16~38 에 있었다. 제목(y=30, 20px)과 겹치고,
+           아래 y=168 의 '★ 개인 최고기록!' 과 **같은 말을 두 번** 했다.
+           게다가 뱃지 팝업(y=44)까지 같은 판에 떠서 가장 기뻐야 할 순간이
+           가장 어지러웠다(실측: 첫 PB + 기준 통과 한 판에 셋이 겹침).
+           띠는 아래 PB 자리로 내렸다(drawResult) — 한 번만 말한다. */
         this.drawCareerPops(uctx); break;
     }
     // 토스트
@@ -856,18 +859,87 @@ const G = {
             VW/2, 138, 10, PAL.white,'center');
       }
       if(this.newRecord){
-        /* 신기록 반짝임 — 기록을 세운 순간을 눈으로 짚어 준다 */
-        BG.fx(uctx, 'record-sparkle', VW/2, 176, 22, ((this.t-this.resultAt)%900)/900, 4);
-        txt(uctx,'★ 개인 최고기록!', VW/2, 168, 13, PAL.gold,'center',700);
+        /* 신기록 — 띠 그림 위에 한 번만 쓴다(위쪽 중복 띠는 없앴다) */
+        /* ⚠ 자리를 정확히 나눈다 — 위는 sub 줄(150~160), 아래는 커리어 팝업(VH-80=190).
+           띠는 **162~186** 안에만 있어야 한다(BG.obj 는 바닥 기준이라 바닥 186·높이 24). */
+        /* ⚠ 이 띠는 **크기가 곧 가독성**이다. 원본 576×96 에서 글씨가 앉는 가운데 띠는
+           높이의 30% 다 — 24px 로 그리면 띠가 7px 라 12px 한글이 장식 위로 삐져나가
+           통째로 안 읽혔다(실측 2회). 40px 이라야 띠가 174~186 이 되어 11px 이 앉는다.
+           ⚠ 색도 함께: 가운데 띠는 rgb(235,189,60)·밝기 188 이라 **금색 글씨는 사라진다.**
+              그림 위에는 어두운 글씨, 폴백 판에는 금색.
+           ⛔ 40px 을 쓰면 아래 커리어 팝업(VH-76)과 겹친다 — 그래서 **시간을 나눠 쓴다.**
+              팝업이 떠 있는 동안엔 띠를 접는다(커리어 줄과 같은 규칙).
+              팝업은 2.6초씩이고 결과 화면은 그보다 오래 머문다. */
+        if(this.resultStage() === 'banner'){
+          const bAge = this.t - this.resultAt;
+          uctx.save();
+          uctx.globalAlpha = bAge < 200 ? bAge/200 : (bAge > 2300 ? (2600-bAge)/300 : 1);
+          /* ⛔ 세 번 잘못 맞췄다. 원인은 코드가 아니라 **어셋의 여백**이었다 —
+             record-banner 는 576×96 인데 **그림이 4~40행에만 있고 아래 58%가 빈칸**이다.
+             BG.obj 는 바닥 기준이라, 높이 H 로 그리면 리본은 상자 위쪽에 뜨고
+             내가 계산한 글씨 자리는 그 아래 **빈칸에 앉았다.** 그래서 안 읽혔다.
+             (행별 불투명도로 재서 알았다 — 눈으로는 세 번 다 못 봤다.)
+             평평한 띠는 12~32행 = 높이의 12.5~33%. H=58 이면 띠가 165~177 → 11px 이 든다.
+           ⚠ 색: 띠는 rgb(235,189,60)·밝기 224 라 금색 글씨는 사라진다 → 어두운 글씨.
+           ⛔ 여백 탓에 상자가 커서 아래 팝업(VH-76)과 겹친다 — 시간을 나눠 쓴다. */
+          const onArt = BG.obj(uctx, 'record-banner', VW/2, 216, 58);
+          if(onArt) BG.fx(uctx, 'record-sparkle', VW/2, 186, 18, ((this.t-this.resultAt)%900)/900, 4);
+          else {
+            plate(uctx, VW/2-84, 164, 168, 20, .9);
+            uctx.strokeStyle=PAL.gold; uctx.lineWidth=2; uctx.strokeRect(VW/2-83.5,164.5,167,19);
+          }
+          txt(uctx,'개인 최고 기록', VW/2, onArt?166:168, onArt?11:12,
+              onArt?'#3b2c0c':PAL.gold, 'center', 700);
+          uctx.restore();
+        }
       }
       else if(r.status==='MISSED_QUALIFY'){
         const why = this.diagnose(ev);
         if(why) txt(uctx, why, VW/2, 168, 11, PAL.gold,'center');
       }
     }
+    this.drawCareerLine(uctx);
     /* ⚠ 화면 버튼은 캔버스 위에 얹힌 DOM 이다. 안내를 VH-30 에 두면 가로 폰에서
        오른쪽 아래 '액션' 버튼이 그 위에 앉는다(실측 812×375). 버튼 위로 올린다. */
     txt(uctx, Ctrl.mode==='touch'?'액션: 다시  ·  일시정지: 종목 선택':'SPACE: 다시  ·  Q: 종목 선택',
         VW/2, Ctrl.mode==='touch'? VH-54 : VH-30, 11, PAL.white,'center');
+  },
+
+  /* ── 이 판으로 얼마나 나아갔나 ────────────────────────────
+     ⛔ 결과 화면이 **기록만** 말하고 있었다. 커리어는 조용히 쌓이다가 10~25판에
+        한 번 팝업으로만 나타났다 — 그 사이의 판은 남는 게 없어 보인다.
+        기록은 자기 최고를 깬 판에만 기쁘다. 그 나머지 판에도 눈에 보이는 걸음이 있어야
+        '한 판 더'가 된다.
+     ⚠ 시스템은 안 건드린다. Career 가 이미 갖고 있는 값을 **적기만** 한다.
+     ⚠ 실패한 판(부정 출발·시간 초과)도 4 CP 를 준다 — 그래서 성공 갈래 밖에 둔다.
+        빈손으로 돌려보내지 않는 게 이 줄의 목적이다. */
+  /* ── 결과 화면 아래 칸은 **하나**다. 셋이 시간을 나눠 쓴다 ──────
+     ① 신기록 띠(2.6초) → ② 커리어 팝업(뱃지·랭크, 각 2.6초) → ③ 커리어 줄(계속)
+     ⚠ 예전엔 셋이 같은 자리에 동시에 그려져 서로를 덮었다. 자리를 늘릴 수는 없으니
+        순서를 준다 — 제일 드문 것(신기록)이 먼저다. */
+  resultStage(){
+    if(this.newRecord && (this.t - this.resultAt) < 2600) return 'banner';
+    if(this._pops && this._pops.length) return 'pop';
+    return 'line';
+  },
+
+  drawCareerLine(u){
+    if(typeof Career==='undefined') return;
+    if(this.resultStage() !== 'line') return;
+    const y = Ctrl.mode==='touch' ? VH-78 : VH-54;
+    const R = Career.rank, nx = Career.nextCp, cp = Career.d.cp;
+    const bw = 168, bx = VW/2 - bw/2;
+    /* 번 것 — 0 이면 아예 안 쓴다(빈 '+0' 은 없느니만 못하다) */
+    if(this.cpGain > 0)
+      txt(u, '커리어 +' + this.cpGain, bx - 8, y - 1, 11, PAL.gold, 'right', 700);
+    if(!(typeof UIK!=='undefined' && UIK.bar(u, bx, y + 1, bw, 7, Career.progress, R.color))){
+      u.fillStyle='rgba(6,9,16,.85)'; u.fillRect(bx, y+1, bw, 7);
+      u.strokeStyle='#2a3450'; u.lineWidth=1; u.strokeRect(bx+.5, y+1.5, bw-1, 6);
+      u.fillStyle=R.color; u.fillRect(bx+1, y+2, Math.round((bw-2)*Career.progress), 5);
+    }
+    txt(u, K(R.name), bx + bw + 8, y - 1, 11, R.color, 'left', 700);
+    /* 다음 계단까지 — 최고 랭크면 누적을 보여 준다(분모가 없다) */
+    txt(u, nx===null ? `${UIK.n(cp)} CP` : `${UIK.n(cp)} / ${UIK.n(nx)}`,
+        VW/2, y + 10, 9, PAL.dim, 'center');
   },
 };
