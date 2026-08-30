@@ -936,6 +936,8 @@ const I18N_EN = {
   '숨':'Air',
   /* 허들 도약 눈금 — 가운데에 닿는 순간 */
   '지금':'NOW',
+  /* 3000m 장애물의 장애물은 허들이 아니다 */
+  '장애물':'Barriers', '허들':'Hurdles',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };

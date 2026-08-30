@@ -87,10 +87,16 @@ class JavelinEvent extends FieldEvent {
     for(let m=10;m<=100;m+=10){ const x=px(RULES.javelinFoulLineM+m); if(x<=0||x>=VW) continue;
       ctx.fillStyle='rgba(242,245,250,.4)'; ctx.fillRect(x,GROUND-8,1,8);
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
-    // 선수
+    /* 선수 — ⛔ 이 파일(창·해머·원반)만 **HD 캐릭터를 아예 안 쓰고** 있었다.
+       60종 300장을 갖춰 놓고 세 종목이 저해상도 폴백으로 그려졌다(실측: 14_more 의
+       포환·장대·세단은 CharHD 를 쓴다 — 같은 던지기인데 파일이 달라 빠졌다).
+       ⚠ 폴백은 남긴다. 어셋이 없으면 예전 그림이 그대로 돈다. */
     const rx = px(this.phase==='RUNUP'?this.runner.distM:this.throwFrom);
-    drawRunner(ctx, rx, GROUND, this.phase==='RUNUP'?this.runner.stridePhase:0.25, '#ffd75e',
-      { lean:this.phase!=='RUNUP', throwing:this.phase!=='RUNUP' });
+    const ph = this.phase==='RUNUP' ? this.runner.stridePhase : 0.25;
+    if(!(CharHD.enabled && CharHD.draw(Screen.uctx, 'gazelle', rx, GROUND, ph,
+          { throwing:this.phase!=='RUNUP', rare:3, t:this.t, scale:1.25 })))
+      drawRunner(ctx, rx, GROUND, ph, '#ffd75e',
+        { lean:this.phase!=='RUNUP', throwing:this.phase!=='RUNUP' });
     // 창
     if(this.phase==='RUNUP'){
       ctx.fillStyle='#e8e2d6'; ctx.fillRect(rx-6, GROUND-24, 16, 1);
@@ -117,8 +123,8 @@ class JavelinEvent extends FieldEvent {
     txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
     txt(uctx,K('속도'),66,3,8,PAL.dim); txt(uctx,this.runner.speed.toFixed(1)+' m/s',66,13,11,PAL.white);
     txt(uctx,K('최고'),150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-8,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(1)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
+    txt(uctx,this.qualify.toFixed(1)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
           m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
@@ -252,7 +258,10 @@ class HammerEvent extends FieldEvent {
     for(let m=10;m<=90;m+=10){ const x=px(m); if(x<=CX||x>=VW) continue;
       ctx.fillStyle='rgba(242,245,250,.4)';  ctx.fillRect(x,GROUND-8,1,8);
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
-    drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:this.phase!=='SPIN' });
+    /* 해머·원반 — 위와 같은 이유. 회전 종목이라 곰처럼 무거운 종족을 쓴다. */
+    if(!(CharHD.enabled && CharHD.draw(Screen.uctx, 'bear', CX, GROUND, 0.25,
+          { throwing:this.phase!=='SPIN', rare:3, t:this.t, scale:1.3 })))
+      drawRunner(ctx, CX, GROUND, 0.25, '#ff6b8a', { throwing:this.phase!=='SPIN' });
     if(this.phase==='SPIN'){
       const hot = clamp(this.spin/RULES.hammerMaxSpin, 0, 1);
       /* 잔상 — 회전이 빠를수록 지나온 자리가 남는다. 속도를 눈으로 만든다. */
@@ -300,8 +309,8 @@ class HammerEvent extends FieldEvent {
     txt(uctx,'회전',66,3,8,PAL.dim); txt(uctx,this.spin.toFixed(1),66,13,11,
       this.spin>=RULES.hammerOptSpin?PAL.green:(this.spin>=RULES.hammerMinSpin?PAL.gold:PAL.red));
     txt(uctx,K('최고'),150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-8,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(1)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
+    txt(uctx,this.qualify.toFixed(1)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
           m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }

@@ -9,7 +9,7 @@
 
    두 물결
      ① WAVE1 140장 ·    759 KB — UI 틀·아이콘. 첫 메뉴에 바로 필요하다.
-     ② WAVE2 134장 ·   2154 KB — 무대·소품·효과. 경기 전까지만 오면 된다.
+     ② WAVE2 138장 ·   2239 KB — 무대·소품·효과. 경기 전까지만 오면 된다.
    ⛔ 캐릭터 스프라이트·초상 360장(3.9 MB)은 **안 데운다** —
       종족별이라 그 종족이 나올 때 받는 게 맞다.
    ══════════════════════════════════════════════════════════════════ */
@@ -43,8 +43,8 @@ const PRELOAD = {
   /* 경기 시작 전까지만 오면 되는 것 */
   WAVE2: [
   'arrow-hd', 'barbell-hd', 'barbell-plates', 'baton-hd', 'bg-office', 'bg-reward',
-  'bg-training', 'bicycle-hd', 'block-start', 'board-takeoff', 'bow-hd', 'buoy-line',
-  'canoe-boat', 'chalk-puff', 'climb-hold', 'climb-wall', 'club-crest-birds',
+  'bg-training', 'bicycle-hd', 'block-start', 'board-takeoff', 'bow-hd', 'bullseye-flash',
+  'buoy-line', 'canoe-boat', 'chalk-puff', 'climb-hold', 'climb-wall', 'club-crest-birds',
   'club-crest-black-panther', 'club-crest-granite', 'club-crest-highland', 'club-crest-iron',
   'club-crest-skyway', 'confetti-burst', 'crossbar-hd', 'crowd-far', 'crowd-near', 'crowd-tile',
   'discus-hd', 'dust-kick', 'dust-puff', 'epee-blade', 'fence-mask', 'finish-tape',
@@ -61,11 +61,11 @@ const PRELOAD = {
   'rings-hd', 'ripple-ring', 'river-bank', 'road-marathon', 'rowing-lane', 'runner-5aaaff',
   'runner-ff6b8a', 'runner-ffd75e', 'runway-strip', 'sand-pit', 'sandpit-tile', 'scull-hd',
   'shot-hd', 'showjump-fence', 'sky-day', 'sky-dusk', 'sky-night', 'sky-stars', 'slalom-gate',
-  'speed-lines', 'splash-mark', 'springboard-hd', 'stadium-roof', 'stadium-wall',
-  'starting-block-hd', 'steeple-barrier-hd', 'sweat-drop', 'takeoff-board-hd', 'target-air-hd',
-  'target-hd', 'throw-sector', 'track-surface', 'trampoline-hd', 'tt-table', 'vault-mat',
-  'vault-table-hd', 'velodrome-track', 'wall-tile', 'water-splash', 'water-splash-big',
-  'waterjump-hd',
+  'speed-lines', 'splash-big', 'splash-mark', 'springboard-hd', 'stadium-roof', 'stadium-wall',
+  'starting-block-hd', 'steeple-barrier-hd', 'strain-mark', 'sweat-drop', 'takeoff-board-hd',
+  'target-air-hd', 'target-hd', 'throw-sector', 'track-surface', 'trampoline-hd', 'tt-table',
+  'vault-mat', 'vault-table-hd', 'velodrome-bank', 'velodrome-track', 'wall-tile',
+  'water-splash', 'water-splash-big', 'waterjump-hd',
   ],
 
   /* BG.get() 은 부르기만 해도 로드를 시작한다 — 반환값은 안 쓴다.

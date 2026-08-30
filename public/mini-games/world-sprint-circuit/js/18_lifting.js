@@ -149,6 +149,12 @@ class LiftingEvent {
       (this._hd=this._hd||[]).push({ sp:'gorilla', x:CX, y, ph:0.25,
         o:{ throwing:this.phase!=='GRIP', rare:4, t:this.t, rot:tilt, scale:1.45 } });
     } else { ctx.fillStyle='#8a6a4a'; ctx.fillRect(CX-7, y-26, 14, 26); }
+    /* 힘주기 — 버티는 동안 머리 위에 3단계로. 기울수록 세게 표시된다.
+       ⚠ HOLD 단계에서만. 흔들림(sway)이 클수록 높은 단계를 쓴다. */
+    if(this.phase==='HOLD'){
+      const strain = clamp(Math.abs(this.sway||0)*1.6, 0, 0.999);
+      BG.fx(BG.ctx(), 'strain-mark', CX, y-46, 20, strain, 3);
+    }
     /* 탄마 가루 — 잡기 단계에서 손을 턴다. 역도의 시작 의식이다.
        ⚠ 4프레임 시트다(BG.fx 가 진행도 0~1 로 고른다). 잡기 단계에서만 돈다. */
     if(this.phase==='GRIP'){
@@ -180,7 +186,7 @@ class LiftingEvent {
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
     txt(u, this.def.name, 8, 6, 12, PAL.gold, 'left', 700);
     txt(u, `${this.kg}kg`, VW/2, 6, 15, PAL.white, 'center', 700);
-    txt(u, this.qualify.toFixed(0)+'kg', VW-8, 6, 12,
+    txt(u, this.qualify.toFixed(0)+'kg', VW-30, 6, 12,
         this.best>=this.qualify?PAL.green:PAL.red, 'right', 700);
     txt(u, `최고 ${this.best}kg · 남은 시기 ${this.attemptsTotal-this.attempt+1}`,
         VW-8, 20, 9, PAL.dim, 'right');

@@ -67,6 +67,9 @@ class DivingEvent {
       this.splashAt = this.t; Sfx.water(true);                    // 입수 순간 — 물보라를 여기서 띄운다
       this.opened = true;
       this.say(this.entryQ>0.75?'물보라 없이!':`입수 ${Math.round(this.entryQ*100)}%`, this.entryQ<0.35);
+      /* ⚠ 물기둥은 **못 들어갔을수록 크다** — '물보라 없이' 가 잘한 것이다.
+         입수가 나쁠수록 크게 솟게 해서 결과가 그림으로 보이게 한다. */
+      this.splashAt = this.t; this.splashBig = 1 - this.entryQ;
       Sfx.beep(this.entryQ>0.75?1320:520, 0.10,'square',0.12);
     }
   }
@@ -149,11 +152,17 @@ class DivingEvent {
     /* 입수 물보라 — 다이빙에서 사람이 가장 보고 싶어 하는 한 순간이다 */
     if(this.splashAt && this.t-this.splashAt < 700){
       const k=(this.t-this.splashAt)/700;
-      BG.fx(u, 'water-splash-big', VW/2, this._waterY||VH-58, 34+k*14, clamp(k,0,0.999), 4);
+      /* ⛔ 입수가 나쁠수록 **물기둥이 솟는다.** 다이빙에서 '물보라 없이'가 잘한 것이라
+         결과가 그림으로 보여야 한다 — 잘하면 잔물보라, 못하면 기둥.
+         ⚠ 어셋이 없으면 예전 물보라 하나로 물러난다. */
+      const big = (this.splashBig||0) > 0.45;
+      const drew = big && BG.fx(u, 'splash-big', VW/2, this._waterY||VH-58,
+                                40+k*26, clamp(k,0,0.999), 4);
+      if(!drew) BG.fx(u, 'water-splash-big', VW/2, this._waterY||VH-58, 34+k*14, clamp(k,0,0.999), 4);
     }
     txt(u, this.def.name, 8, 6, 12, PAL.gold, 'left', 700);
     txt(u, `${this.attempt} / ${this.attemptsTotal}차`, VW/2, 6, 11, PAL.white, 'center');
-    txt(u, this.qualify.toFixed(1)+'점', VW-8, 6, 12,
+    txt(u, this.qualify.toFixed(1)+'점', VW-30, 6, 12,
         this.best>=this.qualify?PAL.green:PAL.red, 'right', 700);
     txt(u, `최고 ${this.best.toFixed(2)}`, VW-8, 20, 10, PAL.dim, 'right');
 

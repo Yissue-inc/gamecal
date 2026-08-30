@@ -187,8 +187,8 @@ class LongJumpEvent extends FieldEvent {
     txt(uctx,(this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s',66,13,11,PAL.white);
     txt(uctx,K('최고'),150,3,8,PAL.dim);
     txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-8,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(2)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
+    txt(uctx,this.qualify.toFixed(2)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
     // 시기별 기록
     for(let i=0;i<3;i++){
       const m=this.marks[i];
@@ -344,8 +344,8 @@ class HighJumpEvent extends FieldEvent {
     txt(uctx,'●'.repeat(this.misses)+'○'.repeat(RULES.hjMaxMisses-this.misses),86,13,12,PAL.red);
     txt(uctx,K('최고'),160,3,8,PAL.dim);
     txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',160,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-8,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(2)+'m',VW-8,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
+    txt(uctx,this.qualify.toFixed(2)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
 
     if(this.phase==='APPROACH'){
       const left = this.plantOpenAt - this.approachT;

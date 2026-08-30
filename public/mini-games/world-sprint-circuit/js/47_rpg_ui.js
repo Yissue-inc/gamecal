@@ -62,7 +62,7 @@ class GrowPickScreen extends Screen0 {
       { value:tp,  color:PAL.gold,  icon:'icon-tp' },
       { value:inv, color:PAL.green, icon:'icon-gear' },
     ]);
-    txt(u, K('육성'), VW-8, 3, 11, PAL.gold, 'right', 700);
+    txt(u, K('육성'), VW-30, 3, 11, PAL.gold, 'right', 700);
 
     /* ⚠ 5열 고정으로 그렸더니 10명일 때 화면 아래 60%가 비었다(스쿼드는 8~18명).
        인원에 맞춰 열 수와 카드 높이를 정한다 — 적으면 크게, 많으면 촘촘하게. */
@@ -685,7 +685,7 @@ class CoachScreen extends Screen0 {
     UIK.resourceBar(u, 0, [
       { value:Math.round(C.budget), color:'#ffcf4a', icon:'icon-coin' },
     ]);
-    txt(u, K('코치진'), VW-8, 3, 11, PAL.gold, 'right', 700);
+    txt(u, K('코치진'), VW-30, 3, 11, PAL.gold, 'right', 700);
     const n=DEPTH.hired(C).length, bill=DEPTH.wageBill(C);
     txt(u, K('%1 / 3 명 · 주급 합계 %2').replace('%1',n).replace('%2',bill),
         8, 20, 9, bill>0?PAL.gold:PAL.dim);
@@ -969,7 +969,7 @@ class DailyScreen extends Screen0 {
   draw(u){
     const d=Daily.load(), tot=Daily.total(d), rw=Daily.reward(d), st=Daily.streak();
     if(this.mg) UIK.resourceBar(u, 0, [{ value:Math.round(this.mg.club.budget), color:'#ffcf4a', icon:'icon-coin' }]);
-    txt(u, K('일일 도전'), VW-8, 3, 11, PAL.gold, 'right', 700);
+    txt(u, K('일일 도전'), VW-30, 3, 11, PAL.gold, 'right', 700);
     /* 오늘 · 연속 */
     const dd=String(d.day);
     txt(u, `${dd.slice(4,6)}/${dd.slice(6,8)}`, 8, 20, 9, PAL.dim, 'left');
@@ -1020,7 +1020,7 @@ class HallScreen extends Screen0 {
     const C=this.mg.club, hall=this.list;
     const tot=DEPTH.legacyTotal(C), lb=DEPTH.legacyBonus(C);
     UIK.resourceBar(u, 0, [{ value:Math.round(C.budget), color:'#ffcf4a', icon:'icon-coin' }]);
-    txt(u, K('명예의 전당'), VW-8, 3, 11, PAL.gold, 'right', 700);
+    txt(u, K('명예의 전당'), VW-30, 3, 11, PAL.gold, 'right', 700);
     /* 유산 — 이 클럽이 쌓아 온 역사가 숫자 하나로 */
     UIK.frame(u, 8, 20, VW-16, 26, { glow: tot>0?PAL.gold:null });
     txt(u, K('유산'), 16, 24, 8, PAL.dim, 'left');

@@ -75,6 +75,8 @@ class ArcheryEvent {
     this.scores.push(score); this.total += score;
     this.phase='RESULT'; this.resultAt=this.t; this.flash=1;
     this.say(score===10?'정중앙!':score===0?'과녁을 벗어났다':`${score}점`, score<=4);
+    /* 정중앙은 이 종목에서 제일 드문 순간이다 — 글자만으로는 티가 안 난다 */
+    if(score===10){ this.bullAt = this.t; }
     Sfx.bow();
     Sfx.beep(score>=9?1320:score>=6?880:420, 0.12,'square',0.12);
   }
@@ -122,6 +124,9 @@ class ArcheryEvent {
         ctx.beginPath(); ctx.arc(TX, TY, TR*(i+1)/6, 0, Math.PI*2); ctx.fill();
       }
     }
+    /* 정중앙 섬광 — 3프레임. 화살이 꽂히기 전에 터져야 '맞았다'가 먼저 온다. */
+    if(this.bullAt!==undefined && this.t - this.bullAt < 520)
+      BG.fx(ctx, 'bullseye-flash', TX, TY, 34, clamp((this.t-this.bullAt)/520, 0, 0.999), 3);
     /* 꽂힌 화살들 — 어셋이 오면 화살 그림으로, 없으면 예전 점으로 */
     this.scores.forEach((sc,i)=>{
       if(sc===0) return;
@@ -154,7 +159,7 @@ class ArcheryEvent {
     if(this.hit){ this._hits=this._hits||[]; this._hits[this.scores.length-1]=this.hit; }
     txt(u, this.def.name, 8, 6, 12, PAL.gold, 'left', 700);
     txt(u, `${this.arrow} / ${ARCH.arrows}발`, VW/2, 6, 11, PAL.white, 'center');
-    txt(u, this.qualify+'점', VW-8, 6, 12, this.total>=this.qualify?PAL.green:PAL.red, 'right', 700);
+    txt(u, this.qualify+'점', VW-30, 6, 12, this.total>=this.qualify?PAL.green:PAL.red, 'right', 700);
     txt(u, `합계 ${this.total}`, VW-8, 20, 11, PAL.gold, 'right', 700);
     txt(u, this.scores.join(' '), 8, 22, 10, PAL.dim, 'left');
 

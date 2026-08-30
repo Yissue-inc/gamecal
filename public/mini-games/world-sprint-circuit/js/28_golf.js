@@ -271,7 +271,7 @@ class GolfEvent {
     txt(u, (this.hole+1)+K('번 홀')+'  '+K('파')+H.par, VW/2, 4, 12, PAL.white,'center',700);
     txt(u, K('타수')+' '+this.strokes, VW/2+64, 6, 10, PAL.dim,'left',700);
     const rel=this.totalStrokes-this.totalPar;
-    txt(u, rel===0?'E':(rel>0?'+'+rel:String(rel)), VW-8, 3, 15,
+    txt(u, rel===0?'E':(rel>0?'+'+rel:String(rel)), VW-30, 3, 15,
         rel<=0?PAL.green:PAL.red,'right',700);
     txt(u, K('남은 거리')+' '+Math.round(this.toHole)+'m', 8, 30, 10,
         this.onGreen?PAL.green:PAL.white,'left',700);

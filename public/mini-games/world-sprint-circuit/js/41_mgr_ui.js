@@ -9,7 +9,7 @@ const UI = {
   header(u, title, right){
     plate(u, 0, 0, VW, 22, 0.86);
     txt(u, title, 8, 5, 13, PAL.gold, 'left', 700);
-    if(right) txt(u, right, VW-8, 6, 11, PAL.dim, 'right');
+    if(right) txt(u, right, VW-30, 6, 11, PAL.dim, 'right');
     u.fillStyle='rgba(255,215,94,.35)'; u.fillRect(0,22,VW,1);
   },
   footer(u, hint){
@@ -770,7 +770,7 @@ class AthleteScreen extends Screen0 {
     { const im=BG.get('ic-age');
       if(im) u.drawImage(im, VW-118, 6, 9, 9); }
     txt(u, `${UI.rareStars(a)} ${UI.rareName(a)} · ${a.age}${BG.get('ic-age')?'':'세'} · ${GROWTH[a.growth].name}`,
-        VW-8, 6, 9, UI.rareColor(a), 'right', 700);
+        VW-30, 6, 9, UI.rareColor(a), 'right', 700);
     txt(u,`OVR ${a.overall}`,8,28,15,PAL.gold,'left',700);
     /* 잠재치 — 아이콘이 오면 '잠재' 라벨을 대신한다(챕터 1 규칙) */
     { const im=BG.get('ic-potential');

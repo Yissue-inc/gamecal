@@ -136,6 +136,9 @@ class CyclingEvent {
     const mPerPx = 0.42;
     Track.drawBack(ctx, this.camM*0.4, this.trackM);
     const lanes=Track.LANE_Y.length;
+    /* 벨로드롬 경사면 — 트랙 위로 휘어 올라가는 나무 벽. 실내 트랙이라는 신호다.
+       ⚠ 첫 레인 위쪽에 이어 붙인다. 어셋이 없으면 아무것도 안 그린다(예전 화면 그대로). */
+    BG.tile(BG.ctx(), 'velodrome-bank', Track.LANE_Y[0]-36, 30, this.camM/mPerPx*0.6);
     for(let i=0;i<lanes;i++){
       const y=Track.LANE_Y[i], LH=Track.laneH(i);
       if(!BG.tile(BG.ctx(),'velodrome-track', y-6, LH, this.camM/mPerPx)){

@@ -297,11 +297,13 @@ class SwimEvent {
                    x:this._meX, y:(this._meY!==undefined?this._meY+8:undefined),
                    labelY:(this._meY!==undefined?this._meY-30:undefined) });
       /* 숨 게이지 */
-      txt(u,'숨',8,Track.GAUGE_Y-24,8,PAL.dim);
+      /* ⛔ 물 위에 어두운 글씨·가는 막대라 안 보였다 — 숨은 이 종목의 목숨줄이다 */
+      plate(u, 6, Track.GAUGE_Y-27, 84, 14, 0.72);
+      txt(u,'숨',10,Track.GAUGE_Y-24,8, this.breath<0.3?PAL.red:PAL.dim);
       const bw=64;
-      u.fillStyle='rgba(242,245,250,.14)'; u.fillRect(24,Track.GAUGE_Y-22,bw,6);
+      u.fillStyle='rgba(242,245,250,.18)'; u.fillRect(26,Track.GAUGE_Y-22,bw,6);
       u.fillStyle = this.breath>0.55?PAL.blue : this.breath>0.25?PAL.gold:PAL.red;
-      u.fillRect(24,Track.GAUGE_Y-22,Math.round(bw*this.breath),6);
+      u.fillRect(26,Track.GAUGE_Y-22,Math.round(bw*this.breath),6);
       if(this.breath<0.3) txt(u,'액션으로 숨쉬기', 94, Track.GAUGE_Y-24, 9, PAL.red);
       /* 턴 안내 */
       const laps=Math.floor(this.trackM/SWIM.poolM);

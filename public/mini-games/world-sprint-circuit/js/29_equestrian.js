@@ -231,7 +231,7 @@ class EquestrianEvent {
     txt(u, this.cleared+' / '+this.fences.length, VW/2-40, 4, 12, PAL.white,'center',700);
     txt(u, fmtTime(this.elapsed), VW/2+30, 4, 12,
         this.elapsed>EQU.timeAllowed?PAL.red:PAL.white,'center',700);
-    txt(u, this.total? String(this.total) : '0', VW-8, 3, 15,
+    txt(u, this.total? String(this.total) : '0', VW-30, 3, 15,
         this.total<=this.qualify?PAL.green:PAL.red,'right',700);
     txt(u, K('벌점')+' · '+K('기준')+' '+this.qualify, VW-8, 28, 9, PAL.dim,'right');
     if(this.knocks||this.refusals)

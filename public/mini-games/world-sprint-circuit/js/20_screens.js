@@ -335,7 +335,7 @@ const G = {
     plate(uctx, 0, 0, VW, 22, .86);
     txt(uctx,'커리어', 8, 5, 13, PAL.gold,'left',700);
     txt(uctx, `${C.d.races}경기 · 최고 ${C.d.pbs}회 · 금 ${C.d.golds} · 시즌 ${C.d.seasons}`,
-        VW-8, 6, 9, PAL.dim,'right');
+        VW-30, 6, 9, PAL.dim,'right');
     /* 랭크 */
     const bw=VW-64, bx=32, by=44;
     txt(uctx, R.name, bx, by-13, 15, R.color,'left',700);

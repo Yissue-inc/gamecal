@@ -239,8 +239,8 @@ class RingsEvent {
         8, 12, 15, PAL.gold, 'left', 700);
     txt(u, K('자세'), 128, 3, 8, PAL.dim);
     txt(u, Math.min(this.idx+1, RING.holds.length)+' / '+RING.holds.length, 128, 13, 11, PAL.white);
-    txt(u, K('기준'), VW-8, 3, 8, PAL.dim, 'right');
-    txt(u, fmtRec(this.def, this.qualify), VW-8, 12, 13, PAL.white, 'right', 700);
+    txt(u, K('기준'), VW-30, 3, 8, PAL.dim, 'right');
+    txt(u, fmtRec(this.def, this.qualify), VW-30, 12, 13, PAL.white, 'right', 700);
 
     /* 흔들림 — 이 종목의 전부다. 가운데가 0. */
     const bw=180, bx0=VW/2-bw/2, by=VH-40;

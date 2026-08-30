@@ -187,6 +187,13 @@ class HurdlesEvent extends SprintEvent {
       uctx.restore();
     }
     const p=this.player;
-    txt(uctx, `허들 ${p.hurdlesClean}/${this.hCount} 성공`, 8, Track.GAUGE_Y-12, 9, PAL.dim);
+    /* ⛔ 트랙 위에 어두운 글씨라 거의 안 읽혔다(실측 스크린샷 — 110mH·3000SC 둘 다).
+       받침을 깔고 값을 밝게 한다. 이 줄은 '지금 몇 개 넘었나'라 경기 중 보는 값이다.
+       ⚠ 3000m 장애물의 장애물은 '허들'이 아니다 — 종목에 맞는 낱말을 쓴다. */
+    { const word = this.def.id==='steeple3000' ? K('장애물') : K('허들');
+      const line = `${word} ${p.hurdlesClean}/${this.hCount}`;
+      plate(uctx, 6, Track.GAUGE_Y-15, 78, 14, 0.72);
+      txt(uctx, line, 10, Track.GAUGE_Y-12, 9,
+          p.hurdlesClean>0 ? PAL.green : PAL.dim, 'left', 700); }
   }
 }
