@@ -74,6 +74,11 @@ function translateDom(){
 
 function boot(){
   Screen.init(); Input.init(); Save.load(); Sfx.loadPrefs();
+  /* ⛔ 어셋을 미리 데운다 — BG.get() 은 첫 요청에 null 을 주고 그때부터 받는다.
+     그래서 처음 보는 화면은 코드 그림으로 몇 프레임을 그린 뒤 **그림이 튀어나온다.**
+     에러도 콘솔도 안 나서 눈으로만 보이는 종류다(실측 2026-08-29).
+     목록은 tools/gen_preload.py 가 만든다 — 손으로 적지 않는다. */
+  if(typeof PRELOAD!=='undefined') PRELOAD.start();
   if(typeof Music!=='undefined') Music.loadPrefs();
   CharHD.verifyCasts();
   verifyReady();
