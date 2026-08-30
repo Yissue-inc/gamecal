@@ -78,6 +78,14 @@
 
 const VW = 1280, VH = 720;
 
+/* TV 안전 여백.
+   ⚠ 스마트 TV 는 화면 가장자리 3~5% 를 잘라 먹는다(오버스캔). 실측으로 큰 화면의
+     '마리 수'(3.3%)·'수조 단계'(2.8%)·'연결 표시'(0.6%) 가 전부 잘리는 자리에 있었다.
+     태블릿은 안 잘리므로, **큰 화면일 때만** 안쪽으로 들인다. */
+function safeInset(){
+  return (typeof Net!=='undefined' && Net.role==='stage') ? 36 : 0;
+}
+
 /* 어셋 개정값 — 그림 URL 뒤에 ?v= 로 붙는다.
    ⚠ 왜 필요한가: 어셋팀은 **같은 파일 이름으로** 그림을 교체한다(P24 로봇 49종,
      P25 산호). 캐시 무효화가 없으면 전시장 태블릿은 옛 그림을 계속 쓴다 —
@@ -332,12 +340,13 @@ const Net = {
     c.save();
     c.globalAlpha=0.75;
     c.fillStyle = ok ? PAL.green : PAL.red;
-    c.beginPath(); c.arc(VW-22, 22, 7, 0, TAU); c.fill();
+    const SI=(typeof safeInset==='function')?safeInset():0;
+    c.beginPath(); c.arc(VW-22-SI, 22+SI, 7, 0, TAU); c.fill();
     c.font='600 13px Galmuri11, sans-serif'; c.textAlign='right';
     c.fillStyle = ok ? 'rgba(255,255,255,.55)' : PAL.red;
     const label = this.role==='stage' ? ('받음 '+this.got) :
                   (this.queue.length ? ('보낼 것 '+this.queue.length) : ('보냄 '+this.sent));
-    c.fillText(ok?label:'연결 끊김', VW-38, 15);
+    c.fillText(ok?label:'연결 끊김', VW-38-SI, 15+SI);
     c.restore();
   }
 };
@@ -1481,13 +1490,14 @@ const Grow = {
     const lv=this.level(), st=this.STEPS[lv], n=this.next();
     /* ⚠ 연결 상태 표시(오른쪽 위 y=15)와 겹쳐 글자 두 줄이 포개져 있었다.
        큰 화면에서는 멀리서 보는 글자라 더 눈에 띈다. 한 줄 내려 비킨다. */
-    const x=VW-232, y=48, w=200;
+    const SI=safeInset();
+    const x=VW-232-SI, y=48+SI, w=200;
     c.save();
     /* 단계가 오른 직후엔 잠깐 빛난다 */
     if(this.flash>0){ c.shadowColor=PAL.gold; c.shadowBlur=18*(this.flash/90); }
     c.font='600 17px Galmuri11, sans-serif'; c.textAlign='right';
     c.fillStyle='rgba(255,255,255,.82)';
-    c.fillText(st.ko, VW-28, y+4);
+    c.fillText(st.ko, VW-28-SI, y+4);
     c.restore();
     if(!n) return;
     c.fillStyle='rgba(255,255,255,.14)'; UI.round(c, x, y+14, w, 8, 4); c.fill();
@@ -5618,6 +5628,21 @@ const Game = {
     /* ⚠ 큰 화면에는 **버튼 줄 전체가 필요 없다.** 그리기 버튼만 숨기고 나머지
        여섯 개(먹이·찾기·도감·시간·소리·세계)를 그대로 뒀더니, 만질 수 없는
        화면에 만질 것처럼 생긴 것들이 늘어서 있었다. 관람객은 아이 그림을 보러 온다. */
+    /* 마릿수 */
+    c.font='600 20px Galmuri11, sans-serif'; c.textAlign='left';
+    c.fillStyle='rgba(255,255,255,.75)';
+    /* ⚠ 바다·정글만 세다가 새 모드에서 늘 0 이 떴다. 지금 세계의 것을 센다. */
+    const n=this.beings.length;
+    const verb = this.realm==='sea' ? '헤엄치고'
+               : this.realm==='bug' ? '기어다니고'
+               : this.realm==='robot' ? '움직이고' : '걷고';
+    /* 「다 같이」 는 헤엄치고 걷고 날고가 섞여 있다 — 한 동사로 못 묶는다 */
+    const SI=safeInset();
+    c.fillText(this.realm==='all' ? `${n}마리가 다 같이 있어요`
+                                  : `${n}마리가 ${verb} 있어요`, 28+SI, 44+SI);
+
+    /* ⚠ 마릿수는 **큰 화면에도 보여야 한다.** 아래 early-return 뒤에 두었더니
+       버튼을 숨기면서 같이 사라졌다(실측: 큰 화면에서 글자가 안 나왔다). */
     const stage = (typeof Net!=='undefined' && Net.role==='stage');
     if(stage) return;
     const S=96, y=VH-S-24;
@@ -5678,17 +5703,6 @@ const Game = {
     ];
     let bx = VW-24;
     for(const [id,w,dr] of right){ bx-=w; UI.btn(c,id,bx,y,w,S,dr); bx-=GAP; }
-    /* 마릿수 */
-    c.font='600 20px Galmuri11, sans-serif'; c.textAlign='left';
-    c.fillStyle='rgba(255,255,255,.75)';
-    /* ⚠ 바다·정글만 세다가 새 모드에서 늘 0 이 떴다. 지금 세계의 것을 센다. */
-    const n=this.beings.length;
-    const verb = this.realm==='sea' ? '헤엄치고'
-               : this.realm==='bug' ? '기어다니고'
-               : this.realm==='robot' ? '움직이고' : '걷고';
-    /* 「다 같이」 는 헤엄치고 걷고 날고가 섞여 있다 — 한 동사로 못 묶는다 */
-    c.fillText(this.realm==='all' ? `${n}마리가 다 같이 있어요`
-                                  : `${n}마리가 ${verb} 있어요`, 28, 44);
   },
   drawPick(c){
     c.fillStyle='#123047'; c.fillRect(0,0,VW,VH);
@@ -5802,7 +5816,10 @@ const Game = {
         g.strokeStyle = on ? PAL.gold : 'rgba(255,255,255,.22)';
         g.lineWidth = on ? 4 : 2;
         const rr=14, W=bw-6, H=h-6;
-        g.beginPath(); g.roundRect(-W/2,-H/2,W,H,rr); g.fill(); g.stroke();
+        /* ⚠ ctx.roundRect 는 Chrome 99·Safari 16 이후에만 있다. 스마트 TV 브라우저나
+           오래된 태블릿에서는 여기서 예외가 나 **화면 전체가 검게** 된다.
+           같은 일을 하는 UI.round 가 이미 있다 — 그걸 쓴다. */
+        UI.round(g, -W/2, -H/2, W, H, rr); g.fill(); g.stroke();
         g.translate(0,-8); this.worldMark(g, r, on);
         g.restore();
         g.save(); g.globalAlpha = rd ? 1 : 0.45;
