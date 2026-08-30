@@ -114,6 +114,50 @@ const RULES = {
      느리지만 굴러가게 두고, 대신 아래 기준기록(qualify)으로 탈락시킨다 — 레퍼런스와 같은 방식. */
 };
 
+/* ══ 메달 기준 — 종목마다 목표를 셋으로 ══════════════════════════
+   ⛔ 왜 필요한가: 종목당 목표가 `qualify` **하나뿐**이었다. 48종목에 목표 48개다.
+      한 번 통과하면 그 종목은 끝이라 다시 뛸 이유가 개인 최고 갱신밖에 없었다.
+      셋으로 나누면 같은 데이터로 목표가 **144개**가 된다.
+
+   ⚠ 숫자를 지어내지 않았다. 두 갈래로 잰 값이 같은 곳을 가리켰다:
+     ① 종목표의 parS(25종목에 이미 있다) ÷ qualify
+          800m 127/136 = 0.934 · 1500m 238/255 = 0.933 · 5000m 792/855 = 0.926
+     ② 100m 조작 곡선 실측(2026-08-29)
+          박자 ±40ms(보통) 10.54 ÷ 기준 11.30 = 0.933   ← 같은 값
+     그래서 **은 = 보통 = qualify × 0.93**(parS 가 있으면 그 값을 그대로 쓴다).
+   ⚠ 금은 처음에 0.907 로 잡았다가 **되돌렸다.** 그 값이면 100m 금이 9.53 인데,
+      기계가 박자를 ±0ms 로 쳐서 낸 판들이 9.56~9.94 였다 — **완벽하게 쳐도 금이 안 나온다.**
+      아케이드는 스탯이 고정이라 그 위가 없다. 닿을 수 없는 목표는 죽은 콘텐츠다
+      (종족 도감의 '등급 완성'에서 이미 겪었다: 40시즌에 전설 3%).
+      **금 = 완벽한 박자**로 잡는다 → 은 × 0.942 (100m 금 9.90).
+        실측 대조: ±0ms 9.5~9.9 = 금 · ±40ms 10.5 = 은 · 기준 11.3 = 동 · ±90ms 13.7 = 미달
+   ⚠ higher(멀리·던지기·점수) 종목은 클수록 좋으니 **나눈다.** */
+const MEDAL_SILVER = 0.930;   // 기준 대비 '보통'(parS 가 있으면 그 값을 쓴다)
+const MEDAL_GOLD   = 0.942;   // 보통 대비 '완벽한 박자'
+
+function medalCuts(def){
+  if(!def) return null;
+  const q = def.qualify;
+  if(def.higher){
+    const s = q / MEDAL_SILVER, g = s / MEDAL_GOLD;
+    return { bronze:q, silver:s, gold:g };
+  }
+  const s = (def.parS !== undefined) ? def.parS : q * MEDAL_SILVER;
+  return { bronze:q, silver:s, gold:s * MEDAL_GOLD };
+}
+/* 이 기록이 어느 메달인가 — 없으면 null */
+function medalOf(def, v){
+  if(!def || v===undefined || v===null) return null;
+  const c = medalCuts(def); if(!c) return null;
+  const better = (a,b) => def.higher ? a >= b : a <= b;
+  if(!better(v, c.bronze)) return null;
+  if(better(v, c.gold))   return 'gold';
+  if(better(v, c.silver)) return 'silver';
+  return 'bronze';
+}
+const MEDAL_COLOR = { gold:'#ffd75e', silver:'#cfd6e8', bronze:'#d08a4a' };
+const MEDAL_MARK  = { gold:'金', silver:'銀', bronze:'銅' };
+
 /* 거리 비율에 따른 구간 배율 */
 function phaseAt(distM, trackM){
   const p = distM / trackM;

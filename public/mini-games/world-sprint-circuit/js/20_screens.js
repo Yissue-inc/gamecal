@@ -791,7 +791,15 @@ const G = {
          필드는 '5.90m', 점수 종목은 '60점' 인데 시간만 맨숫자였다. 단위는 종목이 안다. */
       { const q = fmtRec(e, e.qualify);
         const unit = e.unit==='s' ? (needsSec(q) ? K('초') : '') : '';
-        txt(uctx, K('기준')+' '+q+unit, x+6, y+30, 8, PAL.dim,'left'); }
+        txt(uctx, K('기준')+' '+q+unit, x+6, y+30, 8, PAL.dim,'left');
+        /* ⛔ 목표가 `기준` 하나뿐이라 **한 번 통과하면 그 종목은 끝**이었다.
+           딴 메달을 카드에 박아 두면 "다음 칸이 있다"가 한눈에 보인다. */
+        const m = (typeof medalOf==='function') ? medalOf(e, Save.data.best[e.id]) : null;
+        if(m){
+          uctx.fillStyle = MEDAL_COLOR[m];
+          uctx.beginPath(); uctx.arc(x+cw-11, y+33, 4.5, 0, Math.PI*2); uctx.fill();
+          txt(uctx, MEDAL_MARK[m], x+cw-11, y+29, 7, '#2a2010', 'center', 700);
+        } }
       if(!ready) txt(uctx, K('준비 중'), x+cw-6, y+30, 8, PAL.red,'right',700);
     });
 
@@ -904,18 +912,39 @@ const G = {
       const p=ev.player;
       if(p){
         const line = `PERFECT ${p.judge.PERFECT}  ·  GOOD ${p.judge.GOOD}  ·  놓침 ${p.judge.EARLY+p.judge.LATE}`;
-        txt(uctx, line, VW/2, 136, 10, PAL.white,'center');
+        txt(uctx, line, VW/2, 139, 10, PAL.white,'center');
         let sub = p.reactionMs>=0 ? `반응 ${Math.round(p.reactionMs)}ms` : '';
         if(ev.marks===undefined && r.rank) sub += (sub?'  ·  ':'')+`순위 ${r.rank}위`;
         if(p.hurdlesClean!==undefined && ev.marks===undefined && this.def.id==='hurdles110')
           sub += `  ·  허들 ${p.hurdlesClean}/${RULES.hurdleCount}`;
-        if(sub) txt(uctx, sub, VW/2, 150, 10, PAL.dim,'center');
+        if(sub) txt(uctx, sub, VW/2, 151, 10, PAL.dim,'center');
       } else if(ev.marks){
         /* ⚠ 세 시기를 한 문자열로 붙이면 숫자가 6개라 번역 자리표가 안 맞는다 —
            조각마다 번역하고 붙인다. */
         txt(uctx, ev.marks.map((m,i)=>K('%1차 %2').replace('%1',i+1)
               .replace('%2', m===null?K('파울'):m.toFixed(2))).join('   '),
             VW/2, 138, 10, PAL.white,'center');
+      }
+      /* ⛔ 결과가 '통과/미달' 둘뿐이라 **얼마나 잘했는지**가 안 보였다.
+         메달과 **다음 칸까지 남은 거리**를 적는다 — 그게 다시 뛸 이유다. */
+      if(!void_ && typeof medalOf==='function'){
+        const m = medalOf(d, r.value), cuts = medalCuts(d);
+        if(m){
+          /* ⚠ y=124 는 '기준 11.30초'(y=116) 줄과 겹쳤다(실측). 그 아래 빈 칸으로 내린다.
+             판정 줄은 136 이므로 126~134 만 쓸 수 있다. */
+          const my = 126;
+          uctx.fillStyle = MEDAL_COLOR[m];
+          uctx.beginPath(); uctx.arc(VW/2-56, my+4, 6, 0, Math.PI*2); uctx.fill();
+          txt(uctx, MEDAL_MARK[m], VW/2-56, my, 9, '#2a2010', 'center', 700);
+          const nextKey = m==='bronze' ? 'silver' : m==='silver' ? 'gold' : null;
+          if(nextKey){
+            const need = cuts[nextKey];
+            const gap = d.higher ? need - r.value : r.value - need;
+            txt(uctx, K('%1 까지 %2').replace('%1', K(nextKey==='gold'?'금':'은'))
+                  .replace('%2', fmtRec(d, Math.abs(gap)) + (d.unit==='s'?K('초'):'')),
+                VW/2-44, my, 9, PAL.dim, 'left');
+          } else txt(uctx, K('최고 등급입니다'), VW/2-44, my, 9, PAL.gold, 'left', 700);
+        }
       }
       if(this.newRecord){
         /* 신기록 — 띠 그림 위에 한 번만 쓴다(위쪽 중복 띠는 없앴다) */

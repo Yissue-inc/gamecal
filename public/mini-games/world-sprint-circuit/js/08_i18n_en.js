@@ -949,6 +949,9 @@ const I18N_EN = {
   '커리어 점수':'Career pts', '신임 감독':'New manager',
   '좋다':'Steady', '흔들린다':'Wobbly', '들쭉날쭉':'Ragged',
   '경기력':'Power',
+  /* 메달 3단계 — 종목마다 목표를 셋으로 */
+  '%1 까지 %2':'%2 to %1', '최고 등급입니다':'Top tier',
+  '금':'Gold', '은':'Silver', '동':'Bronze',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };
