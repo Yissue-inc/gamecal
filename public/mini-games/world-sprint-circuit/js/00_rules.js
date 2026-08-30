@@ -138,6 +138,15 @@ const MEDAL_GOLD   = 0.942;   // 보통 대비 '완벽한 박자'
 function medalCuts(def){
   if(!def) return null;
   const q = def.qualify;
+  /* ⛔ **비율은 0 을 지나거나 띄엄띄엄한 눈금에서 무너진다.**
+     실측(2026-08-30):
+       골프  기준 0 · parS −3 → 금 = −3×0.942 = **−2.83** — 낮을수록 좋은 종목인데
+             금컷이 은컷보다 **나쁘다.** 순서가 뒤집혀 은메달이 통째로 사라졌다.
+       승마  기준 8 · parS 0 → 은 0 · 금 0×0.942 = **0** — 두 컷이 겹쳤다. 무결 라운드는 무조건 금.
+     이런 종목은 비율로 못 나눈다 — **표에 컷을 직접 적는다.**
+     ⚠ 역도(110/140/170)는 단계가 27% 라 컷 간격(7.5%)보다 커서 은이 어차피 안 나온다.
+        중량 설계를 바꾸는 건 종목의 감각을 바꾸는 일이라 그대로 둔다 — 동/금 두 단계로 산다. */
+  if(def.cuts) return { bronze:q, silver:def.cuts.silver, gold:def.cuts.gold };
   if(def.higher){
     const s = q / MEDAL_SILVER, g = s / MEDAL_GOLD;
     return { bronze:q, silver:s, gold:g };
@@ -284,9 +293,9 @@ const EVENTS = [
   /* 카누 슬라럼 — 이 게임에 없던 **가로 조종**. 기록 = 내려온 시간 + 벌점. */
   { id:'canoe',        name:'카누 슬라럼',   short:'CSL',   unit:'s', higher:false, qualify:80.0, parS:70.0, kind:'slalom', tip:'번갈아 저으면 빨라지고, 한쪽만 저으면 그 반대로 돈다' },
   /* 골프 — 유일하게 **여러 번에 나눠** 목표에 다가간다. 기록은 파 대비(적을수록 좋다). */
-  { id:'golf',         name:'골프 3홀',     short:'GOLF',  unit:'타', higher:false, qualify:0.0, parS:-3.0, kind:'golf', tip:'←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)' },
+  { id:'golf',         name:'골프 3홀',     short:'GOLF',  unit:'타', higher:false, qualify:0.0, parS:-3.0, cuts:{silver:-2, gold:-4}, kind:'golf', tip:'←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)' },
   /* 승마 장애물 — 허들과 달리 간격이 제각각이다. 축은 **보폭 계산**(라인 보기). */
-  { id:'equestrian',   name:'승마 장애물',   short:'JUMP',  unit:'벌점', higher:false, qualify:8.0, parS:0.0, kind:'ride', tip:'▲▼ 보폭 · 좌·우 한 걸음 · 도약대에 발이 맞으면 액션' },
+  { id:'equestrian',   name:'승마 장애물',   short:'JUMP',  unit:'벌점', higher:false, qualify:8.0, parS:0.0, cuts:{silver:4, gold:0}, kind:'ride', tip:'▲▼ 보폭 · 좌·우 한 걸음 · 도약대에 발이 맞으면 액션' },
   /* 철봉 — 이 게임에서 유일하게 **놓았다가 다시 잡는** 종목. 스윙이 난도를 허락한다. */
   { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym', tip:'좌·우로 흔들어 스윙을 키우고 액션으로 이탈 · 다시 액션으로 잡는다' },
   /* 링 — 이 게임에서 유일하게 '누르지 않는 것'이 잘하는 종목 */
