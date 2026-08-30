@@ -57,15 +57,22 @@ const UI = {
     }
     return out;
   },
-  /* 아이콘이 못 챙긴 것만 글자로 */
-  squadSub(a){
+  /* 아이콘이 못 챙긴 것만 글자로.
+     ⛔ 아이콘이 도착하자 특성 이름이 **통째로 사라졌다.** 목록은 깔끔해졌지만
+        처음 보는 사람은 그 그림이 무슨 뜻인지 **배울 방법이 없다**(실측: 처음 플레이).
+        `on`(커서가 있는 줄)이면 말로 적는다 — 한 줄만 말하면 목록은 그대로 깔끔하다.
+        아이콘은 기억을 돕는 것이고, 이름은 그 기억을 처음 만드는 것이다. */
+  squadSub(a, on){
     /* ⚠ 이름·숫자를 문장에 조립하면 통문자열이라 번역표에서 못 찾는다 — 틀만 옮긴다 */
     const bits = [ K('%1세').replace('%1', a.age) ];
-    if(!(this.GROWTH_ICON[a.growth] && BG.get(this.GROWTH_ICON[a.growth])))
-      bits.push(K(GROWTH[a.growth].name));
-    const left = (a.traits||[]).filter(t=>!(this.TRAIT_ICON[t] && BG.get(this.TRAIT_ICON[t])));
-    if(left.length) bits.push(K(TRAITS[left[0]].name) + (left.length>1 ? ` +${left.length-1}` : ''));
-    else if(!(a.traits||[]).length) bits.push(K('특성 없음'));
+    const gIcon = this.GROWTH_ICON[a.growth] && BG.get(this.GROWTH_ICON[a.growth]);
+    if(!gIcon || on) bits.push(K(GROWTH[a.growth].name));
+    const traits = a.traits || [];
+    const left = traits.filter(t=>!(this.TRAIT_ICON[t] && BG.get(this.TRAIT_ICON[t])));
+    const show = on ? traits : left;               // 고른 줄이면 아이콘으로 나간 것도 말한다
+    if(show.length) bits.push(show.map(t=>K(TRAITS[t].name)).slice(0,2).join(' · ')
+                              + (show.length>2 ? ` +${show.length-2}` : ''));
+    else if(!traits.length) bits.push(K('특성 없음'));
     return bits.join(' · ');
   },
 
@@ -700,7 +707,7 @@ class SquadScreen extends Screen0 {
     if(Input.pressed('right')){ this.sortI=((this.sortI||0)+1)%n;   this.sel=0; Sfx.ui(); return; }
     super.update(now);
   }
-  get rows(){ return this.view().map(a=>({
+  get rows(){ return this.view().map((a,i)=>({
     /* ⚠ 종족 이름은 번역표에 다 있는데도 영어 빌드에서 한국어로 나왔다 —
        별·종족·이름을 **한 문자열로 조립**하면 txt() 가 그 통문자열을 K() 에 넘겨
        표에서 못 찾기 때문이다. 종족만 먼저 옮겨 붙인다(이름은 데이터라 그대로). */
@@ -713,7 +720,8 @@ class SquadScreen extends Screen0 {
           특성 이름 나열도 길다(`승부사, 허들 감각`) — 아이콘이 오면 아이콘으로,
           오기 전엔 **하나만 이름 + `+N`** 으로 줄인다. 정보는 상세 화면에 그대로 있다. */
     subAlways:true,
-    sub: UI.squadSub(a),
+    /* 커서가 있는 줄만 특성을 **말로** 적는다 — 아이콘의 뜻을 거기서 배운다 */
+    sub: UI.squadSub(a, i === (this.sel|0)),
     icons: UI.squadIcons(a),
     /* ⚠ 목록의 큰 글씨도 경기력으로 바꾼다. OVR 만 보이면 Lv30 에 전설 장비를
        끼운 선수와 신인이 같은 숫자로 나란히 선다 — 누굴 내보낼지 알 수가 없다.

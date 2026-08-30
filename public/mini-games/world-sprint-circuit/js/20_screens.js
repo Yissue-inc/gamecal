@@ -97,6 +97,12 @@ const G = {
       case ST.NATION: this.updNation(); break;
       case ST.SHARE:  this.updShare(); break;
     }
+    if(typeof Tutorial!=='undefined'){
+      /* 튜토리얼 중 P 는 **건너뛰기**다 — 두 번째 사람에게 튜토리얼은 벽이다.
+         ⚠ 일시정지보다 먼저 잡아 두 동작이 겹치지 않게 한다. */
+      if(Tutorial.on && Input.pressed('pause')){ Tutorial.skip(); Sfx.ui(); Input.flush(); return; }
+      Tutorial.update();
+    }
     Input.flush();
   },
 
@@ -106,7 +112,10 @@ const G = {
      제일 먼저 하고 싶은 건 달리는 것이다. 아무 기록도 없으면 '직접 뛰기'에 손을 둔다. */
   titleDefaulted:false,
   updTitle(){
-    const items = MG.hasSave() ? 3 : 2;
+    /* ⛔ 처음 켠 사람은 두 게임(리듬 아케이드·24주 감독)을 맨몸으로 만난다.
+       튜토리얼을 **맨 위**에 둔다 — 이미 해 본 사람에게는 안 보인다. */
+    const tut = (typeof Tutorial!=='undefined') && !Tutorial.seen();
+    const items = (MG.hasSave() ? 3 : 2) + (tut ? 1 : 0);
     if(!this.titleDefaulted){
       this.titleDefaulted = true;
       const 뛴적있다 = Object.keys(Save.data.best||{}).length > 0;
@@ -125,8 +134,11 @@ const G = {
     }
     if(Input.pressed('action')){
       Sfx.ui();
+      /* 튜토리얼이 있으면 0번이다 — 나머지는 한 칸씩 밀린다 */
+      if(tut && this.titleSel===0){ Tutorial.start(); return; }
+      const off = tut ? 1 : 0;
       const hasSave=MG.hasSave();
-      const pick = hasSave ? this.titleSel : this.titleSel+1;   // 0=이어하기 1=새 클럽 2=직접 뛰기
+      const pick = hasSave ? (this.titleSel-off) : (this.titleSel-off+1);   // 0=이어하기 1=새 클럽 2=직접 뛰기
       if(pick===0){ MG.load() ? this.state=ST.MANAGER : MG.newGame() || (this.state=ST.MANAGER); this.state=ST.MANAGER; }
       else if(pick===1){ this.state=ST.NATION; this.natSel=0; }   // 새 클럽 → 국가부터 고른다
       else this.state=ST.SELECT;
@@ -638,6 +650,8 @@ const G = {
            띠는 아래 PB 자리로 내렸다(drawResult) — 한 번만 말한다. */
         this.drawCareerPops(uctx); break;
     }
+    /* 튜토리얼 안내 — **평소 화면 위에** 얹는다(화면을 새로 만들지 않는다) */
+    if(typeof Tutorial!=='undefined') Tutorial.draw(uctx);
     // 토스트
     if(this.t - this.toastAt < 1600){
       const a=1-(this.t-this.toastAt)/1600;
@@ -692,7 +706,11 @@ const G = {
       txt(uctx, `뱃지 ${Career.badgeCount()} / ${BADGES.length}`, VW/2, by+8, 8, PAL.dim, 'center');
     }
     const hasSave=MG.hasSave();
-    const items = (hasSave?[['이어하기','저장된 클럽으로 계속']]:[])
+    /* 튜토리얼 — 처음 켠 사람에게만, 맨 위에. 한 번 하면 사라진다. */
+    const tutRow = (typeof Tutorial!=='undefined' && !Tutorial.seen())
+      ? [['처음이라면','전설 선수로 한 판 · 최고 선수단으로 한 주']] : [];
+    const items = tutRow
+      .concat(hasSave?[['이어하기','저장된 클럽으로 계속']]:[])
       .concat([['새 클럽 시작','신인 6명으로 처음부터'],['직접 뛰기','아케이드 모드 — 내가 조작한다']]);
     items.forEach((it,i)=>{
       const y=124+i*27, on=i===this.titleSel;
@@ -755,8 +773,11 @@ const G = {
         txt(uctx, t, x+cw-6, y+5, t.length>6?8:9, PAL.blue,'right');
       }
       txt(uctx, e.name, x+6, y+18, 9, ready?PAL.dim:'#5a4a60','left');
-      txt(uctx, K('기준')+' '+fmtRec(e, e.qualify),
-          x+6, y+30, 8, PAL.dim,'left');
+      /* ⛔ 트랙 종목만 단위가 없어 '기준 11.30' 이 뭔지 알 수 없었다(실측: 처음 플레이).
+         필드는 '5.90m', 점수 종목은 '60점' 인데 시간만 맨숫자였다. 단위는 종목이 안다. */
+      { const q = fmtRec(e, e.qualify);
+        const unit = e.unit==='s' ? (needsSec(q) ? K('초') : '') : '';
+        txt(uctx, K('기준')+' '+q+unit, x+6, y+30, 8, PAL.dim,'left'); }
       if(!ready) txt(uctx, K('준비 중'), x+cw-6, y+30, 8, PAL.red,'right',700);
     });
 

@@ -210,9 +210,12 @@ class SprintEvent {
       if(CharHD.enabled){
         /* 사람 선수는 자기 종족으로 — 누가 나인지 알아야 한다.
            AI 는 남는 종족을 돌려 쓴다. */
-        const sp = (r.pIndex!==undefined && typeof Party!=='undefined')
+        let sp = (r.pIndex!==undefined && typeof Party!=='undefined')
           ? Party.species(r.pIndex)
           : ['cheetah','elephant','kangaroo','ostrich'][i%4];
+        /* 튜토리얼은 **전설 종족**으로 시작한다 — 게임이 뭘 주는지 먼저 보여 준다 */
+        if(r===this.player && typeof Tutorial!=='undefined' && Tutorial.on && Tutorial.forceSpecies)
+          sp = Tutorial.forceSpecies;
         (this._hd=this._hd||[]).push(
         { sp, x, y, ph:r.stridePhase,
           o:{ lean:leaning, crouch:this.phase==='SET',
@@ -229,7 +232,13 @@ class SprintEvent {
           /* 연출 판단에 필요한 것들 — 그리는 쪽이 러너를 다시 안 찾아도 되게 */
           fatigue: r.fatigue||0, tier: r.tier||0,
           started: r.started, gunAge: this.t - this.gunMs });
-        if(r===this.player) this._hdMeY = y; }
+        if(r===this.player) this._hdMeY = y;
+        /* ⛔ 1인용에서 **셋 중 누가 나인지 표시가 없었다**(실측: 처음 플레이).
+           2인용은 P1/P2 색 막대가 있는데 1인용만 없다 — 제일 자주 하는 판이 제일 불친절했다.
+           머리 위에 작은 삼각 표시 하나. 2인 이상이면 이미 색으로 갈리니 안 그린다. */
+        if(r===this.player && !(this.humans && this.humans.length>1))
+          this._meMark = { x, y };   /* 그리기는 drawUI 에서 — 여기엔 UI 캔버스가 없다 */
+        }
       else drawRunner(ctx, x, y, r.stridePhase, laneColor[i%laneColor.length],
         { lean:leaning, crouch:this.phase==='SET' });
     }
@@ -278,6 +287,18 @@ class SprintEvent {
       const age = this.t - this.fxAt;
       if(age < 1400)
         BG.fx(uctx, 'fx-record', VW/2, VH-70, 54, clamp(age/1400, 0, 0.999), 4);
+    }
+    /* ⛔ 1인용에서 **셋 중 누가 나인지 표시가 없었다**(실측: 처음부터 플레이).
+       2인용은 P1/P2 색 막대가 있는데 1인용만 없다 — 제일 자주 하는 판이 제일 불친절했다.
+       머리 위 작은 삼각 하나. 2인 이상이면 이미 색으로 갈리니 안 그린다.
+       ⚠ 러너를 그리는 자리엔 UI 캔버스(uctx)가 없다 — 좌표만 넘기고 여기서 그린다. */
+    if(this._meMark && this.phase!=='DONE'){
+      const m = this._meMark, bob = Math.sin(this.t*0.006)*1.5;
+      const my = m.y - Math.round(CharHD.DRAW_H*0.95) + bob;
+      uctx.fillStyle = PAL.gold;
+      uctx.beginPath();
+      uctx.moveTo(m.x, my+6); uctx.lineTo(m.x-4, my); uctx.lineTo(m.x+4, my);
+      uctx.closePath(); uctx.fill();
     }
     HUD.race(uctx, {
       timeS: Math.max(0, this.elapsed),
