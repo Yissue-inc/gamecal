@@ -8,8 +8,8 @@
      **뒤늦게 튀어나온다.** 코드 그림으로 물러나므로 에러도 콘솔도 조용하다.
 
    두 물결
-     ① WAVE1 138장 ·    758 KB — UI 틀·아이콘. 첫 메뉴에 바로 필요하다.
-     ② WAVE2 128장 ·   2098 KB — 무대·소품·효과. 경기 전까지만 오면 된다.
+     ① WAVE1 140장 ·    759 KB — UI 틀·아이콘. 첫 메뉴에 바로 필요하다.
+     ② WAVE2 130장 ·   2125 KB — 무대·소품·효과. 경기 전까지만 오면 된다.
    ⛔ 캐릭터 스프라이트·초상 360장(3.9 MB)은 **안 데운다** —
       종족별이라 그 종족이 나올 때 받는 게 맞다.
    ══════════════════════════════════════════════════════════════════ */
@@ -22,23 +22,23 @@ const PRELOAD = {
   'btn-primary-on', 'button-focus', 'button-idle', 'card-1', 'card-2', 'card-3', 'card-4',
   'card-5', 'chip-bg', 'co-endure', 'co-medic', 'co-power', 'co-rhythm', 'co-sprint', 'co-tech',
   'cursor-arrow', 'divider-line', 'fc-dorm', 'fc-lab', 'fc-med', 'fc-train', 'fc-youth',
-  'frame-card', 'frame-gold', 'frame-panel', 'gauge-ring', 'gr-early', 'hud-frame', 'ic-accel',
-  'ic-age', 'ic-career', 'ic-codex', 'ic-coin', 'ic-condition', 'ic-develop', 'ic-distance',
-  'ic-facility', 'ic-fatigue', 'ic-filter', 'ic-hall', 'ic-injury', 'ic-league', 'ic-market',
-  'ic-medal', 'ic-meet', 'ic-morale', 'ic-offer', 'ic-points', 'ic-potential', 'ic-power',
-  'ic-record', 'ic-release', 'ic-rest', 'ic-rhythm', 'ic-scout', 'ic-settings', 'ic-sort',
-  'ic-speed', 'ic-speed-hud', 'ic-squad', 'ic-stamina', 'ic-stopwatch', 'ic-technique',
-  'ic-timer', 'ic-train', 'ic-xp-gain', 'icon-coin', 'icon-combo', 'icon-duel', 'icon-field',
-  'icon-gear', 'icon-levelup', 'icon-medal', 'icon-other', 'icon-swim', 'icon-tp', 'icon-track',
-  'icon-xp', 'item-band', 'item-sole', 'item-spike', 'item-suit', 'item-tape', 'item-tights',
-  'item-watch', 'panel-fill', 'panel-frame', 'panel-reward', 'rank-1', 'rank-2', 'rank-3',
-  'rank-4', 'rank-5', 'rarity-1', 'rarity-2', 'rarity-3', 'rarity-4', 'rarity-5',
-  'row-selected', 'sk-appetite', 'sk-beat', 'sk-beat-x', 'sk-burst', 'sk-burst-x', 'sk-clutch',
-  'sk-clutch-x', 'sk-eager', 'sk-eager-x', 'sk-grit', 'sk-grit-x', 'sk-knee', 'sk-pro',
-  'sk-skim', 'sk-spring', 'sk-sunny', 'sk-whip', 'slot-gear', 'slot-shoe', 'slot-wear',
-  'tab-active', 'tab-idle', 'title-backdrop', 'tooltip-tail', 'tr-cannon', 'tr-closer',
-  'tr-glass', 'tr-hurdler', 'tr-ironman', 'tr-metronome', 'tr-nervous', 'tr-springy',
-  'tr-starter',
+  'frame-card', 'frame-gold', 'frame-panel', 'gauge-ring', 'gr-early', 'gr-late', 'gr-normal',
+  'hud-frame', 'ic-accel', 'ic-age', 'ic-career', 'ic-codex', 'ic-coin', 'ic-condition',
+  'ic-develop', 'ic-distance', 'ic-facility', 'ic-fatigue', 'ic-filter', 'ic-hall', 'ic-injury',
+  'ic-league', 'ic-market', 'ic-medal', 'ic-meet', 'ic-morale', 'ic-offer', 'ic-points',
+  'ic-potential', 'ic-power', 'ic-record', 'ic-release', 'ic-rest', 'ic-rhythm', 'ic-scout',
+  'ic-settings', 'ic-sort', 'ic-speed', 'ic-speed-hud', 'ic-squad', 'ic-stamina',
+  'ic-stopwatch', 'ic-technique', 'ic-timer', 'ic-train', 'ic-xp-gain', 'icon-coin',
+  'icon-combo', 'icon-duel', 'icon-field', 'icon-gear', 'icon-levelup', 'icon-medal',
+  'icon-other', 'icon-swim', 'icon-tp', 'icon-track', 'icon-xp', 'item-band', 'item-sole',
+  'item-spike', 'item-suit', 'item-tape', 'item-tights', 'item-watch', 'panel-fill',
+  'panel-frame', 'panel-reward', 'rank-1', 'rank-2', 'rank-3', 'rank-4', 'rank-5', 'rarity-1',
+  'rarity-2', 'rarity-3', 'rarity-4', 'rarity-5', 'row-selected', 'sk-appetite', 'sk-beat',
+  'sk-beat-x', 'sk-burst', 'sk-burst-x', 'sk-clutch', 'sk-clutch-x', 'sk-eager', 'sk-eager-x',
+  'sk-grit', 'sk-grit-x', 'sk-knee', 'sk-pro', 'sk-skim', 'sk-spring', 'sk-sunny', 'sk-whip',
+  'slot-gear', 'slot-shoe', 'slot-wear', 'tab-active', 'tab-idle', 'title-backdrop',
+  'tooltip-tail', 'tr-cannon', 'tr-closer', 'tr-glass', 'tr-hurdler', 'tr-ironman',
+  'tr-metronome', 'tr-nervous', 'tr-springy', 'tr-starter',
   ],
   /* 경기 시작 전까지만 오면 되는 것 */
   WAVE2: [
@@ -52,19 +52,20 @@ const PRELOAD = {
   'fx-coin-pop', 'fx-confetti', 'fx-focus', 'fx-item-get', 'fx-levelup', 'fx-photofinish',
   'fx-power-up', 'fx-rank-up', 'fx-record', 'fx-skill-learn', 'fx-startsmoke', 'fx-sweat',
   'fx-tap-ring', 'fx-tierup', 'fx-week-done', 'golf-bunker', 'golf-flag', 'golf-green',
-  'hall-judo', 'hall-tabletennis', 'hall-wall', 'hammer', 'highbar-mat', 'highbar-stand',
-  'hurdle', 'hurdle-hd', 'javelin', 'javelin-hd', 'judo-tatami', 'medal-bronze', 'medal-gold',
-  'medal-silver', 'night-sky', 'piste-strip', 'platform-lift', 'podium-hd', 'pole-hd',
-  'pool-lane-rope', 'pool-water', 'pose-crouch', 'pose-jump', 'pose-lean', 'pose-throw',
-  'range-archery', 'range-shooting', 'rapids-water', 'record-banner', 'record-sparkle',
-  'ribbon-title', 'rifle-hd', 'rings-frame', 'rings-hd', 'ripple-ring', 'road-marathon',
-  'rowing-lane', 'runner-5aaaff', 'runner-ff6b8a', 'runner-ffd75e', 'runway-strip', 'sand-pit',
-  'sandpit-tile', 'scull-hd', 'shot-hd', 'showjump-fence', 'sky-day', 'sky-dusk', 'sky-night',
-  'sky-stars', 'slalom-gate', 'speed-lines', 'splash-mark', 'springboard-hd', 'stadium-roof',
-  'stadium-wall', 'starting-block-hd', 'steeple-barrier-hd', 'sweat-drop', 'takeoff-board-hd',
-  'target-air-hd', 'target-hd', 'throw-sector', 'track-surface', 'trampoline-hd', 'tt-table',
-  'vault-mat', 'vault-table-hd', 'velodrome-track', 'wall-tile', 'water-splash',
-  'water-splash-big', 'waterjump-hd',
+  'hall-judo', 'hall-tabletennis', 'hall-truss', 'hall-wall', 'hammer', 'highbar-mat',
+  'highbar-stand', 'hurdle', 'hurdle-hd', 'javelin', 'javelin-hd', 'judo-tatami',
+  'medal-bronze', 'medal-gold', 'medal-silver', 'night-sky', 'piste-strip', 'plate-rack-hd',
+  'platform-lift', 'podium-hd', 'pole-hd', 'pool-lane-rope', 'pool-water', 'pose-crouch',
+  'pose-jump', 'pose-lean', 'pose-throw', 'range-archery', 'range-shooting', 'rapids-water',
+  'record-banner', 'record-sparkle', 'ribbon-title', 'rifle-hd', 'rings-frame', 'rings-hd',
+  'ripple-ring', 'road-marathon', 'rowing-lane', 'runner-5aaaff', 'runner-ff6b8a',
+  'runner-ffd75e', 'runway-strip', 'sand-pit', 'sandpit-tile', 'scull-hd', 'shot-hd',
+  'showjump-fence', 'sky-day', 'sky-dusk', 'sky-night', 'sky-stars', 'slalom-gate',
+  'speed-lines', 'splash-mark', 'springboard-hd', 'stadium-roof', 'stadium-wall',
+  'starting-block-hd', 'steeple-barrier-hd', 'sweat-drop', 'takeoff-board-hd', 'target-air-hd',
+  'target-hd', 'throw-sector', 'track-surface', 'trampoline-hd', 'tt-table', 'vault-mat',
+  'vault-table-hd', 'velodrome-track', 'wall-tile', 'water-splash', 'water-splash-big',
+  'waterjump-hd',
   ],
 
   /* BG.get() 은 부르기만 해도 로드를 시작한다 — 반환값은 안 쓴다.

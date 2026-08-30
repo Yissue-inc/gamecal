@@ -149,6 +149,10 @@ class LiftingEvent {
       (this._hd=this._hd||[]).push({ sp:'gorilla', x:CX, y, ph:0.25,
         o:{ throwing:this.phase!=='GRIP', rare:4, t:this.t, rot:tilt, scale:1.45 } });
     } else { ctx.fillStyle='#8a6a4a'; ctx.fillRect(CX-7, y-26, 14, 26); }
+    /* 원판 거치대 — 무대의 소품. 선수 뒤 양옆에 놓아 '역도장'이라는 걸 말한다.
+       ⚠ 선수(CX)와 겹치지 않게 좌우로 충분히 물린다. 어셋이 없으면 아무것도 안 그린다. */
+    BG.obj(BG.ctx(), 'plate-rack-hd', CX-96, y+2, 30);
+    BG.obj(BG.ctx(), 'plate-rack-hd', CX+96, y+2, 30);
     /* 바벨 — 선수 키(42) 기준으로 손 위치를 잡는다.
        ⚠ 예전 값은 선수 머리 위로 붕 떠 있었다(실측 스크린샷). */
     const barY = (this.phase==='HOLD') ? y-52 : (this.phase==='PULL' ? y-26 : y-8);

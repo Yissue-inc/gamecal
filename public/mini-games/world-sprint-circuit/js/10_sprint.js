@@ -286,6 +286,13 @@ class SprintEvent {
       trackM: this.trackM,
       qualify: this.qualify,
       best: Save.data.best[this.def.id],
+      /* 들어온 뒤에는 **자기 기록**으로 판정한다 — 경기 시계는 남은 사람을 기다리며 계속 간다 */
+      myTimeS: this.player.finished ? this.player.finishTimeS : undefined,
+      /* 2인 이상이면 위 띠에 **사람별 진행**을 얹는다 — 속도·거리 한 벌로는
+         누가 앞선지 알 수 없다(트랙만 보면 카메라가 선두를 따라가서 더 헷갈린다). */
+      party: (this.humans && this.humans.length>1)
+        ? this.humans.map((r,i)=>({ i, distM:r.distM,
+            timeS: r.finishTimeS, done: !!r.finished })) : null,
     });
 
     if(this.phase==='SET'){
@@ -298,13 +305,35 @@ class SprintEvent {
       const target=this.player.targetIntervalMs();
       const since=now-this.player.lastInputMs;
       const err = this.player.lastInputMs<-1e8 ? 0 : clamp((since-target)/target, -1, 1);
+      /* ⛔ 사람이 둘 이상이면 게이지도 사람 수만큼 — 한 벌만 그리면 P2 는
+         자기 박자가 맞는지 볼 방법이 없다(리듬 게임에서 그건 조작이 없는 것과 같다). */
+      if(this.humans && this.humans.length > 1){
+        HUD.rhythm2(uctx, this.humans.map(r=>{
+          const tgt=r.targetIntervalMs(), sinceR=now-r.lastInputMs;
+          return { nextSide: -r.lastSide||1,
+                   phaseErr: r.lastInputMs<-1e8 ? 0 : clamp((sinceR-tgt)/tgt, -1, 1),
+                   form: r.form, done: !!r.finished,
+                   timeText: r.finishTimeS ? fmtTime(r.finishTimeS) : '' };
+        }));
+      } else
       HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide: -this.player.lastSide||1, phaseErr: err, form:this.player.form });
       /* 판정 수명 = 목표 간격의 0.8 배. 다음 타가 오기 전에 사라진다. */
       /* 판정 수명 = 목표 간격의 0.8 배. 다음 타가 오기 전에 사라진다.
          자리는 **내 선수 바로 위** — 시선이 튀지 않아야 한 타 한 타가 붙는다. */
-      const myY = (this._hdMeY!==undefined) ? this._hdMeY - 26 : 38;
-      HUD.judge(uctx, this.player.lastJudge, now - this.player.lastJudgeMs,
-                Math.min(620, this.player.targetIntervalMs()*0.8), myY);
+      /* 판정은 **각자 자기 선수 위**에 뜬다 — 2인이면 두 개가 각 레인 위로 간다.
+         ⚠ 한 자리에 겹쳐 띄우면 누구 판정인지 알 수 없다(실측 전엔 P1 것만 떴다). */
+      if(this.humans && this.humans.length > 1){
+        for(const r of this.humans){
+          if(r.finished) continue;
+          const ly = Track.laneFoot(r.lane) - 26;
+          HUD.judge(uctx, r.lastJudge, now - r.lastJudgeMs,
+                    Math.min(620, r.targetIntervalMs()*0.8), ly);
+        }
+      } else {
+        const myY = (this._hdMeY!==undefined) ? this._hdMeY - 26 : 38;
+        HUD.judge(uctx, this.player.lastJudge, now - this.player.lastJudgeMs,
+                  Math.min(620, this.player.targetIntervalMs()*0.8), myY);
+      }
       /* 콤보 단계 — 지금 몇 단인지, 방금 올랐는지 */
       const P=this.player;
       if(P.tier>0){

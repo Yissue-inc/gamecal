@@ -97,11 +97,22 @@ const BG = {
     const cg = ctx.createLinearGradient(0, 0, 0, wallTop);
     cg.addColorStop(0, opt.ceil || '#070910'); cg.addColorStop(1, opt.ceilLow || '#141926');
     ctx.fillStyle = cg; ctx.fillRect(0, 0, VW, wallTop);
-    ctx.fillStyle = 'rgba(150,168,200,.10)';
-    for(let y=Math.round(wallTop*0.34); y<wallTop-6; y+=Math.round(wallTop*0.30)) ctx.fillRect(0, y, VW, 1);
-    for(let x=28; x<VW; x+=84){
-      ctx.fillStyle='rgba(150,168,200,.08)'; ctx.fillRect(x, 0, 1, wallTop-4);
-      ctx.fillStyle='rgba(255,236,180,.16)'; ctx.fillRect(x-4, wallTop-9, 9, 3);   // 조명
+    /* 천장 트러스 — 어셋이 오면 그림으로, 없으면 아래 선·조명으로 흉내 낸다.
+       ⚠ 1440×60 을 480×20 으로 놓는다(발주서 규격). 벽 윗단에 걸쳐 실내를 못 박는다. */
+    const truss = this.get('hall-truss');
+    if(truss){
+      const th = Math.max(12, Math.round(wallTop*0.26));
+      ctx.drawImage(truss, 0, 0, truss.width, truss.height,
+                    0, Math.max(0, Math.round(wallTop*0.30) - th), VW, th);
+      /* 매달린 조명은 트러스가 갖고 있다 — 여기선 벽 윗단 반사만 남긴다 */
+      ctx.fillStyle='rgba(255,236,180,.10)'; ctx.fillRect(0, wallTop-3, VW, 2);
+    } else {
+      ctx.fillStyle = 'rgba(150,168,200,.10)';
+      for(let y=Math.round(wallTop*0.34); y<wallTop-6; y+=Math.round(wallTop*0.30)) ctx.fillRect(0, y, VW, 1);
+      for(let x=28; x<VW; x+=84){
+        ctx.fillStyle='rgba(150,168,200,.08)'; ctx.fillRect(x, 0, 1, wallTop-4);
+        ctx.fillStyle='rgba(255,236,180,.16)'; ctx.fillRect(x-4, wallTop-9, 9, 3);   // 조명
+      }
     }
     const g = ctx.createLinearGradient(0, wallBottom, 0, VH);
     const near = opt.floor || '#6b5b48', far = opt.floorFar || '#3a3126';

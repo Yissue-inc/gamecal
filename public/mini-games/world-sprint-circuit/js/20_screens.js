@@ -620,7 +620,8 @@ const G = {
       case ST.NATION: this.drawNation(ctx,uctx); break;
       case ST.SHARE:  this.drawShare(ctx,uctx); break;
       case ST.SELECT: this.drawSelect(ctx,uctx); break;
-      case ST.PLAY:   this.event.draw(ctx); this.event.drawUI(uctx); break;
+      case ST.PLAY:   this.event.draw(ctx); this.event.drawUI(uctx);
+                      this.drawTurnBadge(uctx); break;
       case ST.RESULT: this.event.draw(ctx);
         (Party.on? this.drawVersusResult(uctx) : this.drawResult(uctx));
         /* ⛔ 여기 '신기록 띠' 가 y=16~38 에 있었다. 제목(y=30, 20px)과 겹치고,
@@ -913,6 +914,33 @@ const G = {
      ⚠ 시스템은 안 건드린다. Career 가 이미 갖고 있는 값을 **적기만** 한다.
      ⚠ 실패한 판(부정 출발·시간 초과)도 4 CP 를 준다 — 그래서 성공 갈래 밖에 둔다.
         빈손으로 돌려보내지 않는 게 이 줄의 목적이다. */
+  /* ── 턴제 2인 이상: 지금 누구 차례인가 ─────────────────────
+     ⛔ 턴제 종목(멀리뛰기·투척·양궁… 30종 넘는다)에서 **누구 차례인지 화면에 없었다.**
+        `시기 1/3` 은 시기 수지 사람이 아니다. 2인용에서 이건 치명적이다 —
+        누가 키보드를 잡아야 하는지 모른 채 경기가 시작된다.
+     ⚠ 종목마다 넣으면 30곳을 고쳐야 하고 새 종목에서 또 빠진다.
+        **공용 그리기 루프에 한 번만** 얹는다.
+     ⚠ 위쪽은 종목마다 다른 계기판이 쓴다 — 안 겹치도록 화면 **왼쪽 아래**에 둔다
+        (리듬 띠 GAUGE_Y=242 바로 위). */
+  drawTurnBadge(u){
+    if(typeof Party==='undefined' || !Party.on) return;
+    if(Party.modeFor(this.def) !== 'turn') return;
+    const i = Party.turn|0, col = Party.color(i);
+    const keys = PARTY_KEYS[i % PARTY_KEYS.length];
+    const label = 'P'+(i+1), y = Track.GAUGE_Y - 20;
+    /* ⚠ 96px 로 잡았더니 '차례' 와 키 라벨이 맞붙었다('차례A / D · S').
+       키 라벨은 '숫자4 / 6 · 5' 처럼 길어질 수 있어 **글자 폭을 재서** 칸을 잡는다. */
+    u.font = '8px "Galmuri11","Nanum Gothic Coding",monospace';
+    const kw = Math.ceil(u.measureText(keys.label).width);
+    const w = Math.max(104, 58 + kw + 8);
+    plate(u, 6, y, w, 17, 0.86);
+    u.strokeStyle = col; u.lineWidth = 1; u.strokeRect(6.5, y+0.5, w-1, 16);
+    txt(u, label, 12, y+3, 11, col, 'left', 700);
+    /* 키를 같이 적는다 — 2인용은 '내 키가 뭐였지'가 매 차례 생긴다 */
+    txt(u, K('차례'), 34, y+4, 9, PAL.white, 'left');
+    txt(u, keys.label, 6 + w - 4, y+5, 8, PAL.dim, 'right');
+  },
+
   /* ── 결과 화면 아래 칸은 **하나**다. 셋이 시간을 나눠 쓴다 ──────
      ① 신기록 띠(2.6초) → ② 커리어 팝업(뱃지·랭크, 각 2.6초) → ③ 커리어 줄(계속)
      ⚠ 예전엔 셋이 같은 자리에 동시에 그려져 서로를 덮었다. 자리를 늘릴 수는 없으니

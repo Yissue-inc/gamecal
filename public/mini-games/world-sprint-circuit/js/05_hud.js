@@ -89,15 +89,37 @@ const HUD = {
     txt(ctx, ts, 8, ts.length>7?13:12, ts.length>7?12:15, PAL.gold, 'left', 700);
 
     /* ⚠ 'm/s' 는 매 프레임 읽히지 않는 잡음이다 — 숫자만 남긴다 */
-    lab(this.RACE_ICON.speed, '속도', 76, 3);
-    txt(ctx, o.speed.toFixed(1), 76, 13, 11, PAL.white);
+    /* ⚠ 2인 이상이면 이 자리를 사람별 막대가 쓴다. 예전엔 그려 놓고 덮개로 가렸는데
+       덮개가 92% 라 '49 / 100' 이 **막대 뒤로 비쳤다**(실측). 아예 안 그린다. */
+    const multi = o.party && o.party.length > 1;
+    if(!multi){
+      lab(this.RACE_ICON.speed, '속도', 76, 3);
+      txt(ctx, o.speed.toFixed(1), 76, 13, 11, PAL.white);
+      /* 거리도 마찬가지 — '17616 / 42195' 는 11px 로 칸을 넘는다. km 로 줄인다. */
+      lab(this.RACE_ICON.dist, '거리', 150, 3);
+      const dist = o.trackM > 10000
+        ? (o.distM/1000).toFixed(1)+' / '+(o.trackM/1000).toFixed(1)+'km'
+        : o.distM.toFixed(0)+' / '+o.trackM;
+      txt(ctx, dist, 150, 13, 11, PAL.white);
+    }
 
-    /* 거리도 마찬가지 — '17616 / 42195' 는 11px 로 칸을 넘는다. km 로 줄인다. */
-    lab(this.RACE_ICON.dist, '거리', 150, 3);
-    const dist = o.trackM > 10000
-      ? (o.distM/1000).toFixed(1)+' / '+(o.trackM/1000).toFixed(1)+'km'
-      : o.distM.toFixed(0)+' / '+o.trackM;
-    txt(ctx, dist, 150, 13, 11, PAL.white);
+    /* ── 2인 이상: 사람별 진행 ────────────────────────────
+       ⚠ 속도·거리를 한 벌만 보여 주면 **누가 앞선지 알 수 없다.** 카메라가 선두를
+          따라가므로 트랙만 봐서도 헷갈린다. 사람마다 색 막대를 하나씩 준다.
+       ⚠ 위 속도·거리(76~230)를 덮고 그 자리를 쓴다 — 띠는 30px 하나뿐이다. */
+    if(multi){
+      const list=o.party, n=list.length, x0=88, wAll=140;
+      const bh = Math.max(3, Math.floor((24 - (n-1)*2) / n));
+      list.forEach((p,k)=>{
+        const col = (typeof Party!=='undefined') ? Party.color(p.i) : PAL.white;
+        const y = 3 + k*(bh+2);
+        txt(ctx, 'P'+(p.i+1), x0-4, y, 8, col, 'right', 700);
+        ctx.fillStyle='rgba(242,245,250,.16)'; ctx.fillRect(x0, y, wAll, bh);
+        ctx.fillStyle=col;
+        ctx.fillRect(x0, y, Math.round(wAll*clamp((p.distM||0)/(o.trackM||1),0,1)), bh);
+        if(p.done && p.timeS) txt(ctx, fmtTime(p.timeS), x0+wAll+4, y-1, 9, col, 'left', 700);
+      });
+    }
 
     /* ⛔ 기준기록이 **고정 숫자**였다 — 달리는 중엔 아무것도 못 한다.
        "지금 페이스로 통과하나"로 바꾼다. 그건 지금 행동을 바꿀 수 있는 정보다.
@@ -109,8 +131,13 @@ const HUD = {
        오른쪽 블록을 버튼 폭만큼 안으로 물린다. */
     const RX = VW - 30;
     const prog = o.trackM ? o.distM/o.trackM : 0;
-    if(prog >= 0.2 && o.timeS > 0){
-      const proj = o.timeS / prog;
+    /* ⛔ 통과 예측은 **그 사람의 시간**으로 재야 한다. 예전엔 경기 시계(o.timeS)를 썼는데,
+       1인용은 내가 들어오면 경기가 끝나니 같았다. 2인용은 다르다 —
+       먼저 들어온 사람의 칸이 뒤늦게 들어오는 사람을 기다리는 동안 계속 올라가서
+       **9.76초로 기준(11.30)을 통과한 P1 에게 '기준 미달 +3.09' 라고 했다**(실측). */
+    const mt = (o.myTimeS !== undefined && o.myTimeS > 0) ? o.myTimeS : o.timeS;
+    if(prog >= 0.2 && mt > 0){
+      const proj = mt / prog;
       const d = proj - o.qualify;
       const ahead = d <= 0;
       txt(ctx, K(ahead?'통과 페이스':'기준 미달'), RX, 3, 8, ahead?PAL.green:PAL.red, 'right');
@@ -164,6 +191,47 @@ const HUD = {
     const bw=52; ctx.fillStyle='rgba(242,245,250,.14)'; ctx.fillRect(VW-58, GY+14, bw, 6);
     ctx.fillStyle = o.form>0.95?PAL.green:(o.form>0.86?PAL.gold:PAL.red);
     ctx.fillRect(VW-58, GY+14, Math.round(bw*clamp((o.form-RULES.formFloor)/(RULES.formCeil-RULES.formFloor),0,1)), 6);
+  },
+
+  /* ── 2인 이상: 리듬 게이지를 사람 수만큼 ───────────────────
+     ⛔ 시뮬레이션은 두 사람을 제대로 굴리는데 **화면은 통째로 1인용**이었다 —
+        시간·거리·리듬·콤보가 전부 this.player(=P1) 하나에 묶여 있어서
+        2인 대결에서 P2 는 **자기 박자가 맞는지 볼 방법이 없었다.**
+        리듬 게임에서 게이지가 없는 건 조작이 없는 것과 같다.
+     ⚠ 1인용 rhythm() 은 손대지 않는다 — 사람이 둘 이상일 때만 이걸 부른다.
+     ⚠ 띠는 242~270(28px) 하나뿐이라 세로로 못 늘린다. **가로로 나눈다.**
+        2인이면 반씩, 3~4인이면 4등분. 칸이 좁아질수록 글자를 버리고 색만 남긴다. */
+  rhythm2(ctx, list){
+    const GY=Track.GAUGE_Y, GH=Track.GAUGE_H, n=list.length;
+    plate(ctx, 0, GY, VW, GH, 0.82);
+    const pad=4, cw=(VW - pad*(n+1))/n;
+    list.forEach((o,i)=>{
+      const cx = pad + i*(cw+pad);
+      const col = (typeof Party!=='undefined') ? Party.color(i) : PAL.white;
+      /* 누구 칸인지 — 색만으로는 P1/P2 를 못 가른다(둘 다 트랙 위에 있다) */
+      txt(ctx, 'P'+(i+1), cx+2, GY+3, 9, col, 'left', 700);
+      /* 다음 발 — 좁은 칸에서는 화살표만 */
+      const nextL = o.nextSide < 0;
+      txt(ctx, nextL?'◀':'▶', cx+2, GY+14, 11, nextL?PAL.gold:PAL.blue, 'left', 700);
+      /* 게이지 — 1인용과 같은 눈금(완벽·좋음 구간)을 쓴다. 손이 배운 게 그대로 통해야 한다. */
+      const gw = cw-26, gx = cx+22, gy = GY+9, gh=10;
+      ctx.fillStyle='rgba(242,245,250,.14)'; ctx.fillRect(gx,gy,gw,gh);
+      const good = RULES.goodWindowPct*gw, perf = RULES.perfectWindowPct*gw;
+      ctx.fillStyle='rgba(92,255,156,.18)'; ctx.fillRect(gx+gw/2-good/2, gy, good, gh);
+      ctx.fillStyle='rgba(92,255,156,.5)';  ctx.fillRect(gx+gw/2-perf/2, gy, perf, gh);
+      ctx.fillStyle='rgba(92,255,156,.9)';  ctx.fillRect(gx+gw/2, gy-2, 1, gh+4);
+      const px = clamp(gx + gw/2 + o.phaseErr*gw*0.5, gx-2, gx+gw+2);
+      ctx.fillStyle=col; ctx.fillRect(Math.round(px)-1, gy-3, 2, gh+6);
+      /* 폼 — 가는 띠로. 숫자는 안 쓴다(칸이 없다) */
+      ctx.fillStyle='rgba(242,245,250,.14)'; ctx.fillRect(gx, gy+gh+3, gw, 3);
+      ctx.fillStyle = o.form>0.95?PAL.green:(o.form>0.86?PAL.gold:PAL.red);
+      ctx.fillRect(gx, gy+gh+3,
+        Math.round(gw*clamp((o.form-RULES.formFloor)/(RULES.formCeil-RULES.formFloor),0,1)), 3);
+      /* 이미 들어온 사람은 칸을 흐린다 — 아직 뛰는 사람에게 눈이 가야 한다 */
+      if(o.done){ ctx.save(); ctx.globalAlpha=0.55; ctx.fillStyle='#050609';
+                  ctx.fillRect(cx, GY+1, cw, GH-2); ctx.restore();
+                  txt(ctx, o.timeText||'', cx+cw/2, GY+9, 12, col, 'center', 700); }
+    });
   },
 
   /* ── 한 타의 피드백 ──────────────────────────────────────
