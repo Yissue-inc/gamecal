@@ -43,7 +43,10 @@ const Master = {
   get d(){ return (this._d ||= this.load()); },
   setName(n){ this.d.name = String(n||'').slice(0,10); this.save(this.d); },
   setFace(i){ this.d.face = i|0; this.save(this.d); },
-  get name(){ return this.d.name || '이름 없는 감독'; },
+  /* ⚠ 기본값이 '이름 없는 감독' 이었다 — 사무실 목록에서 그대로 읽혀 어색했다
+     (실측: 처음부터 플레이). 이름을 안 지었다는 사실을 말하지 말고, **부를 이름**을 준다.
+     바꾸는 자리는 감독 화면에 그대로 있다. */
+  get name(){ return this.d.name || '신임 감독'; },
 
   /* ── 레벨 ────────────────────────────────────────────────
      커리어 점수(CP)에서 나온다 — 이미 쌓고 있던 값을 재활용한다.

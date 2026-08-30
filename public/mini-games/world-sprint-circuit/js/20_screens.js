@@ -698,8 +698,11 @@ const G = {
       { const im = BG.get(RANK_ICON[Career.rankIdx]);
         if(im){ uctx.drawImage(im, bx, by-14, 18, 18); rx = bx+21; } }
       txt(uctx, R.name, rx, by-11, 11, R.color, 'left', 700);
-      const nc=Career.nextCp;
-      txt(uctx, nc===null ? `CP ${Career.d.cp}` : `CP ${Career.d.cp} / ${nc}`,
+      /* ⚠ 'CP' 가 뭔지 처음 켠 사람은 모른다(실측). 아직 아무것도 안 쌓였을 때만
+         풀어 쓴다 — 한 번이라도 뛰면 약자로 돌아간다(그때는 이미 안다). */
+      const nc=Career.nextCp, cp=Career.d.cp;
+      const lab = cp===0 ? K('커리어 점수') : 'CP';
+      txt(uctx, nc===null ? `${lab} ${cp}` : `${lab} ${cp} / ${nc}`,
           bx+bw, by-11, 9, PAL.dim, 'right');
       uctx.fillStyle='rgba(255,255,255,.12)'; uctx.fillRect(bx,by,bw,5);
       uctx.fillStyle=R.color; uctx.fillRect(bx,by,Math.round(bw*pr),5);

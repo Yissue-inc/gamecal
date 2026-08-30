@@ -224,10 +224,16 @@ class RowingEvent {
                   distM:this.dist, trackM:this.trackM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });
     /* 일정함 — 이 종목의 핵심 지표 */
+    /* ⛔ 물 위에 어두운 글씨·가는 막대라 안 읽혔다(실측 스크린샷).
+       이 종목의 **전부**가 이 값인데 제일 안 보였다 — 받침을 깔고 상태를 말로 붙인다. */
     const bw=120, bx=VW/2-bw/2, by=VH-26;
-    txt(u,'일정함', VW/2, by-12, 9, PAL.dim,'center');
-    u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,8);
-    u.fillStyle = this.smooth>0.75?PAL.green:this.smooth>0.5?PAL.gold:PAL.red;
+    plate(u, bx-8, by-15, bw+16, 27, 0.74);
+    const sc = this.smooth>0.75?PAL.green:this.smooth>0.5?PAL.gold:PAL.red;
+    txt(u,'일정함', bx, by-12, 9, PAL.dim,'left');
+    txt(u, this.smooth>0.75?'좋다':this.smooth>0.5?'흔들린다':'들쭉날쭉',
+        bx+bw, by-12, 9, sc, 'right', 700);
+    u.fillStyle='rgba(255,255,255,.18)'; u.fillRect(bx,by,bw,8);
+    u.fillStyle = sc;
     u.fillRect(bx,by,Math.round(bw*this.smooth),8);
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
     else if(this.strokes<3) txt(u,'좌·우를 천천히 고르게 — 간격을 일정하게', VW/2, VH-42, 10, PAL.white,'center');

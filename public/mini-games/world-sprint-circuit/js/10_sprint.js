@@ -317,10 +317,19 @@ class SprintEvent {
     });
 
     if(this.phase==='SET'){
-      const left = Math.max(0, this.gunMs - this.t);
-      plate(uctx, VW/2-70, VH/2-24, 140, 40, 0.7);
-      txt(uctx, '제자리에', VW/2, VH/2-18, 15, PAL.gold, 'center', 700);
-      txt(uctx, '총성을 기다리세요', VW/2, VH/2, 10, PAL.dim, 'center');
+      /* ⛔ 총성까지 **얼마나 기다리는지 아무 신호가 없었다.** 부정 출발 위험만 있고
+         준비할 방법이 없다(실측: 처음부터 플레이).
+         ⚠ 총성 시각은 1400~3000ms **일부러 무작위**다 — 미리 못 누르게 하려고.
+            그래서 남은 시간을 보여 주면 안 된다. 대신 이미 나고 있는 **신호음 3번**을
+            눈으로도 보여 준다 — 구조(셋 다음에 총성)를 알려 주되 순간은 안 알려 준다. */
+      plate(uctx, VW/2-70, VH/2-28, 140, 48, 0.7);
+      txt(uctx, '제자리에', VW/2, VH/2-22, 15, PAL.gold, 'center', 700);
+      txt(uctx, '총성을 기다리세요', VW/2, VH/2-4, 10, PAL.dim, 'center');
+      for(let k=0;k<3;k++){
+        const lit = k < (this.setBeeps|0);
+        uctx.fillStyle = lit ? PAL.gold : 'rgba(242,245,250,.20)';
+        uctx.fillRect(VW/2-14+k*11, VH/2+11, 7, 4);
+      }
     } else if(this.phase==='RUN'){
       const now=this.t;
       const target=this.player.targetIntervalMs();

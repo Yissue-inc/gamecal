@@ -105,9 +105,18 @@ class GrowPickScreen extends Screen0 {
       const tx = x + face*1.35;
       /* ⚠ 영어 이름(PIOTR ANDERSEN)이 카드를 넘어 옆 카드까지 침범했다.
          카드 안에서만 그리도록 자른다 — 잘린 건 상세 화면에 다 있다. */
-      u.save(); u.beginPath(); u.rect(x+2, y+2, cw-4, ch-4); u.clip();
-      txt(u, a.name, tx, y+15, 10, on?PAL.gold:PAL.white, 'left', on?700:400);
-      u.restore();
+      /* ⛔ 긴 영어 이름이 카드에서 **툭 잘렸다**('LIAM WALK…'). 자르면 누구인지 모른다.
+         칸에 맞춰 **글자를 줄인다** — 8px 까지는 읽힌다. 그보다 길면 그때 자른다. */
+      { const room = cw - (tx - x) - 4;
+        let fs = 10;
+        u.font = `${on?700:400} ${fs}px "Galmuri11","Nanum Gothic Coding",monospace`;
+        while(fs > 7 && u.measureText(a.name).width > room){
+          fs -= 1;
+          u.font = `${on?700:400} ${fs}px "Galmuri11","Nanum Gothic Coding",monospace`;
+        }
+        u.save(); u.beginPath(); u.rect(x+2, y+2, cw-4, ch-4); u.clip();
+        txt(u, a.name, tx, y+15+(10-fs)*0.5, fs, on?PAL.gold:PAL.white, 'left', on?700:400);
+        u.restore(); }
       /* ⛔ 챕터 8 — 이 화면은 **누구를 키울까**를 고르는 곳이다. 그렇다면 필요한 건
          '지금 얼마나 세냐(OVR)'가 아니라 **얼마나 더 클 수 있나** 다.
          라벨 'OVR' 도 뺀다 — 카드 한 장에 신호가 아홉 개다(이름·레벨·얼굴·경험치
@@ -142,7 +151,18 @@ class GrowPickScreen extends Screen0 {
         txt(u, aptIcon ? ap.key : K(STAT_NAME[t2.k]||t2.k).slice(0,2)+ap.key,
             ix + (aptIcon?11:0), y+37, 8, ap.color, 'left', 700);
       });
-      UIK.xpBar(u, tx, y+ch-17, cw-(tx-x)-6, a.lv, a.xp, RPG.xpToNext(a.lv), {showText:false});
+      /* ⚠ 1년차엔 경험치가 전부 0이라 **빈 막대 열 개**가 같은 그림이었다.
+         아직 아무도 안 뛰었으면 막대 대신 '잠재치까지 얼마나 남았나'를 그린다 —
+         그건 첫 시즌에 실제로 다른 값이고, 누구를 키울지 고르는 데 쓸모가 있다. */
+      { const bw2 = cw-(tx-x)-6, by2 = y+ch-17;
+        const anyXp = (a.xp|0) > 0 || (a.lv|0) > 1;
+        if(anyXp) UIK.xpBar(u, tx, by2, bw2, a.lv, a.xp, RPG.xpToNext(a.lv), {showText:false});
+        else {
+          const room = clamp((a.potOverall - a.overall) / 60, 0, 1);
+          u.fillStyle='rgba(6,9,16,.85)'; u.fillRect(tx, by2, bw2, 7);
+          u.fillStyle='rgba(90,170,255,.55)';
+          u.fillRect(tx+1, by2+1, Math.round((bw2-2)*room), 5);
+        } }
       /* 포인트 있으면 눈에 띄게 — 할 일이 있는 카드 */
       if(a.tp>0){
         u.fillStyle=PAL.gold; u.fillRect(x+cw-15, y+ch-13, 12, 10);
