@@ -55,7 +55,13 @@ class FencingEvent {
     FencingEvent.proxy(this);
     this.resetUntil=-1e9; this.flash=0; this.result=null; this.doneAt=0;
     this.lastTouch=''; this.lastTouchAt=-1e9;
-    this.aiSkill = AI.skill(0.62 + Math.random()*0.10);
+    /* ⛔ 여기엔 AI 난이도를 걸지 않는다 (2026-08-30 실측으로 되돌림).
+       듀얼은 **상대가 곧 종목**이라, 상대를 바꾸면 내 '기록'(이긴 시간)이 함께 바뀐다.
+       실측 — 유도 쉬움 9.08s → 어려움 15.72s(**73% 차이**) ·
+              탁구 쉬움 65~74s(무조건 금) → 어려움 204~224s(**11:0 으로 이겨도 기준 미달**).
+       난이도로 금을 살 수 있고, 어려움에선 이기고도 실패한다 — 둘 다 규칙 위반이다.
+       난이도가 바꾸는 것은 '누구와 **나란히** 뛰는가' 뿐이다. 맞붙는 종목엔 안 닿는다. */
+    this.aiSkill = 0.62 + Math.random()*0.10;
   }
   get people(){ return this.fencers; }
   get qualify(){ return this.def.qualify; }

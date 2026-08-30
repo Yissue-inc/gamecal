@@ -52,7 +52,10 @@ class TableTennisEvent {
     this.rally=0; this.bestRally=0; this.lastCourt=0;
     this.serveAt=0; this.result=null; this.doneAt=0; this.flash=0;
     this.lastPoint=''; this.lastPointAt=-1e9;
-    this.aiSkill=AI.skill(0.66+Math.random()*0.10);
+    /* ⛔ 듀얼에는 AI 난이도를 안 건다 — 여기선 피해가 가장 컸다.
+       실측: 쉬움 65~74s(전부 금) · 보통 93~112s · 어려움 204~224s —
+       **11:0 으로 이겨도 기준(140s)을 넘겨 실패**했다. 이유는 1F_fencing.js 같은 자리에. */
+    this.aiSkill=0.66+Math.random()*0.10;
     this.startServe(0);
   }
   get people(){ return this.players; }

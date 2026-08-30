@@ -58,7 +58,9 @@ class JudoEvent {
     this.throwAt=-1e9; this.thrower=null; this.resetUntil=-1e9;
     this.result=null; this.doneAt=0; this.flash=0;
     this.lastCall=''; this.lastCallAt=-1e9;
-    this.aiSkill=AI.skill(0.60+Math.random()*0.12);
+    /* ⛔ 듀얼에는 AI 난이도를 안 건다 — 상대를 바꾸면 내 기록(이긴 시간)이 바뀐다.
+       실측: 쉬움 9.08s → 어려움 15.72s. 자세한 이유는 1F_fencing.js 같은 자리에. */
+    this.aiSkill=0.60+Math.random()*0.12;
     this.aiNext=0;
   }
   get people(){ return this.fighters; }
