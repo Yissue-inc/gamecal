@@ -940,6 +940,11 @@ const I18N_EN = {
   '장애물':'Barriers', '허들':'Hurdles',
   /* 캐릭터 모드 — 경기 직전 종목 선택에서 고른다 */
   '캐릭터':'Character', 'HD 그림':'HD art', '픽셀':'Pixel',
+  /* 실패 이유 — 화면이 이미 아는 것을 말해 준다 */
+  '좌·우를 번갈아 두드려야 앞으로 갑니다':'Alternate ◀ ▶ to move forward',
+  '박자는 정확합니다 — 더 빠른 박자로 두드려 보세요':'Your timing is good — try a faster beat',
+  '처음이라면':'New here?', '전설 선수로 한 판 · 최고 선수단으로 한 주':'One race as a legend, one week as a top manager',
+  'P 건너뛰기':'P to skip',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
 };

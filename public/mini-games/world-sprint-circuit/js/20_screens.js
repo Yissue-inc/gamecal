@@ -834,7 +834,9 @@ const G = {
     const p = ev.player || (ev.runners && ev.runners[0]);
     const j = p && p.judge; if(!j) return null;
     const total = (j.PERFECT|0)+(j.GOOD|0)+(j.EARLY|0)+(j.LATE|0)+(j.REPEAT|0)+(j.SPAM|0);
-    if(total < 6) return null;
+    /* ⛔ 거의 안 두드린 판에도 아무 말이 없었다 — 처음 켠 사람이 딱 그렇게 한다.
+       (조작을 모르면 화면만 보고 있게 된다) */
+    if(total < 6) return '좌·우를 번갈아 두드려야 앞으로 갑니다';
     if((j.SPAM|0) > total*0.15)   return '연타는 오히려 느려집니다 — 리듬을 맞추세요';
     if((j.REPEAT|0) > total*0.15) return '같은 쪽을 연달아 눌렀습니다 — 좌·우를 번갈아';
     const early=j.EARLY|0, late=j.LATE|0, good=(j.PERFECT|0)+(j.GOOD|0);
@@ -842,7 +844,14 @@ const G = {
       return '너무 빨리 두드렸습니다 — 아래 게이지의 초록 칸에 맞추세요';
     if(late > total*0.4 && late > early*2)
       return '조금씩 늦습니다 — 게이지보다 살짝 먼저 누르세요';
-    if(good > total*0.7) return null;      // 잘하고 있다 — 잔소리 금지
+    /* ⛔ **잘 쳤는데 시간이 초과되는 판**에 아무 말도 안 했다(good>70% 라 null).
+       실측: 박자를 정확히 지켜도 간격이 느리면 완주를 못 한다. 그때 필요한 조언은
+       '정확도'가 아니라 **박자 속도**다 — 다른 말을 해야 한다. */
+    if(good > total*0.7){
+      const prog = (p.trackM ? (p.distM||0)/p.trackM : 1);
+      if(prog < 0.98) return '박자는 정확합니다 — 더 빠른 박자로 두드려 보세요';
+      return null;                         // 잘하고 있다 — 잔소리 금지
+    }
     return '아래 게이지의 초록 칸에서 두드리면 빨라집니다';
   },
 

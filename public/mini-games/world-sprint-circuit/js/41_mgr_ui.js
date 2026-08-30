@@ -182,10 +182,25 @@ const UI = {
       if(r.right2) txt(u, r.right2,x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
     }
     if(rows.length > maxRows){
-      const th = Math.max(8, (maxRows/rows.length)*(rowH*maxRows));
-      const tp = (first/Math.max(1,rows.length-maxRows))*(rowH*maxRows - th);
-      u.fillStyle='rgba(255,255,255,.10)'; u.fillRect(x+w-2, y, 2, rowH*maxRows);
-      u.fillStyle='rgba(255,215,94,.6)';  u.fillRect(x+w-2, y+tp, 2, th);
+      /* ⚠ 막대는 **어디쯤인지**만 말한다. 처음 켠 사람에게 필요한 건
+         "아래에 더 있다"는 사실이다 — 2px 60% 막대는 눈에 안 걸린다(실측: 못 봤다).
+         남은 줄 수를 숫자로 적는다. 위에도 가려진 줄이 있으면 위에도 적는다. */
+      const H = rowH*maxRows;
+      const th = Math.max(8, (maxRows/rows.length)*H);
+      const tp = (first/Math.max(1,rows.length-maxRows))*(H - th);
+      u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(x+w-3, y, 3, H);
+      u.fillStyle='rgba(255,215,94,.85)';  u.fillRect(x+w-3, y+tp, 3, th);
+      /* ⚠ 오른쪽 끝은 줄의 보조값(right2: '보통' 등)이 이미 쓴다 — 겹쳐 읽혔다.
+         작은 받침을 깔아 띄운다. 막대 왼쪽에 붙여 스크롤과 한 덩어리로 읽히게. */
+      const tag = (s2, ty, c) => {
+        u.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
+        const tw = Math.ceil(u.measureText(s2).width) + 6;
+        plate(u, x+w-5-tw, ty-1, tw, 11, 0.82);
+        txt(u, s2, x+w-6, ty, 8, c, 'right', 700);
+      };
+      const below = rows.length - (first + maxRows);
+      if(below > 0) tag('▾ '+below, y+H-11, PAL.gold);
+      if(first > 0) tag('▴ '+first, y+1,    PAL.dim);
     }
     return first;
   },
@@ -736,6 +751,10 @@ class SquadScreen extends Screen0 {
   draw(u){
     const v = this.view(), S = SquadScreen.SORTS[this.sortI||0];
     UI.header(u,'선수단',`${v.length}명`);
+    /* ⛔ 오른쪽 큰 숫자(4,346)가 **뭔지 라벨이 없었다.** 처음 보면 알 수 없다.
+       사무실 지표와 같은 규칙 — **첫 시즌에만** 이름을 달고 그 뒤엔 조용해진다. */
+    if(this.mg.season && this.mg.season.year <= 1)
+      txt(u, K('경기력'), VW-16, 17, 8, PAL.dim, 'right');
     /* 지금 무슨 기준으로 줄 세웠나 — 안 보이면 왜 순서가 바뀌었는지 모른다 */
     /* 정렬 표시 — 아이콘이 오면 '◀ ▶' 화살표 앞에 놓아 무슨 줄인지 분명히 한다 */
     UI.picker(u, 'ic-sort', K(S.k), !!(this.sortI||0), 17);
