@@ -58,11 +58,14 @@ class ClimbEvent {
     ClimbEvent.proxy(this);
     this.result=null; this.doneAt=0; this.flash=0; this.graceAt=undefined;
     /* 상대 — 실제 스피드 클라이밍처럼 옆 벽에 한 명 */
-    const parS = this.def.parS || this.def.qualify;
+    /* ⚠ 라이벌 기준은 메달 기준(parS)과 다른 값이다 — 실측 사람 최선 4.64s.
+       parS(5.20) 로 잡으면 어려움이 13% 헐거워진다. */
+    const parS = this.def.rivalPar || this.def.parS || this.def.qualify;
     this.rivals=[];
     for(let i=0;i<Math.max(1, 3-humans);i++)
       this.rivals.push({ lane:humans+i, h:0, done:false,
-        rate: CLIMB.wallM/(parS*AI.pace(1.00+i*0.10+Math.random()*0.05)) });
+        /* 난이도는 사람 기록 대비 배수로 준다(중거리·단거리와 같은 규칙) */
+        rate: CLIMB.wallM/(parS*AI.parRatio()*(1+i*0.06+Math.random()*0.02)) });
   }
   get people(){ return this.climbers; }
   get qualify(){ return this.def.qualify; }
@@ -164,7 +167,7 @@ class ClimbEvent {
     const leadIn = this.climbers.some(c=>c.finished);
     if(leadIn && this.graceAt===undefined) this.graceAt=this.t;
     if(this.climbers.every(c=>c.finished||c.fell)) this.finish();
-    else if((leadIn && this.t-this.graceAt>4000) || this.elapsed > this.qualify*3.5){
+    else if((leadIn && this.t-this.graceAt>4000) || this.elapsed > this.qualify+timeGrace(this.qualify*2.5)){
       for(const c of this.climbers) if(!c.finished){ c.finished=true; c.timedOut=true; }
       this.finish();
     }

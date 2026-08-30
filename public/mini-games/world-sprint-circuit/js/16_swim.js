@@ -194,7 +194,7 @@ class SwimEvent {
         pass?Sfx.finish():Sfx.fail();
       }
       for(const rv of this.rivals) rv.dist += rv.target*dt;
-      if(this.elapsed > this.qualify+20){   // 기준을 조였으니 종료 여유는 늘린다
+      if(this.elapsed > this.qualify+timeGrace(20)){   // 기준을 조였으니 종료 여유는 늘린다
         this.phase='DONE'; this.doneAt=now;
         this.result={status:'TIMEOUT', value:DNF, rank:3}; Sfx.fail();
       }

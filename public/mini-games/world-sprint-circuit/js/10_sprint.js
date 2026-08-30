@@ -50,15 +50,18 @@ class SprintEvent {
       const nRiv  = lanes - humans;
       const ratio = ((typeof AI!=='undefined') ? AI.parRatio() : 1.045)
                     * (1 + (nRiv-1-(i-humans))*0.05 + Math.random()*0.02);
-      const skill = (typeof PaceSkill!=='undefined') ? PaceSkill.skillFor(ratio, this.trackM)
-                                                     : 0.55 + (i-humans)*0.05;
+      const made  = (typeof PaceSkill!=='undefined') ? PaceSkill.rivalFor(ratio, this.trackM)
+                                                     : { skill:0.55+(i-humans)*0.05, jitter:40 };
+      const skill = made.skill;
       const r = new Runner(i, { speed:45+skill*45, acceleration:45+skill*40,
         stamina:50, technique:50, rhythm:50 }, false, this.trackM);
       r.reset(this.gunMs); r.name = AI_NAMES[(Math.random()*AI_NAMES.length)|0];
       /* ⛔ 예전엔 여기에 AI.jitter 를 또 걸었다 — 난이도가 **두 번** 들어가
          어려움 라이벌이 목표보다 0.3초 빨랐고(9.34s vs 목표 9.65s) 1위 확률이 0% 였다.
          난이도는 위의 배수 하나로 끝난다. 손떨림은 실력에서만 나온다. */
-      r.aiJitter = (1-skill)*90; r.aiNext = 0; r.aiSide = 1;
+      /* ⛔ 손떨림도 라이벌 설계의 일부다 — 쉬움(아이용)은 실력 바닥에 닿아
+         **손떨림으로만** 더 느려질 수 있다(0E_paceskill.rivalFor). */
+      r.aiJitter = made.jitter; r.aiNext = 0; r.aiSide = 1;
       this.rivals.push(r);
     }
     this.all = [...this.humans, ...this.rivals];
@@ -156,7 +159,7 @@ class SprintEvent {
         this.isPhoto = times.length>=2 && (times[1]-times[0]) <= 0.05;
         if(this.isPB || this.isPhoto) this.fxAt = now;
         passed ? Sfx.finish() : Sfx.fail();
-      } else if(this.elapsed > this.qualify + Math.max(8, this.qualify*0.5)){
+      } else if(this.elapsed > this.qualify + timeGrace(Math.max(8, this.qualify*0.5))){
         // 기준기록을 크게 넘기면 경기 종료 — 무한정 끌지 않는다
         this.phase='DONE'; this.doneAt=now;
         this.result = { status:'TIMEOUT', value:DNF, rank:3 };

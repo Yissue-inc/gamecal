@@ -225,7 +225,15 @@ const G = {
     if(ev.phase==='DONE' && now - ev.doneAt > 1100){
       // 기록 갱신 확인
       const r=ev.result;
-      if(r.status==='OK'){
+      /* ⛔ 쉬움은 **아이가 하는 모드**다(CK 2026-08-30).
+         예전엔 `status==='OK'` 일 때만 기록을 남겼다 — 기준(100m 11.30s)을 못 넘는 아이는
+         뛸 때마다 '기준기록 미달' 만 보고 **아무것도 안 쌓였다.** 매 판이 실패였다.
+         쉬움에서는 기준을 못 넘어도 **자기 기록으로 남긴다** — 아이가 겨루는 상대는 어제의 자기다.
+         ⛔ 메달은 손대지 않는다 — 값으로만 계산되므로 느린 기록엔 여전히 메달이 없다.
+            난이도로 메달을 살 수 없다는 규칙은 그대로다. */
+      const easyPractice = (typeof AI!=='undefined' && AI.level==='easy'
+                            && r.status==='MISSED_QUALIFY' && r.value>0 && r.value<99999);
+      if(r.status==='OK' || easyPractice){
         /* 일일 도전(4B_daily) — 아케이드에서 그냥 뛰어도 오늘 종목이면 담긴다.
            ⚠ 따로 '일일 도전 모드'에서만 인정하면 같은 경기를 두 번 뛰게 된다. */
         if(typeof Daily!=='undefined' && Daily.pending(this.def.id))
@@ -242,7 +250,7 @@ const G = {
         this.newRecord=false;
         if(typeof Daily!=='undefined' && Daily.pending(this.def.id))
           Daily.record(this.def.id, r.value, r.status);
-        if(r.status!=='OK') Sfx.gasp();
+        if(r.status!=='OK') Sfx.gasp();   /* easyPractice 는 위 갈래로 빠져 여기 안 온다 */
       }
       /* 턴제 — 아직 남은 사람이 있으면 같은 종목을 다음 사람으로 다시 시작한다 */
       if(Party.on && Party.modeFor(this.def)==='turn'){
@@ -904,7 +912,11 @@ const G = {
   drawResult(uctx){
     const ev=this.event, r=ev.result, d=this.def;
     uctx.fillStyle='rgba(5,6,10,.82)'; uctx.fillRect(0,0,VW,VH);
-    const title = RESULT_TITLE[r.status] || r.status;
+    /* ⚠ 쉬움(아이용)에서 기준 미달은 '실패'가 아니라 한 판을 끝낸 것이다 — 기록으로 말한다 */
+    const title = (typeof AI!=='undefined' && AI.level==='easy' && r.status==='MISSED_QUALIFY'
+                   && r.value>0 && r.value<99999)
+      ? (this.newRecord ? '내 최고 기록!' : '완주')
+      : (RESULT_TITLE[r.status] || r.status);
     const col   = r.status==='OK' ? PAL.green : PAL.red;
     txt(uctx, title, VW/2, 30, 20, col,'center',700);
     txt(uctx, d.name, VW/2, 56, 12, PAL.dim,'center');
@@ -1006,8 +1018,25 @@ const G = {
         }
       }
       else if(r.status==='MISSED_QUALIFY'){
-        const why = this.diagnose(ev);
-        if(why) txt(uctx, why, VW/2, 168, 11, PAL.gold,'center');
+        /* ⚠ 쉬움(아이용)에서는 '왜 미달인가' 대신 **내 기록과 얼마나 가까운가**를 말한다.
+           아이가 겨루는 상대는 라이벌이 아니라 어제의 자기다. */
+        const easyKid = (typeof AI!=='undefined' && AI.level==='easy'
+                         && r.value>0 && r.value<99999);
+        if(easyKid){
+          const d2 = this.def, b = (Save.data.best||{})[d2.id];
+          if(this.newRecord){
+            txt(uctx, K('내 최고 기록을 깼다!'), VW/2, 166, 13, PAL.gold,'center',700);
+          } else if(b!==undefined){
+            const gap = Math.abs(r.value - b);
+            txt(uctx, K('내 최고 %1').replace('%1', fmtRec(d2,b)+(d2.unit==='s'?K('초'):'')),
+                VW/2, 164, 11, PAL.white,'center');
+            txt(uctx, K('%1 만 줄이면 최고 기록').replace('%1', fmtRec(d2,gap)+(d2.unit==='s'?K('초'):'')),
+                VW/2, 177, 10, PAL.gold,'center');
+          }
+        } else {
+          const why = this.diagnose(ev);
+          if(why) txt(uctx, why, VW/2, 168, 11, PAL.gold,'center');
+        }
       }
     }
     this.drawCareerLine(uctx);

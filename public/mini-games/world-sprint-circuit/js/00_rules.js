@@ -155,6 +155,14 @@ function medalOf(def, v){
   if(better(v, c.silver)) return 'silver';
   return 'bronze';
 }
+/* 완주 제한 시간의 여유 — 쉬움(아이용)은 넉넉히 준다 (CK 2026-08-30).
+   ⛔ 아이가 마구 누르면(±220ms) 느린 기록이 나오는 게 아니라 **완주 자체를 못 했다**
+      (실측: 100m 세 판 전부 시간 초과). 아이 모드에서 '시간 초과' 는 배울 게 없는 실패다.
+   ⚠ 기록·메달은 손대지 않는다 — 늦게 들어와도 그 기록은 그대로 느린 기록이다. */
+function timeGrace(base){
+  return (typeof AI!=='undefined' && AI.level==='easy') ? base*3 + 30 : base;
+}
+
 const MEDAL_COLOR = { gold:'#ffd75e', silver:'#cfd6e8', bronze:'#d08a4a' };
 const MEDAL_MARK  = { gold:'金', silver:'銀', bronze:'銅' };
 
@@ -230,7 +238,7 @@ const EVENTS = [
   /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
   { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:52.0, kind:'tramp', tip:'매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다' },
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
-  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:6.30, parS:5.20, kind:'climb', tip:'좌·우를 고르게 — 정확하면 빨라진다 · 액션 = 도약 1회' },
+  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:6.30, parS:5.20, rivalPar:4.65, kind:'climb', tip:'좌·우를 고르게 — 정확하면 빨라진다 · 액션 = 도약 1회' },
   /* 펜싱 — 이 게임에서 유일하게 '리듬'이 아니라 '거리'가 축인 종목. 5투셰 선취까지의 시간. */
   { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, parS:42.0, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
   /* 10종 경기 — 새 물리가 아니라 **그릇**이다. 있는 열 종목을 이어 뛰고 IAAF 표로 합산한다. */

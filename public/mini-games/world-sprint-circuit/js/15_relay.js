@@ -177,7 +177,7 @@ class RelayEvent extends SprintEvent {
         rv.speed += (rv.target - rv.speed)*Math.min(1, dt*1.6);
         rv.dist += rv.speed*dt*this.scale;
       }
-      if(this.elapsed > this.qualify + 14){
+      if(this.elapsed > this.qualify + timeGrace(14)){
         this.phase='DONE'; this.doneAt=now;
         this.result={ status:'TIMEOUT', value:DNF, rank:3 }; Sfx.fail();
       }

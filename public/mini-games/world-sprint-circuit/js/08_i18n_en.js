@@ -956,4 +956,10 @@ const I18N_EN = {
   'AI 난이도':'Rivals', '쉬움':'Easy', '보통':'Normal', '어려움':'Hard',
   '◀ 등록순 ▶':'◀ Default ▶', '◀ 나이 ▶':'◀ Age ▶',
   '◀▶ 정렬 · 확인 상세 · 취소 돌아가기':'◀▶ Sort · Confirm Detail · Cancel Back',
+  /* 쉬움(아이용) — 기준을 못 넘어도 내 기록으로 말한다 */
+  '내 최고 기록을 깼다!':'New personal best!',
+  '내 최고 %1':'Your best %1',
+  '%1 만 줄이면 최고 기록':'%1 off your best',
+  '내 최고 기록!':'Personal best!',
+  '완주':'Finished',
 };

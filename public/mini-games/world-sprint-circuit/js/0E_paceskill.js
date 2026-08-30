@@ -61,6 +61,23 @@ const PaceSkill = {
     return 0.55;
   },
 
+  /* 라이벌 한 명을 통째로 만든다 — 실력값 **과 손떨림**.
+     ⛔ 실력에는 바닥이 있다. 실측: 실력 0 으로 내려도 100m 가 14.9s 다.
+        그런데 아이(±150ms)는 16.5s 로 뛴다 — 실력만으로는 **아이보다 느려질 수 없다.**
+        그 아래는 손떨림으로 연다: 실력 0.30 에서 손떨림 90→14.4s · 200→18.3s · 280→21.1s.
+     ⚠ 쉬움(아이용)이 이 갈래를 쓴다. 보통·어려움은 표 안에 있어 예전과 같다. */
+  rivalFor(ratio, distM){
+    const T = this.rowsFor(distM || 100);
+    const maxR = T[T.length-1][0];
+    if(ratio <= maxR){
+      const sk = this.skillFor(ratio, distM);
+      return { skill: sk, jitter: (1-sk)*90 };
+    }
+    const sk = T[T.length-1][1];
+    const over = ratio / maxR;
+    return { skill: sk, jitter: clamp(90 + (over-1)*330, 90, 420) };
+  },
+
   /* ⚠ 표가 살아 있는 Runner 와 어긋나면 밸런스가 조용히 무너진다.
      부팅 때 세 점만 싸게 대조한다(각 8회 · 100m). 3% 넘게 벌어지면 경고. */
   verify(){

@@ -88,7 +88,12 @@ class MiddleEvent {
        최고속에서 뽑던 시절엔 라이벌이 플레이어 상한보다 빨라 **모든 플레이가 3위**였다. */
     const parS = this.def.parS || this.def.qualify;
     for(let i=humans;i<lanes;i++){
-      const k = AI.pace(1.00 + (i-humans)*0.085 + Math.random()*0.035);   // parS 대비 · 난이도 반영
+      /* ⛔ 예전엔 AI.pace(실력폭 비례) 를 썼다 — 시간으로 ±17.5% 를 움직인다.
+         그런데 사람의 성능 띠는 그보다 훨씬 좁다. 실측(800m): 사람 최선 127.3s 인데
+         어려움 라이벌이 110.4s 로 **13% 빨라 이길 수 없었고**, 쉬움은 151.8s 로 너무 헐거웠다.
+         단거리와 같은 종류의 사고다 → 사람 기록 대비 배수(AI.parRatio)로 옮긴다.
+         ⚠ 여기선 parS 가 실측과 잘 맞는다(800m parS 127.0 · 사람 최선 127.3). */
+      const k = AI.parRatio() * (1 + (i-humans)*0.05 + Math.random()*0.02);
       this.rivals.push({ lane:i, dist:0, sk:0.86+(i-humans)*0.06,
         base: this.trackM/(parS*k),
         kickAt: 0.62+Math.random()*0.26, kicked:false });
@@ -211,7 +216,7 @@ class MiddleEvent {
     const leadIn = this.runners.some(r=>r.finished);
     if(leadIn && this.graceAt===undefined) this.graceAt=this.t;
     if(this.runners.every(r=>r.finished)) this.finish();
-    else if((leadIn && this.t-this.graceAt > MID.graceMs) || this.elapsed > this.qualify*1.7){
+    else if((leadIn && this.t-this.graceAt > MID.graceMs) || this.elapsed > this.qualify+timeGrace(this.qualify*0.7)){
       for(const r of this.runners) if(!r.finished){ r.finished=true; r.timedOut=true; }
       this.finish();
     }

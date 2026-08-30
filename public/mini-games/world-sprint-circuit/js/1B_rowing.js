@@ -123,7 +123,7 @@ class RowingEvent {
         this.result={status:pass?'OK':'MISSED_QUALIFY', value:total, rank:this.rankOf()};
         pass?Sfx.finish():Sfx.fail();
       }
-      if(this.elapsed > this.qualify+30){
+      if(this.elapsed > this.qualify+timeGrace(30)){
         this.phase='DONE'; this.doneAt=now;
         this.result={status:'TIMEOUT', value:DNF, rank:3}; Sfx.fail();
       }
