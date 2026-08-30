@@ -176,6 +176,15 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⚠ 기준 셋을 실측으로 다시 잡았다(2026-08-30) — 봇으로 48종목을 전수로 돌려 찾았다.
+     ⛔ 평영 100m  50 → 56 : **흠 없이 저어도 52.36s** 라 기준 통과가 불가능했다
+        (완벽한 스트로크 135번 · 다른 영법은 자유형 8%·배영 8%·접영 7% 여유인데 평영만 음수)
+     ⛔ 원반던지기 48 → 59 : 파울만 안 하면 **70.3m** 가 나온다(금컷이 54.8m 였다 — 그냥 금)
+     ⛔ 해머던지기 48 → 56 : 같은 이유로 **66.3m**
+     ⚠ 두 투척은 성공한 판이 전부 같은 값이었다 — 힘을 끝까지 채우면 닿는 **천장**이다.
+        금컷을 그 천장의 96% 에 놓았다(원반 67.3m · 해머 63.9m) — 파울 안 내고 힘을 다 채워야 금.
+     ⚠ 값은 '봇이 낸 최선' 위에 얹었다. 수영 세 영법에서 봇은 은컷 언저리였다 —
+        평영도 같은 자리에 오도록 56 을 골랐다(은 52.08 · 봇 52.36). */
 /* ⚠ 기준 기록(qualify)은 실측으로 다시 잡았다(2026-08-27).
    예전 값은 실제 주파 기록의 2배 가까이 느슨해서 **실력과 무관하게 100% 통과**했다
    (100m: 사람이 10.3초를 뛰는데 기준이 13.6초, 수영 자유형은 40초에 기준 80초).
@@ -217,13 +226,13 @@ const EVENTS = [
   { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump', tip:'액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다' },
   /* ── 필드: 투척 ── */
   { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:15.50, kind:'throw', tip:'액션을 눌러 힘을 모으고 가득 찼을 때 놓는다' },
-  { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:48.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
+  { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:59.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
   { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션 · 릴리스 각도가 45°에 가까울수록 멀리 간다' },
-  { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:48.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 회전이 많을수록 멀리 가지만 놓치기 쉽다' },
+  { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 회전이 많을수록 멀리 가지만 놓치기 쉽다' },
   /* ── 수영 ── */
   { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
   { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, kind:'swim', stroke:'back', tip:'배영 · 숨은 자유롭지만 벽이 안 보인다'  },
-  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:50.0, distanceM:100, kind:'swim', stroke:'breast', tip:'평영 · 느리지만 리듬 창이 넓다'},
+  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, kind:'swim', stroke:'breast', tip:'평영 · 느리지만 리듬 창이 넓다'},
   { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, kind:'swim', stroke:'fly', tip:'접영 · 가장 빠르게 지치니 호흡을 놓치지 말 것'   },
   /* 다이빙 — 이 게임 유일의 '점수' 종목. 3시기 중 최고점. */
   { id:'diving',       name:'다이빙',       short:'DIVE',  unit:'점', higher:true,  qualify:60.0, kind:'dive', tip:'좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다' },
