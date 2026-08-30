@@ -79,15 +79,18 @@ const CharPix = {
      한눈에 보이는 것부터 바꾼다 — 덩치·팔다리 굵기·머리 크기·다리 길이·자세.
        wide  몸통 폭 배수      limb 팔다리 굵기(칸)
        headW/headH 머리 크기   legK 다리 길이 배수   neck 목 길이(칸) */
+  /* ⚠ 머리를 키웠다(4~5 → 6~8). 저해상도에서 **얼굴이 곧 캐릭터**다 —
+     머리가 작으면 눈·코·입을 넣을 칸이 없어 어떤 종족이든 같은 막대로 읽힌다.
+     실제 픽셀 게임들이 머리를 크게 그리는 이유가 이것이다. */
   SHAPE: {
-    cat:    { wide:0.95, limb:2, headW:4, headH:3, legK:1.05, neck:2 },
-    dog:    { wide:1.00, limb:2, headW:4, headH:3, legK:1.00, neck:2 },
-    hopper: { wide:0.85, limb:3, headW:4, headH:3, legK:1.20, neck:1 },
-    hoof:   { wide:0.95, limb:2, headW:3, headH:3, legK:1.15, neck:4 },
-    bird:   { wide:1.25, limb:2, headW:3, headH:3, legK:0.80, neck:3 },
-    sea:    { wide:1.45, limb:2, headW:4, headH:3, legK:0.55, neck:1 },
-    bug:    { wide:0.60, limb:1, headW:3, headH:2, legK:1.25, neck:2 },
-    heavy:  { wide:1.75, limb:3, headW:5, headH:4, legK:0.80, neck:1 },
+    cat:    { wide:0.95, limb:2, headW:6, headH:5, legK:1.05, neck:2 },
+    dog:    { wide:1.00, limb:2, headW:6, headH:5, legK:1.00, neck:2 },
+    hopper: { wide:0.85, limb:3, headW:6, headH:5, legK:1.20, neck:1 },
+    hoof:   { wide:0.95, limb:2, headW:5, headH:5, legK:1.15, neck:3 },
+    bird:   { wide:1.25, limb:2, headW:6, headH:5, legK:0.80, neck:2 },
+    sea:    { wide:1.45, limb:2, headW:7, headH:5, legK:0.55, neck:1 },
+    bug:    { wide:0.60, limb:1, headW:5, headH:4, legK:1.25, neck:2 },
+    heavy:  { wide:1.75, limb:3, headW:8, headH:6, legK:0.80, neck:1 },
   },
   shapeOf(sp){ return this.SHAPE[this.kindOf(sp)] || this.SHAPE.hoof; },
   /* 종족이 늘었는데 갈래에 안 넣으면 **조용히 기본 생김새**가 된다 — 그걸 막는다.
@@ -194,16 +197,34 @@ const CharPix = {
       }
       px(footX - LIMB/2, footY, LIMB + 1, 1, cFoot);   // 발
     };
-    const spread = air ? 3.0 : (crouch ? 1.4 : 5.0);
-    const lLift = air ? 2.4 : Math.max(0, cw) * 2.6;
-    const rLift = air ? 2.4 : Math.max(0, -cw) * 2.6;
+    /* ⛔ 동작이 '달리기 / 웅크림 / 공중' 셋뿐이라 어떤 종목이든 비슷해 보였다.
+       상태를 조합해 **자세를 갈라 준다** — 자세가 곧 그 종목의 순간이다.
+         출발(crouch)  두 다리를 앞뒤로 크게 벌리고 낮게 — 스타팅 블록
+         공중(air)     두 다리를 모아 접는다 — 도약·착지
+         던지기(thr)   축발을 버티고 뒷다리를 뺀다
+         기울임(lean)  앞다리를 길게 내민다 — 결승선 */
+    let spread, lLift, rLift;
+    if(crouch){ spread = 4.2; lLift = 0.4;  rLift = 2.2; }        // 앞뒤로 벌린 준비 자세
+    else if(air){ spread = 2.0; lLift = 3.0; rLift = 2.4; }        // 두 다리를 모아 접는다
+    else if(thr){ spread = 3.4; lLift = 0.6; rLift = 1.2; }        // 축발 버티기
+    else if(opt.lean){ spread = 6.2; lLift = Math.max(0, cw)*1.4; rLift = 0.4; }
+    else { spread = 5.0; lLift = Math.max(0, cw)*2.6; rLift = Math.max(0, -cw)*2.6; }
     legSeg(sw * spread,  lLift, dark, dark);                        // 뒤쪽 다리
     legSeg(-sw * spread, rLift, col,  this.shade(col, 0.85));       // 앞쪽 다리
 
-    /* ── 몸통 ─────────────────────────────────────────── */
+    /* ── 몸통 — 가슴과 골반을 나눈다 ───────────────────
+       ⛔ 한 덩어리 사각형이라 **판자**로 보였다. 사람 몸은 가슴이 넓고 허리가 좁다.
+          그리고 달릴수록 앞으로 기운다 — 척추가 자세를 말한다. */
     const tilt = crouch ? 2 : (thr ? -1 : (air ? 1 : Math.abs(sw) * 0.6));
-    px(-bodyW/2 + tilt*0.3, shY, bodyW, torH + 1, col);
-    px(-bodyW/2 + tilt*0.3, shY, bodyW, 1, light);   // 어깨 윗면 하이라이트
+    const chestW = bodyW, waistW = Math.max(2, bodyW - 1.5);
+    const chestH = Math.max(2, torH * 0.55), waistH = Math.max(1, torH + 1 - chestH);
+    /* 척추 기울기 — 웅크림·던지기는 크게, 달릴 땐 살짝 */
+    const spine = crouch ? 1.6 : (thr ? -1.2 : (air ? 0.8 : 0.5));
+    px(-chestW/2 + tilt*0.3 + spine, shY, chestW, chestH, col);
+    px(-chestW/2 + tilt*0.3 + spine, shY, chestW, 1, light);   // 어깨 윗면
+    px(-waistW/2 + tilt*0.3, shY + chestH, waistW, waistH, this.shade(col, 0.88));
+    /* 가슴 그늘 — 한 줄이면 입체가 생긴다 */
+    px(-chestW/2 + tilt*0.3 + spine, shY + chestH - 1, chestW, 1, dark);
 
     /* ── 팔 두 짝 — 다리와 **반대로** 흔든다 ─────────────
        던지기는 한 팔을 뒤로 크게 젖힌다. 힘이 자세로 보여야 한다. */
@@ -233,8 +254,26 @@ const CharPix = {
     const hx = tilt * 0.4 + (thr ? -0.6 : 0);
     px(hx - S.headW/2, headY, S.headW, S.headH, col);
     px(hx - S.headW/2, headY, S.headW, 1, light);
-    /* 눈 — 한 칸. 있고 없고가 얼굴을 만든다. */
-    px(hx + 1, headY + 1, 1, 1, '#101018');
+    /* ── 얼굴 ───────────────────────────────────────────
+       ⛔ 눈 한 칸뿐이라 **표정이 없었다.** 얼굴은 세 점이면 생긴다 —
+          눈·코·입. 그리고 그 셋이 상태에 따라 바뀌면 '살아 있는' 것이 된다.
+       ⚠ 진행 방향은 오른쪽이다. 얼굴 부품은 전부 머리의 오른쪽 절반에 모은다. */
+    const HW = S.headW, eyeX = hx + HW/2 - 1.6;
+    /* 눈 — 힘들면 감긴다(가로 한 칸), 평소엔 흰자 위에 눈동자 */
+    const strain = crouch || thr || (opt.form !== undefined && opt.form < 0.88);
+    if(strain){
+      px(eyeX, headY + 1.2, 1.6, 1, '#101018');          // 찡그린 눈
+    } else {
+      px(eyeX - 0.2, headY + 0.9, 1.6, 1.4, '#f4f6fb');  // 흰자
+      px(eyeX + 0.4, headY + 1.1, 1, 1, '#101018');      // 눈동자 — 앞을 본다
+    }
+    /* 눈썹 — 한 칸이 인상을 만든다. 힘줄 때 내려간다. */
+    px(eyeX - 0.2, headY + (strain ? 0.3 : 0), 1.8, 0.6, dark);
+    /* 코 — 주둥이 끝 한 칸. 갈래별 주둥이 위에 얹는다. */
+    px(hx + HW/2, headY + 1.8, 1, 1, dark);
+    /* 입 — 숨이 차면 벌어진다(달리는 중엔 늘 조금 벌어져 있다) */
+    const gasp = !crouch && !thr;
+    px(hx + HW/2 - 1, headY + 2.6, gasp ? 1.6 : 1.2, gasp ? 1.2 : 0.6, '#5a2a2a');
 
     /* ── 종족 생김새 ────────────────────────────────────
        ⛔ 여기가 없으면 60종이 **색만 다른 같은 도형**이다(CK 지적).
