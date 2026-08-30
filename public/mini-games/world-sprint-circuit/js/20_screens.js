@@ -767,15 +767,28 @@ const G = {
 
     /* 갈래 탭 — 어디에 뭐가 있는지 한눈에 */
     const tabY=26;
+    /* ⛔ 예전엔 탭 너비를 **글자 수 × 7** 로 계산했다. 한국어(고정폭)엔 맞지만
+       영어는 글자마다 폭이 달라 어긋난다 — 실측: 마지막 탭 'Other 14' 의 오른쪽 끝이
+       **화면 밖 493px**(화면 480)로 나갔다. 글자 수가 아니라 **실제 폭**으로 잰다.
+       ⚠ 그래도 다 안 들어가면 여백을 줄여 **줄 전체를 화면에 맞춘다**(잘라내지 않는다). */
+    const measure=(str)=>{ uctx.font = `400 10px "Galmuri11","Nanum Gothic Coding",monospace`;
+                           return uctx.measureText(str).width; };
+    const labels = EVENT_GROUPS.map(g=>`${K(g.name)} ${eventsInGroup(g.key).length}`);
+    const icons  = EVENT_GROUPS.map(g=>g.icon ? BG.get(g.icon) : null);
+    let padX = 14, tabGap = 4;
+    const rowW = ()=> labels.reduce((sum,l,i)=>
+      sum + Math.max(46, Math.ceil(measure(l)) + padX + (icons[i]?13:0)) + tabGap, 0) - tabGap;
+    while(rowW() > VW-20 && padX > 4){ padX -= 1; }
+    while(rowW() > VW-20 && tabGap > 1){ tabGap -= 1; }
     let tx=10;
     EVENT_GROUPS.forEach((g,i)=>{
-      const on=i===this.selGroup, cnt=eventsInGroup(g.key).length;
-      const label=`${K(g.name)} ${cnt}`;
+      const on=i===this.selGroup;
+      const label=labels[i];
       /* ⛔ 아이콘 자리를 **넓히기만 하고 정작 그리지 않았다**(실측: 탭이 글자만).
          파일도 있고 이름도 선언돼 있는데 drawImage 가 없었다 —
          자리만 비워 두면 아무도 못 알아챈다. */
-      const im = g.icon ? BG.get(g.icon) : null;
-      const w=Math.max(46, label.length*7+14+(im?13:0));
+      const im = icons[i];
+      const w=Math.max(46, Math.ceil(measure(label)) + padX + (im?13:0));
       uctx.fillStyle = on?'rgba(255,215,94,.18)':'rgba(22,26,38,.7)';
       uctx.fillRect(tx, tabY, w, 16);
       uctx.strokeStyle = on?PAL.gold:'#3a4258'; uctx.lineWidth=1;
@@ -785,11 +798,13 @@ const G = {
         uctx.save(); uctx.globalAlpha = on ? 1 : 0.55;
         uctx.drawImage(im, tx+5, tabY+3, 10, 10);
         uctx.restore();
-        txt(uctx, label, tx+9+w/2-6, tabY+3, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
+        /* 아이콘이 왼쪽 15px 을 쓰니, 글씨는 **남은 칸의 한가운데**에 놓는다
+           (예전엔 tx+9+w/2-6 이라 폭이 커질수록 오른쪽으로 밀려 테두리를 넘었다) */
+        txt(uctx, label, tx+15+(w-15)/2, tabY+3, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
       } else {
         txt(uctx, label, tx+w/2, tabY+3, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
       }
-      tx += w+4;
+      tx += w+tabGap;
     });
 
     /* 격자 — 한 화면에 갈래 전체가 들어온다 */
@@ -817,10 +832,19 @@ const G = {
          필드는 '5.90m', 점수 종목은 '60점' 인데 시간만 맨숫자였다. 단위는 종목이 안다. */
       { const q = fmtRec(e, e.qualify);
         const unit = e.unit==='s' ? (needsSec(q) ? K('초') : '') : '';
-        txt(uctx, K('기준')+' '+q+unit, x+6, y+30, 8, PAL.dim,'left');
+        /* ⛔ 기준 줄은 왼쪽 정렬인데 메달 점은 **오른쪽 고정**이다(x+cw-11).
+           한국어('기준 140.00kg')는 짧아 안 닿았지만 영어('Target 140.00kg')는
+           점 밑으로 들어가 끝이 가려졌다(실측 스크린샷: LIFT·ARCH·CYCL).
+           ⚠ 화면 밖으로 나가는 게 아니라 **겹치는** 것이라 경계 감시로는 안 잡힌다.
+           메달이 있으면 그만큼 자리를 비우고, 좁으면 글씨를 줄인다. */
+        const mHere = (typeof medalOf==='function') ? medalOf(e, Save.data.best[e.id]) : null;
+        const qLine = K('기준')+' '+q+unit;
+        const qMax  = cw - 6 - (mHere ? 20 : 6);
+        uctx.font = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+        txt(uctx, qLine, x+6, y+30, uctx.measureText(qLine).width > qMax ? 7 : 8, PAL.dim,'left');
         /* ⛔ 목표가 `기준` 하나뿐이라 **한 번 통과하면 그 종목은 끝**이었다.
            딴 메달을 카드에 박아 두면 "다음 칸이 있다"가 한눈에 보인다. */
-        const m = (typeof medalOf==='function') ? medalOf(e, Save.data.best[e.id]) : null;
+        const m = mHere;
         if(m){
           uctx.fillStyle = MEDAL_COLOR[m];
           uctx.beginPath(); uctx.arc(x+cw-11, y+33, 4.5, 0, Math.PI*2); uctx.fill();
@@ -842,7 +866,25 @@ const G = {
           10, VH-42, 9, bst!==undefined?PAL.blue:PAL.dim,'left');
       /* ⚠ 46종목이 각기 다른 조작인데 설명이 '시작한 뒤 잠깐 뜨는 한 줄'뿐이었다.
          고르는 자리에서 미리 보여 준다 — 무엇을 누를지 모른 채 시작하게 두지 않는다. */
-      if(def.tip) txt(uctx, K(def.tip), 10, VH-30, 9, '#cfd6e8','left');
+      /* ⛔ 설명과 오른쪽 라벨(N 난이도)이 **같은 줄**이다. 한국어에선 안 겹쳤는데
+         영어는 문장이 길어 포개졌다(실측: 스크린샷에서 'Rivals Normal' 위에 설명이 얹혔다).
+         화면 밖으로 나가지 않아서 경계 감시로는 안 잡힌다 — **겹침은 따로 봐야 한다.**
+         ⚠ 잘라내기 전에 **글씨를 줄여** 본다 — 설명은 조작법이라 뒤가 잘리면 못 배운다. */
+      if(def.tip){
+        const rightW = (typeof AI!=='undefined')
+          ? (uctx.font = '400 9px "Galmuri11","Nanum Gothic Coding",monospace',
+             uctx.measureText(`N  ${K('AI 난이도')}  ${K(AI.label)}`).width + 14) : 0;
+        const maxW = VW - 10 - 10 - rightW;
+        let tip = K(def.tip), size = 9;
+        const fits = (str,sz)=>{ uctx.font = `400 ${sz}px "Galmuri11","Nanum Gothic Coding",monospace`;
+                                 return uctx.measureText(str).width <= maxW; };
+        if(!fits(tip,size)) size = 8;
+        if(!fits(tip,size)){                       // 그래도 안 들어가면 그때만 자른다
+          while(tip.length > 4 && !fits(tip+'…', size)) tip = tip.slice(0,-1);
+          tip += '…';
+        }
+        txt(uctx, tip, 10, VH-30 + (size===8?1:0), size, '#cfd6e8','left');
+      }
     }
     const n=Party.count;
     const mode = n>1 ? (Party.modeFor(def)==='versus' ? K('동시 대결') : K('턴제')) : '';
