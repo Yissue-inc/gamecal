@@ -125,7 +125,11 @@ class ArcheryEvent {
     if(BG.fill(BG.ctx(),'range-archery', 0, VH)){
       /* 뒷그물 — 과녁 뒤에 이어 붙인다. 화살이 어디로 날아가는지 배경이 말해 준다.
          ⚠ 무대(range-archery) 위에 얹으므로 무대가 있을 때만 그린다. */
-      BG.tile(BG.ctx(), 'range-backstop', 96, 0, 30);
+      /* ⛔ 높이를 **0** 으로 넘기고 있었다 — `tile()` 은 h 로 폭을 계산하므로(w = h × 비율)
+         h=0 이면 w=0 이 되어 `if(!(w>0.5)) return false` 로 **항상 실패**한다.
+         어셋은 있고 프리로드도 되는데 90프레임 내내 한 번도 안 그려졌다(어셋 점수 9/10 의 원인).
+         ⚠ 실패가 조용하다 — false 만 돌려주고 아무도 안 본다. 그래서 측정으로만 잡힌다. */
+      BG.tile(BG.ctx(), 'range-backstop', 96, 38, 30);
     }
     else {
       const gt=Track.fieldBack(ctx, 12);
