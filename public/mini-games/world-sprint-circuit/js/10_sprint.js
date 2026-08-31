@@ -136,7 +136,7 @@ class SprintEvent {
       if(tMs - (this._noLeanAt||-1e9) > 400){
         this._noLeanAt = tMs;
         Sfx.beep(300, 0.05, 'sine', 0.07);
-        this.say(K('막판에 — 결승선 앞에서 몸을 던진다'));
+        this.say('막판에 — 결승선 앞에서 몸을 던진다');
       }
     }
   }

@@ -291,9 +291,9 @@ class GrowScreen extends Screen0 {
     }
     /* ▼(스탯 탭) — 계승. 아직 안 받은 선수만 전당으로 보낸다 */
     if(Input.pressed('down') && this.tab===0){
-      if(this.a.inherited){ Sfx.fail(); this.mg.toast(K('이미 %1의 자질을 물려받았습니다').replace('%1', this.a.inherited.from)); return; }
+      if(this.a.inherited){ Sfx.fail(); this.mg.toast('이미 %1의 자질을 물려받았습니다'.replace('%1', this.a.inherited.from)); return; }
       if(typeof HallScreen==='undefined' || !DEPTH.hall(this.mg.club).length){
-        Sfx.fail(); this.mg.toast(K('전당이 비어 있습니다')); return;
+        Sfx.fail(); this.mg.toast('전당이 비어 있습니다'); return;
       }
       Sfx.ui(); this.mg.push(new HallScreen(this.mg, this.a)); return;
     }
@@ -306,9 +306,9 @@ class GrowScreen extends Screen0 {
           const made=RPG.fuse(inv, it);
           Sfx.record(); Screen.shake(0.35);
           this.getFxAt = this.t||0;                 // 아이템이 생긴 순간
-          this.mg.toast(K('합성 → %1').replace('%1', RPG.itemName(made)));
+          this.mg.toast('합성 → %1'.replace('%1', RPG.itemName(made)));
           this.sel=Math.min(this.sel, this.rows.length-1);
-        } else { Sfx.fail(); this.mg.toast(K('같은 등급 3개가 필요합니다')); }
+        } else { Sfx.fail(); this.mg.toast('같은 등급 3개가 필요합니다'); }
         return;
       }
     }
@@ -350,7 +350,7 @@ class GrowScreen extends Screen0 {
         if(SKILL.learn(a, r._skill)){
           Sfx.record(); Screen.shake(0.3); this.fxAt=this.t||0;
           this.learnAt = this.t||0;        // 봉인이 열리는 연출(fx-skill-learn)
-          this.mg.toast(K('%1 습득  (남은 포인트 %2)')
+          this.mg.toast('%1 습득  (남은 포인트 %2)'
             .replace('%1', SKILL.def(r._skill).name).replace('%2', a.tp));
         } else Sfx.fail();
         return;
@@ -363,7 +363,7 @@ class GrowScreen extends Screen0 {
           : K('%1 해제').replace('%1', SKILL.def(r._skill).name));
       } else {
         Sfx.fail();
-        this.mg.toast(K('슬롯이 %1칸뿐입니다 — 하나를 빼세요').replace('%1', SKILL.slots(a)));
+        this.mg.toast('슬롯이 %1칸뿐입니다 — 하나를 빼세요'.replace('%1', SKILL.slots(a)));
       }
       return;
     }
@@ -374,7 +374,7 @@ class GrowScreen extends Screen0 {
         RPG.breakPot(a, r._k);
         Sfx.record(); Screen.shake(0.35); this.fxAt=this.t||0;
         this.breakAt = this.t||0;          // 천장이 깨지는 연출(fx-breakthrough)
-        this.mg.toast(K('%1 잠재치 돌파 → %2  (남은 포인트 %3)')
+        this.mg.toast('%1 잠재치 돌파 → %2  (남은 포인트 %3)'
           .replace('%1', STAT_NAME[r._k]||r._k)
           .replace('%2', Math.round(a.potential[r._k])).replace('%3', a.tp));
         return;
@@ -753,7 +753,7 @@ class ScoutReportScreen extends Screen0 {
       else {
         const r=RPG.reroll(this.a, i);
         if(r){ Sfx.record(); Screen.shake(0.3); this.rerollAt=this.t;
-               this.mg.toast(K('%1 → %2').replace('%1', TRAITS[r.from].name)
+               this.mg.toast('%1 → %2'.replace('%1', TRAITS[r.from].name)
                                           .replace('%2', TRAITS[r.to].name)); }
         else Sfx.fail();
       }
@@ -995,11 +995,11 @@ class DailyScreen extends Screen0 {
         if(typeof Music!=='undefined'){ Music._last=null; Music.play('win'); }
         Daily.bumpStreak();
         const m = this.mg && this.mg.toast;
-        if(m) this.mg.toast(K('코인 +%1 · 경험치 +%2').replace('%1',got.coin).replace('%2',UIK.n(got.xp)));
+        if(m) this.mg.toast('코인 +%1 · 경험치 +%2'.replace('%1',got.coin).replace('%2',UIK.n(got.xp)));
       }
       return;
     }
-    if(r._done){ Sfx.fail(); if(this.mg&&this.mg.toast) this.mg.toast(K('오늘은 이미 뛰었습니다')); return; }
+    if(r._done){ Sfx.fail(); if(this.mg&&this.mg.toast) this.mg.toast('오늘은 이미 뛰었습니다'); return; }
     /* 아케이드로 — 끝나면 기록을 담고 돌아온다 */
     Sfx.ui();
     const back = this.mg ? ST.MANAGER : ST.SELECT;
@@ -1056,7 +1056,7 @@ class HallScreen extends Screen0 {
     const err=DEPTH.inherit(this.mg.club, this.rookie, r._rec);
     if(err){ Sfx.fail(); this.mg.toast(err); return; }
     Sfx.record(); Sfx.roar(); Screen.shake(0.4);
-    this.mg.toast(K('%1의 자질을 물려받았습니다').replace('%1', r._rec.name));
+    this.mg.toast('%1의 자질을 물려받았습니다'.replace('%1', r._rec.name));
     this.mg.pop();
   }
   draw(u){
@@ -1204,7 +1204,7 @@ class CodexScreen extends Screen0 {
     if(Input.pressed('action')){
       const r = Codex.hasClaim() ? Codex.claimAll(this.mg && this.mg.club) : null;
       if(r){ Sfx.record(); Sfx.roar(); Screen.shake(0.5); this.fxAt=this.t;
-             if(this.mg) this.mg.toast(K('코인 +%1 · 전원 훈련 포인트 +%2')
+             if(this.mg) this.mg.toast('코인 +%1 · 전원 훈련 포인트 +%2'
                .replace('%1', r.coin).replace('%2', r.tp)); }
       else Sfx.fail();
     }
@@ -1377,7 +1377,7 @@ class FacilityScreen extends Screen0 {
     const K2=FACIL.KINDS[r._id];
     FACIL.build(this.mg.club, r._id);
     Sfx.record(); Screen.shake(0.35); this.fxAt=this.t;
-    this.mg.toast(K('%1 %2단계').replace('%1',K2.name).replace('%2',FACIL.lv(this.mg.club,r._id)));
+    this.mg.toast('%1 %2단계'.replace('%1',K2.name).replace('%2',FACIL.lv(this.mg.club,r._id)));
   }
   draw(u){
     this.t+=16.7;

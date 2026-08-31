@@ -138,8 +138,14 @@ const Tutorial = {
     if(!this.on) return;
     const s = this.STEPS[this.step]; if(!s) return;
     /* ⛔ y=26 고정이라 **감독 화면의 지표 줄을 덮었다**(자금·승점·메달이 가려짐).
-       화면마다 비어 있는 자리가 다르다 — 경기는 위(하늘), 감독은 아래가 빈다. */
-    const H = 34, y = (typeof G!=='undefined' && G.state===ST.MANAGER) ? VH-56 : 26;
+       화면마다 비어 있는 자리가 다르다 — 경기는 위(하늘), 감독은 아래가 빈다.
+       ⛔ 그래서 경기/결과는 26 으로 옮겼는데 **거기도 임자가 있었다** —
+          결과 화면의 제목('부정 출발' y30~50)과 순위표 옆 거리 표시를 덮었다
+          (2026-08-31 튜토리얼 층: 새 플레이가 제일 먼저 보는 화면인데 안 밟혀 있었다).
+       ⚠ 이번엔 **재서 골랐다** — 결과 화면의 글자들을 전부 모아 빈 띠를 찾으니
+          y 119~215 가 96px 비어 있었다(경기 중에도 그 자리는 트랙이라 글자가 없다).
+          자리를 고를 때는 재 본다. 짐작하면 세 번째로 또 부딪힌다. */
+    const H = 34, y = (typeof G!=='undefined' && G.state===ST.MANAGER) ? VH-56 : 150;
     plate(u, 8, y, VW-16, H, 0.88);
     u.strokeStyle = PAL.gold; u.lineWidth = 1;
     u.strokeRect(8.5, y+0.5, VW-17, H-1);

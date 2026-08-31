@@ -80,7 +80,7 @@ class RingsEvent {
   onAction(){
     if(this.phase==='HOLD'){
       if(this.held < this.hold.sec){
-        this.say(K('아직 버텨야 한다'), true); Sfx.fail(); return;
+        this.say('아직 버텨야 한다', true); Sfx.fail(); return;
       }
       this.finishHold();
       return;
@@ -104,13 +104,13 @@ class RingsEvent {
     this._acc=0; this._frames=0; this.held=0; this.enteredAt=this.t;
     if(this.idx >= RING.holds.length){
       this.phase='DISMOUNT'; this.dismountT=0;
-      this.say(K('정점에서 액션 — 내려서기'));
+      this.say('정점에서 액션 — 내려서기');
     }
   }
   breakHold(){
     this.broke++;
     this.quality.push(this._frames ? clamp(this._acc/this._frames*0.4, 0, 1) : 0);
-    this.say(K('자세가 무너졌다'), true); Sfx.fail(); this.flash=0.5;
+    this.say('자세가 무너졌다', true); Sfx.fail(); this.flash=0.5;
     this.wob=0; this.vel=0;
     this.idx++;
     this._acc=0; this._frames=0; this.held=0; this.enteredAt=this.t;
@@ -143,7 +143,7 @@ class RingsEvent {
     this.t+=dt*1000;
     this.flash=Math.max(0,this.flash-dt*3);
     if(this.phase!=='MARK' && this.phase!=='DONE' && this.t>RING.routineMs){
-      this.say(K('연기 시간 초과'), true);
+      this.say('연기 시간 초과', true);
       while(this.quality.length < RING.holds.length) this.quality.push(0);
       this.landQ=Math.max(this.landQ,0.2); this.finishRoutine(); return;
     }

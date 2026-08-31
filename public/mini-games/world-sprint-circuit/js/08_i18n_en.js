@@ -1522,4 +1522,14 @@ const I18N_EN = {
 
   /* 결과 화면 보조 줄 — 조각마다(20_screens) */
   '반응 %1ms':'reaction %1ms', '순위 %1위':'rank %1', '허들 %1/%2':'hurdles %1/%2',
+
+  /* ⛔ 튜토리얼(4G) 의 say·wait — **새 플레이가 제일 먼저 보는 여섯 줄**인데
+     검사기의 속성 목록에 `say` 가 없어 한 번도 검사된 적이 없었다.
+     영어판 튜토리얼이 '박자가 전부입니다' 로 시작하고 있었다. */
+  '박자가 전부입니다':'The beat is everything',
+  '기록이 남습니다':'Your records stick',
+  '이제 감독입니다':'Now you are the manager',
+  '훈련 지시를 여세요':'Open the training screen',
+  '지도한 선수는 더 자랍니다':'Coached athletes grow faster',
+  '대회에서 승점을 법니다':'Meets are where points come from',
 };

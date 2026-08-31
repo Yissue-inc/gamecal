@@ -96,7 +96,7 @@ class FencingEvent {
       if(!f.idx && tMs - (this._blockAt||-1e9) > 380){
         this._blockAt = tMs;
         Sfx.beep(240, 0.05, 'sine', 0.07);
-        this.say(K('아직 자세를 못 잡았다'));
+        this.say('아직 자세를 못 잡았다');
       }
       return;
     }
