@@ -135,6 +135,13 @@ const RULES = {
        100m 는 ~100디딤(거의 영향 없음) · 800m 는 ~800디딤(크게 무거움).
        그래서 장거리에서는 '얼마나 오래 그 타수를 버티나' 가 종목이 된다. */
     fatiguePerStride: 0.0009,
+    /* ⛔ 피로가 **회복되지 않으면** 장거리에서 초반에 최대치(1.0)에 붙어 버린다.
+       실측: 마라톤이 7타/초 9317s · 14타/초 9166s — **타수를 올려도 1.6% 밖에 안 변했다.**
+       실력이 사라진 것이다. 회복을 넣으면 피로가 **타수와 균형**을 이룬다:
+         평형 피로 = (디딤당 피로 × 타수) / recoverK
+         7타 0.46 · 10타 0.65 · 14타 0.91   ← 빨리 칠수록 무거워진다(그게 대가다)
+       시정수 1/0.0138 ≈ 72초 — 단거리(10초)는 거의 안 쌓이고, 장거리는 평형에서 뛴다. */
+    recoverK: 0.0138,
   },
   /* ⚠ SPAM 을 0 으로 두면 연타하는 플레이어가 영영 완주를 못 해 화면이 멈춘 것처럼 보인다.
      느리지만 굴러가게 두고, 대신 아래 기준기록(qualify)으로 탈락시킨다 — 레퍼런스와 같은 방식. */
@@ -211,6 +218,21 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⛔⛔ **틀린 모델로 잰 기준을 바로잡았다 (2026-08-31 2차)**
+     어제 중장거리 기준을 **맨 Runner 하네스**로 쟀다. 그런데 800m·1500m·5000m·마라톤은
+     `MiddleEvent` 로 돌아가고 거기엔 **페이스(▲▼)가 속도 상한을 건다.**
+     화면째로 다시 재니 800m 최선이 **149.6s** 였다 — 내가 넣은 기준은 **93.7s**.
+     **45초나 도달 불가**였다. 하네스가 게임과 다른 모델을 쓰면 그 차이가 그대로 기준이 된다.
+     ⚠ 그리고 중장거리는 **타수가 거의 안 먹는다** — 14타 149.6 vs 7타 152.4 (1.9%).
+        대신 페이스가 크다(기본 174 vs 승부 149.9). 이 종목은 **연타가 아니라 배분**이다.
+        그래서 사다리를 '최선 = 금' 에 걸고 기본 페이스가 은·동에 오도록 잡았다.
+     화면째 실측(전부 이 값에서 나왔다):
+       800m 149.6 · 1500m 280.8 · 5000m 935.6 · 마라톤 7894.5
+       110mH 11.8/12.5/13.8 · 400mH 43.0/45.2/48.7 · 3000SC 370/392
+       4×100 38.2/40.5/43.8 · 4×400 153.9/161.9/174.2 · 20km경보 10461.8(7타)
+     ⚠ 경보는 **초당 9타를 넘으면 실격**이다(뛴 것으로 본다) — 천장이 규칙으로 막혀 있다.
+        내가 잰 건 7타(10461.8s)이고 한계(9타) 근처는 더 빠를 것이다. 금을 **닿는 쪽**으로
+        잡았다 — 오늘 하루 고친 게 전부 '닿지 않는 금' 이었다. 반대로 틀리는 편이 낫다. */
 /* ⛔ **연타 모드로 기준 재실측 (2026-08-31, CK 확정)**
      조작이 바뀌면 옛 기준은 다른 게임의 기준이다. 새 물리로 다시 쟀다.
      사람의 타수를 세 자리로 잡았다 — 초당 **7타(동) · 10타(은) · 14타(금)**.
@@ -306,31 +328,31 @@ function phaseAt(distM, trackM){
       기준이 벽이 된다 — 가끔은 넘어야 다시 해 본다. */
 const EVENTS = [
   /* ── 트랙: 단거리 ── */
-  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.4, distanceM:100, cuts:{silver:10.5, gold:9.9}, kind:'sprint', tip:'좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발' },
+  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.4, distanceM:100, cuts:{silver:10.5, gold:9.95}, kind:'sprint', tip:'좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발' },
   { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:23.1, distanceM:200, cuts:{silver:21.4, gold:20.3}, kind:'sprint', tip:'좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다' },
   { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:48.6, distanceM:400, cuts:{silver:45.2, gold:43.3}, kind:'middle', tip:'좌·우를 일정한 박자로 — 한 바퀴다. 초반에 다 쓰면 무너진다' },
-  { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:13.60, distanceM:110, kind:'hurdles',
+  { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:13.8, distanceM:110, cuts:{silver:12.5, gold:11.8}, kind:'hurdles',
     hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우를 일정한 박자로 달리다 허들 앞에서 액션' },
   /* 400m 허들 — 허들이 낮고 간격이 넓다. 지구력 종목에 가깝다. */
-  { id:'hurdles400', name:'400m 허들',    short:'400MH', unit:'s', higher:false, qualify:47.00, distanceM:400, kind:'hurdles',
+  { id:'hurdles400', name:'400m 허들',    short:'400MH', unit:'s', higher:false, qualify:48.7, distanceM:400, cuts:{silver:45.2, gold:43.0}, kind:'hurdles',
     hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'허들 10개 · 보폭이 흐트러지면 발이 안 맞는다' },
   /* 3000m 장애물 — 고정 장애물과 물웅덩이. 5번째마다 물이다. */
-  { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:420.0, distanceM:3000, kind:'hurdles',
+  { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:440, distanceM:3000, cuts:{silver:393, gold:371}, kind:'hurdles',
     hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'허들 + 물웅덩이 · 물 앞에서는 일찍 뛴다' },
   /* ── 트랙: 중·장거리 ── */
-  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:106.0, parS:127.0, distanceM:800,  cuts:{silver:98.5, gold:93.7}, kind:'middle', tip:'▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회' },
-  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:208.0, parS:238.0, distanceM:1500, cuts:{silver:192.0, gold:182.0}, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
-  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:716.0, parS:792.0, distanceM:5000, cuts:{silver:660.0, gold:622.0}, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
-  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:8650.0, parS:7800.0, distanceM:20000, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
+  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:178, parS:127.0, distanceM:800,  cuts:{silver:159, gold:150}, kind:'middle', tip:'▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회' },
+  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:334, parS:238.0, distanceM:1500, cuts:{silver:298, gold:281}, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
+  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1112, parS:792.0, distanceM:5000, cuts:{silver:993, gold:936}, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
+  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:12200, parS:7800.0, distanceM:20000, cuts:{silver:11000, gold:10480}, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
         거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
-  { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:7500,
-    parS:6720, distanceM:42195, kind:'middle',
+  { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:9386,
+    parS:6720, distanceM:42195, cuts:{silver:8380, gold:7895}, kind:'middle',
     tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
-  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:41, distanceM:400, rivalPar:36.90, parS:36.75, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
-  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:165, parS:147.5, distanceM:1600, rivalPar:147.50, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
+  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:36.90, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
+  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:174.2, parS:147.5, distanceM:1600, rivalPar:147.50, cuts:{silver:161.9, gold:153.9}, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다' },
   { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump', tip:'홉·스텝·점프 — 정점마다 액션' },

@@ -28,6 +28,7 @@ const MID = {
   spurtDrain: 2.0,
   targetWallSec: 110,    // 어느 거리든 한 판이 이 정도가 되도록 시간을 압축한다
   cruiseRun: 7.14,       // 실측 순항 속도(m/s) — 압축비 계산에만 쓴다
+  walkMinIvMs: 111,     // 연타 모드 걷기 한계 — 초당 9타를 넘으면 '뛴 것'
   cruiseWalk: 2.55,
   graceMs: 12000,        // 선두 완주 후 나머지에게 주는 시간
 };
@@ -136,7 +137,11 @@ class MiddleEvent {
       const err=Math.abs(dt-iv);
       j = err<=MID.perfectMs ? 'PERFECT' : err<=MID.goodMs ? 'GOOD' : 'MISS';
       /* 경보 — 케이던스가 규정보다 빠르면 반칙(로스 오브 컨택트) */
-      if(this.walk && dt < iv*0.62) this.warn(r, p);
+      /* ⛔ 연타 모드에서는 iv*0.62(≈148ms) 기준이 **모든 타를 반칙으로** 만든다 —
+         실측: 20km 경보가 7·10·14타 전부 실격이었다. 걷기의 규칙은 살리되(너무 빠르면 반칙)
+         기준을 연타 눈금으로 옮긴다. 초당 9타(111ms)를 넘으면 '뛴 것'으로 본다. */
+      const walkLimit = RULES.mashMode ? MID.walkMinIvMs : iv*0.62;
+      if(this.walk && dt < walkLimit) this.warn(r, p);
     }
     r.judge[j]++; r.side=side; r.lastStroke=tMs;
     /* ⚠ 판정을 **세기만 하고 마지막 값을 안 남겼다** — 그래서 1500m·5000m 를 치는

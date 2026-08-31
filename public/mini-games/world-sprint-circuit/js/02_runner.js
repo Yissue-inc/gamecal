@@ -262,6 +262,10 @@ class Runner {
       if(since > 260) this.strideRate = (this.strideRate||0) * Math.exp(-3.2*dt);
       this.distM += this.speed * dt;
       this.fatigue = Math.min(1, this.fatigue + dt*0.01);
+      /* 숨을 돌린다 — 피로에 비례해 회복되므로 타수와 평형을 이룬다(RULES.mash 주석) */
+      /* ⚠ 여기에 *60 을 붙였다가 회복이 60배로 걸려 800m 가 76초(세계기록 100.4초)로 튀었다.
+         recoverK 는 **초당** 비율이다 — dt 만 곱하면 된다. */
+      if(RULES.mashMode) this.fatigue = Math.max(0, this.fatigue - RULES.mash.recoverK*this.fatigue*dt);
       /* ⚠ 다리 위상을 **두 곳에서** 밀고 있었다 — stride() 가 한 타에 +0.5,
          여기서 매 프레임 속도에 비례해 또. 실측: **타당 1.016 바퀴**가 돌았다.
          한 번 디디면 반 바퀴(0.5)가 맞다 — 다리가 정확히 두 배 빨랐다(재봉틀).
