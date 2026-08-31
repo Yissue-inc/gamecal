@@ -218,6 +218,16 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⛔ **양궁·포환 금컷 (2026-08-31 6차)** — 사격에서 고친 것과 같은 패턴이 둘 더 있었다.
+     양궁 만점은 **6발 × 10점 = 60** 인데 금컷이 **58.22** — 만점의 **97%** 다.
+       (사격도 109 만점에 금 108.44 였다. 발당 9.7 을 열 번 이어야 하는 목표는 죽은 목표다)
+       → 은 52 · 금 **54.5** (만점의 90.8%). 실측 최선 55점이 닿는다 —
+         **닿는 쪽으로 잡는다**: 오늘 하루 고친 게 전부 '닿지 않는 금' 이었다.
+     포환은 여러 드라이버로 몰아 **최선 15.72m** 였는데 금이 **17.69** 였다.
+       통과 기준(15.5)이 최선보다 겨우 0.2m 아래라 사다리가 눌려 있었다.
+       → 동 13.5 · 은 14.8 · 금 **15.7** (실측 최선이 금에 닿는다)
+     ⚠ 원반 90.92 · 해머 84.86 은 **금이 닿는다** — 같은 투척이라도 종목마다 다르다.
+        낮게 나온 값(원반 20.89)은 드라이버 탓이었고, 좋은 드라이버로 다시 재서 갈랐다. */
 /* ⛔⛔⛔ **같은 실수 세 번째 — 수영·조정 기준도 연타 전환 후 안 고쳤다 (5차)**
      수영을 연타로 바꿨는데(초당 5타면 완주조차 못 하던 걸 고치면서) **기준은 그대로 뒀다.**
      화면째 재측정: 자유형 최선 **40.65s** 인데 금컷이 **37.67s** — 어떻게 해도 금이 안 나온다.
@@ -395,7 +405,7 @@ const EVENTS = [
   { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump', tip:'좌·우로 달려 액션으로 뛰고, 좌·우로 몸을 넘긴다' },
   { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump', tip:'액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다' },
   /* ── 필드: 투척 ── */
-  { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:15.50, kind:'throw', tip:'액션을 눌러 힘을 모으고 가득 찼을 때 놓는다' },
+  { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:13.5, cuts:{silver:14.8, gold:15.7}, kind:'throw', tip:'액션을 눌러 힘을 모으고 가득 찼을 때 놓는다' },
   { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:59.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
   { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션 · 릴리스 각도가 45°에 가까울수록 멀리 간다' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 회전이 많을수록 멀리 가지만 놓치기 쉽다' },
@@ -409,7 +419,7 @@ const EVENTS = [
   /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
   { id:'lifting',      name:'역도',         short:'LIFT',  unit:'kg', higher:true,  qualify:140.0, kind:'lift', tip:'좌·우로 자세를 잡고 액션을 길게 눌러 든다 · 기우는 반대쪽을 누른다' },
   /* 양궁 — 이 게임 유일의 '정지 조준'. 6발 합계 60점 만점. */
-  { id:'archery',      name:'양궁',         short:'ARCH',  unit:'점', higher:true,  qualify:51, kind:'aim', tip:'액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사' },
+  { id:'archery',      name:'양궁',         short:'ARCH',  unit:'점', higher:true,  qualify:51, cuts:{silver:52, gold:54.5}, kind:'aim', tip:'액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사' },
   /* 트랙 사이클 — 기어 변속과 스퍼트가 핵심. */
   { id:'cycling',      name:'트랙 사이클',   short:'CYCL',  unit:'s', higher:false, qualify:34.0, parS:29.0, distanceM:500, kind:'cycle', tip:'좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회' },
   /* 조정 — 이 게임 유일의 '일정함' 종목. 빠름이 아니라 흔들리지 않음이 점수다. */
