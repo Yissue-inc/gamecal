@@ -407,6 +407,16 @@ class OfficeScreen extends Screen0 {
                       go:()=>new CoachScreen(this.mg) }; })(),
       { label:'선수 사무소', icon:'ic-market', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶',
         go:()=>new MarketScreen(this.mg) },
+      /* 클럽 갈래(4M_identity) — 라이벌은 여섯 팀 다 특기가 있는데 우리만 없었다 */
+      (()=>{ if(typeof IDENT==='undefined') return null;
+             IDENT.ensure(this.mg.club);
+             const cur = IDENT.of(this.mg.club);
+             return { label:'클럽 갈래', icon:'ic-develop',
+                      sub: cur ? IDENT.name(this.mg.club) : '아직 안 정했습니다 — 정하면 그 갈래가 빨리 큰다',
+                      right: cur ? '◎' : '!',
+                      rightColor: cur ? PAL.gold : PAL.green,
+                      color: cur ? undefined : PAL.green,
+                      go:()=>new IdentityScreen(this.mg) }; })(),
       /* 계약(4K_contract) — ⛔ 만료가 코앞이면 **빨갛게** 말한다. 모르고 잃으면 사고다 */
       (()=>{ if(typeof CONTRACT==='undefined') return null;
              const exp = CONTRACT.expiring(this.mg.club);

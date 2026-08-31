@@ -293,20 +293,41 @@ class Season {
   }
 
   /* 대회 실행 — 우리 선수 + AI 상대들 */
+  /* ── 대회 ───────────────────────────────────────────────
+     ⚠ 2026-08-31 에 **셋으로 쪼갰다**(beginMeet / runMeetEvent / finishMeet).
+        동작은 한 줄도 안 바뀐다 — 순서도 난수 사용도 그대로다. 쪼갠 이유는 둘이다:
+          ① 이 함수는 이 레포에서 사고가 여러 번 난 자리다(메달 이중계산·기록 유실·
+             계주 누락). 통째로 한 덩이면 무엇이 틀렸는지 짚을 수가 없다.
+          ② 종목 단위로 부를 수 있어야 '대회 중 지시' 같은 게 가능해진다.
+        ⛔ 지금은 runMeet 이 예전과 **완전히 같은 일**을 한다. 그게 이 커밋의 계약이다. */
   runMeet(){
-    const goldBefore = this.medals.gold;   // 커리어 뱃지용 — 이 대회에서 딴 금
+    this.beginMeet();
+    for(const ev of this.meetEvents()) this.runMeetEvent(ev);
+    return this.finishMeet();
+  }
+
+  beginMeet(){
     const kind = this.meetKind, info = MEET_INFO[kind];
     /* 손으로 짠 출전표가 상한을 넘겨도 여기서 막는다 — 화면에서만 막으면 새어 나간다 */
     this._load = {};
-    const meet = { week:this.week, kind, name:info.name, events:[], points:0 };
+    this._goldBefore = this.medals.gold;   // 커리어 뱃지용 — 이 대회에서 딴 금
+    this._meet = { week:this.week, kind, name:info.name, events:[], points:0 };
     this.rpgFeed = [];        // 이번 대회의 육성 보상만 담는다
-    for(const ev of this.meetEvents()){
+    return this._meet;
+  }
+
+  runMeetEvent(ev){
+    const kind = this.meetKind, info = MEET_INFO[kind];
+    const meet = this._meet;
+    {
       const mine = (this.entries[ev.id]||[]).map(id=>this.club.byId(id))
         .filter(a=>a && a.available && (this._load[a.id]||0) < MAX_EVENTS_PER_ATHLETE);
-      if(!mine.length) continue;
+      /* ⚠ 예전엔 `continue` 였다 — 종목 하나를 도는 함수가 됐으니 `return` 이다.
+         (건너뛴 종목은 meet.events 에 안 들어간다 — 예전과 같다) */
+      if(!mine.length) return null;
       const w = isTeamEvent(ev) ? 0.5 : 1;
       for(const a of mine) this._load[a.id]=(this._load[a.id]||0)+w;
-      if(isTeamEvent(ev)){ this.runRelay(ev, mine, meet, info); continue; }
+      if(isTeamEvent(ev)){ this.runRelay(ev, mine, meet, info); return meet.events[meet.events.length-1]; }
       const field = mine.concat(this.makeRivals(ev, kind, 8-mine.length));
       const rows = simulateMeetEvent(ev, field, { rng:this.rng, big:info.big, season:this });
       let evPts = 0;
@@ -356,6 +377,12 @@ class Season {
       meet.points += evPts;
       meet.events.push({ ev, rows });
     }
+    return meet.events[meet.events.length-1];
+  }
+
+  finishMeet(){
+    const kind = this.meetKind, info = MEET_INFO[kind];
+    const meet = this._meet, goldBefore = this._goldBefore;
     this.points += meet.points;
     /* 상금과 명성 — 성적이 곧 다음 시즌의 자금이 된다 */
     const prize = Math.round(meet.points * MarketTune.prizePerPoint * (info.big?1.8:1));
@@ -670,7 +697,12 @@ class Club {
     const eraLift = Math.min(0.45, (era - 1) * 0.35);
 
     while(this.squad.length < target){
-      const a = rollAthlete(rng, { age:17+((rng()*2)|0),
+      /* 클럽 갈래(4M_identity) — 특기부는 그 갈래 신인을 더 잘 모은다.
+         ⚠ 훈련 배수(statMul)가 주된 효과고 이건 **덤**이다 — 은퇴가 느려서
+            선수단 구성은 십수 시즌에 걸쳐 천천히 바뀐다(실측으로 확인).
+         ⚠ 갈래가 없으면 spec 이 undefined 라 rollAthlete 이 예전처럼 알아서 고른다. */
+      const wantSpec = (typeof IDENT!=='undefined') ? IDENT.rookieSpec(this, rng, undefined) : undefined;
+      const a = rollAthlete(rng, { age:17+((rng()*2)|0), spec:wantSpec,
                                    tier:Math.min(1.15, 0.3+rng()*0.42+lift+eraLift) });
       this.squad.push(a); out.joined.push(a);
     }

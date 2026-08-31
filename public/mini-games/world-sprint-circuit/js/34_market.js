@@ -114,7 +114,11 @@ class Market {
         for(let i=0;i<n;i++){
           const tier = clamp(lerp(r.tier[0], r.tier[1], this.rng()) + (s.tierLift||0), 0, 1);
           const age = r.young ? 16+((this.rng()*3)|0) : 18+((this.rng()*9)|0);
-          const a = rollAthlete(this.rng, { tier, age });
+          /* 클럽 갈래(4M_identity) — 특기부는 그 갈래 유망주를 더 자주 물어 온다.
+             ⚠ 갈래가 없으면 spec 이 undefined 라 예전처럼 알아서 고른다. */
+          const wantSpec = (typeof IDENT!=='undefined')
+            ? IDENT.rookieSpec(this.club, this.rng, undefined) : undefined;
+          const a = rollAthlete(this.rng, { tier, age, spec:wantSpec });
           /* 눈이 밝으면 처음부터 더 보인다 — 안개(fogStat)는 그대로 쓴다 */
           const lv = (typeof SCOUT!=='undefined') ? SCOUT.startLevel(s.eye||0, this.rng) : 1;
           this.prospects.push({ athlete:a, level:lv, weeksLeft:5+((this.rng()*4)|0), ask:valueOf(a) });
