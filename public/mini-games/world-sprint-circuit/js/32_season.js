@@ -165,6 +165,12 @@ class Season {
       a.national = true;
       a.morale = clamp(a.morale + 10, 0, 100);
     });
+    /* ⛔ 여기까지가 예전 전부였다 — `a.national` 을 찍고 끝. 그 값을 읽는 곳이
+       선수단 목록의 ★ 하나뿐이라 **뽑혀도 아무 일이 안 일어났다.**
+       위 주석이 "뽑히느냐 마느냐가 있어야 한다" 고 해 놓고 뒤가 비어 있었다.
+       대표팀은 더 배우고(성장 +10%) 소집에서 지친다(피로 +12) — 4N_national. */
+    this.nationalPick = (typeof NATIONAL !== 'undefined')
+      ? NATIONAL.applyCallup(this.club, picked, this) : null;
     return picked;
   }
   /* 국가별 메달표 — { KOR:{g,s,b}, … } */

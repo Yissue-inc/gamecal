@@ -416,6 +416,17 @@ class OfficeScreen extends Screen0 {
                       go:()=>new CoachScreen(this.mg) }; })(),
       { label:'선수 사무소', icon:'ic-market', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶',
         go:()=>new MarketScreen(this.mg) },
+      /* 국가대표(4N_national) — ⛔ 선발이 **조용히** 일어났다. 시즌 시작에 뽑아 놓고
+         화면이 한 마디도 안 했다. 누가 나라를 대표하는지는 감독이 봐야 할 것이다. */
+      (()=>{ if(typeof NATIONAL==='undefined') return null;
+             const C=this.mg.club;
+             const nat = C.squad.filter(a=>NATIONAL.is(a));
+             if(!nat.length) return null;
+             nat.sort((x,y)=>y.overall-x.overall);
+             return { label:'국가대표', icon:'ic-medal',
+                      sub: nat.map(a=>`${a.name}${NATIONAL.caps(a)>1?'('+NATIONAL.capsLabel(a)+')':''}`).join(', '),
+                      right:String(nat.length), rightColor:PAL.gold,
+                      go:()=>new SquadScreen(this.mg) }; })(),
       /* 클럽 갈래(4M_identity) — 라이벌은 여섯 팀 다 특기가 있는데 우리만 없었다 */
       (()=>{ if(typeof IDENT==='undefined') return null;
              IDENT.ensure(this.mg.club);
@@ -776,7 +787,10 @@ class SquadScreen extends Screen0 {
     /* ⚠ 종족 이름은 번역표에 다 있는데도 영어 빌드에서 한국어로 나왔다 —
        별·종족·이름을 **한 문자열로 조립**하면 txt() 가 그 통문자열을 K() 에 넘겨
        표에서 못 찾기 때문이다. 종족만 먼저 옮겨 붙인다(이름은 데이터라 그대로). */
-    label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${K(a.speciesName)} ${a.name}`, nation:a.nation,
+    /* ★ 옆에 캡(대표 횟수) — 두 번 이상 뽑힌 선수는 그게 이력이다(4N_national) */
+    label:(a.national?'★ ':'')+`${UI.rareStars(a)} ${K(a.speciesName)} ${a.name}`
+          + ((typeof NATIONAL!=='undefined' && NATIONAL.caps(a)>1) ? ` ${NATIONAL.caps(a)}` : ''),
+    nation:a.nation,
     /* 로스터는 표다 — 나이·성장형·특성을 훑을 수 있어야 한다.
        ⛔ 챕터 1 규칙: 부제가 **설명**이면 숨기고 **데이터**면 남긴다.
        ⛔ 챕터 7 — 이 화면이 **73개 중 제일 빽빽했다**(36조각·455자 · ink.html).

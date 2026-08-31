@@ -133,7 +133,9 @@ function trainWeek(a, program, focus, rng, club){
       /* 클럽 갈래(4M_identity) — 그 갈래가 쓰는 **능력치**가 빨리 큰다(수영부는 지구력·기술).
          ⛔ 배수 하나만 곱한다. 성장 공식은 한 줄도 안 바뀐다. 갈래가 없으면 1.0 이다. */
       const identK = (typeof IDENT!=='undefined') ? IDENT.statMul(club, k) : 1;
-      let g = TrainTune.baseGain * w/6 * sb * fatiguePenalty * ageF * moraleF * near * identK * (0.7+rng()*0.6)
+      /* 국가대표(4N_national) — 대표팀에서 배운다. 대신 소집에서 지쳐 온다(시즌 시작 피로). */
+      const natK = (typeof NATIONAL!=='undefined') ? NATIONAL.trainMul(a) : 1;
+      let g = TrainTune.baseGain * w/6 * sb * fatiguePenalty * ageF * moraleF * near * identK * natK * (0.7+rng()*0.6)
               * (1 + RB.grow + coachG);
       if(ageF < 0) g = Math.min(0, g);              // 전성기 이후엔 줄 수도 있다
       if(Math.abs(g) < 0.01) continue;
