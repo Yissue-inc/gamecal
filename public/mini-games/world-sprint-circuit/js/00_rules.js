@@ -194,9 +194,13 @@ function phaseAt(distM, trackM){
        유도  동 45(이기기만) · 은 20 · 금 9      펜싱  동 52 · 은 18 · 금 13
      ⛔ 통과 기준(동)은 안 건드린다 — 듀얼에서 qualify 는 '몇 초 안에 **이겼나**' 라
         조이면 이기고도 실패가 된다.
-     ⛔ 펜싱 parS 는 지웠다 — cuts 가 우선이라 **죽은 값**이다. 남기면 다음 사람이 또 만진다
-        유도 parS 도 같이 지웠다. (링의 parS:12.4 가 higher 종목이라 아무 효과 없이
-        앉아 있던 것과 같은 함정 — 죽은 값은 다음 사람을 헛짚게 만든다.)
+     ⛔⛔ **펜싱·유도의 parS 를 '죽은 값'이라며 지웠다가 되돌렸다.**
+        메달 컷에서는 cuts 가 우선이라 정말 안 쓰인다 — 그런데 `33_racesim.js:345` 의
+        **감독 모드 기록 앵커**가 `def.parS || def.qualify` 를 읽는다.
+        지웠더니 펜싱 par 가 42 → 52 로 뛰어 감독 선수 기록이 24% 나빠졌다(유도는 20 → 45).
+        ⚠ 값이 어디서 쓰이는지 **한 곳만 보고 판정하지 말 것.** medalCuts 와 경기 화면만 보고
+           시뮬레이터를 안 봤다.
+        (링의 parS:12.4 도 higher 라 medalCuts 는 안 보지만 **앵커는 본다** — 그래서 둔다.)
      ⚠ 탁구는 못 정했다 — 봇이 18판 중 **한 번도 못 이겨** 사람의 상한을 모른다.
         모르는 채로 컷을 옮기지 않는다. */
 /* ⚠ **메달 컷 재조정 (2026-08-30 2차)** — 8종목에서 '이기기만 하면 금' 이었다.
@@ -285,7 +289,7 @@ const EVENTS = [
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
   { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:5.2, parS:4.65, rivalPar:4.65, kind:'climb', tip:'좌·우를 고르게 — 정확하면 빨라진다 · 액션 = 도약 1회' },
   /* 펜싱 — 이 게임에서 유일하게 '리듬'이 아니라 '거리'가 축인 종목. 5투셰 선취까지의 시간. */
-  { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, cuts:{silver:18, gold:13}, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
+  { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, cuts:{silver:18, gold:13}, parS:42.0, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
   /* 10종 경기 — 새 물리가 아니라 **그릇**이다. 있는 열 종목을 이어 뛰고 IAAF 표로 합산한다. */
   { id:'decathlon',    name:'10종 경기',    short:'DEC',   unit:'점', higher:true,  qualify:6500, parS:7200, kind:'combined', tip:'열 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 철인3종 — 두 번째 그릇. 10종과 달리 **끊기지 않는다**(피로가 구간을 관통한다). */
@@ -301,7 +305,7 @@ const EVENTS = [
   /* 탁구 — 이 게임에 없던 **랠리** 장르. 상대를 어디로 뛰게 만드느냐가 축이다. */
   { id:'tableTennis',  name:'탁구',         short:'TT',    unit:'s', higher:false, qualify:140.0, parS:110.0, kind:'rally', tip:'←→ 로 설 자리와 코스를 정하고, 공이 올 때 액션' },
   /* 유도 — 격투기가 통째로 비어 있었다. 붙잡고 버티다 한순간에 뒤집는 종목. */
-  { id:'judo',         name:'유도',         short:'JUDO',  unit:'s', higher:false, qualify:45.0, cuts:{silver:20, gold:9}, kind:'grap', tip:'좌·우 번갈아 깃 싸움 · 저울이 기울면 액션으로 메친다' },
+  { id:'judo',         name:'유도',         short:'JUDO',  unit:'s', higher:false, qualify:45.0, cuts:{silver:20, gold:9}, parS:20.0, kind:'grap', tip:'좌·우 번갈아 깃 싸움 · 저울이 기울면 액션으로 메친다' },
   /* 기계체조 도마 — 축은 **손 짚기**. 그 짧은 순간에 높이가 정해지고, 높이가 난도를 허락한다. */
   { id:'vault',        name:'도마',         short:'VT',    unit:'점', higher:true,  qualify:11.50, parS:13.20, kind:'gym', tip:'좌·우로 달려 구름판, 도마에 닿을 때 다시 액션 · 좌·우 비틀기' },
   /* 카누 슬라럼 — 이 게임에 없던 **가로 조종**. 기록 = 내려온 시간 + 벌점. */
