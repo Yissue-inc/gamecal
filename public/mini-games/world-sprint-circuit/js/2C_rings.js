@@ -235,14 +235,17 @@ class RingsEvent {
     u.restore();
 
     /* ── 계기 ── */
-    plate(u, 0, 0, VW, 30, .72);
-    txt(u, K('링'), 8, 3, 8, PAL.dim);
+    /* ⛔ 여기엔 **기준만 있고 내 점수가 없었다**(2026-08-31 점검).
+       점수판인데 내 숫자가 없으면 그건 안내판이지 점수판이 아니다. */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: Math.min(this.idx+1, RING.holds.length)+' / '+RING.holds.length,
+      mine: this.mark, fmt: v => (v==null? '—' : (+v).toFixed(2)),
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+    });
+    /* 지금 잡고 있는 자세 이름은 이 종목의 진행 그 자체다 — 점수판 아래 한 줄로 */
     txt(u, this.idx < RING.holds.length ? K(this.hold.name) : K('내리기'),
-        8, 12, 15, PAL.gold, 'left', 700);
-    txt(u, K('자세'), 128, 3, 8, PAL.dim);
-    txt(u, Math.min(this.idx+1, RING.holds.length)+' / '+RING.holds.length, 128, 13, 11, PAL.white);
-    txt(u, K('기준'), VW-30, 3, 8, PAL.dim, 'right');
-    txt(u, fmtRec(this.def, this.qualify), VW-30, 12, 13, PAL.white, 'right', 700);
+        8, 36, 13, PAL.gold, 'left', 700);
 
     /* 흔들림 — 이 종목의 전부다. 가운데가 0. */
     const bw=180, bx0=VW/2-bw/2, by=VH-40;

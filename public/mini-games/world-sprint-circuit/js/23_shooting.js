@@ -219,12 +219,18 @@ class ShootingEvent {
     txt(u, this.phase==='HOLD'?'액션을 떼면 발사  ·  ▲ 다시 호흡':'액션을 눌러 숨을 참으세요',
         cx, VH-20, 9, PAL.dim,'center');
 
-    txt(u, this.def.name, 8, 6, 12, PAL.gold,'left',700);
-    txt(u, this.shot+' / '+SHOOT.shots+'발', cx, 6, 11, PAL.white,'center',700);
-    txt(u, this.total.toFixed(1), VW-8, 4, 15, PAL.white,'right',700);
-    txt(u,'기준 '+this.qualify.toFixed(1), VW-8, 20, 9,
-        this.total>=this.qualify?PAL.green:PAL.dim,'right');
-    if(this.rebreaths) txt(u,'다시 호흡 '+this.rebreaths+'회', 8, 20, 9, PAL.dim,'left');
+    /* ⛔ 양궁과 같은 병이었다 — '기준 90.0' 과 내 합계가 나란히 있어 뭐가 내 것인지
+       한눈에 안 왔다. 점수판은 한 곳에서 그린다(05_scoreboard). */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: this.shot+' / '+SHOOT.shots+'발',
+      mine: +this.total.toFixed(1),
+      fmt: v => v.toFixed(1),
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      pace: this.shot > 0 ? this.total / this.shot * SHOOT.shots : undefined,
+      history: this.scores.map(v => +(+v).toFixed(1)),
+    });
+    if(this.rebreaths) txt(u,'다시 호흡 '+this.rebreaths+'회', 8, 36, 9, PAL.dim,'left');
     if(this.phase==='BREATHE'||this.phase==='HOLD'){
       const left=Math.max(0,(SHOOT.shotClockMs-(this.t-this.shotOpenedAt))/1000);
       txt(u, left.toFixed(1)+'초', cx+52, 6, 10, left<5?PAL.red:PAL.dim,'left',700);

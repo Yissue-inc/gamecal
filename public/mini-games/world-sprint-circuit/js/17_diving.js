@@ -160,11 +160,13 @@ class DivingEvent {
                                 40+k*26, clamp(k,0,0.999), 4);
       if(!drew) BG.fx(u, 'water-splash-big', VW/2, this._waterY||VH-58, 34+k*14, clamp(k,0,0.999), 4);
     }
-    txt(u, this.def.name, 8, 6, 12, PAL.gold, 'left', 700);
-    txt(u, `${this.attempt} / ${this.attemptsTotal}차`, VW/2, 6, 11, PAL.white, 'center');
-    txt(u, this.qualify.toFixed(1)+'점', VW-30, 6, 12,
-        this.best>=this.qualify?PAL.green:PAL.red, 'right', 700);
-    txt(u, `최고 ${this.best.toFixed(2)}`, VW-8, 20, 10, PAL.dim, 'right');
+    SB.tally(u, {
+      name: this.def.name,
+      progress: `${this.attempt} / ${this.attemptsTotal}차`,
+      mine: this.best, fmt: v => (+v).toFixed(2),
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      history: (this.marks || []).map(v => +(+v).toFixed(1)),
+    });
 
     if(this.phase==='BOUNCE'){
       txt(u,'좌·우를 번갈아 눌러 반동을 키우세요', VW/2, VH-42, 10, PAL.white, 'center');

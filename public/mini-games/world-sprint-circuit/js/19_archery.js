@@ -197,11 +197,17 @@ class ArcheryEvent {
   drawUI(u){
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
     if(this.hit){ this._hits=this._hits||[]; this._hits[this.scores.length-1]=this.hit; }
-    txt(u, this.def.name, 8, 6, 12, PAL.gold, 'left', 700);
-    txt(u, `${this.arrow} / ${ARCH.arrows}발`, VW/2, 6, 11, PAL.white, 'center');
-    txt(u, this.qualify+'점', VW-30, 6, 12, this.total>=this.qualify?PAL.green:PAL.red, 'right', 700);
-    txt(u, `합계 ${this.total}`, VW-8, 20, 11, PAL.gold, 'right', 700);
-    txt(u, this.scores.join(' '), 8, 22, 10, PAL.dim, 'left');
+    /* ⛔ 예전엔 **기준(51점)이 빨갛고 크고, 내 합계는 작고 흐렸다** — 화면에서 제일 큰
+       숫자가 내 것이 아니었다(2026-08-31 캡처로 확인). 점수판은 한 곳에서 그린다. */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: `${this.arrow} / ${ARCH.arrows}발`,
+      mine: this.total,
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      /* 지금 페이스로 끝까지 가면 몇 점인가 — 진행 중엔 이게 유일하게 쓸모 있는 비교다 */
+      pace: this.arrow > 0 ? this.total / this.arrow * ARCH.arrows : undefined,
+      history: this.scores,
+    });
 
     if(this.phase==='AIM'){
       const TX=VW-92, TY=214-64, TR=40;

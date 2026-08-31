@@ -278,11 +278,14 @@ class GolfEvent {
     /* HUD */
     plate(u,0,0,VW,26,.8);
     txt(u, this.def.name, 8, 4, 11, PAL.gold,'left',700);
-    txt(u, (this.hole+1)+K('번 홀')+'  '+K('파')+H.par, VW/2, 4, 12, PAL.white,'center',700);
+    txt(u, (this.hole+1)+'번 홀  파 '+H.par, VW/2, 4, 12, PAL.white,'center',700);
     txt(u, K('타수')+' '+this.strokes, VW/2+64, 6, 10, PAL.dim,'left',700);
     const rel=this.totalStrokes-this.totalPar;
     txt(u, rel===0?'E':(rel>0?'+'+rel:String(rel)), VW-30, 3, 15,
         rel<=0?PAL.green:PAL.red,'right',700);
+    /* 메달 레일 — 골프는 컷이 0 / −2 / −4 라 숫자만 봐선 어디쯤인지 안 잡힌다 */
+    if(typeof SB!=='undefined') SB.rail(u, VW-134, 21, 100, rel,
+      medalCuts(this.def), !!this.def.higher, false);
     txt(u, K('남은 거리')+' '+Math.round(this.toHole)+'m', 8, 30, 10,
         this.onGreen?PAL.green:PAL.white,'left',700);
     if(this.phase==='AIM'){

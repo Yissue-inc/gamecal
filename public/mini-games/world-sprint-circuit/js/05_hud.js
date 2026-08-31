@@ -157,6 +157,31 @@ const HUD = {
       txt(ctx, K('최고'), RX-76, 3, 8, PAL.dim, 'right');
       txt(ctx, fmtTime(o.best), RX-76, 13, 11, PAL.blue, 'right');
     }
+
+    /* ── 순위표 ───────────────────────────────────────────────
+       ⛔ **라이벌 둘이 같이 뛰는데 HUD 는 그들에 대해 한 마디도 안 했다**(CK 지적 2026-08-31).
+          누가 앞선지 알려면 트랙을 봐야 하는데 카메라가 선두를 따라가서 그것도 안 된다.
+          속도·거리 같은 텔레메트리보다 **지금 몇 위인가**가 먼저다.
+       ⚠ 오른쪽 위에는 종목들이 이미 뭔가를 그린다(연승·티어) — 왼쪽에 놓는다. */
+    if(typeof SB !== 'undefined'){
+      let rows = o.field;
+      /* ⛔ **혼자 뛰는 종목이 다섯 갈래나 된다**(수영·중장거리·등반·조정·사이클 —
+         선수 배열이 1개다). 100m 만 라이벌이 있었다. 그래서 "상대 점수를 보여 달라"는
+         요구에 보여 줄 상대가 애초에 없었다.
+         당장 세울 수 있는 상대는 하나 있다 — **내 최고 기록**.
+         같은 거리를 그 기록의 평균 속도로 가는 고스트를 나란히 놓는다.
+         (아이가 '자기 기록 갱신하는 느낌'으로 논다는 CK 의 쉬움 모드와도 같은 결이다) */
+      if((!rows || rows.length < 2) && o.best > 0 && o.trackM > 0 && o.timeS > 0 && o.distM > 0){
+        const gp = clamp(o.timeS / o.best, 0, 1);      // 고스트의 진행률(등속 가정)
+        const mp = clamp(o.distM / o.trackM, 0, 1);
+        rows = [
+          { name: K('나'),      mine: true,  prog: mp, trackM: o.trackM,
+            timeS: (o.myTimeS && mp >= 1) ? o.myTimeS : 0 },
+          { name: K('내 최고'), ghost: true, prog: gp, trackM: o.trackM, timeS: 0 },
+        ].sort((a, b) => b.prog - a.prog);
+      }
+      if(rows && rows.length > 1) SB.standings(ctx, rows, 6, 34);
+    }
   },
 
   /* 연타 게이지 — **손이 하는 일**을 그대로 보여 준다.

@@ -334,12 +334,12 @@ class FencingEvent {
     /* 점수판 */
     plate(u, 0,0, VW, 30, .76);
     const A=this.fencers[0], B=this.fencers[1];
-    txt(u, this.humanCount>1?'1P':'나', 60, 5, 9, PAL.dim,'center');
-    txt(u, this.humanCount>1?'2P':'상대', VW-60, 5, 9, PAL.dim,'center');
-    txt(u, String(A.touches), 60, 13, 17, PARTY_COLOR[0],'center',700);
-    txt(u, String(B.touches), VW-60, 13, 17, this.humanCount>1?PARTY_COLOR[1]:PAL.white,'center',700);
-    txt(u, FENCE.touchesToWin+'점 선취', VW/2, 5, 9, PAL.dim,'center');
-    txt(u, fmtTime(Math.max(0,this.elapsed)), VW/2, 14, 13, PAL.gold,'center',700);
+    SB.versus(u, {
+      myLabel: this.humanCount>1?'1P':'나', mine: A.touches,
+      foeLabel: this.humanCount>1?'2P':'상대', foe: B.touches,
+      target: FENCE.touchesToWin+'점 선취', first: FENCE.touchesToWin,
+      note: fmtTime(Math.max(0,this.elapsed)),
+    });
     /* 거리 — 이 종목의 핵심 지표 */
     const g=this.gap, inR = g<=FENCE.lungeRange;
     u.fillStyle='rgba(8,11,18,.66)'; u.fillRect(0, VH-34, VW, 34);

@@ -72,6 +72,16 @@ class SprintEvent {
   }
 
   get people(){ return this.humans; }
+
+  /* 순위표 줄 — 진행 순으로. 끝난 사람은 기록으로, 달리는 사람은 선두와의 거리로. */
+  standingsRows(){
+    if(!this.all || this.all.length < 2) return null;
+    return this.all.slice()
+      .sort((a,b)=> (b.finished?1e9 - (b.finishTimeS||0):b.distM) - (a.finished?1e9 - (a.finishTimeS||0):a.distM))
+      .map(r=>({ name: r.name || K('나'), mine: !r.name,
+                 prog: (r.distM||0)/(this.trackM||1), trackM: this.trackM,
+                 timeS: r.finished ? r.finishTimeS : 0 }));
+  }
   get qualify(){ return this.def.qualify; }
   /* 린(피니시 젖히기) 구간은 거리에 비례한다 */
   get leanStart(){ return this.trackM * (RULES.leanWindowStartM/100); }
@@ -339,6 +349,8 @@ class SprintEvent {
       party: (this.humans && this.humans.length>1)
         ? this.humans.map((r,i)=>({ i, distM:r.distM,
             timeS: r.finishTimeS, done: !!r.finished })) : null,
+      /* 라이벌까지 넣은 **순위표** — 이름이 없는 쪽이 나다 */
+      field: this.standingsRows(),
     });
 
     if(this.phase==='SET'){

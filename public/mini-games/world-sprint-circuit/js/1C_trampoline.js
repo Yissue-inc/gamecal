@@ -210,18 +210,24 @@ class TrampolineEvent {
     /* ⚠ y0=26 은 조명탑 램프와 겹쳤다(실측 스크린샷). 뒷판을 깔고 내린다. */
     const y0=40;
     u.fillStyle='rgba(6,10,18,.62)'; u.fillRect(0, 30, VW, 34);
-    txt(u,'회차', 14, y0, 9, PAL.dim,'left');
-    txt(u, this.bounce+' / '+TRAMP.bounces, 14, y0+13, 15, PAL.white,'left',700);
-    txt(u,'높이', 84, y0, 9, PAL.dim,'left');
-    txt(u, this.height.toFixed(1)+'m', 84, y0+13, 15, PAL.gold,'left',700);
-    txt(u,'회전', 146, y0, 9, PAL.dim,'left');
-    txt(u, (this.spin*0.5).toFixed(1)+'바퀴', 146, y0+13, 15,
+    /* ⛔ '회차' 는 위 점수판의 진행과 **같은 값**이었다 — 한 화면에 두 번 쓰지 않는다.
+       여기 남는 건 이 종목에서만 뜻이 있는 두 가지, **높이와 회전**이다. */
+    txt(u,'높이', 14, y0, 9, PAL.dim,'left');
+    txt(u, this.height.toFixed(1)+'m', 14, y0+13, 15, PAL.gold,'left',700);
+    txt(u,'회전', 84, y0, 9, PAL.dim,'left');
+    txt(u, (this.spin*0.5).toFixed(1)+'바퀴', 84, y0+13, 15,
         this.opened?PAL.green:(this.spin>0?PAL.red:PAL.white),'left',700);
     const cur = this.sum/Math.max(1,this.bounce-(this.phase==='RESULT'?0:1))*7.4;
-    txt(u,'점수', VW-14, y0, 9, PAL.dim,'right');
-    txt(u, (this.phase==='RESULT'?this.result.value:cur||0).toFixed(1), VW-14, y0+13, 15, PAL.white,'right',700);
-    txt(u,'기준 '+this.qualify.toFixed(1), VW-14, y0+27, 9, PAL.green,'right');
-    if(this.combo>=2) txt(u, this.combo+'연속 완벽', VW/2, y0+13, 12, PAL.gold,'center',700);
+    /* 점수판은 한 곳에서 — 기준을 숫자로 또 쓰지 않고 **레일 위 자리**로 보여 준다 */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: (this.bounce||0)+' / '+TRAMP.bounces+'회',
+      mine: +(this.phase==='RESULT' ? this.result.value : (cur||0)).toFixed(1),
+      fmt: v => (+v).toFixed(1),
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+    });
+    /* ⚠ 가운데(VW/2)는 '회전' 값이 쓰는 자리였다 — 오른쪽 빈 칸으로 옮긴다 */
+    if(this.combo>=2) txt(u, this.combo+'연속 완벽', VW-14, y0+13, 12, PAL.gold,'right',700);
 
     if(this.phase==='READY')
       txt(u,'아무 키나 눌러 시작 — 매트에 닿는 순간 액션', VW/2, VH-40, 11, PAL.white,'center',700);

@@ -270,12 +270,13 @@ class TableTennisEvent {
     /* 점수판 */
     plate(u, 0,0, VW, 28, .78);
     const A=this.players[0], B=this.players[1];
-    txt(u, this.humanCount>1?'1P':'나', 56, 4, 9, PAL.dim,'center');
-    txt(u, this.humanCount>1?'2P':'상대', VW-56, 4, 9, PAL.dim,'center');
-    txt(u, String(A.pts), 56, 12, 16, PARTY_COLOR[0],'center',700);
-    txt(u, String(B.pts), VW-56, 12, 16, this.humanCount>1?PARTY_COLOR[1]:PAL.white,'center',700);
-    txt(u, TT.toWin+'점 선취', VW/2, 4, 9, PAL.dim,'center');
-    txt(u, this.rally? this.rally+'구째' : '', VW/2, 13, 12, PAL.gold,'center',700);
+    /* 점수판은 한 곳에서 그린다 — 나·상대가 **같은 크기**여야 차이가 크기로 읽힌다 */
+    SB.versus(u, {
+      myLabel: this.humanCount>1?'1P':'나', mine: A.pts,
+      foeLabel: this.humanCount>1?'2P':'상대', foe: B.pts,
+      target: TT.toWin+'점 선취', first: TT.toWin,
+      note: this.rally ? this.rally+'구째' : '',
+    });
 
     if(this.phase==='SERVE'){
       const mine=this.server===0;

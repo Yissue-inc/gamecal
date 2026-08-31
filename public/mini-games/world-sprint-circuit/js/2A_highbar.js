@@ -255,12 +255,13 @@ class HighBarEvent {
       }
     }
     /* HUD */
-    txt(u, this.def.name, 8, 6, 12, PAL.gold,'left',700);
-    txt(u, K('이탈')+' '+this.releases+' / '+BAR.maxRelease, VW/2, 6, 11, PAL.white,'center',700);
-    txt(u, this.mark!=null? this.mark.toFixed(2):'—', VW-8, 4, 15, PAL.white,'right',700);
-    txt(u, K('기준')+' '+this.qualify.toFixed(2), VW-8, 20, 9,
-        (this.mark||0)>=this.qualify?PAL.green:PAL.dim,'right');
-    if(this.releases>0) txt(u,'▲ '+K('내려서기'), 8, 20, 9, PAL.gold,'left');
+    SB.tally(u, {
+      name: this.def.name,
+      progress: K('이탈')+' '+this.releases+' / '+BAR.maxRelease,
+      mine: this.mark, fmt: v => (v==null? '—' : (+v).toFixed(2)),
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+    });
+    if(this.releases>0) txt(u,'▲ '+K('내려서기'), 8, 36, 9, PAL.gold,'left');
     if(this.phase==='SWING' && this.releases===0 && this.amp<BAR.releaseMin)
       txt(u,'좌·우를 리듬에 맞춰 — 스윙이 커지면 액션으로 이탈', VW/2, VH-48, 10, PAL.white,'center');
     if(this.phase==='MARK' && this.mark!=null){

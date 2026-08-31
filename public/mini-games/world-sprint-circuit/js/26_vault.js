@@ -266,12 +266,13 @@ class VaultEvent {
       }
     }
     /* 점수판 */
-    txt(u, this.def.name, 8, 6, 12, PAL.gold,'left',700);
-    txt(u, this.attempt+' / '+VAULT.attempts+K('차'), VW/2, 6, 11, PAL.white,'center',700);
-    txt(u, this.best? this.best.toFixed(2) : '—', VW-8, 4, 15, PAL.white,'right',700);
-    txt(u, K('기준')+' '+this.qualify.toFixed(2), VW-8, 20, 9,
-        this.best>=this.qualify?PAL.green:PAL.dim,'right');
-    this.marks.forEach((m,i)=> txt(u, (i+1)+K('차')+' '+m.toFixed(2), 8, 22+i*11, 9, PAL.dim,'left'));
+    SB.tally(u, {
+      name: this.def.name,
+      progress: this.attempt+' / '+VAULT.attempts+'차',
+      mine: this.best || 0, fmt: v => v ? (+v).toFixed(2) : '—',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      history: (this.marks||[]).map(m => +(+m).toFixed(1)),
+    });
 
     if(this.phase==='MARK' && this.pending!=null){
       u.fillStyle='rgba(5,6,10,.72)'; u.fillRect(0, 78, VW, 58);

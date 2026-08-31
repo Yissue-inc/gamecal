@@ -191,12 +191,14 @@ class LiftingEvent {
   }
   drawUI(u){
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
-    txt(u, this.def.name, 8, 6, 12, PAL.gold, 'left', 700);
-    txt(u, `${this.kg}kg`, VW/2, 6, 15, PAL.white, 'center', 700);
-    txt(u, this.qualify.toFixed(0)+'kg', VW-30, 6, 12,
-        this.best>=this.qualify?PAL.green:PAL.red, 'right', 700);
-    txt(u, `최고 ${this.best}kg · 남은 시기 ${this.attemptsTotal-this.attempt+1}`,
-        VW-8, 20, 9, PAL.dim, 'right');
+    SB.tally(u, {
+      name: this.def.name,
+      /* 지금 드는 무게가 진행 상황이다 — 시기와 함께 보여 준다 */
+      progress: `${this.kg}kg · ${this.attempt}/${this.attemptsTotal}차`,
+      mine: this.best, unit: 'kg',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      history: this.marks || [],
+    });
 
     if(this.phase==='GRIP'){
       txt(u,'좌·우를 고르게 번갈아 눌러 자세를 잡으세요', VW/2, VH-40, 10, PAL.white,'center');
