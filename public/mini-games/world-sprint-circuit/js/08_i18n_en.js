@@ -1075,4 +1075,7 @@ const I18N_EN = {
   /* 세이브 손상 안내 */
   '저장된 클럽을 읽지 못했습니다':'Could not read the saved club',
   '저장된 클럽이 손상되어 열 수 없습니다':'The saved club is damaged and cannot be opened',
+  /* 연타 게이지 */
+  '타수':'Strokes',
+  '빠를수록 빠르다':'Faster taps = faster',
 };

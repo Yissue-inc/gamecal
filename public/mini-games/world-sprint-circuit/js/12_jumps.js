@@ -204,7 +204,7 @@ class LongJumpEvent extends FieldEvent {
       if(!near) txt(uctx,'기록은 구름판부터 잽니다 — 일찍 뛰면 손해', VW/2, 62, 9, PAL.dim,'center');
       const now=this.t, tgt=this.runner.targetIntervalMs();
       const err = this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tgt)/tgt,-1,1);
-      HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide:-this.runner.lastSide||1, phaseErr:err, form:this.runner.form});
+      HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide:-this.runner.lastSide||1, phaseErr:err, form:this.runner.form, rate:(this.runner.strideRate||0)});
       HUD.judge(uctx, this.runner.lastJudge, now-this.runner.lastJudgeMs);
     } else if(this.phase==='FLIGHT'){
       txt(uctx,'액션을 눌렀다 놓아 자세를 잡으세요', VW/2, 44, 12, PAL.gold,'center',700);

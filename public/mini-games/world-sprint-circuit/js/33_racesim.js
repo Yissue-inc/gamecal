@@ -42,6 +42,10 @@ function execSkill(a, ctx){
 }
 
 /* 한 선수의 한 경기를 돌린다. 반환: {timeS, splits, judge, falseStart, ...} */
+/* 연타 모드에서 감독 선수의 타수 — 실행력이 좋을수록 빠르게 친다.
+   ⚠ 사람의 곡선과 같은 자리에 두었다: 초당 6.7타(150ms) ~ 12.5타(80ms). */
+const MASH_IV_WORST = 150, MASH_IV_BEST = 80;
+
 function simulateSprint(a, opt){
   opt = opt||{};
   const trackM = opt.trackM || 100;
@@ -82,8 +86,20 @@ function simulateSprint(a, opt){
         const over = (r.distM - fadeAt)/Math.max(1,(trackM-fadeAt));
         sg *= 1 + over * lerp(1.5, 0.25, staminaK) * (1 + a.eff('lateFade'));
       }
-      next = t + r.targetIntervalMs() + gauss(rng)*sg;
-      if(next <= t + RULES.minInputIntervalMs) next = t + RULES.minInputIntervalMs + 4;
+      if(RULES.mashMode){
+        /* ⛔ 연타 모드에서는 **타수가 곧 실력**이다(사람과 같은 규칙).
+           예전 식은 모두를 238ms(초당 4타)로 치게 해서
+             ① 감독 선수가 100m 를 14초에 뛰고
+             ② 타이밍 정밀도(sigma)가 속도에 아무 영향이 없어 **실행력이 죽었다.**
+           실행력을 **간격**으로 옮긴다 — 잘하는 선수일수록 빨리 친다.
+           후반 흔들림(sg)은 간격을 들쭉날쭉하게 만들어 평균 타수를 떨어뜨린다. */
+        const iv = lerp(MASH_IV_WORST, MASH_IV_BEST, clamp(skill,0,1));
+        next = t + iv + Math.abs(gauss(rng))*sg*0.45;
+        if(next <= t + 40) next = t + 40;
+      } else {
+        next = t + r.targetIntervalMs() + gauss(rng)*sg;
+        if(next <= t + RULES.minInputIntervalMs) next = t + RULES.minInputIntervalMs + 4;
+      }
     }
     /* 피니시 린 — 기술이 좋을수록 창을 잘 잡는다 */
     if(!r.leanDone && r.distM >= RULES.leanWindowStartM){

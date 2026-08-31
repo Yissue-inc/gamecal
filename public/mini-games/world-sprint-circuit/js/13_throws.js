@@ -137,7 +137,7 @@ class JavelinEvent extends FieldEvent {
             VW/2,44,13,left<8?PAL.gold:PAL.white,'center',700);
         const now=this.t,tg=this.runner.targetIntervalMs();
         const err=this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tg)/tg,-1,1);
-        HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide:-this.runner.lastSide||1,phaseErr:err,form:this.runner.form});
+        HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide:-this.runner.lastSide||1,phaseErr:err,form:this.runner.form, rate:(this.runner.strideRate||0)});
       } else {
         const held=this.t-this.holdStart;
         const w=200,x=(VW-w)/2,y=Track.GAUGE_Y+9;

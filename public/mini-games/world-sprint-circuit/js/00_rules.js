@@ -110,6 +110,32 @@ const RULES = {
 
   /* ── 판정별 추진력 ── */
   impulse: { PERFECT:1.0, GOOD:0.78, EARLY:0.70, LATE:0.70, REPEAT:0.42, SPAM:0.25 },
+
+  /* ══ 연타 모드 (CK 확정 2026-08-31) ═══════════════════════════════════════
+     ⛔ 왜 바꾸나 — 실측으로 드러난 것:
+        간격 60ms(초당 16타) → **미완주**(SPAM 319) · 100ms → 16.20s · 180ms → 16.94s
+        **238ms → 9.46s** · 280ms → 17.77s · 340ms → **미완주**
+        목표에서 ±40ms 만 벗어나도 9.5초가 17초가 됐다. 그리고 **빨리 누를수록 느려졌다.**
+        CK: "리듬에 맞추는 것도 아니고 연타도 아니고 키도 제대로 안 먹는다"
+        — 맞는 말이었다. 게이지는 '방금 친 게 빨랐나 늦었나'만 알려 주고
+          쳐야 할 박자는 **아무 데서도 알려 주지 않았다.**
+     ⛔ 새 규칙: **빨리 번갈아 누를수록 빨라진다.** 하이퍼올림픽이 그랬다.
+        한 번 디딜 때마다 속도를 **더한다**(목표속도로 끌어당기지 않는다).
+        남은 여유(1 - v/vmax)에 비례해 더하므로 상한이 저절로 생기고,
+        누르는 걸 멈추면 감속이 이긴다 — 계속 눌러야 유지된다.
+        같은 쪽만 치면 훨씬 적게 오른다(교대가 이 종목의 조작이다). */
+  mashMode: true,
+  mash: {
+    kick: 0.55,        // 한 번 디딜 때 더하는 양(vmax 대비 비율) — 시뮬로 맞춘다
+    sameSideMul: 0.30, // 같은 쪽 연타는 이만큼만
+    decayActive: 1.6,  // 연타 중 감속(1/s) — 이게 있어야 '타수 = 속도'가 성립한다
+    /* ⛔ 디딤 한 번마다 지친다 — **이게 없으면 장거리가 무너진다.**
+       실측: 넣기 전 800m 를 84.7s 에 뛰었다(세계기록 100.4s). 마구 쳐도 안 지치니까.
+       거리가 길수록 디딤 수가 많아 자연히 무거워진다 —
+       100m 는 ~100디딤(거의 영향 없음) · 800m 는 ~800디딤(크게 무거움).
+       그래서 장거리에서는 '얼마나 오래 그 타수를 버티나' 가 종목이 된다. */
+    fatiguePerStride: 0.0009,
+  },
   /* ⚠ SPAM 을 0 으로 두면 연타하는 플레이어가 영영 완주를 못 해 화면이 멈춘 것처럼 보인다.
      느리지만 굴러가게 두고, 대신 아래 기준기록(qualify)으로 탈락시킨다 — 레퍼런스와 같은 방식. */
 };
@@ -185,6 +211,17 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⛔ **연타 모드로 기준 재실측 (2026-08-31, CK 확정)**
+     조작이 바뀌면 옛 기준은 다른 게임의 기준이다. 새 물리로 다시 쟀다.
+     사람의 타수를 세 자리로 잡았다 — 초당 **7타(동) · 10타(은) · 14타(금)**.
+       100m  동 11.4 · 은 10.5 · 금 9.9      200m  23.1 / 21.4 / 20.3
+       400m  48.6 / 45.2 / 43.3              800m  106 / 98.5 / 93.7
+       1500m 208 / 192 / 182                 5000m 716 / 660 / 622
+     ⚠ 허들·장애물·계주·경보·마라톤은 **아직 안 옮겼다.** 이 하네스는 장애물 넘기와
+        바통 인계를 흉내내지 않아 그 종목의 진짜 기록이 아니다 — 화면째로 다시 재야 한다.
+        **모르는 값을 옮기지 않는다.**
+     ⚠ 장거리는 '디딤마다 지친다' 가 들어가서야 말이 됐다. 넣기 전 800m 가 84.7s 였다
+        (세계기록 100.4s). 이제 93.7s — 최고 타수를 끝까지 버틴 값이다. */
 /* ⚠ **트램폴린 (2026-08-31)** — 천장을 잘못 셌다가 두 번 고쳐 잡았다.
      ① 처음엔 '모든 회차가 최대 높이' 로 셈해 136.75 라 했다 — **틀렸다.**
         높이는 2.6m 에서 시작해 회차마다 ×1.22 로 쌓이고 8.4m 에서 멈춘다.
@@ -269,9 +306,9 @@ function phaseAt(distM, trackM){
       기준이 벽이 된다 — 가끔은 넘어야 다시 해 본다. */
 const EVENTS = [
   /* ── 트랙: 단거리 ── */
-  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.30, distanceM:100, kind:'sprint', tip:'좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발' },
-  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:21.80, distanceM:200, kind:'sprint', tip:'좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다' },
-  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:44.50, distanceM:400, kind:'middle', tip:'좌·우를 일정한 박자로 — 한 바퀴다. 초반에 다 쓰면 무너진다' },
+  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.4, distanceM:100, cuts:{silver:10.5, gold:9.9}, kind:'sprint', tip:'좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발' },
+  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:23.1, distanceM:200, cuts:{silver:21.4, gold:20.3}, kind:'sprint', tip:'좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다' },
+  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:48.6, distanceM:400, cuts:{silver:45.2, gold:43.3}, kind:'middle', tip:'좌·우를 일정한 박자로 — 한 바퀴다. 초반에 다 쓰면 무너진다' },
   { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:13.60, distanceM:110, kind:'hurdles',
     hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우를 일정한 박자로 달리다 허들 앞에서 액션' },
   /* 400m 허들 — 허들이 낮고 간격이 넓다. 지구력 종목에 가깝다. */
@@ -281,9 +318,9 @@ const EVENTS = [
   { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:420.0, distanceM:3000, kind:'hurdles',
     hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'허들 + 물웅덩이 · 물 앞에서는 일찍 뛴다' },
   /* ── 트랙: 중·장거리 ── */
-  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:136.0, parS:127.0, distanceM:800,  kind:'middle', tip:'▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회' },
-  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:255.0, parS:238.0, distanceM:1500, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
-  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:855.0, parS:792.0, distanceM:5000, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
+  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:106.0, parS:127.0, distanceM:800,  cuts:{silver:98.5, gold:93.7}, kind:'middle', tip:'▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회' },
+  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:208.0, parS:238.0, distanceM:1500, cuts:{silver:192.0, gold:182.0}, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
+  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:716.0, parS:792.0, distanceM:5000, cuts:{silver:660.0, gold:622.0}, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
   { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:8650.0, parS:7800.0, distanceM:20000, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).

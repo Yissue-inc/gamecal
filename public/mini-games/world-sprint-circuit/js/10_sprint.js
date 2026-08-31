@@ -361,7 +361,7 @@ class SprintEvent {
                    timeText: r.finishTimeS ? fmtTime(r.finishTimeS) : '' };
         }));
       } else
-      HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide: -this.player.lastSide||1, phaseErr: err, form:this.player.form });
+      HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide: -this.player.lastSide||1, phaseErr: err, form:this.player.form, rate:(this.player.strideRate||0)});
       /* 판정 수명 = 목표 간격의 0.8 배. 다음 타가 오기 전에 사라진다. */
       /* 판정 수명 = 목표 간격의 0.8 배. 다음 타가 오기 전에 사라진다.
          자리는 **내 선수 바로 위** — 시선이 튀지 않아야 한 타 한 타가 붙는다. */

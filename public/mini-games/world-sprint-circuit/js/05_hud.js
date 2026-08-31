@@ -159,11 +159,33 @@ const HUD = {
     }
   },
 
+  /* 연타 게이지 — **손이 하는 일**을 그대로 보여 준다.
+     ① 다음에 칠 발 ② 지금 타수(막대가 즉시 반응) ③ 그 결과인 속도 */
+  mashGauge(ctx, o, GY, GH){
+    const nextL = o.nextSide < 0;
+    txt(ctx, nextL?'◀ 왼발':'오른발 ▶', 10, GY+8, 13, nextL?PAL.gold:PAL.blue, 'left', 700);
+    const w=190, h=10, x=(VW-w)/2, y=GY+9;
+    /* 타수 — 초당 몇 번 치고 있나(0~14 을 막대 전체로) */
+    const tps = clamp((o.rate||0)*2, 0, 14);      // strideRate 는 바퀴/초 → 타/초는 ×2
+    ctx.fillStyle='rgba(242,245,250,.14)'; ctx.fillRect(x,y,w,h);
+    const fw = w*(tps/14);
+    /* 빠를수록 뜨겁게 — 손의 노력이 색으로 보인다 */
+    ctx.fillStyle = tps>=10 ? 'rgba(255,120,90,.92)' : tps>=6 ? 'rgba(255,215,94,.9)' : 'rgba(92,255,156,.75)';
+    ctx.fillRect(x, y, fw, h);
+    txt(ctx, K('타수')+' '+tps.toFixed(1), x-2, y+h+1, 7, PAL.dim, 'right');
+    txt(ctx, K('빠를수록 빠르다'), x+w+2, y+h+1, 7, PAL.dim, 'left');
+  },
+
   /* 리듬 게이지 — "언제 눌러야 하나"를 눈으로 보여준다.
      ⚠ 이게 없으면 초보는 목표 간격을 영영 못 찾는다. 실측: 이거 넣기 전 완주율이 절반. */
   rhythm(ctx, o){
     const GY=Track.GAUGE_Y, GH=Track.GAUGE_H;
     plate(ctx, 0, GY, VW, GH, 0.82);
+    /* ⛔ 연타 모드에서는 '빠름/늦음' 게이지가 **거짓말**이다 — 목표 박자가 없으니까.
+       CK: "조작과 화면이 불일치한다" — 맞다. 화면이 다른 규칙을 말하고 있었다.
+       대신 **지금 몇 타로 치고 있는지**와 **그게 속도로 얼마나 나오는지**를 보여 준다.
+       치면 즉시 오르고 멈추면 즉시 내려간다 — 손이 하는 일이 화면에 그대로 보여야 한다. */
+    if(RULES.mashMode) return this.mashGauge(ctx, o, GY, GH);
     // 다음에 눌러야 할 발 — 크게, 색으로
     /* ⛔ 챕터 4 — '다음' 라벨은 **큰 화살표가 이미 말한다.** 지운다. */
     const nextL = o.nextSide < 0;

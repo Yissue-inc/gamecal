@@ -124,7 +124,20 @@ class Runner {
     const first = this.lastInputMs < -1e8;
     let j = 'GOOD';
 
-    if(dt < RULES.spamWindowMs){
+    /* ⛔ 연타 모드에서는 **빠른 게 잘하는 것**이다 — 타이밍으로 벌하지 않는다.
+       규칙은 하나만 남는다: **좌·우를 번갈아 칠 것.** 같은 쪽만 치면 덜 나간다.
+       (예전엔 60ms 로 치면 SPAM 319회로 완주조차 못 했다 — 사람의 첫 본능이 곧 처벌이었다) */
+    if(RULES.mashMode){
+      if(this.lastSide === side){
+        j='REPEAT'; this.form = Math.max(RULES.formFloor, this.form - RULES.formLossRepeat*0.5);
+        this.breakCombo();
+      } else {
+        j='PERFECT';                                   // 교대만 하면 좋은 디딤이다
+        this.form = Math.min(RULES.formCeil, this.form + RULES.formGainPerfect);
+        this.addCombo();
+      }
+    }
+    else if(dt < RULES.spamWindowMs){
       j='SPAM'; this.fatigue = Math.min(1, this.fatigue + RULES.fatiguePerSpam);
     } else if(dt < RULES.minInputIntervalMs){
       j='SPAM'; this.fatigue = Math.min(1, this.fatigue + RULES.fatiguePerSpam*0.5);
@@ -165,6 +178,7 @@ class Runner {
   }
 
   impulse(j){
+    if(RULES.mashMode) return this.mashImpulse(j);
     const mult = RULES.impulse[j] ?? 0.5;
     const altQ = (j === 'REPEAT') ? 0.7 : 1.0;
     const fatigueFactor = (1 - this.fatigue * lerp(0.35, 0.15, this.stats.stamina/100))
@@ -173,6 +187,23 @@ class Runner {
     const target = this.baseSpeed() * ph.mult
                  * altQ * this.form * fatigueFactor * mult * this.momentum;
     this.speed = clamp(lerp(this.speed, target, RULES.strideLerp), 0, RULES.maxSpeedCap * RULES.balanceScale);
+  }
+
+  /* ⛔ 연타 추진 — 판정이 아니라 **타수**가 속도를 만든다 (RULES.mash 주석 참고).
+     남은 여유에 비례해 더하므로 아무리 빨리 쳐도 vmax 를 못 넘고,
+     멈추면 감속(mash.decayActive)이 이긴다. */
+  mashImpulse(j){
+    const M = RULES.mash;
+    const ph = this.flying ? RULES.phase[2] : phaseAt(this.distM, this.trackM);
+    const fatigueFactor = (1 - this.fatigue * lerp(0.35, 0.15, this.stats.stamina/100))
+                        * (this.recoverUntilMs > this.lastInputMs ? 0.7 : 1);
+    const vmax = Math.max(0.1, this.baseSpeed() * ph.mult * this.form * fatigueFactor * this.momentum);
+    /* 디딤마다 지친다 — 체력이 좋을수록 덜 */
+    this.fatigue = Math.min(1, this.fatigue +
+      M.fatiguePerStride * lerp(1.30, 0.70, (this.stats.stamina||50)/100));
+    const kick = M.kick * vmax * ((j === 'REPEAT') ? M.sameSideMul : 1);
+    const room = Math.max(0, 1 - this.speed/vmax);
+    this.speed = clamp(this.speed + kick*room, 0, RULES.maxSpeedCap * RULES.balanceScale);
   }
 
   /* 피니시 린 — 구간은 트랙 길이에 비례한다(400m 에서 92m 는 초반이다) */
@@ -209,7 +240,10 @@ class Runner {
             같은 실력으로도 기록이 달라진다. dt 기반 지수감쇠로 바꿔 프레임률과 끊는다. */
       const since = nowMs - this.lastInputMs;
       const idle = clamp(since / (this.targetIntervalMs()*2.2), 0, 1);
-      const k = lerp(RULES.decayActive, RULES.decayIdle, idle);
+      /* ⛔ 연타 모드에서는 '연타 중 감속'이 있어야 타수가 속도를 만든다.
+         예전 decayActive(0.08)는 사실상 감속이 없어, 어떤 타수로도 결국 상한에 붙었다. */
+      const act = RULES.mashMode ? RULES.mash.decayActive : RULES.decayActive;
+      const k = lerp(act, RULES.decayIdle, idle);
       this.speed *= Math.exp(-k*dt);
       this.speed = Math.min(this.speed, RULES.maxSpeedCap * (0.9 + this.stats.technique/500) * Math.max(1, this.momentum));
       /* 탄력은 서서히 사라진다 */
@@ -223,6 +257,9 @@ class Runner {
         this.momentum = 1 + (this._mom0-1)*k;
         if(Math.abs(this.momentum-1) < 0.004) this.momentum = 1;
       }
+      /* ⚠ strideRate 는 디딜 때만 갱신된다 — 멈춰도 막대가 그대로면 화면이 거짓말을 한다.
+         손을 떼면 같이 내려가게 한다(CK: "조작과 화면 불일치"). */
+      if(since > 260) this.strideRate = (this.strideRate||0) * Math.exp(-3.2*dt);
       this.distM += this.speed * dt;
       this.fatigue = Math.min(1, this.fatigue + dt*0.01);
       /* ⚠ 다리 위상을 **두 곳에서** 밀고 있었다 — stride() 가 한 타에 +0.5,
