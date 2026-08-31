@@ -355,6 +355,8 @@ const I18N_EN = {
   '역도':'Weightlifting', '%1kg':'%1kg',
   '좌·우를 고르게 번갈아 눌러 자세를 잡으세요':'Alternate evenly to set your grip',
   '들어올리세요 — 길게':'Pull — hold it',
+  /* ⚠ '길게' 는 오래 끌수록 좋다고 읽혔다 — 최적은 0.9초고 1.5초가 상한이다 */
+  '들어올리세요 — 게이지가 꽉 찰 때 놓는다':'Pull — release when the gauge fills',
   '누르고 있다가 초록에서 떼세요':'Hold, then release on green',
   '버티기 %1초':'Hold %1s', '기우는 반대쪽을 누르세요':'Press against the tilt',
   '깨끗한 인상!':'Clean lift!', '들었다':'Lifted',
@@ -526,6 +528,8 @@ const I18N_EN = {
   '철인3종':'Triathlon', '수영':'Swim', '사이클':'Bike', '달리기':'Run',
   '수영 → 사이클 → 달리기':'Swim → Bike → Run',
   '끊기지 않는다 — 앞 구간에서 쓴 힘이 뒤로 넘어간다':'No rest — the effort you spend carries into the next leg',
+  '구간':'leg',
+  '벌시간':'penalty',
   '전환 구역':'Transition', '자전거로':'To the bike', '운동화로':'To the shoes',
   '여기서 쉬는 게 아니라 잃는 것이다':'This is not a rest — it is time lost',
   '피로':'Fatigue', '전환':'Transition',

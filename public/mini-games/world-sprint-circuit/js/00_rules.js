@@ -431,13 +431,23 @@ const EVENTS = [
   /* 펜싱 — 이 게임에서 유일하게 '리듬'이 아니라 '거리'가 축인 종목. 5투셰 선취까지의 시간. */
   { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, cuts:{silver:18, gold:13}, parS:42.0, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
   /* 10종 경기 — 새 물리가 아니라 **그릇**이다. 있는 열 종목을 이어 뛰고 IAAF 표로 합산한다. */
-  { id:'decathlon',    name:'10종 경기',    short:'DEC',   unit:'점', higher:true,  qualify:6500, parS:7200, kind:'combined', tip:'열 종목을 이어서 · 각 종목의 조작 그대로' },
+  /* ⛔ **복합종목(10종·7종·근대5종) 컷은 하위 종목 사다리에서 나온다** — COMBINED_CUTS_NOTE
+     비율(qualify/0.930/0.942)로 뽑으면 세 종목이 제각각 어긋난다. 실측 2026-08-31:
+       10종   금 7420 인데 '전 종목 은' 이 이미 8884 → **은 실력으로 금**이 나왔다
+       근대5종 금 2968 인데 '전 종목 은' 이 4062 → 같은 병
+       7종    기준 6800 인데 '전 종목 기준통과' 가 5853 → **기준을 넘어도 예선 탈락**이었다
+     그래서 값을 사다리에 못 박는다:
+       동 = 하위 종목을 전부 '기준' 으로 해냈을 때의 합
+       은 = 전부 '은' 으로 해냈을 때의 합
+       금 = 은 + (금−은)×0.55 — 열 종목을 한 판에 전부 금 내라는 건 도전이 아니라 벌이다
+     ⚠ 하위 종목 기준을 고치면 이 값도 다시 뽑아야 한다 → tools/medalladder.js 가 막는다 */
+  { id:'decathlon',    name:'10종 경기',    short:'DEC',   unit:'점', higher:true,  qualify:7578, parS:8884, cuts:{silver:8884, gold:9400}, kind:'combined', tip:'열 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 철인3종 — 두 번째 그릇. 10종과 달리 **끊기지 않는다**(피로가 구간을 관통한다). */
-  { id:'triathlon',    name:'철인3종',      short:'TRI',   unit:'s', higher:false, qualify:285, parS:250, kind:'tri', tip:'수영 → 사이클 → 달리기 · 앞 구간에서 쓴 힘이 뒤로 넘어간다' },
+  { id:'triathlon',    name:'철인3종',      short:'TRI',   unit:'s', higher:false, qualify:285, parS:250, cuts:{silver:258, gold:243}, kind:'tri', tip:'수영 → 사이클 → 달리기 · 앞 구간에서 쓴 힘이 뒤로 넘어간다' },
   /* 사격 — 양궁과 달리 거리가 없다. 축은 **호흡**이다. 10발 소수점 채점(109.0 만점). */
   { id:'shooting',     name:'10m 공기소총', short:'AR10', unit:'점', higher:true,  qualify:90, parS:99.0, cuts:{silver:96, gold:101}, kind:'shoot', tip:'액션을 눌러 숨을 참고 가장 잔잔할 때 뗀다 · ▲ 다시 호흡' },
   /* 7종 경기 — 10종과 **같은 그릇**을 쓴다. 표(HEPTA)만 다르다. */
-  { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:6800, parS:7300, kind:'combined', tip:'일곱 종목을 이어서 · 각 종목의 조작 그대로' },
+  { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:5853, parS:6882, cuts:{silver:6882, gold:7290}, kind:'combined', tip:'일곱 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 개인혼영 — 한 경기 안에서 영법이 **세 번 바뀐다**. 리듬이 그때마다 새로 잡혀야 한다.
      접영 → 배영 → 평영 → 자유형 (실제 순서) */
   { id:'swimMedley200',name:'개인혼영 200m', short:'200IM', unit:'s', higher:false, qualify:126.0, parS:112.0,
@@ -461,7 +471,7 @@ const EVENTS = [
     parS:12.4, kind:'gym',
     tip:'좌·우로 흔들림을 되잡아 버틴다 — 많이 누를수록 감점' },
   /* 근대5종 — 펜싱·수영·승마·사격·달리기. 다섯 종목이 이미 다 있어서 그릇만 얹었다. */
-  { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2600, parS:3500, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
+  { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2983, parS:4062, cuts:{silver:4062, gold:4630}, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
   /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */
   { id:'swimRelay4x100', name:'계영 4×100m', short:'4×100F', unit:'s', higher:false,
     qualify:220.0, parS:205.0, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'네 명이 이어 헤엄친다 · ▲ 인계는 벽을 찍기 직전에(먼저 뛰면 실격)' , legs:4, legEvent:'swimFree100'},

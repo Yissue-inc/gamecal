@@ -86,7 +86,7 @@ class TriathlonEvent {
            ⚠ 다른 종목에 있는 메서드가 여기에도 있으리라 짐작하지 말 것. */
         Sfx.step('GOOD');
         this.transMsg = K('전환 구역 — 뛰어서 빠져나간다');
-        this.transMsgAt = this.t;
+        this.transMsgAt = this.t; this.transMsgHold = 0;
       } else if(tMs - (this._capAt||-1e9) > 400){
         this._capAt = tMs; Sfx.beep(240,0.05,'sine',0.07);
       }
@@ -118,6 +118,15 @@ class TriathlonEvent {
       const r=this.sub.result;
       const bad = r.status!=='OK' && r.status!=='MISSED_QUALIFY';
       const s = bad ? this.curDef.qualify*1.6 : r.value;   // 실격이면 큰 벌시간
+      /* ⛔ 실격이 **조용했다**(2026-08-31 실측): 부정 출발로 수영 구간을 잃고 26초를
+         벌시간으로 먹었는데 화면엔 숫자만 바뀌었다. 왜 잃었는지 모르면 다음 판에 못 고친다.
+         구간 하나를 통째로 잃는 일이라, 전환 화면에 이유를 띄운다. */
+      if(bad){
+        /* ⚠ 조각마다 K() — 통짜 템플릿은 번역표가 못 잡는다(i18ncheck 가 잡아 준다) */
+        this.transMsg = `${K(this.cur.name)} ${K('구간')} ${K(r.status==='FALSE_START'?'부정 출발':'실격')}` +
+                        ` — ${K('벌시간')} ${Math.round(s)}${K('초')}`;
+        this.transMsgAt = this.t; this.transMsgHold = 2400;   // 안내(700ms)보다 오래 — 이건 사고 보고다
+      }
       this.splits.push({name:this.cur.name, s, bad});
       this.carry = Math.min(1, this.carry + TRI.fatiguePerLeg);
       this.sub=null;
@@ -140,8 +149,8 @@ class TriathlonEvent {
       txt(ctx, K('전환 구역'), VW/2, 96, 13, PAL.gold, 'center', 700);
       txt(ctx, K('액션을 눌러 빨리 빠져나간다'), VW/2, 114, 10, PAL.white, 'center');
       txt(ctx, (left/1000).toFixed(1)+K('초'), VW/2, 130, 12, PAL.blue, 'center', 700);
-      if(this.transMsg && this.t-this.transMsgAt < 700)
-        txt(ctx, this.transMsg, VW/2, 148, 9, PAL.dim, 'center');
+      if(this.transMsg && this.t-this.transMsgAt < (this.transMsgHold||700))
+        txt(ctx, this.transMsg, VW/2, 148, 9, this.transMsgHold?PAL.red:PAL.dim, 'center', this.transMsgHold?700:400);
     }
     else {
       const gt=Track.fieldBack(ctx,22);
@@ -157,10 +166,13 @@ class TriathlonEvent {
     let x=6;
     TRI.legs.forEach((L,i)=>{
       const w=Math.floor((VW-120)/TRI.legs.length*(L.share*3));
-      const done=this.splits.some(s=>s.name===L.name), now=i===this.leg;
-      u.fillStyle = done?PAL.green : now?PAL.gold : 'rgba(255,255,255,.16)';
+      const rec=this.splits.find(s=>s.name===L.name), done=!!rec, now=i===this.leg;
+      /* 잃은 구간은 초록이 아니라 빨강이다 — '지나갔다' 와 '잃었다' 는 다르다 */
+      const col = rec&&rec.bad ? PAL.red : done?PAL.green : now?PAL.gold : 'rgba(255,255,255,.16)';
+      u.fillStyle = col;
       u.fillRect(x, VH-H+5, Math.max(10,w-2), 5);
-      txt(u, L.name, x, VH-H+1, 7, done?PAL.green:now?PAL.gold:PAL.dim,'left');
+      txt(u, L.name+(rec&&rec.bad?' ✕':''), x, VH-H+1, 7,
+          rec&&rec.bad?PAL.red:done?PAL.green:now?PAL.gold:PAL.dim,'left');
       x += Math.max(12,w);
     });
     txt(u, fmtTime(this.total), VW-8, VH-H+2, 11, PAL.gold,'right',700);

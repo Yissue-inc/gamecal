@@ -58,7 +58,7 @@ class LiftingEvent {
       Sfx.beep(300+this.grips*70, 0.05,'square',0.09);
       if(this.grips>=LIFT.gripNeed){
         this.gripQ = clamp(this.gripQ/(LIFT.gripNeed-1), 0, 1);
-        this.phase='PULL'; this.say('들어올리세요 — 길게');
+        this.phase='PULL'; this.say('들어올리세요 — 게이지가 꽉 찰 때 놓는다');
       }
     } else if(this.phase==='HOLD'){
       /* 흔들림 잡기 — 기우는 반대쪽을 눌러야 한다 */
@@ -80,7 +80,11 @@ class LiftingEvent {
     this.pullQ = clamp(1-err, 0, 1);
     this.pullStart=-1;
     if(this.pullQ < 0.18){ this.fail('들어올리지 못했다'); return; }
-    this.phase='HOLD'; this.holdT=0; this.sway=(Math.random()*2-1)*0.15;
+    /* ⛔ pullQ 를 **계산만 하고 안 썼다**(2026-08-31 실측): 0.4초·0.9초·1.6초를 당겨도
+       결과가 똑같이 170kg 이었다. 세 박자 중 가운데가 결과에 닿지 않으면 그건 박자가 아니다.
+       gripQ 와 같은 방식으로 잇는다 — 급하게 뽑은 바벨은 **기울어진 채로 올라온다.** */
+    this.phase='HOLD'; this.holdT=0;
+    this.sway=(Math.random()*2-1) * lerp(0.42, 0.10, this.pullQ);
     this.say(this.pullQ>0.8?'깨끗한 인상!':'들었다');
     Sfx.beep(560,0.14,'square',0.14);
   }
@@ -114,7 +118,10 @@ class LiftingEvent {
       this.holdT += dt;
       /* 무게가 클수록·자세가 나쁠수록 더 흔들린다 */
       const load = (this.kg - LIFT.startKg)/120;
-      this.sway += this.swayDir * dt * LIFT.swayRate * (0.6 + load*1.5) * lerp(1.4, 0.6, this.gripQ);
+      /* ⚠ 폭(1.4~0.6)은 그대로 두고 **무엇이 그 폭을 정하는가**만 바꾼다 —
+         자세(그립)와 인상(당김)을 55:45 로 섞는다. 어려워지는 게 아니라 이어지는 것이다. */
+      const liftQ = this.gripQ*0.55 + this.pullQ*0.45;
+      this.sway += this.swayDir * dt * LIFT.swayRate * (0.6 + load*1.5) * lerp(1.4, 0.6, liftQ);
       if(Math.random()<0.03) this.swayDir *= -1;
       this.sway = clamp(this.sway, -1.6, 1.6);
       if(Math.abs(this.sway) >= 1.0){ this.fail('바벨이 넘어갔다'); return; }
