@@ -30,6 +30,9 @@ const CLIMB = {
   dynoSkip: 2,            // 데드포인트로 건너뛰는 홀드 수
   dynoWindow: 55,         // 이 안에서 눌러야 성공
   climbPerHold: 0.75,     // m
+  /* 손이 움직일 수 있는 한계 — 이보다 빨리 잡으면 **그만큼만 올라간다**(버리지 않는다).
+     20홀드 × 170ms ≈ 3.4초가 천장이다(기준 5.2 · 은 4.65 · 금 4.38 과 맞물린다). */
+  minGrabMs: 170,
 };
 
 class ClimbEvent {
@@ -114,11 +117,13 @@ class ClimbEvent {
     let j;
     if(c.side===side) j='SLIP';                     // 같은 손으로 두 번 — 몸이 꼬인다
     else if(c.lastGrab<-1e8) j='GOOD';
-    /* ⚠ 등반은 연타 전환을 **보류했다**(2026-08-31).
-       박자 판정을 걷어내니 마구 치면 벽을 날아올랐고(14타 1.45초 · 예전 천장 4.64초),
-       손 한계(210ms)를 넣자 이번엔 5·7·14타가 완주 실패로 돌아갔다 —
-       **원인을 설명하지 못한 상태**라 내보내지 않는다. 지금은 예전 리듬 모델 그대로다.
-       (다음 차례: 무시된 타가 c.iv·slip 경로에 무엇을 남기는지부터 확인) */
+    /* ⛔ 연타 모드 — 빨리 잡을수록 빨리 오른다. 박자가 어긋났다고 미끄러지지 않는다.
+       ⛔⛔ **무시한 타도 손 위치는 남긴다.** 안 남겼다가 이런 일이 났다(실측 로그로 잡음):
+          210ms 한계로 L 을 무시 → c.side 는 여전히 R → 다음 R 이 '**손이 꼬였다**' 로 미끄러짐
+          → 3회면 실격. 5·7·14타가 전부 완주 실패였던 이유다.
+          손은 실제로 움직였다 — 잡지 못했을 뿐이다. 위치는 기록해야 다음 손이 맞는다. */
+    else if(RULES.mashMode) j='PERFECT';
+    /* 아래는 예전 리듬 모델 — mashMode 가 꺼졌을 때만 쓴다. */
     else {
       const err=Math.abs(dt-iv);
       j = err<=CLIMB.perfectMs ? 'PERFECT' : err<=CLIMB.goodMs ? 'GOOD' : 'SLIP';
@@ -131,7 +136,13 @@ class ClimbEvent {
     c.iv = j==='PERFECT' ? Math.max(CLIMB.minIv, c.iv - CLIMB.tempoGain)
                          : Math.min(CLIMB.baseIv, c.iv + CLIMB.tempoLoss);
     if(!p) Sfx.step(j);
-    this.grab(c, p, 1);
+    /* ⛔ 손 한계 — 처음엔 빠른 타를 **버렸다**. 그랬더니 양자화가 생겨
+       7타(5.44s)가 10타(5.82s)보다 빨랐다 — 더 치는 사람이 손해였다.
+       버리지 말고 **덜 오르게** 한다: 한계보다 빨리 잡으면 그만큼만 올라간다.
+       빨리 칠수록 항상 이득이되, 20홀드 × 210ms ≈ 4.2초라는 천장은 그대로다. */
+    const reach = (RULES.mashMode && c.lastGrab>-1e8)
+      ? Math.min(1, dt/CLIMB.minGrabMs) : 1;
+    this.grab(c, p, reach);
   }
   /* 데드포인트 — 두 칸을 한 번에. 리듬이 맞을 때만 붙는다. */
   onAction(tMs, p){
