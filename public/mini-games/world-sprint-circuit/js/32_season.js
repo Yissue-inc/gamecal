@@ -85,7 +85,7 @@ function olympicName(year){
 }
 
 class Season {
-  constructor(club, seed){
+  constructor(club, seed, opts){
     this.club = club;
     this.year = club.year;
     this.week = 1;
@@ -95,10 +95,19 @@ class Season {
     this.weekLog = [];          // 이번 주에 일어난 일
     this.results = [];          // 대회 결과 이력
     this.entries = {};          // 이번 대회 출전표 { eventId: [athleteId] }
-    /* 시즌이 열리면 리그를 세우고, 국가대표를 뽑고, 목표를 받는다 */
+    /* 시즌이 열리면 리그를 세우고, 국가대표를 뽑고, 목표를 받는다
+       ⛔⛔ **불러오기는 시즌을 '여는' 게 아니다.** 세이브에는 대표팀(a.national·a.caps)과
+          목표가 이미 들어 있는데, load() 가 `new Season(...)` 을 부르면서 여기서
+          **소집이 다시 적용됐다** — 저장/불러오기 한 번에 캡 +1 · 피로 +12
+          (실측 2026-08-31: 왕복 한 번에 캡 3 → 6). 여러 번 불러오면 피로가 100 에 박힌다.
+          4N_national 의 중복 방지 가드는 **시즌 객체**에 있어서 새 객체엔 안 통했다 —
+          직렬화를 넘는 가드가 아니었다.
+       ⚠ 게다가 이 시점엔 year 가 아직 1 이다(load 가 뒤에 넣는다) — 올림픽 해 판정도 틀린다. */
     if(typeof RivalLeague!=='undefined') RivalLeague.init(this);
-    if(this.pickNationalTeam) this.pickNationalTeam();
-    if(this.makeGoal) this.makeGoal();
+    if(!(opts && opts.restore)){
+      if(this.pickNationalTeam) this.pickNationalTeam();
+      if(this.makeGoal) this.makeGoal();
+    }
   }
   get meetKind(){
     const k = MEET_WEEKS[this.week] || null;

@@ -242,7 +242,7 @@ const MG = {
          목표·국가 메달표가 통째로 사라져** 시즌 중간에 판이 리셋된 것처럼 보인다.
          화면에 보이는 것은 전부 저장한다. */
       localStorage.setItem(MG_SAVE, JSON.stringify({
-        v:5, seen:Date.now(), club:this.club, season:{
+        v:5, seen:Date.now(), club:this.club, focus:this.focus || {}, season:{
           year:this.season.year, week:this.season.week,
           points:this.season.points, medals:this.season.medals,
           results:this.season.results.length,
@@ -302,7 +302,9 @@ const MG = {
       c.hall    = d.club.hall || [];      // 명예의 전당 — 세대를 잇는 기록
       c.rng = makeRng((Date.now()^0x77)>>>0);
       this.club=c;
-      const S=new Season(c, (Date.now()^0x99)>>>0);
+      /* ⛔ restore:true — 불러오기는 시즌을 여는 게 아니다(32_season 주석 참조).
+         대표팀·목표는 세이브에 있다. 다시 뽑으면 캡과 피로가 겹쳐 쌓인다. */
+      const S=new Season(c, (Date.now()^0x99)>>>0, { restore:true });
       S.market=new Market(c, (Date.now()^0xab)>>>0);
       S.year=d.season.year; S.week=d.season.week; S.points=d.season.points; S.medals=d.season.medals;
       if(d.season.leagueTable) S.leagueTable=d.season.leagueTable;
@@ -311,7 +313,13 @@ const MG = {
       if(d.season.entries) S.entries=d.season.entries;
       if(d.season.tactics) S.tactics=d.season.tactics;
       if(d.season.talkDone) S.talkDone=true;
-      this.season=S; this.focus={}; this.lastLog=[];
+      /* ⚠ 옛 세이브엔 목표가 없다 — restore 로 건너뛰었으니 여기서 한 번 만든다 */
+      if(!S.goal && S.makeGoal) S.makeGoal();
+      this.season=S;
+      /* ⛔ **이번 주 직접 지도가 불러오면 사라졌다**(실측: 저장 전 1명 → 불러온 뒤 0명).
+         화면(훈련 지시 '직접 지도 1 / 3')에 보이는 값인데 저장 목록에 없었다 —
+         레이스 플랜 때와 **같은 사고**다. 화면에 보이는 것은 전부 저장한다. */
+      this.focus = d.focus || {}; this.lastLog=[];
       /* 시즌이 이미 끝난 상태로 저장됐으면 **그 화면으로 돌아간다** — 사무소를 띄우면
          플레이어는 평가를 못 보고, 다음 주로 넘기는 순간 오프시즌이 두 번 돈다. */
       /* 방치 정산 — 자리를 비운 동안 선수들이 훈련했다.

@@ -1519,4 +1519,7 @@ const I18N_EN = {
   '올해다':'this is the year',
 
   '… 외 %1명':'… and %1 more',
+
+  /* 결과 화면 보조 줄 — 조각마다(20_screens) */
+  '반응 %1ms':'reaction %1ms', '순위 %1위':'rank %1', '허들 %1/%2':'hurdles %1/%2',
 };

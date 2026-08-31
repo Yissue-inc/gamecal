@@ -81,6 +81,22 @@ const G = {
     this.state = ST.PLAY;
   },
   backToSelect(){
+    /* ⛔⛔ **감독 모드가 빌려 쓰는 중이면 아케이드 목록으로 가면 안 된다.**
+       실측(2026-08-31 직접뛰기 경로): 대회에서 직접 뛰다 일시정지를 누르면
+       **아케이드 종목 선택 화면으로 튕기고** mgHook 이 매달린 채 남아
+       대회 큐가 영영 안 끝났다 — 시즌이 그 자리에서 멈춘다.
+       ⚠ 하필 이게 **플레이어가 제일 먼저 누를 키**다: 도약·투척 등 14종목은
+          아무것도 안 누르면 스스로 끝나지 않아(실측 2분) 나가려면 이 키뿐이다.
+       그만두면 그 종목은 **손을 안 댄 것**으로 친다 — 시뮬레이션 기록 그대로(품질 0.5).
+       기록을 깎지 않는다: 그만둔 벌은 '내 손으로 못 당겼다' 로 이미 충분하다. */
+    if(this.mgHook){
+      const hook = this.mgHook; this.mgHook = null;
+      if(Ctrl.playPad) Ctrl.playPad(null);
+      const res = this.event ? this.event.result : null;
+      this.event = null; this.state = ST.MANAGER;
+      hook(res, 0.5);
+      return;
+    }
     if(Ctrl.playPad) Ctrl.playPad(null); this.state=ST.SELECT; this.event=null; },
 
   /* ── 진행 ── */
@@ -1002,10 +1018,15 @@ const G = {
       if(p){
         const line = `PERFECT ${p.judge.PERFECT}  ·  GOOD ${p.judge.GOOD}  ·  놓침 ${p.judge.EARLY+p.judge.LATE}`;
         txt(uctx, line, VW/2, 139, 10, PAL.white,'center');
-        let sub = p.reactionMs>=0 ? `반응 ${Math.round(p.reactionMs)}ms` : '';
-        if(ev.marks===undefined && r.rank) sub += (sub?'  ·  ':'')+`순위 ${r.rank}위`;
+        /* ⛔ 세 조각을 이어 붙여 **통짜로** K() 에 넘겼다 — 표엔 그런 키가 없다.
+           영어판 결과 화면에 '반응 142ms · 순위 1위' 가 그대로 떴다
+           (2026-08-31 감독 모드 '직접 뛰기' 경로에서 처음 봤다 — 이 경로는
+            그때까지 한 번도 안 밟혔다). 조각마다 번역하고 붙인다. */
+        let sub = p.reactionMs>=0 ? K('반응 %1ms').replace('%1', Math.round(p.reactionMs)) : '';
+        if(ev.marks===undefined && r.rank)
+          sub += (sub?'  ·  ':'') + K('순위 %1위').replace('%1', r.rank);
         if(p.hurdlesClean!==undefined && ev.marks===undefined && this.def.id==='hurdles110')
-          sub += `  ·  허들 ${p.hurdlesClean}/${RULES.hurdleCount}`;
+          sub += '  ·  ' + K('허들 %1/%2').replace('%1', p.hurdlesClean).replace('%2', RULES.hurdleCount);
         if(sub) txt(uctx, sub, VW/2, 151, 10, PAL.dim,'center');
       } else if(ev.marks && ev.marks.length){
         /* ⛔ 세 시기짜리(도약·투척)만 보고 만든 줄이다. **사다리 종목은 시기가 8개까지 간다** —
