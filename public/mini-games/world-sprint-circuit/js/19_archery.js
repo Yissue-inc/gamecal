@@ -17,6 +17,7 @@ const ARCH = {
   drawFullMs: 900,        // 완전히 당기는 데 걸리는 시간
   steadyMs: 1400,         // 이때까지는 흔들림이 작다
   swayBase: 0.16,         // 기본 흔들림(과녁 반지름 대비)
+  flyMs: 420,             // 화살이 날아가는 시간 — 이게 없으면 '띡' 하고 생긴다
   swayGrow: 0.55,         // 숨이 차면서 커지는 속도(초당)
   aimNudge: 0.075,        // 좌우 보정 한 번의 크기
   ringR: 1.0,             // 정규화 반지름 (0 = 정중앙)
@@ -71,12 +72,14 @@ class ArcheryEvent {
     const r = Math.hypot(ox, oy);
     /* 10점(중앙) ~ 1점, 과녁 밖은 0 */
     const score = r>=ARCH.ringR ? 0 : Math.max(1, Math.ceil((1 - r/ARCH.ringR)*10));
+    /* ⛔ 예전엔 여기서 곧바로 결과였다 — **화살이 날아가는 시간이 없었다.**
+       CK: "화살이 그냥 띡 하고 생기고 몰입이 전혀 안 된다". 맞다. 쏜 순간과 맞은 순간이
+       같은 프레임이면 '쐈다' 는 감각이 통째로 사라진다.
+       ⚠ 채점은 **한 글자도 바꾸지 않는다** — 맞은 자리는 이미 정해졌고, 그걸 보여 주는
+          시간만 만든다. 기록·메달은 그대로다. */
     this.hit = {x:ox, y:oy, score};
-    this.scores.push(score); this.total += score;
-    this.phase='RESULT'; this.resultAt=this.t; this.flash=1;
-    this.say(score===10?'정중앙!':score===0?'과녁을 벗어났다':`${score}점`, score<=4);
-    /* 정중앙은 이 종목에서 제일 드문 순간이다 — 글자만으로는 티가 안 난다 */
-    if(score===10){ this.bullAt = this.t; }
+    this.pending = {x:ox, y:oy, score};
+    this.phase='FLY'; this.flyAt=this.t;
     Sfx.bow();
     Sfx.beep(score>=9?1320:score>=6?880:420, 0.12,'square',0.12);
   }
@@ -87,6 +90,19 @@ class ArcheryEvent {
       if(this.drawStart>=0 && this.t-this.drawStart > 4200){
         this.drawMs = this.t-this.drawStart; this.shoot();   // 너무 오래 — 손이 풀린다
         this.say('너무 오래 당겼다', true);
+      }
+    } else if(this.phase==='FLY'){
+      /* 도착하는 순간에야 점수가 정해진 것처럼 보인다 — 기다림이 곧 몰입이다 */
+      if(this.t-this.flyAt >= ARCH.flyMs){
+        const h=this.pending; const score=h.score;
+        this.scores.push(score); this.total += score;
+        this.phase='RESULT'; this.resultAt=this.t; this.flash=1;
+        this.say(score===10?'정중앙!':score===0?'과녁을 벗어났다':`${score}점`, score<=4);
+        if(score===10){ this.bullAt = this.t; }
+        /* 꽂히는 소리 — 점수에 따라 다르게(중앙일수록 높고 단단하게) */
+        Sfx.beep(score===10?1320:score>=8?980:score>0?620:220,
+                 score>0?0.10:0.16, score>0?'square':'sawtooth', 0.14);
+        if(score>=9) Track.cheer(0.5);
       }
     } else if(this.phase==='RESULT'){
       if(this.t-this.resultAt > 1100){
@@ -137,6 +153,23 @@ class ArcheryEvent {
         ctx.fillRect(ax-1, ay-1, 3, 3);
       }
     });
+    /* ⛔ 날아가는 화살 — 쏜 순간과 맞은 순간 사이를 **눈으로 잇는다.**
+       예전엔 이 구간이 없어서 화살이 과녁에 '띡' 하고 생겼다(CK 지적).
+       ⚠ 도착 지점은 이미 정해져 있다(pending) — 그림만 그 자리로 간다. 채점은 안 건드린다. */
+    if(this.phase==='FLY' && this.pending){
+      const k = clamp((this.t-this.flyAt)/ARCH.flyMs, 0, 1);
+      const e = k*k*(3-2*k);                                  // 부드럽게 들어간다
+      const sx = 64+16, sy = GROUND-30;                       // 활에서 출발
+      const ex = TX + this.pending.x*TR, ey = TY + this.pending.y*TR;
+      const ax = sx + (ex-sx)*e, ay = sy + (ey-sy)*e - Math.sin(k*Math.PI)*9;   // 살짝 포물선
+      const len = lerp(11, 3, e);                             // 멀어질수록 짧게(원근)
+      ctx.save();
+      ctx.strokeStyle='#e8dcc0'; ctx.lineWidth=1.5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(ax-len, ay+len*0.18); ctx.lineTo(ax, ay); ctx.stroke();
+      /* 촉 — 끝이 어디인지 또렷하게 */
+      ctx.fillStyle='#fff2c8'; ctx.fillRect(Math.round(ax)-1, Math.round(ay)-1, 2, 2);
+      ctx.restore();
+    }
     /* 선수 — 왼쪽 */
     const SX=64;
     if(CharHD.enabled){

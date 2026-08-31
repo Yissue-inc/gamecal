@@ -112,6 +112,16 @@ class SprintEvent {
     const j = P.lean();
     if(j==='LEAN'){ Sfx.beep(1568,0.14,'square',0.16); P.lastJudge='LEAN'; P.lastJudgeMs=tMs; }
     else if(j==='LEAN_EARLY'){ Sfx.beep(160,0.16,'sawtooth',0.14); P.lastJudge='LEAN_EARLY'; P.lastJudgeMs=tMs; }
+    else {
+      /* ⛔ 여기가 비어 있었다 — 70m 전에는 액션이 **아무 일도 안 했다.**
+         소리도 글자도 없으니 버튼이 죽은 것처럼 느껴진다(CK: "액션 조작감이 너무 별로").
+         눌렀으면 답해야 한다. 다만 연타로 시끄러워지지 않게 0.4초에 한 번만. */
+      if(tMs - (this._noLeanAt||-1e9) > 400){
+        this._noLeanAt = tMs;
+        Sfx.beep(300, 0.05, 'sine', 0.07);
+        this.say(K('막판에 — 결승선 앞에서 몸을 던진다'));
+      }
+    }
   }
 
   /* ── 진행 ── */

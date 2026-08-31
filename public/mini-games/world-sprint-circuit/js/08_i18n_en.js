@@ -1078,4 +1078,5 @@ const I18N_EN = {
   /* 연타 게이지 */
   '타수':'Strokes',
   '빠를수록 빠르다':'Faster taps = faster',
+  '막판에 — 결승선 앞에서 몸을 던진다':'Save it — lean at the finish line',
 };
