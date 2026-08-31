@@ -243,7 +243,9 @@ class EquestrianEvent {
           70, 36, 9, PAL.red,'left');
     if(this.phase==='SET') txt(u,'출발 신호를 기다리세요', VW/2, 76, 12, PAL.white,'center',700);
     else if(this.cleared===0 && !this.knocks)
-      txt(u,'▲▼ 보폭 · 좌우 한 걸음 · 도약대에서 액션', VW/2, VH-48, 10, PAL.white,'center');
+      /* ⚠ VH-48(222) 은 2인용 **차례 배지**(20_screens.drawTurnBadge, x6~118 · y222~239)와
+         같은 줄이다 — 2인으로 켜야만 보인다(1인 감사로는 영영 못 본다). 한 줄 올린다. */
+      txt(u,'▲▼ 보폭 · 좌우 한 걸음 · 도약대에서 액션', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-this.msgAt<1000)
       txt(u, this.msg, VW/2, 76, 13, this.msgBad?PAL.red:PAL.green,'center',700);
   }

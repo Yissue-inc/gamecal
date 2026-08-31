@@ -282,7 +282,7 @@ class VaultEvent {
           VW/2, 116, 10, PAL.dim,'center');
     }
     if(this.phase==='RUN' && this.dist<3)
-      txt(u,'좌·우로 달려 구름판을 밟고, 도마에 닿을 때 다시 액션', VW/2, VH-40, 10, PAL.white,'center');
+      txt(u,'좌·우로 달려 구름판을 밟고, 도마에 닿을 때 다시 액션', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 64, 12, this.msgBad?PAL.red:PAL.green,'center',700);
   }

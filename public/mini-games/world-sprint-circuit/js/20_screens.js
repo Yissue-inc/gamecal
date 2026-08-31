@@ -1154,18 +1154,24 @@ const G = {
     if(Party.modeFor(this.def) !== 'turn') return;
     const i = Party.turn|0, col = Party.color(i);
     const keys = PARTY_KEYS[i % PARTY_KEYS.length];
+    /* ⛔ 이 배지는 자리를 세 번 옮겼고 **옮길 때마다 새 임자와 부딪혔다**:
+         GAUGE_Y-20 왼쪽 → 종목의 한 줄 안내(VH-46~48)
+         GAUGE_Y+3 오른쪽 → 링의 안내 · 4인용 리듬 띠(rhythm2)의 P4 칸
+       자리싸움으로는 안 끝난다. **규칙을 뒀다** — 배지가 뜨는 판에서는 안내 줄이
+       스스로 비킨다(`Track.tipY()`). 그래서 배지는 처음 자리로 돌아온다. */
     const label = 'P'+(i+1), y = Track.GAUGE_Y - 20;
     /* ⚠ 96px 로 잡았더니 '차례' 와 키 라벨이 맞붙었다('차례A / D · S').
        키 라벨은 '숫자4 / 6 · 5' 처럼 길어질 수 있어 **글자 폭을 재서** 칸을 잡는다. */
     u.font = '8px "Galmuri11","Nanum Gothic Coding",monospace';
     const kw = Math.ceil(u.measureText(keys.label).width);
     const w = Math.max(104, 58 + kw + 8);
-    plate(u, 6, y, w, 17, 0.86);
-    u.strokeStyle = col; u.lineWidth = 1; u.strokeRect(6.5, y+0.5, w-1, 16);
-    txt(u, label, 12, y+3, 11, col, 'left', 700);
+    const bx = 6;
+    plate(u, bx, y, w, 17, 0.86);
+    u.strokeStyle = col; u.lineWidth = 1; u.strokeRect(bx+0.5, y+0.5, w-1, 16);
+    txt(u, label, bx + 6, y+3, 11, col, 'left', 700);
     /* 키를 같이 적는다 — 2인용은 '내 키가 뭐였지'가 매 차례 생긴다 */
-    txt(u, K('차례'), 34, y+4, 9, PAL.white, 'left');
-    txt(u, keys.label, 6 + w - 4, y+5, 8, PAL.dim, 'right');
+    txt(u, K('차례'), bx + 28, y+4, 9, PAL.white, 'left');
+    txt(u, keys.label, bx + w - 4, y+5, 8, PAL.dim, 'right');
   },
 
   /* ── 결과 화면 아래 칸은 **하나**다. 셋이 시간을 나눠 쓴다 ──────

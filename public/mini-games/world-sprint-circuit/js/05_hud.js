@@ -113,7 +113,9 @@ const HUD = {
       list.forEach((p,k)=>{
         const col = (typeof Party!=='undefined') ? Party.color(p.i) : PAL.white;
         const y = 3 + k*(bh+2);
-        txt(ctx, 'P'+(p.i+1), x0-4, y, 8, col, 'right', 700);
+        /* ⚠ 8px 로 박아 두면 **4인용에서 줄 간격(6px)보다 글자가 커서** 위아래가 겹친다
+           (2인 3인은 안 겹친다 — 4인으로 켜야만 보인다). 줄 높이에 맞춰 줄인다. */
+        txt(ctx, 'P'+(p.i+1), x0-4, y, Math.max(6, Math.min(8, bh+2)), col, 'right', 700);
         ctx.fillStyle='rgba(242,245,250,.16)'; ctx.fillRect(x0, y, wAll, bh);
         ctx.fillStyle=col;
         ctx.fillRect(x0, y, Math.round(wAll*clamp((p.distM||0)/(o.trackM||1),0,1)), bh);

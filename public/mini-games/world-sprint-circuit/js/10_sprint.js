@@ -78,9 +78,16 @@ class SprintEvent {
     if(!this.all || this.all.length < 2) return null;
     return this.all.slice()
       .sort((a,b)=> (b.finished?1e9 - (b.finishTimeS||0):b.distM) - (a.finished?1e9 - (a.finishTimeS||0):a.distM))
-      .map(r=>({ name: r.name || K('나'), mine: !r.name,
+      /* ⛔ 사람이 둘 이상이면 **둘 다 '나'** 로 나왔다 — 2인 화면 순위표가
+         '2 You −86.8m · 3 You −86.8m' 이라 누가 나인지 알 수 없었다(2026-08-31 2인 감사).
+         사람마다 이름을 준다(P1·P2…). 1인용은 예전 그대로 '나'. */
+      .map(r=>{
+        const hi = this.humans ? this.humans.indexOf(r) : -1;
+        const many = this.humans && this.humans.length > 1;
+        return { name: r.name || (many && hi >= 0 ? 'P'+(hi+1) : K('나')), mine: !r.name,
                  prog: (r.distM||0)/(this.trackM||1), trackM: this.trackM,
-                 timeS: r.finished ? r.finishTimeS : 0 }));
+                 timeS: r.finished ? r.finishTimeS : 0 };
+      });
   }
   get qualify(){ return this.def.qualify; }
   /* 린(피니시 젖히기) 구간은 거리에 비례한다 */

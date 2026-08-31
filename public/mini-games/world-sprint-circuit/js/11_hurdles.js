@@ -194,8 +194,11 @@ class HurdlesEvent extends SprintEvent {
        ⚠ 3000m 장애물의 장애물은 '허들'이 아니다 — 종목에 맞는 낱말을 쓴다. */
     { const word = this.def.id==='steeple3000' ? K('장애물') : K('허들');
       const line = `${word} ${p.hurdlesClean}/${this.hCount}`;
-      plate(uctx, 6, Track.GAUGE_Y-15, 78, 14, 0.72);
-      txt(uctx, line, 10, Track.GAUGE_Y-12, 9,
+      /* ⚠ GAUGE_Y-15(227~241) 왼쪽은 2인용 **차례 배지**(222~239) 자리와 겹친다 —
+         7종 안에서 허들을 뛸 때만 둘이 같이 뜬다(2인 감사로만 보인다). 그때는 위로 올린다. */
+      const hy = Track.GAUGE_Y - 15 - (Track.turnBadgeOn() ? 22 : 0);
+      plate(uctx, 6, hy, 78, 14, 0.72);
+      txt(uctx, line, 10, hy+3, 9,
           p.hurdlesClean>0 ? PAL.green : PAL.dim, 'left', 700); }
   }
 }

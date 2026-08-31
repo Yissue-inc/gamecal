@@ -91,6 +91,19 @@ const Track = {
     this.LANE_Y = ys; this.LANE_HS = hs;
   },
   GAUGE_Y:242, GAUGE_H:28,    // 242~270 리듬 게이지 전용 띠
+  /* ⛔ **한 줄 조작 안내의 y 는 여기서 정한다.**
+     2인용 턴제에서는 화면 왼쪽 아래(222~239)를 **차례 배지**가 쓴다(20_screens.drawTurnBadge).
+     그 자리를 두고 배지와 안내가 서로 밀어내다 세 번 자리를 바꿨고, 옮길 때마다
+     **옮긴 자리에도 임자가 있었다**(승마·도마·골프·링·7종…).
+     자리를 다투는 대신 규칙을 둔다 — **배지가 뜨면 안내가 비킨다.**
+     ⚠ 새 종목의 한 줄 안내는 `VH-48` 대신 **`Track.tipY()`** 를 쓸 것.
+        안 쓰면 2인 감사(tools/SCREEN_AUDIT.md)에서 겹침으로 잡힌다. */
+  /* 차례 배지가 지금 화면에 있나 — 왼쪽 아래(222~239)를 그 배지가 쓴다 */
+  turnBadgeOn(){
+    return !!(typeof Party !== 'undefined' && Party.on && Party.modeFor &&
+              typeof G !== 'undefined' && G.def && Party.modeFor(G.def) === 'turn');
+  },
+  tipY(){ return this.turnBadgeOn() ? VH - 64 : VH - 48; },
 
   /* 시간대 — 대회마다 하늘이 다르면 "같은 트랙을 또 뛴다"가 덜하다.
      ⚠ 종목 id 로 고정한다. 무작위면 같은 대회를 다시 볼 때마다 하늘이 바뀌어

@@ -117,8 +117,11 @@ class JavelinEvent extends FieldEvent {
        ⚠ 이 파일엔 drawUI 가 **둘**이다(창던지기·해머). 해머는 창 판정이 없는
           연타형이라 fx-tap-ring 만 쓴다 — 여기(창던지기)에만 붙인다. */
     if(this.phase==='RUNUP' && this.runner && this.runner.lastJudge)
+      /* ⚠ labelY:44 는 바로 아래 '파울선까지 %m'(y=44) 과 **같은 줄**이다 —
+         'PERFECT!' 가 그 위에 82px 겹쳤다. 도약(12_jumps)에서 이미 같은 이유로
+         96 으로 내렸는데 투척은 안 내렸다. 두 곳이 같은 병이면 같이 고친다. */
       HUD.tap(uctx, { j:this.runner.lastJudge, ageMs:this.t-this.runner.lastJudgeMs,
-                      ivMs:this.runner.targetIntervalMs(), labelY:44 });
+                      ivMs:this.runner.targetIntervalMs(), labelY:96 });
     /* ⛔ 예전엔 **기준이 크고(13px 색) 내 최고가 작았다**(11px) — 양궁·사격과 같은
        위계 뒤집힘이다. 화면에서 제일 큰 숫자는 내 것이어야 한다(05_scoreboard). */
     SB.tally(uctx, {

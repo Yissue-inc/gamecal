@@ -384,16 +384,26 @@ class SwimEvent {
       HUD.tap(u, { j:this.lastJudge, ageMs:now-this.lastJudgeMs,
                    ivMs:this.targetIvOf(this.swimmers[0]),
                    x:this._meX, y:(this._meY!==undefined?this._meY+8:undefined),
-                   labelY:(this._meY!==undefined?this._meY-30:undefined) });
+                   /* ⚠ -30 이면 PERFECT!(17px, y-30~y-13) 가 바로 위 레인 표시
+                      'P1'(y-18~y-10)을 문다 — 2인 이상에서만 그 표시가 뜬다. 더 올린다. */
+                   labelY:(this._meY!==undefined?this._meY-46:undefined) });
       /* 숨 게이지 */
       /* ⛔ 물 위에 어두운 글씨·가는 막대라 안 보였다 — 숨은 이 종목의 목숨줄이다 */
-      plate(u, 6, Track.GAUGE_Y-27, 84, 14, 0.72);
-      txt(u,'숨',10,Track.GAUGE_Y-24,8, this.breath<0.3?PAL.red:PAL.dim);
+      /* ⚠ GAUGE_Y-27(215~229) 은 **복합종목의 구간 띠**(216~238)와 겹친다 —
+         철인3종 **수영 구간**에서 '숨' 이 'Swim' 위에 앉았다. 단독 수영에서는 안 보이고,
+         철인3종을 수영 구간에서 찍어야 나온다(내 표본이 달리기 구간만 봤다).
+         위는 빈 물이라 한 칸 올려도 잃는 게 없다. */
+      plate(u, 6, Track.GAUGE_Y-41, 84, 14, 0.72);
+      txt(u,'숨',10,Track.GAUGE_Y-38,8, this.breath<0.3?PAL.red:PAL.dim);
       const bw=64;
-      u.fillStyle='rgba(242,245,250,.18)'; u.fillRect(26,Track.GAUGE_Y-22,bw,6);
+      /* ⚠ '숨'(한국어 13px · 영어 'Air' 14px) 뒤에 붙인다 — 자리를 박으면 언어가 바뀔 때 문다 */
+      let dotX2 = 26;
+      try{ u.font='400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+           dotX2 = 10 + Math.ceil(u.measureText(K('숨')).width) + 5; }catch(e){}
+      u.fillStyle='rgba(242,245,250,.18)'; u.fillRect(dotX2,Track.GAUGE_Y-36,bw,6);
       u.fillStyle = this.breath>0.55?PAL.blue : this.breath>0.25?PAL.gold:PAL.red;
-      u.fillRect(26,Track.GAUGE_Y-22,Math.round(bw*this.breath),6);
-      if(this.breath<0.3) txt(u,'액션으로 숨쉬기', 94, Track.GAUGE_Y-24, 9, PAL.red);
+      u.fillRect(dotX2,Track.GAUGE_Y-36,Math.round(bw*this.breath),6);
+      if(this.breath<0.3) txt(u,'액션으로 숨쉬기', 94, Track.GAUGE_Y-38, 9, PAL.red);
       /* 턴 안내 */
       const laps=Math.floor(this.trackM/SWIM.poolM);
       if(this.lap < laps-1){

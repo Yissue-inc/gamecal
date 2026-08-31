@@ -263,7 +263,7 @@ class HighBarEvent {
     });
     if(this.releases>0) txt(u,'▲ '+K('내려서기'), 8, 36, 9, PAL.gold,'left');
     if(this.phase==='SWING' && this.releases===0 && this.amp<BAR.releaseMin)
-      txt(u,'좌·우를 리듬에 맞춰 — 스윙이 커지면 액션으로 이탈', VW/2, VH-48, 10, PAL.white,'center');
+      txt(u,'좌·우를 리듬에 맞춰 — 스윙이 커지면 액션으로 이탈', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.phase==='MARK' && this.mark!=null){
       u.fillStyle='rgba(5,6,10,.72)'; u.fillRect(0,72,VW,54);
       txt(u, this.mark.toFixed(2), VW/2, 78, 24, this.fell?PAL.red:PAL.gold,'center',700);

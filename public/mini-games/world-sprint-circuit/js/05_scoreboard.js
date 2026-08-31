@@ -181,9 +181,14 @@ const SB = {
       if(room > cw) this.chips(u, o.history, cx, 18, Math.max(1, Math.floor(room / cw)), cw);
     }
 
-    /* ── 상대가 있으면 나란히 */
+    /* ── 상대(또는 보조값)가 있으면 나란히
+       ⛔ RIGHT·y22 에 두면 **메달 레일(y28, 바늘 26~33)이 글자를 가로지른다** —
+          골프를 tally 로 바꾸며 'Strokes 2' 가 레일에 걸렸다(2026-08-31 2인 캡처).
+          글자와 **그림**의 겹침이라 겹침 감시가 못 본다 — 눈으로 잡았다.
+          레일이 있으면 레일 **왼쪽**에 놓는다(레일은 350~454 를 쓴다). */
     if(o.foe){
-      txt(u, (o.foe.label || '상대') + ' ' + o.foe.value, RIGHT, 22, 9, PAL.dim, 'right', 700);
+      const fx = o.cuts ? (RAIL_X - 8) : RIGHT;
+      txt(u, (o.foe.label || '상대') + ' ' + o.foe.value, fx, o.cuts ? 24 : 22, 9, PAL.dim, 'right', 700);
     }
   },
 

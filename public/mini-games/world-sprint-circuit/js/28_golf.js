@@ -298,7 +298,7 @@ class GolfEvent {
       txt(u, K('라이')+' '+K(this.lie==='fairway'?'페어웨이':this.lie==='bunker'?'벙커':'러프'),
           8, 62, 9, this.lie==='fairway'?PAL.dim:PAL.red,'left');
       if(this.strokes===0 && this.hole===0)
-        txt(u,'←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)', VW/2, VH-46, 10, PAL.white,'center');
+        txt(u,'←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)', VW/2, Track.tipY(), 10, PAL.white,'center');
     }
     if(this.t-this.msgAt<1100)
       txt(u, this.msg, VW/2, 62, 14, this.msgBad?PAL.red:PAL.green,'center',700);
