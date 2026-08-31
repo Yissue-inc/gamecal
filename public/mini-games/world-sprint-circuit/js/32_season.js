@@ -200,7 +200,35 @@ class Season {
                      'discus','javelin','hammer','swimBack100','swimFly100'],
     };
     const ids = SETS[kind] || SETS.regional;
-    return EVENTS.filter(e=>ids.includes(e.id));
+    let list = EVENTS.filter(e=>ids.includes(e.id));
+
+    /* ⛔ **종목표가 클럽 갈래를 전혀 반영하지 않았다**(실측 2026-08-31).
+       지역+초청 19종목 중 내 갈래가 나오는 횟수:
+         단거리 3 · **허들·기술 1** · 중장거리 4 · 도약 4 · 투척·정밀 4 · 수영 3
+       허들·기술부(펜싱·탁구·승마)는 24주차 챔피언십 전까지 **사실상 못 뛴다.**
+       갈래를 고르라고 해 놓고 그 종목이 대회에 안 나오면 그건 선택이 아니라 함정이다.
+       → 우리 갈래 종목을 몇 개 얹는다(실제로도 클럽은 자기 종목 대회를 나간다).
+       ⛔ 갈래가 없으면 **한 종목도 안 바뀐다** — 옛 세이브와 하네스는 예전 그대로다.
+       ⚠ 해마다 조금씩 돌린다 — 3년 내내 같은 세 종목이면 그것도 함정이다. */
+    const sp = (typeof IDENT!=='undefined' && this.club) ? IDENT.of(this.club) : null;
+    if(sp){
+      const have = new Set(list.map(e=>e.id));
+      const pool = EVENTS.filter(e =>
+        !have.has(e.id) &&
+        SPEC_OF_KIND[e.kind] === sp &&
+        (typeof READY==='undefined' || READY.includes(e.id)) &&
+        !isTeamEvent(e) &&
+        e.kind !== 'combined' && e.kind !== 'tri');
+      if(pool.length){
+        pool.sort((a,b)=> a.id < b.id ? -1 : 1);
+        const ADD = kind==='regional' ? 3 : 3;
+        const off = ((this.year||1) - 1) % pool.length;
+        for(let i=0;i<Math.min(ADD, pool.length);i++) list.push(pool[(off+i) % pool.length]);
+      }
+    }
+    /* EVENTS 순서를 지킨다 — 대회 진행 순서가 해마다 뒤집히면 안 된다 */
+    const order = new Map(EVENTS.map((e,i)=>[e.id,i]));
+    return list.sort((a,b)=> order.get(a.id) - order.get(b.id));
   }
 
   /* 한 주 진행 — 훈련만. 대회 주는 별도로 runMeet() 을 부른다. */
