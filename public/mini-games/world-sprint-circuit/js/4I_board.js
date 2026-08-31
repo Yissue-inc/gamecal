@@ -81,24 +81,30 @@ const BOARD = {
       else if(grade === 'good') msg = '이사회가 만족합니다.';
       else msg = '이사회가 지켜보고 있습니다.';
     }
+    /* 적자로 시즌을 끝내면 신뢰를 깎는다 — 성적과 별개로 값을 치른다 */
+    if((club.budget || 0) < 0){
+      club.trust = clamp(club.trust - this.DEBT_TRUST, 0, 100);
+      msg = (msg ? msg + ' ' : '') + '적자로 시즌을 마쳤습니다.';
+    }
     club.boardLog.unshift({ year:club.year, grade, trust:Math.round(club.trust), verdict, msg });
     if(club.boardLog.length > 20) club.boardLog.length = 20;
     return { trust:Math.round(club.trust), delta:Math.round(club.trust - before), verdict, msg };
   },
 
-  /* 신뢰가 여는 것 — 예산 배정(다음 시즌 보너스)과 이적 승인 상한 */
-  seasonBudget(club){
-    this.ensure(club);
-    /* 신뢰 0 → 0.6배 · 62 → 1.0배 · 100 → 1.5배 */
-    const k = club.trust <= 62 ? lerp(0.6, 1.0, club.trust / 62)
-                               : lerp(1.0, 1.5, (club.trust - 62) / 38);
-    return +k.toFixed(2);
-  },
-  /* 이적에 쓸 수 있는 상한 — 신뢰가 낮으면 이사회가 지갑을 잠근다 */
+  /* ⛔ `seasonBudget`(신뢰→예산 배수)을 썼다가 **지웠다.** 곱할 예산 지급이 애초에 없어서
+     아무 데도 못 붙였다 — 쓰지 않는 코드는 거짓말이다. 붙이거나 지운다. */
+
+  /* 이적에 한 번에 쓸 수 있는 상한 — 신뢰가 낮으면 이사회가 지갑을 잠근다.
+     신뢰 0 → 잔고의 35% · 62 → 69% · 100 → 90%
+     ⚠ 이게 신뢰가 **실제로 무언가를 잠그는** 자리다. 없으면 신뢰는 장식이다. */
   transferCap(club){
     this.ensure(club);
     return Math.round((club.budget || 0) * clamp(0.35 + club.trust / 100 * 0.55, 0.35, 0.9));
   },
+
+  /* 적자 — ⛔ 예전엔 메시지 한 줄이 전부였다(34_market 의 'debt').
+     빚에 결과가 없으면 예산은 그냥 숫자다. 시즌 마감에 신뢰로 값을 치른다. */
+  DEBT_TRUST: 10,
 };
 
 /* ── 경질 화면 ─────────────────────────────────────────────

@@ -45,6 +45,24 @@ const CLUBLIFE = {
     if(!club.eventSeen) club.eventSeen = {};        // id → 마지막으로 뜬 주
   },
 
+  /* ── 관계 ──────────────────────────────────────────────
+     ⛔ 사건이 한 번 쓰고 사라지면 그건 사건이 아니라 팝업이다.
+        FM 은 같은 선수와 여러 번 부딪치면 **쌓인다** — 약속을 지켰나, 편을 들었나.
+     ⚠ 관계도 새 물리가 아니다. 화합과 같은 방식으로 **사기를 통해서만** 작동하고,
+        재계약 의사(4K_contract.willStay)에 한 번 더 쓰인다. 그 둘뿐이다. */
+  REL_MIN: -100, REL_MAX: 100,
+  rel(a){ return (a && a.rel !== undefined) ? a.rel : 0; },
+  bumpRel(a, d){
+    if(!a) return 0;
+    a.rel = clamp(this.rel(a) + d, this.REL_MIN, this.REL_MAX);
+    return a.rel;
+  },
+  relLabel(v){
+    return v >= 55 ? '따른다' : v >= 20 ? '좋다' : v > -20 ? '보통'
+         : v > -55 ? '서먹하다' : '등을 돌렸다';
+  },
+  relColor(v){ return v >= 20 ? PAL.green : v > -20 ? PAL.dim : PAL.red; },
+
   cohesionLabel(v){
     return v >= 80 ? '끈끈하다' : v >= 62 ? '좋다' : v >= 42 ? '보통' : v >= 24 ? '삐걱인다' : '갈라졌다';
   },
@@ -59,10 +77,48 @@ const CLUBLIFE = {
     const pull = (club.cohesion - 50) * 0.06;               // 화합 100 → +3, 0 → −3
     for(const a of club.squad){
       if(a.morale === undefined) continue;
-      a.morale = clamp(a.morale + pull, 0, 100);
+      /* 관계는 그 선수 **한 명에게만** 작용한다(화합은 전원) */
+      const own = this.rel(a) * 0.02;                      // 관계 100 → +2, −100 → −2
+      a.morale = clamp(a.morale + pull + own, 0, 100);
+      /* 관계도 스스로 식는다 — 손을 놓으면 남이 된다 */
+      if(a.rel) a.rel = a.rel * 0.985;
     }
     /* 화합은 스스로 보통으로 돌아간다 — 손을 놓으면 팀은 평범해진다 */
     club.cohesion = clamp(club.cohesion + (50 - club.cohesion) * 0.04, 0, 100);
+  },
+
+  /* ── 경기 전 팀 지시 ────────────────────────────────────
+     ⛔ 대회에 감독이 개입할 자리가 없었다. 출전표를 짜고 나면 관객이 된다.
+     ⚠ 결과는 **runMeet 이 한 번에 시뮬레이션**한다 — 경기 중 개입은 거짓말이 된다.
+        그래서 **경기 직전**에 건다. 그게 이 구조에서 정직한 자리다(FM 의 팀 토크와 같다).
+     ⛔ 정답이 없어야 한다 — 팀 상태(화합·사기)에 따라 맞는 말이 달라진다.
+        압박은 사기가 높을 때 먹히고, 낮을 때는 역효과다. */
+  TALKS: [
+    { id:'push',  name:'몰아붙인다', desc:'사기가 높을 때만 먹힌다',
+      need:a => a.morale >= 62, up:+9, down:-11 },
+    { id:'trust', name:'믿는다',     desc:'언제나 조금은 오른다',
+      need:() => true,           up:+5, down:0 },
+    { id:'calm',  name:'편하게 하라', desc:'사기가 낮을 때 살린다',
+      need:a => a.morale < 62,   up:+8, down:-4 },
+  ],
+  /* 출전 선수에게만 건다 — 안 나가는 선수에게 하는 말은 뜻이 없다 */
+  teamTalk(mg, talkId){
+    const T = this.TALKS.find(t => t.id === talkId) || this.TALKS[1];
+    const S = mg.season, ids = new Set();
+    for(const k in (S.entries || {})) for(const id of (S.entries[k] || [])) ids.add(id);
+    let up = 0, down = 0;
+    for(const a of mg.club.squad){
+      if(!ids.has(a.id)) continue;
+      const fit = T.need(a);
+      const d = fit ? T.up : T.down;
+      a.morale = clamp((a.morale ?? 60) + d, 0, 100);
+      if(d > 0) up++; else if(d < 0) down++;
+    }
+    /* 말이 팀에 맞으면 화합도 오른다 */
+    this.ensure(mg.club);
+    mg.club.cohesion = clamp(mg.club.cohesion + (up > down ? 3 : -3), 0, 100);
+    S.talkDone = true;
+    return { up, down, name:T.name };
   },
 
   /* ── 사건 표 ───────────────────────────────────────────────
@@ -82,18 +138,21 @@ const CLUBLIFE = {
             { label:'약속한다', hint:'사기 크게 오름 · 화합 −(다른 선수가 본다)',
               run(){ a.morale = clamp(a.morale + 16, 0, 100);
                      mg.club.cohesion = clamp(mg.club.cohesion - 5, 0, 100);
-                     return `${a.name} ${K('사기')} +16 · ${K('팀 화합')} −5`; } },
+                     CLUBLIFE.bumpRel(a, +14);
+                     return `${a.name} ${K('사기')} +16 · ${K('팀 화합')} −5 · ${K('관계')} +14`; } },
             { label:'실력으로 따내라', hint:'사기 − · 화합 +(원칙이 선다)',
               run(){ a.morale = clamp(a.morale - 9, 0, 100);
                      mg.club.cohesion = clamp(mg.club.cohesion + 6, 0, 100);
-                     return `${a.name} ${K('사기')} −9 · ${K('팀 화합')} +6`; } },
+                     CLUBLIFE.bumpRel(a, -8);
+                     return `${a.name} ${K('사기')} −9 · ${K('팀 화합')} +6 · ${K('관계')} −8`; } },
             { label:'따로 훈련을 붙여 준다', hint:'자금 −18 · 사기와 기량 조금',
               need: () => mg.club.budget >= 18,
               run(){ mg.club.budget = +(mg.club.budget - 18).toFixed(1);
                      a.morale = clamp(a.morale + 8, 0, 100);
                      const k = bestStatKey(a); a.stats[k] = Math.min(a.potential[k] || 99, a.stats[k] + 1.2);
                      if(typeof recalcOverall === 'function') recalcOverall(a);
-                     return `${K('자금')} −18 · ${a.name} ${K('사기')} +8 · ${K(statLabel(k))} +1.2`; } },
+                     CLUBLIFE.bumpRel(a, +12);
+                     return `${K('자금')} −18 · ${a.name} ${K('사기')} +8 · ${K(statLabel(k))} +1.2 · ${K('관계')} +12`; } },
           ] };
       } },
 
@@ -181,6 +240,7 @@ const CLUBLIFE = {
               run(){ a.morale = clamp(a.morale + 14, 0, 100);
                      b.morale = clamp(b.morale - 14, 0, 100);
                      mg.club.cohesion = clamp(mg.club.cohesion - 6, 0, 100);
+                     CLUBLIFE.bumpRel(a, +16); CLUBLIFE.bumpRel(b, -22);
                      return `${a.name} ${K('사기')} +14 · ${b.name} −14 · ${K('팀 화합')} −6`; } },
           ] };
       } },
@@ -199,18 +259,21 @@ const CLUBLIFE = {
               run(){ a.condition = clamp(a.condition + 22, 15, 100);
                      a.fatigue = Math.max(0, (a.fatigue || 0) - 18);
                      a.morale = clamp(a.morale - 7, 0, 100);
+                     CLUBLIFE.bumpRel(a, +6);
                      return `${a.name} ${K('컨디션')} +22 · ${K('피로')} −18 · ${K('사기')} −7`; } },
             { label:'본인 말을 믿는다', hint:'사기 + · 부상 위험을 안는다',
               run(){ a.morale = clamp(a.morale + 10, 0, 100);
                      a.fatigue = Math.min(100, (a.fatigue || 0) + 14);
-                     return `${a.name} ${K('사기')} +10 · ${K('피로')} +14`; } },
+                     CLUBLIFE.bumpRel(a, +10);
+                     return `${a.name} ${K('사기')} +10 · ${K('피로')} +14 · ${K('관계')} +10`; } },
             { label:'정밀 검진을 받게 한다', hint:'자금 −25 · 확실히 회복',
               need: () => mg.club.budget >= 25,
               run(){ mg.club.budget = +(mg.club.budget - 25).toFixed(1);
                      a.condition = clamp(a.condition + 30, 15, 100);
                      a.fatigue = Math.max(0, (a.fatigue || 0) - 26);
                      if(a.injury) a.injury = 0;
-                     return `${K('자금')} −25 · ${a.name} ${K('컨디션')} +30 · ${K('부상 해소')}`; } },
+                     CLUBLIFE.bumpRel(a, +18);
+                     return `${K('자금')} −25 · ${a.name} ${K('컨디션')} +30 · ${K('부상 해소')} · ${K('관계')} +18`; } },
           ] };
       } },
 

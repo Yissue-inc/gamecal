@@ -57,6 +57,18 @@ function valueOf(a){
 }
 function wageOf(a){ return +(a.overall * MarketTune.wagePerOverall).toFixed(1); }
 
+/* ⛔ **노드 검증 하네스에는 `K` 가 없다**(tools/load.js 는 07_i18n 을 안 싣는다).
+   그냥 K(…) 를 부르면 sim_market 이 `K is not defined` 로 죽는다(실측 2026-08-31).
+   화면 밖에서도 도는 코드는 번역을 이렇게 감싼다. */
+function mkK(s0){ return (typeof K === 'function') ? K(s0) : s0; }
+
+/* 협상 단계 — 깎을수록 싸고, 깎을수록 잃을 확률이 오른다(Market.negotiate) */
+const NEGOTIATE_STEPS = [
+  { id:'full', cut:1.00, label:'제값을 낸다', risk:0    },
+  { id:'mid',  cut:0.85, label:'조금 깎는다', risk:0.22 },
+  { id:'low',  cut:0.70, label:'많이 깎는다', risk:0.52 },
+];
+
 class Market {
   constructor(club, seed){
     this.club = club;
@@ -82,7 +94,10 @@ class Market {
     if(!this.canScout()) return `스카우트는 동시에 ${MarketTune.scoutSlots}명까지 보낼 수 있습니다`;
     if(this.club.budget < r.cost) return '자금이 부족합니다';
     this.club.budget -= r.cost;
-    this.scouts.push({ region:r.id, name:r.name, weeksLeft:r.weeks });
+    /* 누가 가느냐가 결과를 바꾼다(4L_scouts) — 고용한 사람이 없으면 전부 0 이라 예전과 같다 */
+    const who = (typeof SCOUT!=='undefined') ? SCOUT.forRegion(this.club, r.id) : {eye:0, tierLift:0, name:null};
+    this.scouts.push({ region:r.id, name:r.name, weeksLeft:r.weeks,
+                       eye:who.eye, tierLift:who.tierLift, who:who.name });
     return null;
   }
 
@@ -97,12 +112,14 @@ class Market {
         const r=this.regions().find(x=>x.id===s.region);
         const n = 1 + (this.rng()<0.45?1:0);
         for(let i=0;i<n;i++){
-          const tier = lerp(r.tier[0], r.tier[1], this.rng());
+          const tier = clamp(lerp(r.tier[0], r.tier[1], this.rng()) + (s.tierLift||0), 0, 1);
           const age = r.young ? 16+((this.rng()*3)|0) : 18+((this.rng()*9)|0);
           const a = rollAthlete(this.rng, { tier, age });
-          this.prospects.push({ athlete:a, level:1, weeksLeft:5+((this.rng()*4)|0), ask:valueOf(a) });
+          /* 눈이 밝으면 처음부터 더 보인다 — 안개(fogStat)는 그대로 쓴다 */
+          const lv = (typeof SCOUT!=='undefined') ? SCOUT.startLevel(s.eye||0, this.rng) : 1;
+          this.prospects.push({ athlete:a, level:lv, weeksLeft:5+((this.rng()*4)|0), ask:valueOf(a) });
         }
-        out.push({ t:'scout', msg:`${s.name} 스카우트 복귀 — 후보 ${n}명 발견` });
+        out.push({ t:'scout', msg:`${s.who||s.name} ${mkK('스카우트 복귀 — 후보 %1명 발견').replace('%1', n)}` });
       }
     }
     // 후보 정보가 시간이 지나며 조금씩 드러난다(계속 지켜보는 셈)
@@ -133,7 +150,8 @@ class Market {
     // 수입·지출
     /* 선수 주급 + 코치 주급(49_depth). 코치를 안 뽑았으면 0 이라 예전과 같다. */
     const coachW = (typeof DEPTH!=='undefined') ? DEPTH.wageBill(this.club) : 0;
-    const wages = this.club.squad.reduce((s,a)=>s+wageOf(a),0) + coachW;
+    const scoutW = (typeof SCOUT!=='undefined') ? SCOUT.wageBill(this.club) : 0;
+    const wages = this.club.squad.reduce((s,a)=>s+wageOf(a),0) + coachW + scoutW;
     const income = MarketTune.weeklySponsor + this.club.reputation*MarketTune.repBonus;
     this.club.budget = +(this.club.budget + income - wages).toFixed(1);
     if(this.club.budget < 0){
@@ -146,10 +164,57 @@ class Market {
     return N[(this.rng()*N.length)|0];
   }
 
-  /* ── 영입 ── */
+  /* ── 협상 ──────────────────────────────────────────────
+     ⛔ 예전엔 '부르는 값을 그대로 낸다' 하나였다. FM 으로 치면 이적 협상이 통째로 없는 것이다.
+        깎아 부를 수 있게 하되, **공짜 이득이 되면 안 된다** — 깎으면 잃을 수 있어야 한다.
+     ⚠ 성공률은 클럽 **명성**과 깎은 폭으로 정한다. 실패하면 그 유망주는 **떠난다**(다시 못 산다).
+        그게 없으면 모두가 매번 최저가로 찔러보게 되고, 그건 협상이 아니라 클릭이다.
+     ⚠ Market 은 **클래스**다 — 단계 표는 모듈 상수로 둔다(클래스 안에 객체 리터럴을 못 쓴다). */
+  offerFor(prospect, stepId){
+    const st = NEGOTIATE_STEPS.find(x => x.id === stepId) || NEGOTIATE_STEPS[0];
+    return { step:st, price: Math.max(1, Math.round(prospect.ask * st.cut)) };
+  }
+  /* 성공 확률 — 명성이 높으면 선수가 우리를 원한다 */
+  acceptChance(prospect, stepId){
+    const { step } = this.offerFor(prospect, stepId);
+    if(step.risk <= 0) return 1;
+    const rep = clamp((this.club.reputation || 0) / 10, 0, 1);      // 명성 10 이면 최대
+    return clamp(1 - step.risk + rep * 0.30, 0.05, 0.98);
+  }
+  negotiate(prospect, stepId){
+    const { step, price } = this.offerFor(prospect, stepId);
+    if(this.club.squad.length >= MarketTune.squadMax)
+      return { ok:false, gone:false, msg:`선수단은 ${MarketTune.squadMax}명까지입니다` };
+    if(this.club.budget < price)
+      return { ok:false, gone:false, msg:`자금이 부족합니다 (필요 ${price})` };
+    if(typeof BOARD !== 'undefined'){
+      const cap = BOARD.transferCap(this.club);
+      if(price > cap) return { ok:false, gone:false,
+        msg: mkK('이사회가 승인하지 않습니다 (한도 %1)').replace('%1', cap) };
+    }
+    if(step.risk > 0 && this.rng() > this.acceptChance(prospect, stepId)){
+      /* ⛔ 실패하면 **떠난다** — 위험이 없으면 협상이 아니다 */
+      this.prospects.splice(this.prospects.indexOf(prospect), 1);
+      return { ok:false, gone:true, msg:'제안이 거절됐습니다 — 다른 클럽으로 갔습니다' };
+    }
+    this.club.budget = +(this.club.budget - price).toFixed(1);
+    this.club.squad.push(prospect.athlete);
+    this.prospects.splice(this.prospects.indexOf(prospect), 1);
+    this.history.push({ t:'sign', name:prospect.athlete.name, price, year:this.club.year });
+    return { ok:true, gone:false, price, msg:'영입 완료' };
+  }
+
+  /* ── 영입(옛 경로) — 제값을 내는 것과 같다 ── */
   sign(prospect){
     if(this.club.squad.length >= MarketTune.squadMax) return `선수단은 ${MarketTune.squadMax}명까지입니다`;
     if(this.club.budget < prospect.ask) return `자금이 부족합니다 (필요 ${prospect.ask})`;
+    /* ⛔ 이사회 승인(4I_board) — 신뢰가 낮으면 잔고가 있어도 큰돈을 못 쓴다.
+       ⚠ 이게 신뢰가 **실제로 무언가를 잠그는** 유일한 자리다. 없으면 신뢰는 장식이다. */
+    if(typeof BOARD !== 'undefined'){
+      const cap = BOARD.transferCap(this.club);
+      if(prospect.ask > cap)
+        return mkK('이사회가 승인하지 않습니다 (한도 %1)').replace('%1', cap);
+    }
     this.club.budget -= prospect.ask;
     this.club.squad.push(prospect.athlete);
     this.prospects.splice(this.prospects.indexOf(prospect),1);

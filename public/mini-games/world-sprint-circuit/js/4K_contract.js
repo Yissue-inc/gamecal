@@ -63,9 +63,15 @@ const CONTRACT = {
   /* 이 선수가 우리 제안을 받아들일까 — 사기가 바닥이면 돈으로도 안 된다 */
   willStay(a, offerWage){
     const d = this.demand(a);
-    if(offerWage < d.wage * 0.92) return false;
-    /* 사기 20 미만이면 30% 확률로 그냥 떠난다 — 돈이 전부가 아니다 */
-    if((a.morale ?? 60) < 20) return false;
+    /* ⛔ **관계(4H_clublife)가 돈을 대신한다.** 나를 따르는 선수는 조금 깎아도 남고,
+       등을 돌린 선수는 제값을 줘도 안 남는다. 그게 사건을 쌓는 이유다 —
+       사건이 계약에서 값을 하지 않으면 그건 그냥 팝업이다. */
+    const rel = (typeof CLUBLIFE !== 'undefined') ? CLUBLIFE.rel(a) : 0;
+    const need = d.wage * (0.92 - clamp(rel, -100, 100) / 100 * 0.18);   // 관계 100 → 0.74배도 수락
+    if(offerWage < need) return false;
+    if(rel <= -55) return false;                       // 등을 돌렸으면 돈으로 안 된다
+    /* 사기가 바닥이면 관계가 좋아도 위태롭다 */
+    if((a.morale ?? 60) < 20 && rel < 40) return false;
     return true;
   },
 
@@ -126,7 +132,9 @@ class ContractScreen extends Screen0 {
       const fin = yl <= 1;
       const can = C.budget >= d.fee;
       return { label:`${a.speciesName} ${a.name}`,
-        sub:`${K('요구')} ${d.wage}/${K('주')} · ${K('계약금')} ${d.fee} · ${d.years}${K('년')}`,
+        sub:`${K('요구')} ${d.wage}/${K('주')} · ${K('계약금')} ${d.fee} · ${d.years}${K('년')}`
+            + (typeof CLUBLIFE!=='undefined'
+                ? `  ·  ${K('관계')} ${K(CLUBLIFE.relLabel(CLUBLIFE.rel(a)))}` : ''),
         right:`${yl}${K('년')}`,
         rightColor: fin ? PAL.red : yl <= 2 ? PAL.gold : PAL.dim,
         color: fin ? (can ? PAL.white : PAL.dim) : PAL.white,

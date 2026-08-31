@@ -112,6 +112,9 @@ const MG = {
       grade: S.gradeSeason ? S.gradeSeason() : null,
       points: S.points, medals: S.medals, year: S.year, olympic: !!S.isOlympicYear,
       retired: res.retired.map(a=>({name:a.name, age:a.age, overall:a.overall})),
+      /* ⛔ 계약 만료로 나간 선수(4K_contract) — 넣어 놓고 **화면에 안 보여 줬다.**
+         스타를 조용히 잃는 건 긴장이 아니라 사고다. */
+      leftFree: (res.leftFree || []).map(a=>({name:a.name, age:a.age, overall:a.overall})),
       joined:  res.joined.map(a=>({name:a.name, age:a.age, overall:a.overall, potOverall:a.potOverall})),
     };
     return S.endReport;
@@ -327,7 +330,7 @@ class SeasonEndScreen extends Screen0 {
        **시즌 시작에 받은 목표**를 넘겼는지로 매긴다 — 감독을 평가하는 것이다. */
     if(!rep) throw new Error('SeasonEndScreen: 시즌 마감 보고서 없이 열 수 없다 (MG.seasonEndScreen 을 쓸 것)');
     this.report = rep.grade;
-    this.res = { retired: rep.retired, joined: rep.joined };
+    this.res = { retired: rep.retired, joined: rep.joined, leftFree: rep.leftFree || [] };
     this.pts = rep.points; this.medals = rep.medals;
     this.year = rep.year;
     this.olympic = rep.olympic;
@@ -411,6 +414,16 @@ class SeasonEndScreen extends Screen0 {
         txt(u, a.name, 20, y, 10, '#ffa04c');
         txt(u, K('%1세 · OVR %2').replace('%1',a.age).replace('%2',a.overall),
             VW-20, y, 10, '#ffa04c', 'right');
+        y+=12;
+      }
+      y+=4;
+    }
+    if(this.res.leftFree && this.res.leftFree.length){
+      txt(u,'계약 만료로 떠남',12,y,9,PAL.red); y+=11;
+      for(const a of this.res.leftFree){
+        txt(u, a.name, 20, y, 10, PAL.red);
+        txt(u, K('%1세 · OVR %2').replace('%1',a.age).replace('%2',a.overall),
+            VW-20, y, 10, PAL.red, 'right');
         y+=12;
       }
       y+=4;

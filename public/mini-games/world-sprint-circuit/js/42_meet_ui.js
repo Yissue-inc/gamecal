@@ -61,6 +61,12 @@ class EntryScreen extends Screen0 {
     if(this.sel === 0){                            // 경기 시작
       const any = this.events.some(ev=>(S.entries[ev.id]||[]).length);
       if(!any){ this.mg.toast('출전 선수가 없습니다'); Sfx.fail(); return; }
+      /* ⛔ 경기 전 **팀 지시** 한 번(4H_clublife) — 대회에 감독이 개입할 자리가 없었다.
+         결과는 runMeet 이 한 번에 시뮬레이션하므로 '경기 중' 개입은 거짓말이 된다.
+         직전이 이 구조에서 정직한 자리다. 한 대회에 한 번만 묻는다. */
+      if(typeof CLUBLIFE!=='undefined' && !S.talkDone && typeof TeamTalkScreen!=='undefined'){
+        this.mg.push(new TeamTalkScreen(this.mg)); return;
+      }
       // 부상 선수 제거
       for(const ev of this.events)
         S.entries[ev.id]=(S.entries[ev.id]||[]).filter(id=>{ const a=this.mg.club.byId(id); return a&&a.available; });
@@ -134,9 +140,15 @@ class PickEntryScreen extends Screen0 {
       /* 레이스 플랜 — 출전시킨 선수에게만 뜬다(안 나가는 선수의 플랜은 뜻이 없다) */
       const canPlan = typeof TACTIC!=='undefined' && TACTIC.applies(this.ev);
       const pl = (canPlan && on) ? TACTIC.of(this.mg.season, a.id) : null;
+      /* ⛔ 계주는 **순서가 기록을 바꾼다** — 인계 손실이 앞뒤 선수의 기술·리듬 조합으로
+         계산된다(33_racesim.simulateRelay). 그런데 순서를 보거나 바꿀 방법이 없었다.
+         고른 차례가 곧 구간이었는데 화면이 그 말을 안 했다. */
+      const team = (typeof isTeamEvent==='function') && isTeamEvent(this.ev);
+      const legNo = (team && on) ? this.chosen.indexOf(a.id) + 1 : 0;
       return { label:(on?'● ':'○ ')+`${a.speciesName} ${a.name}`+(fav?' ★':'')+(a.injury?' (부상)':''), nation:a.nation,
         sub:`적합 ${Math.round(fit)} · 컨디션 ${UI.condName(a.condition)} · 피로 ${Math.round(a.fatigue)}`
-            + (pl ? `  ·  ${K('플랜')} ${K(TACTIC.label(pl))}` : ''),
+            + (pl ? `  ·  ${K('플랜')} ${K(TACTIC.label(pl))}` : '')
+            + (legNo ? `  ·  ${legNo}${K('번 주자')}${legNo===this.cap?' ('+K('마지막')+')':''}` : ''),
         right: pb!==undefined ? fmtRec(this.ev, pb) : '기록 없음',
         rightColor: pb!==undefined?PAL.gold:PAL.dim,
         color: a.injury?PAL.red:(on?PAL.green:PAL.white), dim:!a.available };
@@ -146,6 +158,18 @@ class PickEntryScreen extends Screen0 {
      ⚠ 새 화면을 만들지 않는다. 출전 여부를 정한 그 자리에서 바로 지시가 붙어야
         '누구를 어떻게 뛰게 할까' 가 한 생각으로 이어진다. */
   update(now){
+    /* 계주 — ◀▶ 로 **주자 순서**를 바꾼다. 플랜은 계주에 안 걸리므로 이 키가 비어 있다. */
+    if((typeof isTeamEvent==='function') && isTeamEvent(this.ev) && this.sel < this.cands.length){
+      const a = this.cands[this.sel], i = this.chosen.indexOf(a && a.id);
+      if(i >= 0 && (Input.pressed('left') || Input.pressed('right'))){
+        const j = Input.pressed('left') ? i-1 : i+1;
+        if(j >= 0 && j < this.chosen.length){
+          const t = this.chosen[i]; this.chosen[i] = this.chosen[j]; this.chosen[j] = t;
+          this.mg.toast(`${a.name} — ${j+1}${K('번 주자')}`); Sfx.ui();
+        }
+        return;
+      }
+    }
     if(typeof TACTIC!=='undefined' && TACTIC.applies(this.ev) && this.sel < this.cands.length){
       const a = this.cands[this.sel];
       if(a && this.chosen.includes(a.id) &&
@@ -170,9 +194,12 @@ class PickEntryScreen extends Screen0 {
     UI.header(u, this.ev.name, `기준 ${fmtRec(this.ev, this.ev.qualify)}`);
     txt(u,'적합도는 컨디션까지 반영한 값입니다',8,27,9,PAL.dim);
     UI.list(u,this.rows,this.sel,8,40,VW-16,24,7);
-    UI.footer(u, (typeof TACTIC!=='undefined' && TACTIC.applies(this.ev))
-      ? '확인 선택/해제   ◀▶ 레이스 플랜   취소 돌아가기'
-      : '확인 선택/해제   취소 돌아가기');
+    UI.footer(u,
+      ((typeof isTeamEvent==='function') && isTeamEvent(this.ev))
+        ? '확인 선택/해제   ◀▶ 주자 순서   취소 돌아가기'
+      : (typeof TACTIC!=='undefined' && TACTIC.applies(this.ev))
+        ? '확인 선택/해제   ◀▶ 레이스 플랜   취소 돌아가기'
+        : '확인 선택/해제   취소 돌아가기');
   }
 }
 
@@ -563,4 +590,52 @@ class MeetResultScreen extends Screen0 {
     UI.footer(u, '◀ 결과로   ·   확인 계속');
   }
 
+}
+
+/* ── 경기 전 팀 지시 ───────────────────────────────────────
+   ⚠ 평소 목록 규칙(Screen0)을 그대로 쓴다 — 새 조작을 안 배우게 한다.
+   ⛔ 정답이 없다. 팀 사기가 높으면 '몰아붙인다' 가 먹히고, 낮으면 '편하게' 가 산다. */
+class TeamTalkScreen extends Screen0 {
+  constructor(mg){ super(mg); this.done = null; }
+  get hdBg(){ return 'bg-office'; } get hdBgDim(){ return 0.8; }
+  get entered(){
+    const S = this.mg.season, ids = new Set();
+    for(const k in (S.entries||{})) for(const id of (S.entries[k]||[])) ids.add(id);
+    return this.mg.club.squad.filter(a => ids.has(a.id));
+  }
+  get rows(){
+    if(this.done) return [{ label:'경기 시작' }];
+    const list = this.entered;
+    return CLUBLIFE.TALKS.map(t => {
+      const fit = list.filter(a => t.need(a)).length;
+      return { label:K(t.name), _id:t.id,
+        sub:`${K(t.desc)}  ·  ${K('맞는 선수')} ${fit} / ${list.length}`,
+        right: fit >= Math.ceil(list.length/2) ? '◎' : '△',
+        rightColor: fit >= Math.ceil(list.length/2) ? PAL.green : PAL.gold };
+    });
+  }
+  confirm(){
+    if(this.done){ this.mg.pop(); this.mg.top().confirm(); return; }
+    const r = this.rows[this.sel]; if(!r || !r._id) return;
+    const res = CLUBLIFE.teamTalk(this.mg, r._id);
+    this.done = res; this.sel = 0; Sfx.record();
+  }
+  cancel(){ /* 안 하고는 못 나간다 — 한 번은 말해야 한다 */ }
+  draw(u){
+    const list = this.entered;
+    UI.header(u, K('경기 전 지시'), `${K('출전')} ${list.length}`);
+    const avg = list.length ? Math.round(list.reduce((s,a)=>s+(a.morale??60),0)/list.length) : 0;
+    txt(u, `${K('출전 선수 평균 사기')} ${avg}`, 8, 27, 9,
+        avg>=62?PAL.green:avg>=40?PAL.gold:PAL.red);
+    if(this.done){
+      plate(u, 20, 60, VW-40, 56, 0.78);
+      txt(u, K(this.done.name), VW/2, 66, 14, PAL.gold, 'center', 700);
+      txt(u, `${K('사기 오름')} ${this.done.up}  ·  ${K('사기 내림')} ${this.done.down}`,
+          VW/2, 88, 11, PAL.white, 'center', 700);
+      txt(u, K('확인 경기 시작'), VW/2, VH-24, 11, PAL.gold, 'center', 700);
+      return;
+    }
+    UI.list(u, this.rows, this.sel, 8, 44, VW-16, 26, 4);
+    UI.footer(u, '확인 지시   ▲▼ 고르기');
+  }
 }

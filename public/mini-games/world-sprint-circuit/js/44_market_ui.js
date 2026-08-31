@@ -8,30 +8,42 @@ const MONEY = (v)=> (v>=0?'':'-') + Math.abs(Math.round(v));
 /* ── 사무소 (허브) ────────────────────────────────────────── */
 class MarketScreen extends Screen0 {
   get M(){ return this.mg.season.market; }
+  /* ⛔ 예전엔 줄 목록과 `switch(this.sel)` 두 벌을 손으로 맞췄다 — 줄을 하나 넣으면
+     인덱스가 밀려 **다른 화면이 열린다**(이 레포가 이미 여러 번 물린 자리고,
+     OfficeScreen 은 그래서 이미 go 방식으로 고쳐져 있다). 여기도 같게 만든다. */
   get rows(){
-    const M=this.M;
-    return [
+    const M=this.M, C=this.mg.club;
+    const r = [
       { label:'스카우트 파견', icon:'ic-scout', sub:`파견 중 ${M.scouts.length} / ${MarketTune.scoutSlots}` +
-          (M.scouts.length?` — ${M.scouts.map(s=>`${s.name}(${s.weeksLeft}주)`).join(', ')}`:''), right:'▶' },
+          (M.scouts.length?` — ${M.scouts.map(s=>`${s.name}(${s.weeksLeft}주)`).join(', ')}`:''), right:'▶',
+        go:()=>new ScoutScreen(this.mg) },
       { label:'영입 후보', icon:'ic-market', sub: M.prospects.length? `${M.prospects.length}명 대기 중` : '스카우트를 보내야 후보가 생깁니다',
-        right:String(M.prospects.length), rightColor:M.prospects.length?PAL.green:PAL.dim },
+        right:String(M.prospects.length), rightColor:M.prospects.length?PAL.green:PAL.dim,
+        need:()=>M.prospects.length, no:'아직 후보가 없습니다 — 스카우트를 보내세요',
+        go:()=>new ProspectScreen(this.mg) },
       { label:'이적 제안', icon:'ic-offer', sub: M.offers.length? `우리 선수에게 들어온 제안 ${M.offers.length}건` : '받은 제안 없음',
-        right:String(M.offers.length), rightColor:M.offers.length?PAL.gold:PAL.dim },
-      { label:'선수 방출', icon:'ic-release', sub:'선수단을 정리한다 (몸값의 25%만 회수)', right:'▶' },
+        right:String(M.offers.length), rightColor:M.offers.length?PAL.gold:PAL.dim,
+        need:()=>M.offers.length, no:'들어온 제안이 없습니다',
+        go:()=>new OfferScreen(this.mg) },
+      { label:'선수 방출', icon:'ic-release', sub:'선수단을 정리한다 (몸값의 25%만 회수)', right:'▶',
+        go:()=>new ReleaseScreen(this.mg) },
     ];
+    /* 스카우트 고용(4L_scouts) — 누가 보러 가느냐가 후보의 질과 정보를 바꾼다 */
+    if(typeof SCOUT!=='undefined'){
+      SCOUT.ensure(C);
+      const n = SCOUT.hired(C).length;
+      r.splice(1, 0, { label:'스카우트 고용', icon:'ic-scout',
+        sub: n ? `${SCOUT.hired(C).map(x=>K(x.name)).join(', ')} · ${K('주급 합')} ${SCOUT.wageBill(C)}`
+               : '아직 없음 — 임시 인력으로 나갑니다',
+        right:`${n} / ${SCOUT.MAX}`, rightColor: n?PAL.green:PAL.dim,
+        go:()=>new ScoutStaffScreen(this.mg) });
+    }
+    return r;
   }
   confirm(){
-    const M=this.M;
-    if(this.sel===0) this.mg.push(new ScoutScreen(this.mg));
-    else if(this.sel===1){
-      if(!M.prospects.length){ this.mg.toast('아직 후보가 없습니다 — 스카우트를 보내세요'); Sfx.fail(); return; }
-      this.mg.push(new ProspectScreen(this.mg));
-    }
-    else if(this.sel===2){
-      if(!M.offers.length){ this.mg.toast('들어온 제안이 없습니다'); Sfx.fail(); return; }
-      this.mg.push(new OfferScreen(this.mg));
-    }
-    else this.mg.push(new ReleaseScreen(this.mg));
+    const r=this.rows[this.sel]; if(!r) return;
+    if(r.need && !r.need()){ this.mg.toast(r.no||''); Sfx.fail(); return; }
+    if(r.go) this.mg.push(r.go());
   }
   draw(u){
     const C=this.mg.club, M=this.M;
@@ -62,10 +74,17 @@ class MarketScreen extends Screen0 {
 class ScoutScreen extends Screen0 {
   get M(){ return this.mg.season.market; }
   get rows(){
-    return this.M.regions().map(r=>({
-      label:r.name, sub:`${r.weeks}주 소요 · ${r.young?'어린 선수 위주 (잠재력 편차 큼)':'즉시 전력 위주'}`,
-      right:`${r.cost}`, rightColor: this.mg.club.budget>=r.cost?PAL.gold:PAL.red,
-      right2: r.id==='world'?'최고 등급 가능':'' }));
+    const C = this.mg.club;
+    return this.M.regions().map(r=>{
+      /* 누가 갈지 미리 말해 준다 — 스카우트 고용이 값을 하는 걸 여기서 보여야 한다(4L_scouts) */
+      const who = (typeof SCOUT!=='undefined') ? SCOUT.forRegion(C, r.id) : {name:null};
+      return {
+        label:r.name,
+        sub:`${r.weeks}주 소요 · ${r.young?'어린 선수 위주 (잠재력 편차 큼)':'즉시 전력 위주'}`
+            + (who.name ? `  ·  ${K(who.name)} ${K('이(가) 간다')}` : ''),
+        right:`${r.cost}`, rightColor: C.budget>=r.cost?PAL.gold:PAL.red,
+        right2: r.id==='world'?'최고 등급 가능':'' };
+    });
   }
   confirm(){
     const r=this.M.regions()[this.sel];
@@ -107,12 +126,34 @@ class ProspectScreen extends Screen0 {
 }
 class ProspectDetail extends Screen0 {
   constructor(mg,p){ super(mg); this.p=p; }
-  get rows(){ return [{label:'영입한다'},{label:'보류'}]; }
+  /* ⛔ 예전엔 '영입한다 / 보류' 둘이었다 — 부르는 값을 그대로 내는 것 말고는 할 게 없었다.
+     깎아 부를 수 있게 하되 **잃을 수 있게** 한다(실패하면 다른 클럽으로 간다).
+     ⚠ 확률과 값을 줄에 그대로 적는다. 숨긴 확률로 도박을 시키면 그건 협상이 아니다. */
+  get rows(){
+    const M = this.mg.season.market;
+    const steps = (typeof NEGOTIATE_STEPS!=='undefined') ? NEGOTIATE_STEPS : [];
+    const r = steps.map(st=>{
+      const { price } = M.offerFor(this.p, st.id);
+      const ch = Math.round(M.acceptChance(this.p, st.id) * 100);
+      return { label:K(st.label), _step:st.id,
+        sub: st.risk>0 ? `${price} · ${K('성사')} ${ch}%  ·  ${K('실패하면 놓친다')}`
+                       : `${price} · ${K('확실하다')}`,
+        right:String(price),
+        rightColor: this.mg.club.budget>=price ? PAL.gold : PAL.red,
+        color: st.risk>0 ? (ch>=70?PAL.white:PAL.gold) : PAL.white };
+    });
+    return r.concat([{ label:'보류' }]);
+  }
   confirm(){
-    if(this.sel===1){ this.mg.pop(); return; }
-    const err=this.mg.season.market.sign(this.p);
-    if(err){ this.mg.toast(err); Sfx.fail(); return; }
-    Sfx.record(); this.mg.toast(`${this.p.athlete.name} 영입 완료`);
+    const row = this.rows[this.sel];
+    if(!row || !row._step){ this.mg.pop(); return; }
+    const res = this.mg.season.market.negotiate(this.p, row._step);
+    if(!res.ok){
+      this.mg.toast(res.msg); Sfx.fail();
+      if(res.gone) this.mg.pop();         // 놓쳤으면 화면에 남을 이유가 없다
+      return;
+    }
+    Sfx.record(); this.mg.toast(`${this.p.athlete.name} ${K('영입 완료')} (${res.price})`);
     this.mg.pop();
   }
   draw(u){
