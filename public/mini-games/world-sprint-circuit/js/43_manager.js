@@ -246,6 +246,11 @@ const MG = {
           goal:this.season.goal || null,
           nationMedals:this.season.nationMedals || null,
           entries:this.season.entries || {},
+          /* ⛔ 레이스 플랜(4J_tactics)이 저장 목록에 없어서 **불러오면 지시가 사라졌다.**
+             화면에 보이는 것은 전부 저장한다 — 이 주석이 위에 이미 있는데 새 층을 넣고
+             또 빠뜨렸다. 새 시즌 필드를 만들면 여기도 함께 본다. */
+          tactics:this.season.tactics || null,
+          talkDone:!!this.season.talkDone,
           ended:!!this.season.ended, endReport:this.season.endReport || null,
         },
       }));
@@ -300,6 +305,8 @@ const MG = {
       if(d.season.goal) S.goal=d.season.goal;
       if(d.season.nationMedals) S.nationMedals=d.season.nationMedals;
       if(d.season.entries) S.entries=d.season.entries;
+      if(d.season.tactics) S.tactics=d.season.tactics;
+      if(d.season.talkDone) S.talkDone=true;
       this.season=S; this.focus={}; this.lastLog=[];
       /* 시즌이 이미 끝난 상태로 저장됐으면 **그 화면으로 돌아간다** — 사무소를 띄우면
          플레이어는 평가를 못 보고, 다음 주로 넘기는 순간 오프시즌이 두 번 돈다. */

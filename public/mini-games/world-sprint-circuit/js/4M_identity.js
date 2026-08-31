@@ -75,6 +75,64 @@ const IDENT = {
     return s.stats.indexOf(statKey) >= 0 ? (1 + this.IN_BONUS) : (1 - this.OUT_MALUS);
   },
 
+  /* ── 갈래 전용 훈련 ────────────────────────────────────────
+     ⛔ 갈래를 넣고도 **훈련 메뉴는 여섯 갈래가 전부 같았다**(기본 5종).
+        그러면 '수영부' 는 배수만 다른 같은 클럽이다 — 감독이 하는 일이 안 바뀐다.
+        갈래마다 그 종목에서 실제로 하는 훈련을 두 개씩 준다.
+     ⚠ 기본 5종은 그대로 남는다 — 갈래를 골라도 예전 메뉴를 계속 쓸 수 있다.
+     ⚠ 무게(w)는 기존 PROGRAMS 와 같은 자에서 만든다(합이 비슷해야 부하가 뜻을 갖는다). */
+  EXTRA: {
+    sprint: {
+      spr_block: { name:'스타트 블록', desc:'출발 반응과 초반 가속',
+        w:{speed:1.6,acceleration:2.6,stamina:.3,technique:.9,rhythm:1.0,power:1.0}, load:1.22 },
+      spr_flyin: { name:'플라잉 30m', desc:'최고 속도 구간만 되풀이',
+        w:{speed:2.6,acceleration:1.2,stamina:.5,technique:.7,rhythm:1.2,power:.8}, load:1.18 },
+    },
+    hurdles: {
+      hur_rhythm:{ name:'허들 간격', desc:'세 걸음 리듬을 몸에 넣는다',
+        w:{speed:1.0,acceleration:1.0,stamina:.7,technique:1.6,rhythm:2.4,power:.6}, load:0.95 },
+      hur_react: { name:'반응 훈련', desc:'신호에 즉시 — 펜싱·탁구에도 듣는다',
+        w:{speed:1.2,acceleration:1.6,stamina:.5,technique:1.4,rhythm:1.8,power:.6}, load:1.05 },
+    },
+    endure: {
+      end_long:  { name:'장거리 지구주', desc:'천천히 오래 — 피로가 적다',
+        w:{speed:.4,acceleration:.4,stamina:2.8,technique:.6,rhythm:1.4,power:.4}, load:0.78 },
+      /* ⛔ 처음엔 stamina 2.2 였다 — 정규화 뒤 기본 '지구력'(2.2)과 같은데 부하만 1.25 라
+         **그냥 진다**(실측). 부하가 높은 프로그램은 목표를 확실히 더 줘야 존재 이유가 생긴다. */
+      end_interval:{ name:'인터벌', desc:'지구력에 막판 스피드를 붙인다',
+        w:{speed:2.2,acceleration:1.2,stamina:2.8,technique:.4,rhythm:.8,power:.5}, load:1.08 },
+    },
+    jump: {
+      jmp_plyo:  { name:'플라이오메트릭', desc:'튀어 오르는 힘',
+        w:{speed:1.0,acceleration:2.2,stamina:.5,technique:1.4,rhythm:1.0,power:1.6}, load:1.28 },
+      jmp_form:  { name:'공중 자세', desc:'몸을 다루는 법 — 체조·다이빙에도 듣는다',
+        w:{speed:.6,acceleration:1.2,stamina:.7,technique:2.6,rhythm:1.4,power:.8}, load:0.85 },
+    },
+    throw: {
+      thr_lift:  { name:'웨이트', desc:'순수한 힘. 피로가 크다',
+        w:{speed:.6,acceleration:.8,stamina:.6,technique:.8,rhythm:.5,power:3.0}, load:1.35 },
+      thr_aim:   { name:'정밀 훈련', desc:'같은 동작을 흔들림 없이 — 사격·양궁',
+        w:{speed:.4,acceleration:.6,stamina:.9,technique:2.6,rhythm:1.6,power:1.0}, load:0.80 },
+    },
+    swim: {
+      swm_stroke:{ name:'스트로크', desc:'물을 잡는 법',
+        w:{speed:.8,acceleration:.8,stamina:1.6,technique:2.6,rhythm:1.4,power:.8}, load:0.92 },
+      /* ⛔ 같은 이유로 stamina 를 올렸다 — 실측에서 기본 '지구력'(72.7)에 71.0 으로 졌다 */
+      swm_set:   { name:'세트 훈련', desc:'거리를 나눠 되풀이 — 버티는 힘',
+        w:{speed:.6,acceleration:.5,stamina:3.4,technique:1.3,rhythm:.9,power:.5}, load:1.10 },
+    },
+  },
+
+  /* 기본 5종 + 우리 갈래 전용 2종 */
+  programKeys(club){
+    const base = Object.keys(PROGRAMS).filter(k => !k.includes('_'));
+    const sp = this.of(club);
+    if(!sp || !this.EXTRA[sp]) return base;
+    return base.concat(Object.keys(this.EXTRA[sp]));
+  },
+  /* 갈래 전용인가 — 화면이 표시로 갈라 준다 */
+  isExtra(key){ return String(key).includes('_'); },
+
   /* 신인·유망주가 우리 갈래로 올 확률 — 특기부는 그 갈래 선수를 더 잘 모은다 */
   rookieSpec(club, rng, fallback){
     const sp = this.of(club);
@@ -124,5 +182,29 @@ class IdentityScreen extends Screen0 {
       txt(u, K('시즌 중에는 바꿀 수 없습니다'), VW-8, 27, 9, PAL.red, 'right');
     UI.list(u, this.rows, this.sel, 8, 40, VW - 16, 24, 7);
     UI.footer(u, '확인 정한다   취소 돌아가기');
+  }
+}
+
+/* ⛔ 갈래 전용 프로그램을 **PROGRAMS 에 합친다.** 그래야 `trainWeek(a, program, …)` 이
+   예전 그대로 `PROGRAMS[program]` 만 보면 된다 — 훈련 코드를 한 줄도 안 고친다.
+   ⚠ 키에 밑줄(_)이 있는 것이 갈래 전용이다(programKeys/isExtra 가 그걸로 가른다).
+
+   ⛔ **무게 합을 기본 5종에 맞춰 정규화한다.** 안 하면 전용 프로그램이 그냥 더 좋다 —
+      내가 손으로 적은 표는 합이 7.0~8.0 이었는데 기본은 5.9~6.4 였다.
+      그러면 갈래를 고른 클럽은 기본 5종을 영영 안 쓰고, 그건 선택이 아니라 상위 호환이다
+      (실측: thr_aim 이 technical 과 같은 부하에 더 높은 무게 — 공짜 이득).
+      **모양은 내가 정하고, 크기는 코드가 맞춘다.** 그래야 표를 늘려도 안 새어 나간다. */
+const PROGRAM_WEIGHT_SUM = 6.2;      // 기본 5종의 중앙값
+if(typeof PROGRAMS !== 'undefined'){
+  for(const sp in IDENT.EXTRA){
+    for(const key in IDENT.EXTRA[sp]){
+      const P = IDENT.EXTRA[sp][key];
+      const sum = Object.values(P.w).reduce((a, b) => a + b, 0);
+      if(sum > 0){
+        const k = PROGRAM_WEIGHT_SUM / sum;
+        for(const st in P.w) P.w[st] = +(P.w[st] * k).toFixed(3);
+      }
+      PROGRAMS[key] = P;
+    }
   }
 }

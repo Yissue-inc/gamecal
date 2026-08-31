@@ -77,9 +77,18 @@ const UI = {
   },
 
   /* 커서가 달린 세로 목록. rows = [{label, sub, right, color, dim, icons}] */
+  /* ⛔ 스크롤 '▴N' 표시가 **첫 줄의 오른쪽 값을 덮었다**(실측: 'Load 0.85' → '0.8⁵2').
+     위로 올려 봤더니 이번엔 머리말과 겹쳤다 — 자리를 옮길 게 아니라
+     **첫 줄의 오른쪽 값을 그 폭만큼 안으로 미는** 것이 맞다. */
   list(u, rows, sel, x, y, w, rowH, maxRows){
     const n = Math.min(rows.length, maxRows);
     const first = clamp(sel - (maxRows>>1), 0, Math.max(0, rows.length-maxRows));
+    /* 위 스크롤 표시가 차지할 폭 — 첫 줄의 오른쪽 값을 그만큼 안으로 민다(위 주석 참조) */
+    this._topTagW = 0;
+    if(first > 0 && rows.length > maxRows){
+      u.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
+      this._topTagW = Math.ceil(u.measureText('▴ '+first).width) + 10;
+    }
     for(let i=0;i<n;i++){
       const idx = first+i, r = rows[idx]; if(!r) break;
       const ry = y + i*rowH, on = idx===sel;
@@ -177,9 +186,9 @@ const UI = {
           UIK.nine(u, 'chip-bg', x+w-8-cw2, ry2-2, cw2, 14, 8);
           u.restore();
         }
-        txt(u, rt, x+w-8, ry2, 10, r.rightColor||PAL.white, 'right');
+        txt(u, rt, x+w-8-(i===0 ? this._topTagW||0 : 0), ry2, 10, r.rightColor||PAL.white, 'right');
       }
-      if(r.right2) txt(u, r.right2,x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
+      if(r.right2) txt(u, r.right2, x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
     }
     if(rows.length > maxRows){
       /* ⚠ 막대는 **어디쯤인지**만 말한다. 처음 켠 사람에게 필요한 건
@@ -200,7 +209,7 @@ const UI = {
       };
       const below = rows.length - (first + maxRows);
       if(below > 0) tag('▾ '+below, y+H-11, PAL.gold);
-      if(first > 0) tag('▴ '+first, y+1,    PAL.dim);
+      if(first > 0) tag('▴ '+first, y+1, PAL.dim);
     }
     return first;
   },
@@ -702,19 +711,27 @@ class FocusPickScreen extends Screen0 {
 
 /* ── 팀 프로그램 ─────────────────────────────────────────── */
 class ProgramScreen extends Screen0 {
-  constructor(mg){ super(mg); this.keys=Object.keys(PROGRAMS);
-    this.sel=Math.max(0,this.keys.indexOf(mg.club.program)); }
+  /* ⛔ 예전엔 `Object.keys(PROGRAMS)` 를 통째로 썼다. 갈래 전용 프로그램이 PROGRAMS 에
+     합쳐지면서 **모든 클럽에 열두 개가 다 보이게** 된다 — 갈래를 고른 뜻이 사라진다.
+     기본 5종 + **우리 갈래 전용 2종**만 보여 준다(4M_identity.programKeys). */
+  constructor(mg){ super(mg);
+    this.keys = (typeof IDENT!=='undefined') ? IDENT.programKeys(mg.club) : Object.keys(PROGRAMS);
+    this.sel = Math.max(0, this.keys.indexOf(mg.club.program)); }
   get rows(){ return this.keys.map(k=>{
     const P=PROGRAMS[k];
     const top=Object.entries(P.w).sort((a,b)=>b[1]-a[1]).slice(0,2).map(e=>STAT_NAME[e[0]]).join('·');
-    return { label:P.name, sub:P.desc, right:`부하 ${P.load.toFixed(2)}`,
+    const ex = (typeof IDENT!=='undefined') && IDENT.isExtra(k);
+    return { label:(ex?'★ ':'')+P.name, sub:P.desc, right:`부하 ${P.load.toFixed(2)}`,
       rightColor:P.load>1.1?PAL.red:P.load<0.9?PAL.green:PAL.gold, right2:top,
-      color: k===this.mg.club.program?PAL.gold:PAL.white };
+      color: k===this.mg.club.program?PAL.gold:(ex?PAL.blue:PAL.white) };
   }); }
   confirm(){ this.mg.club.program=this.keys[this.sel]; Sfx.ui(); this.mg.pop(); }
   draw(u){
-    UI.header(u,'팀 프로그램', '시즌 내내 적용');
+    const nm = (typeof IDENT!=='undefined') ? IDENT.name(this.mg.club) : '';
+    UI.header(u,'팀 프로그램', nm ? `${K('시즌 내내 적용')} · ${K(nm)}` : '시즌 내내 적용');
     txt(u,'부하가 높으면 빨리 크지만 피로·부상이 늘어납니다',8,27,9,PAL.dim);
+    if(typeof IDENT!=='undefined' && IDENT.of(this.mg.club))
+      txt(u,'★ '+K('갈래 전용'), VW-8, 27, 9, PAL.blue, 'right');
     UI.list(u,this.rows,this.sel,8,42,VW-16,26,5);
     UI.footer(u,'확인 선택   취소 돌아가기');
   }
