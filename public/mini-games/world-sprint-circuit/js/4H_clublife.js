@@ -285,7 +285,7 @@ const CLUBLIFE = {
           title:'합숙 제안',
           body: evText('고지대 합숙 자리가 났습니다. 비용 %N.', {N:cost}),
           choices:[
-            { label:'간다', hint:`자금 −${cost} · 전원 지구력 + · 화합 +`,
+            { label:'간다', hint: evText('자금 −%N · 전원 지구력 + · 화합 +', {N:cost}),   /* ⚠ 통짜 템플릿은 표와 안 맞는다 — 이 파일의 evText 를 쓴다 */
               need: () => mg.club.budget >= cost,
               run(){ mg.club.budget = +(mg.club.budget - cost).toFixed(1);
                      let n = 0;

@@ -539,12 +539,28 @@ class OfficeScreen extends Screen0 {
     if(C.nation && typeof drawFlag==='function') drawFlag(u, VW/2-11, 4, 22, 15, C.nation);
     /* 올림픽 카운트다운 — 감독의 4년은 '다음 올림픽까지 남은 시간'이다 */
     if(S.isOlympicYear){
-      txt(u, `${olympicName(C.year)} — 올해다`, VW/2, 40, 10, PAL.gold, 'center', 700);
+      /* ⚠ 아래 else 는 '이름은 이름대로, 문장은 문장대로' 를 지키는데 이 갈래만 안 지켰다.
+         ⛔ 그리고 **가운데 정렬도 이 갈래만 안 고쳤다** — 'LA 2028 — this is the year' 가
+            목표 칸('0/9')을 물었다. 두 갈래는 같은 자리를 쓰므로 규칙도 같아야 한다. */
+      const oy = olympicName(C.year) + ' — ' + K('올해다');
+      const L0 = 186, R0 = VW - 58;
+      let oys = 10;
+      try{ for(; oys >= 7; oys--){ u.font = `700 ${oys}px "Galmuri11","Nanum Gothic Coding",monospace`;
+             if(u.measureText(oy).width <= R0 - L0) break; } }catch(e){}
+      txt(u, oy, (L0 + R0) / 2, 40 + (10 - oys), oys, PAL.gold, 'center', 700);
     } else {
       /* ⚠ 대회 이름을 문장 안에 넣으면 번역 자리표(%1)가 숫자만 접기 때문에 매칭이 깨진다.
          이름은 이름대로, 문장은 문장대로 넘긴다. */
-      txt(u, olympicName(C.year + S.yearsToOlympics) + ' · ' + K('%1년 뒤').replace('%1', S.yearsToOlympics),
-          VW/2, 40, 9, PAL.dim, 'center');
+      /* ⛔ y=39~40 한 줄에 넷이 산다 — 목표 막대(8~106)·승점(110~)·금(150~)·범례(~VW-8).
+         가운데 정렬로 두면 그 사이 빈 폭보다 길어질 때 **양옆을 문다**
+         ('Brisbane 2032 · in 3 yr' 이 '0/10' 을 물었다 — 4년차에 처음 나왔다).
+         남은 폭 안에서만 그리고, 안 들어가면 글자를 줄인다. */
+      const oc = olympicName(C.year + S.yearsToOlympics) + ' · ' + K('%1년 뒤').replace('%1', S.yearsToOlympics);
+      const L = 186, R = VW - 58;                 // 금메달 칸 뒤 ~ '■ 대회 주' 앞
+      let os = 9;
+      try{ for(; os >= 7; os--){ u.font = `400 ${os}px "Galmuri11","Nanum Gothic Coding",monospace`;
+             if(u.measureText(oc).width <= R - L) break; } }catch(e){}
+      txt(u, oc, (L + R) / 2, 40 + (9 - os), os, PAL.dim, 'center');
     }
     // 주차 스트립 — 대회가 언제인지 한눈에
     const sx=8, sw=VW-16, cw=sw/24;
@@ -616,13 +632,25 @@ class OfficeScreen extends Screen0 {
        **첫 시즌에만 라벨을 함께 보여 준다** — 배우고 나면 조용해진다.
        ⚠ 라벨은 아이콘 오른쪽에 붙인다. 칸 너비는 74px 라 11+2+라벨(≤22px) 이 들어간다. */
     const teach = S.year <= 1;
+    const cellW = Math.floor((VW-32)/cells.length);
     cells.forEach((c,i)=>{
-      const cx=16+i*Math.floor((VW-32)/cells.length);
+      const cx=16+i*cellW;
       const im = c.icon ? BG.get(c.icon) : null;
       if(im){ u.drawImage(im, cx, 53, 11, 11);
               if(teach) txt(u, c.k, cx+13, 54, 8, PAL.dim); }
       else    txt(u, c.k, cx, 54, 8, PAL.dim);        // 아이콘이 아직 없으면 라벨로
-      txt(u, c.v, cx, 66, 12, c.c, 'left', 700);
+      /* ⛔ 값을 12px 로 박아 두면 **긴 번역이 옆 칸을 문다** — 부상 '1명'(한국어 13px)이
+         영어로는 '1 athletes'(66px)가 되어 칸(64px)을 넘고 다음 칸의 값 위에 앉았다
+         (2026-08-31 흐름 감사). 칸이 스스로 지킨다 — 안 들어가면 글자를 줄인다. */
+      let vs = 12;
+      try{
+        const t2 = K(c.v);
+        for(; vs >= 8; vs--){
+          u.font = `700 ${vs}px "Galmuri11","Nanum Gothic Coding",monospace`;
+          if(u.measureText(t2).width <= cellW - 5) break;
+        }
+      }catch(e){ vs = 12; }
+      txt(u, c.v, cx, 66+(12-vs), vs, c.c, 'left', 700);
     });
 
     UI.list(u, this.rows, this.sel, 8, 82, VW-16, 22, 6);
@@ -631,6 +659,11 @@ class OfficeScreen extends Screen0 {
     plate(u, 8, VH-58, VW-16, 40, .55);
     if(log && log.length){
       txt(u,'지난주',14,VH-56,8,PAL.dim);
+      /* ⚠ 아래 성장 줄의 시작점(52)은 '지난주'(한국어 26px)를 비켜 잡은 값이다.
+         영어 'Last week' 는 39px 라 14+39=53 — 52 를 문다. 재서 뒤에 붙인다. */
+      let logHead = 52;
+      try{ u.font = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+           logHead = 14 + Math.ceil(u.measureText(K('지난주')).width) + 8; }catch(e){}
       /* ⚠ 한 주치 성장이 로그 세 줄로만 흘러갔다. 그 주에 클럽이 얼마나 세졌는지를
          **제일 먼저** 말한다 — 큰 것이 작은 것보다 잘 보여야 한다. */
       if(WS && WS.grow){
@@ -640,11 +673,22 @@ class OfficeScreen extends Screen0 {
         { const age = (this.mg.t||0) - (this._wsAt ??= (this.mg.t||0));
           if(age < 1200)
             BG.fx(u, 'fx-week-done', 78, VH-40, 30, clamp(age/1200,0,0.999), 5); }
-        txt(u, '이번 주 성장', 52, VH-56, 8, PAL.dim, 'left');
-        txt(u, (WS.grow>0?'+':'')+UIK.n(WS.grow), 108, VH-57, 11, c, 'left', 700);
-        if(WS.top && WS.top.length)
-          txt(u, WS.top.map(r=>`${r.name} ${r.d>0?'+':''}${UIK.n(r.d)}`).join('  ·  '),
-              146, VH-56, 8, PAL.dim, 'left');
+        /* ⛔ 52 / 108 / 146 으로 자리를 박아 뒀다 — 한국어 '이번 주 성장'(약 48px)은
+           108 전에 끝나지만 영어 'Growth this week'(69px)는 **값 위로 올라탔다**
+           (2026-08-31 흐름 감사에서 14주 연속으로 잡혔다). 재서 이어 놓는다.
+           ⚠ 흐르는 배치에는 **끝점**이 있어야 한다 — 상자 오른쪽 끝(VW-16)에서 자른다. */
+        const adv = (s2, size, weight) => {
+          try{ u.font = `${weight||400} ${size}px "Galmuri11","Nanum Gothic Coding",monospace`;
+               return u.measureText(K(s2)).width; }catch(e){ return String(s2).length*size*0.55; }
+        };
+        let gx = logHead;
+        txt(u, '이번 주 성장', gx, VH-56, 8, PAL.dim, 'left');  gx += adv('이번 주 성장', 8) + 6;
+        const gv = (WS.grow>0?'+':'')+UIK.n(WS.grow);
+        txt(u, gv, gx, VH-57, 11, c, 'left', 700);              gx += adv(gv, 11, 700) + 10;
+        if(WS.top && WS.top.length){
+          const line = WS.top.map(r=>`${r.name} ${r.d>0?'+':''}${UIK.n(r.d)}`).join('  ·  ');
+          if(gx + adv(line, 8) <= VW - 16) txt(u, line, gx, VH-56, 8, PAL.dim, 'left');
+        }
       }
       /* 로그 줄 수를 결산 유무와 무관하게 세 줄로 유지한다(상자 높이가 고정이다) */
       log.slice(0,3).forEach((e,i)=>

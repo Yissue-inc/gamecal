@@ -407,8 +407,12 @@ class SeasonEndScreen extends Screen0 {
     }
     }
     /* ⚠ 올림픽 표시는 y=20 이었다 — 헤더 구분선(22)과 액자 윗변에 끼여 잘렸다.
-       액자 아래 제 줄로 내린다. */
-    let y=110;
+       액자 아래 제 줄로 내린다.
+       ⛔ 그런데 110 은 **이사회 블록(107~134)** 안이다 — 올림픽 해에 열어 보면
+          'Olympic year — LA 2028' 이 신뢰 수치 '67 −26' 위에 앉았다
+          (2026-08-31 흐름 감사, 4년차에 처음 나왔다 — 정지 화면으로는 영영 못 본다).
+          이사회 블록이 있으면 그 아래에서 시작한다. */
+    let y = this.board ? 150 : 110;   /* ⚠ 138 도 여전히 이사회 메시지(134~143) 위였다 — 한 번에 안 됐다 */
     /* ⚠ 개최 도시는 데이터다. 문장에 붙이면 조립된 통문자열이 번역표에 없어
        영어 빌드에서 '브리즈번 %1 해' 로 남는다(실측). 틀만 번역하고 도시는 뒤에 잇는다. */
     if(this.olympic){
@@ -419,36 +423,35 @@ class SeasonEndScreen extends Screen0 {
     /* ⚠ 이름을 문장 안에 넣으면 번역표를 통째로 못 찾는다 — txt() 가 문자열 전체를
        K() 에 넘기기 때문이다(실측: 영어 빌드에서 이 두 줄이 한국어로 남았다).
        이름은 데이터라 그대로 두고, **틀만 번역**하도록 좌우로 나눠 그린다. */
-    if(this.res.retired.length){
-      txt(u,'은퇴',12,y,9,PAL.dim); y+=11;
-      for(const a of this.res.retired){
-        txt(u, a.name, 20, y, 10, '#ffa04c');
-        txt(u, K('%1세 · OVR %2').replace('%1',a.age).replace('%2',a.overall),
-            VW-20, y, 10, '#ffa04c', 'right');
-        y+=12;
+    /* ⛔ 세 명단을 **상한 없이** 이어 그렸다. 은퇴·만료·신입이 한꺼번에 몰린 해에는
+       마지막 줄이 화면 밖으로 나가고 **푸터가 그 위를 덮는다** — 4년차에 계약 만료가
+       6명 나온 판에서 처음 봤다(2026-08-31 흐름 감사). 정지 화면으로는 영영 못 본다.
+       ⚠ 잘라 없애지 않는다 — **못 보여 준 수를 말한다.** 조용히 사라지면 잃은 줄도 모른다. */
+    const BOTTOM = VH - 26;                       // 푸터(VH-16) 위에서 멈춘다
+    /* ⚠ 제목색은 줄색과 다르다(은퇴·신입은 흐리게, 만료만 빨강) — 따로 받는다 */
+    const roster = (title, titleCol, list, col, line) => {
+      if(!list || !list.length) return;
+      if(y + 11 > BOTTOM) return;
+      txt(u, title, 12, y, 9, titleCol); y += 11;
+      let shown = 0;
+      for(const a of list){
+        if(y + 12 > BOTTOM) break;
+        txt(u, a.name, 20, y, 10, col);
+        txt(u, line(a), VW-20, y, 10, col, 'right');
+        y += 12; shown++;
       }
-      y+=4;
-    }
-    if(this.res.leftFree && this.res.leftFree.length){
-      txt(u,'계약 만료로 떠남',12,y,9,PAL.red); y+=11;
-      for(const a of this.res.leftFree){
-        txt(u, a.name, 20, y, 10, PAL.red);
-        txt(u, K('%1세 · OVR %2').replace('%1',a.age).replace('%2',a.overall),
-            VW-20, y, 10, PAL.red, 'right');
-        y+=12;
+      const rest = list.length - shown;
+      if(rest > 0 && y + 10 <= BOTTOM){
+        txt(u, K('… 외 %1명').replace('%1', rest), 20, y, 9, col); y += 11;
       }
-      y+=4;
-    }
-    if(this.res.joined.length){
-      txt(u,'신입',12,y,9,PAL.dim); y+=11;
-      for(const a of this.res.joined){
-        txt(u, a.name, 20, y, 10, PAL.green);
-        txt(u, K('%1세 · OVR %2 / 잠재 %3').replace('%1',a.age)
-                .replace('%2',a.overall).replace('%3',a.potOverall),
-            VW-20, y, 10, PAL.green, 'right');
-        y+=12;
-      }
-    }
+      y += 4;
+    };
+    const ageOvr = a => K('%1세 · OVR %2').replace('%1',a.age).replace('%2',a.overall);
+    roster('은퇴',            PAL.dim, this.res.retired,  '#ffa04c', ageOvr);
+    roster('계약 만료로 떠남', PAL.red, this.res.leftFree, PAL.red,   ageOvr);
+    roster('신입',            PAL.dim, this.res.joined,   PAL.green,
+           a => K('%1세 · OVR %2 / 잠재 %3').replace('%1',a.age)
+                  .replace('%2',a.overall).replace('%3',a.potOverall));
     UI.footer(u,'확인 다음 시즌 시작');
   }
 }

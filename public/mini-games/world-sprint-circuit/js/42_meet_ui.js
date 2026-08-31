@@ -109,8 +109,13 @@ class EntryScreen extends Screen0 {
     const load=S.entryLoad(S.entries);
     const covered=this.events.filter(ev=>(S.entries[ev.id]||[]).length).length;
     const maxed=Object.values(load).filter(v=>v>=MAX_EVENTS_PER_ATHLETE).length;
-    txt(u,`출전 ${covered} / ${this.events.length}종목 · 1인 최대 ${MAX_EVENTS_PER_ATHLETE}종목`
-        + (maxed? ` · ${maxed}명이 꽉 찼다` : ''),
+    /* ⛔ 통짜로 이어 붙이면 번역표와 안 맞는다 — 게다가 **'1인 최대'의 리터럴 1 도
+       숫자라** 런타임 키가 `%3인 최대 %4종목` 이 된다(내가 표에 넣은 키는 `1인 최대 %3종목`
+       이었다). 검사기와 런타임이 서로 **다른 키**를 만들고 있었다.
+       조각마다 번역하고 붙인다 — 그러면 자리표 셈이 어긋날 데가 없다. */
+    txt(u, K('출전 %1 / %2종목').replace('%1', covered).replace('%2', this.events.length)
+        + ' · ' + K('1인 최대 %1종목').replace('%1', MAX_EVENTS_PER_ATHLETE)
+        + (maxed? ' · ' + K('%1명이 꽉 찼다').replace('%1', maxed) : ''),
         8, 27, 9, covered<this.events.length*0.4? PAL.gold : PAL.dim);
     UI.list(u, this.rows, this.sel, 8, 40, VW-16, 24, 7);
     UI.footer(u,'확인 선택 · ◀▶ 직접/자동 · 취소 돌아가기');
@@ -383,7 +388,9 @@ class MeetWatchScreen extends Screen0 {
       this._hd=null;
     }
     const e=this.meet.events[this.idx]; if(!e) return;
-    UI.header(u, this.ev.name, `${this.meet.name} · ${this.idx+1}/${this.meet.events.length}`);
+    /* ⛔ 대회 이름과 진행을 통짜로 붙이면 표에 없다 — 영어판 관전 화면 오른쪽 위가
+       '지역 대회 · 1/7' 로 남았다(2026-08-31 흐름 감사). 조각마다 번역하고 붙인다. */
+    UI.header(u, this.ev.name, K(this.meet.name) + ` · ${this.idx+1}/${this.meet.events.length}`);
     if(this.phase==='INTRO'){
       plate(u,VW/2-100,VH/2-22,200,44,.8);
       txt(u,this.ev.name,VW/2,VH/2-16,15,PAL.gold,'center',700);
@@ -514,7 +521,7 @@ class MeetResultScreen extends Screen0 {
   drawRewards(u){
     const S=this.mg.season;
     const feed = (S.rpgFeed||[]);
-    UI.header(u, '육성 보상', `${this.meet.name} · ${this.meet.week}주차`);
+    UI.header(u, '육성 보상', K(this.meet.name) + ' · ' + K('%1주차').replace('%1', this.meet.week));
     if(!feed.length){ txt(u,'이번 대회에서 얻은 것이 없습니다', VW/2, 100, 12, PAL.dim,'center');
       UI.footer(u,'◀▶ 페이지   ·   확인 계속'); return; }
     const lv = feed.filter(f=>f.lv), drops = feed.filter(f=>f.drop);

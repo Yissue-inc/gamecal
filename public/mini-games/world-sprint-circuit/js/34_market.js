@@ -148,7 +148,7 @@ class Market {
       if(!this.offers.find(o=>o.athleteId===a.id)){
         const price = Math.round(valueOf(a) * (1.05 + this.rng()*0.55));
         this.offers.push({ athleteId:a.id, price, weeksLeft:3, from:this.clubName() });
-        out.push({ t:'offer', msg:`${a.name}에게 이적 제안 — ${price}` });
+        out.push({ t:'offer', msg:`${a.name} ${mkK('이적 제안 — %1').replace('%1', price)}` });   /* ⚠ 이름을 붙인 통짜는 표와 안 맞는다(같은 파일 126행과 같은 꼴로) */
       }
     }
     // 수입·지출

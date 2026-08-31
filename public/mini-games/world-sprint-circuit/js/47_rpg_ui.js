@@ -914,7 +914,8 @@ class PodiumScreen extends Screen0 {
       u.fillStyle=g; u.fillRect(0,0,VW,VH);
     }
     u.fillStyle='rgba(5,8,16,.34)'; u.fillRect(0,0,VW,VH);
-    UI.header(u, '시상식', `${this.meet.name} · ${w.ev.name}`);
+    /* ⚠ 대회 이름·종목 이름은 각각 표에 있다 — 붙인 통짜는 없다(관전 화면과 같은 사고) */
+    UI.header(u, '시상식', K(this.meet.name) + ' · ' + K(w.ev.name));
     /* 단상 */
     if(!BG.obj(u, 'podium-hd', cx, base+8, 56)){
       const bw=34;
@@ -953,7 +954,7 @@ class PodiumScreen extends Screen0 {
     UIK.lvBadge(u, cx-14, 88, w.a.lv||1);
     if(this.winners.length>1)
       txt(u, `${this.idx+1} / ${this.winners.length}`
-             + (this.total>this.winners.length ? `  (입상 ${this.total})` : ''),
+             + (this.total>this.winners.length ? '  ' + K('(입상 %1)').replace('%1', this.total) : ''),
           VW-10, 30, 9, PAL.dim,'right');
     UI.footer(u, this.idx < this.winners.length-1 ? '확인 다음 시상' : '확인 계속');
   }

@@ -1456,8 +1456,6 @@ const I18N_EN = {
   '부상: %1 (%2주)':'Injury: %1 (%2 wks)',
   '부상: %1 — %2주 남음':'Injury: %1 — %2 wks left',
   '%1주 %2 — %3점':'Week %1 %2 — %3 pts',
-  '출전 %1 / %2종목 · 1인 최대 %3종목':'Entered %1 / %2 events · max %3 per athlete',
-  ' · %1명이 꽉 찼다':' · %1 at capacity',
   '이 종목은 %1명까지':'Up to %1 in this event',
   '%1으로 스카우트를 보냈습니다 (%2주)':'Scout sent to %1 (%2 wks)',
   '이적료 %1   주급 %2':'Fee %1   Wage %2',
@@ -1467,13 +1465,12 @@ const I18N_EN = {
   '평가 몸값 %1   ·   주급 %2':'Valuation %1   ·   Wage %2',
   'OVR %1 / 잠재 %2 · %3세 · %4':'OVR %1 / POT %2 · age %3 · %4',
   '%1 방출':'%1 released',
-  '%1 +1  (남은 포인트 %2)':'%1 +1  (%2 points left)',
+  '%1 +%2  (남은 포인트 %3)':'%1 +%2  (%3 points left)',   /* ⚠ '+1' 의 1 도 런타임에선 자리표다 */
   '%1 · %2세':'%1 · age %2',
   'Lv.%1 ↑  포인트 +%2':'Lv.%1 ↑  +%2 points',
   '%1 해고':'%1 sacked',
   '%1 영입':'%1 signed',
   '%1 %2 · %3세 · Lv.%4':'%1 %2 · age %3 · Lv.%4',
-  '  (입상 %1)':'  (podiums %1)',
 
   /* ══ 화면 머리·발에서 새던 14건 (2026-08-31) ══════════════════════
      ⛔ UI.header / UI.footer 를 검사기 목록에 안 올려서 그 함수를 지나는 문구는
@@ -1503,4 +1500,23 @@ const I18N_EN = {
      그리는 순간을 재는 감시가 잡았다(i18ncheck 는 리터럴이라 잡았어야 했는데
      hurdleMsg 대입은 txt() 호출 안이 아니라 못 봤다 — 대입식도 화면 문구다). */
   '너무 멀어':'Too far out', '걸렸다!':'Clipped it!', '넘어졌다!':'Down!',
+
+  /* ⛔ 통짜 키가 아니라 **조각 키**다 — 이유는 42_meet_ui 주석 참조.
+     '1인 최대' 의 1 도 런타임에선 자리표가 되어 셈이 어긋났다. */
+  '출전 %1 / %2종목':'Entered %1 / %2 events',
+  '1인 최대 %1종목':'max %1 events each',
+  '%1명이 꽉 찼다':'%1 at capacity',
+  '(입상 %1)':'(podiums %1)',
+  /* 주간 로그 — 이름 뒤에 붙는 조각(31_training) */
+  '복귀 — %1 회복':'back — %1 healed',
+  '재활 중 (%1주 남음)':'in rehab (%1 wks left)',
+  'Lv.%1 달성 — 훈련 포인트 +%2':'reached Lv.%1 — +%2 training points',
+  '각성 — %1 +%2':'breakthrough — %1 +%2',
+  '슬럼프 — 컨디션 급락':'slump — condition crashed',
+
+  '자금 −%N · 전원 지구력 + · 화합 +':'Funds −%N · everyone Stamina + · Cohesion +',   /* ⚠ evText 는 %N 자리표를 쓴다 */
+  '이적 제안 — %1':'transfer offer — %1',
+  '올해다':'this is the year',
+
+  '… 외 %1명':'… and %1 more',
 };

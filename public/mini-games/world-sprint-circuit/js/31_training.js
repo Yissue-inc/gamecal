@@ -5,6 +5,15 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* ⛔ 주간 로그 문구는 **이름을 앞에 붙여 만든다** — `${a.name} 재활 중 (3주 남음)`.
+   그 통짜 문자열은 번역표의 어떤 키와도 안 맞는다(이름의 경우의 수가 폭발한다).
+   실측(2026-08-31 흐름 감사): 영어판 사무실 로그가 통째로 한국어였다 —
+   **한 시즌을 돌려 보기 전엔 안 보이는 화면**이라 정지 화면 감사가 못 잡았다.
+   34_market 은 이미 맞게 하고 있었다: `${이름} ${K('…%1…').replace(...)}`.
+   ⚠ 하네스(node)에는 K 가 없다 — 있을 때만 부른다. */
+function trK(s0){ return (typeof K === 'function') ? K(s0) : s0; }
+
+
 /* 팀 프로그램 — 시즌 내내 깔리는 기본값 */
 const PROGRAMS = {
   balanced : { name:'균형',   desc:'모든 스탯을 고르게',       w:{speed:1,acceleration:1,stamina:1,technique:1,rhythm:1,power:1}, load:1.00 },
@@ -94,11 +103,11 @@ function trainWeek(a, program, focus, rng, club){
     a.fatigue = Math.max(0, a.fatigue - TrainTune.restRecover*0.6 - RB.rest);
     a.condition = clamp(a.condition - 1.5, 20, 100);
     if(a.injury.weeks <= 0){
-      log.events.push({ t:'recovered', msg:`${a.name} 복귀 — ${a.injury.name} 회복` });
+      log.events.push({ t:'recovered', msg:`${a.name} ${trK('복귀 — %1 회복').replace('%1', trK(a.injury.name))}` });
       a.injury = null;
       a.condition = clamp(a.condition, 35, 70);
     } else {
-      log.events.push({ t:'injured', msg:`${a.name} 재활 중 (${a.injury.weeks}주 남음)` });
+      log.events.push({ t:'injured', msg:`${a.name} ${trK('재활 중 (%1주 남음)').replace('%1', a.injury.weeks)}` });
     }
     return log;
   }
@@ -169,7 +178,7 @@ function trainWeek(a, program, focus, rng, club){
     const xp = (RPG.XP.trainWeek + Math.max(0,load)*RPG.XP.trainPerLoad*10) * (1 + RB.xp);
     const up = RPG.award(a, xp, '훈련');
     if(up && up.levels>0)
-      log.events.push({ t:'levelup', msg:`${a.name} Lv.${a.lv} 달성 — 훈련 포인트 +${up.tp}` });
+      log.events.push({ t:'levelup', msg:`${a.name} ${trK('Lv.%1 달성 — 훈련 포인트 +%2').replace('%1', a.lv).replace('%2', up.tp)}` });
   }
 
   /* 성장 이력 한 점 — 나중에 꺾은선으로 보여 준다 */
@@ -183,11 +192,11 @@ function trainWeek(a, program, focus, rng, club){
       if(room > 1){
         const g = Math.min(room, 2.2+rng()*3.2);
         a.stats[k]+=g; a.morale=clamp(a.morale+8,0,100);
-        log.events.push({ t:'break', msg:`${a.name} 각성 — ${STAT_NAME[k]} +${g.toFixed(1)}` });
+        log.events.push({ t:'break', msg:`${a.name} ${trK('각성 — %1 +%2').replace('%1', trK(STAT_NAME[k])).replace('%2', g.toFixed(1))}` });
       }
     } else {
       a.condition=clamp(a.condition-16,15,100); a.morale=clamp(a.morale-9,0,100);
-      log.events.push({ t:'slump', msg:`${a.name} 슬럼프 — 컨디션 급락` });
+      log.events.push({ t:'slump', msg:`${a.name} ${trK('슬럼프 — 컨디션 급락')}` });
     }
   }
   a.trainingWeeks++;
