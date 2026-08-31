@@ -105,13 +105,17 @@ const RPG = {
   },
   broke(a, key){ return (a.broken && a.broken[key]) || 0; },
   brokeTotal(a){ let n=0; for(const k in (a.broken||{})) n += a.broken[k]; return n; },
+  /* ⚠ 이 문구들은 **다른 문장 안에 끼워진다**(`잠재치에 닿았다 · ${why}`).
+     끼운 뒤에는 통째 키를 못 찾으므로 **여기서 이미 번역해 돌려준다.**
+     ⛔ 등급 이름(nm)은 숫자가 아니라 자리표로 안 접힌다 — 이름과 문장을 갈라 놓는다. */
   whyBreak(a, key){
-    if((a.tp||0) < this.BREAK_COST) return `훈련 포인트 ${this.BREAK_COST} 필요`;
+    const tk = (s0)=> (typeof K==='function') ? K(s0) : s0;
+    if((a.tp||0) < this.BREAK_COST) return tk('훈련 포인트 %1 필요').replace('%1', this.BREAK_COST);
     if(this.brokeTotal(a) >= this.breakCap(a)){
       const nm = (typeof RARITY!=='undefined' && RARITY[rarityOf(a)]) ? RARITY[rarityOf(a)].name : '';
-      return `${nm} 등급은 ${this.breakCap(a)}까지`;
+      return tk(nm) + ' ' + tk('등급은 %1까지').replace('%1', this.breakCap(a));
     }
-    if(!a.potential || !(a.potential[key] < 99)) return '99 가 한계입니다';
+    if(!a.potential || !(a.potential[key] < 99)) return tk('99 가 한계입니다');
     return null;
   },
   breakPot(a, key){

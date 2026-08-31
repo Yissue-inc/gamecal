@@ -585,10 +585,16 @@ class OfficeScreen extends Screen0 {
       u.fillStyle='rgba(255,255,255,.12)'; u.fillRect(bx, by, bw, 5);
       u.fillStyle = okP?PAL.green:PAL.gold;
       u.fillRect(bx, by, Math.round(bw*clamp(S.points/Math.max(1,S.goal.points),0,1)), 5);
-      txt(u, `${S.points}/${S.goal.points}`, bx+bw+6, 39, 8,
-          okP?PAL.green:PAL.dim, 'left', 700);
+      /* ⛔ 승점 칸 폭을 40px 로 박아 뒀다(110~150) — **여섯 자리가 되면 넘어가**
+         메달 칸(150~)을 문다(극단값 감사에서 '999999/999999' 가 '999/99' 를 12px 물었다).
+         재서 다음 칸을 잡는다 — 이 화면에서만 네 번째 같은 사고다. */
+      const pts = `${S.points}/${S.goal.points}`;
+      txt(u, pts, bx+bw+6, 39, 8, okP?PAL.green:PAL.dim, 'left', 700);
+      let ptsW = 40;
+      try{ u.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
+           ptsW = Math.ceil(u.measureText(pts).width); }catch(e){}
       /* 금메달 목표는 메달 아이콘 + 개수로 */
-      const mx = bx+bw+46;
+      const mx = Math.max(bx+bw+46, bx+bw+6+ptsW+8);
       const mi = BG.get('icon-medal');
       if(mi) u.drawImage(mi, mx, 38, 9, 9);
       txt(u, `${S.medals.gold}/${S.goal.gold}`, mx+(mi?11:0), 39, 8,
@@ -929,13 +935,19 @@ class AthleteScreen extends Screen0 {
       if(im) u.drawImage(im, VW-118, 6, 9, 9); }
     txt(u, `${UI.rareStars(a)} ${UI.rareName(a)} · ${a.age}${BG.get('ic-age')?'':'세'} · ${GROWTH[a.growth].name}`,
         VW-30, 6, 9, UI.rareColor(a), 'right', 700);
-    txt(u,`OVR ${a.overall}`,8,28,15,PAL.gold,'left',700);
+    /* ⚠ 잠재치 자리를 62 로 박아 뒀다 — OVR 이 **세 자리(100)** 가 되면 문다.
+       한 자리 늘어난 것만으로 깨지는 배치는 재서 놓는다. */
+    const ovr = `OVR ${a.overall}`;
+    txt(u, ovr, 8, 28, 15, PAL.gold, 'left', 700);
+    let ovrEnd = 62;
+    try{ u.font = '700 15px "Galmuri11","Nanum Gothic Coding",monospace';
+         ovrEnd = 8 + Math.ceil(u.measureText(K(ovr)).width) + 6; }catch(e){}
     /* 잠재치 — 아이콘이 오면 '잠재' 라벨을 대신한다(챕터 1 규칙) */
     { const im=BG.get('ic-potential');
-      if(im){ txt(u,'/',62,32,10,PAL.dim);
-              u.drawImage(im, 70, 31, 10, 10);
-              txt(u,String(a.potOverall),83,32,10,PAL.dim); }
-      else    txt(u,`/ 잠재 ${a.potOverall}`,62,32,10,PAL.dim); }
+      if(im){ txt(u,'/',ovrEnd,32,10,PAL.dim);
+              u.drawImage(im, ovrEnd+8, 31, 10, 10);
+              txt(u,String(a.potOverall),ovrEnd+21,32,10,PAL.dim); }
+      else    txt(u,`/ 잠재 ${a.potOverall}`,ovrEnd,32,10,PAL.dim); }
     const SP = (typeof SPECIES!=='undefined') ? SPECIES[a.species] : null;
     txt(u,{sprint:'단거리',hurdles:'허들',jump:'도약',throw:'투척'}[a.spec],VW-8,28,11,PAL.blue,'right');
     if(SP){

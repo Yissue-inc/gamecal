@@ -1532,4 +1532,37 @@ const I18N_EN = {
   '훈련 지시를 여세요':'Open the training screen',
   '지도한 선수는 더 자랍니다':'Coached athletes grow faster',
   '대회에서 승점을 법니다':'Meets are where points come from',
+
+  /* ══ 객체 리터럴 안의 백틱 템플릿 20건 (2026-08-31) ══════════════
+     ⛔ 호출 인자도 아니고 작은따옴표 속성도 아니라 **어디에도 안 걸렸다.**
+        극단값(만렙·거액·긴 이름)으로 화면을 밀어 보고서야 드러났다. */
+  '%1 부상 — %2 (%3주)':'%1 injured — %2 (%3 wks)',
+  '팀 미팅 — 선수단 사기 총 +%1':'Team meeting — squad morale +%1 total',
+  '%1 — 다른 팀과 계약했습니다':'%1 — signed for another club',
+  '자금 부족 (%1) — 선수를 정리해야 합니다':'Short of funds (%1) — you must trim the squad',
+  '선수단은 %1명까지입니다':'Squad limit is %1',
+  '자금이 부족합니다 (필요 %1)':'Not enough funds (need %1)',
+  '감독  %1':'Manager  %1',
+  'Lv.%1 · 선수 레벨 상한 %2':'Lv.%1 · athlete level cap %2',
+  '등록 %1 / %2 · 성장 +%3%':'Collected %1 / %2 · growth +%3%',
+  '▶ %1 출전':'▶ Enter %1',
+  '%1 · OVR %2 · 피로 %3':'%1 · OVR %2 · fatigue %3',
+  '적합 %1 · 컨디션 %2 · 피로 %3':'Fit %1 · condition %2 · fatigue %3',
+  '— 확정 (%1/%2)':'— locked (%1/%2)',
+  '%1주 소요 · %2':'%1 wks · %2',
+  '정보 %1%2 · %3주 남음':'Info %1%2 · %3 wks left',
+  'OVR %1 / 잠재 %2 · 몸값 %3':'OVR %1 / POT %2 · value %3',
+  '%1주 남음':'%1 wks left',
+  '%1년차 은퇴 · %2세 · Lv.%3 · OVR %4 · 금 %5':'Retired year %1 · age %2 · Lv.%3 · OVR %4 · %5 gold',
+  '선수 레벨 상한 %1':'Athlete level cap %1',
+  '자금 +%1 · 명성 −%2':'Funds +%1 · reputation −%2',
+  /* 줄 넘는 삼항식 안이라 검사기가 못 본 것 — 그리는 순간 감시가 잡았다(만렙 화면) */
+  '잠재 %1 돌파 — 남은 한도 %2':'Break past %1 — %2 breaks left',
+  ' · 이미 +%1':' · already +%1',
+  '잠재치에 닿았다':'At the potential ceiling',
+  '훈련 포인트 %1 필요':'needs %1 training points',
+  '등급은 %1까지':'grade caps at %1',
+  '99 가 한계입니다':'99 is the ceiling',
+  '돌파 −%1':'Break −%1',
+  '최대':'Max',
 };

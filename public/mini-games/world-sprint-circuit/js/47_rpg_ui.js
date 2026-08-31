@@ -233,7 +233,7 @@ class GrowScreen extends Screen0 {
           subAlways:true,
           sub: why===null
              ? `잠재 ${Math.round(cap)} 돌파 — 남은 한도 ${bCap-bUsed}` + (br?` · 이미 +${br}`:'')
-             : `잠재치에 닿았다 · ${why}`,
+             : K('잠재치에 닿았다') + ' · ' + why,   /* why 는 whyBreak 이 이미 번역해 준다 */
           right: why===null ? `돌파 −${RPG.BREAK_COST}` : '최대',
           rightColor: why===null?PAL.gold:PAL.dim,
           color: why===null?PAL.gold:PAL.dim,
