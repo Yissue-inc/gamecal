@@ -343,6 +343,22 @@ function drawRunner(ctx, x, y, phase, color, opts){
   if(poseName && Art.blit(ctx, poseName, x, y)) return;
   /* ⚠ color 는 '#5aaaff' 처럼 # 가 붙어 온다. 그대로 쓰면 파일명이 'runner-#5aaaff' 가 돼
      어셋이 도착해도 영영 안 붙는다(실측으로 잡음). */
+  /* ⛔ 어셋이 없으면 곧장 **막대 인간**으로 떨어졌다 — 그래서 멀리뛰기·높이뛰기 같은
+     종목이 "사람이 없는" 것처럼 보였다(48종목 감사에서 CharHD 호출 0회로 잡힘).
+     CK: "액션 동작도 없고 너무 심심해요 다른 종목도 마찬가지".
+     막대로 떨어지기 **전에** 제대로 된 캐릭터를 먼저 시도한다.
+     ⚠ 이미 CharHD 를 시도하고 실패해 여기로 온 호출부도 있다 — 그땐 한 번 더 실패하고
+        아래 막대로 간다(무한루프 없음). 종족은 사람이 고른 것을 쓴다. */
+  if(!opts._noChar && typeof CharHD!=='undefined' && CharHD.enabled){
+    const sp = opts.species
+      || ((typeof Party!=='undefined' && Party.species) ? Party.species(0) : null)
+      || 'hare';
+    if(CharHD.draw(ctx, sp, x, y, phase, {
+        act: opts.act || '', air: !!opts.airborne, crouch: !!opts.crouch,
+        throwing: !!opts.throwing, lean: !!opts.lean,
+        rare: 2, t: (typeof performance!=='undefined' ? performance.now() : 0),
+        scale: opts.scale || 0.9 })) return;
+  }
   const img = Art.get('runner-' + String(color).replace('#',''));
   if(img){                                   // 달리기 시트
     const F=8, fw=img.width/F, fh=img.height;

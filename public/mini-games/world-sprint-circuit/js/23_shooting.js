@@ -184,6 +184,25 @@ class ShootingEvent {
       u.moveTo(rx,ry+k*0.3); u.lineTo(rx,ry+k); u.stroke();
     }
     /* 총 — 화면 아래쪽에 걸쳐 '내가 들고 있다'를 만든다 */
+    /* 사수 — CK 지시(2026-08-31): "캐릭터는 그냥 옆에 보여주고 **조준 조작에 집중**".
+       ⚠ 두 번 헛짚었다. 처음엔 x=74(UI), 다음엔 x=66·96·128·150(장면 캔버스) — 전부 안 보였다.
+          원인은 캔버스가 아니라 **자리**였다: 소총 그림이 게임좌표 36~105 를 덮는다.
+          그리고 이 화면의 배경은 BG 캔버스라 장면 캔버스(#game)에 그린 건 묻힌다.
+          UI 캔버스에 **소총보다 먼저**, 총 오른쪽(150)에 세운다.
+       ⚠ '안 보인다' 를 '안 그려진다' 로 읽지 말 것 — draw 는 내내 true 를 돌려주고 있었다.
+          진짜 원인은 **좌표가 NaN** 이었다(아래 주석). */
+    {
+      const sway = this.drawStart>=0 ? this.swayAmt()*6 : 0;
+      const holdPh = this.drawStart<0 ? 0.2
+        : 0.2 + clamp((this.t-this.drawStart)/SHOOT.holdMax, 0, 1)*0.25;
+      /* ⛔ swayPhase 가 없으면 Math.sin(undefined) = **NaN** 이라 좌표가 NaN 이 되고
+         **그리기는 true 를 돌려주면서 아무것도 안 나온다.** 세 번 헛짚은 진짜 원인이었다.
+         (라이브 콘솔 시험은 상수 좌표라 멀쩡했다 — 그래서 캔버스·자리를 의심했다)
+         ⚠ 좌표는 그리기 전에 **숫자인지 확인한다.** */
+      const swayX = Math.sin(this.swayPhase || 0) * sway * 0.4;
+      CharHD.draw(u, 'eagle', 150 + (isFinite(swayX) ? swayX : 0), VH-14, holdPh,
+        { act:'aim', throwing:true, rare:3, t:this.t, scale:1.2 });
+    }
     BG.obj(u, 'rifle-hd', 74, VH-46, 20);
     /* 호흡 막대 — 언제 떼야 하는지 화면에 있어야 한다.
        ⚠ 안 보이면 '왜 흔들리는지' 알 수 없고, 그건 실력이 아니라 운이다. */

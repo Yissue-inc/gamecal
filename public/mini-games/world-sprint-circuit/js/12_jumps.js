@@ -177,24 +177,9 @@ class LongJumpEvent extends FieldEvent {
       const lx=px(this.landM!==undefined?this.landM:(this.boardAt+this.range));
       ctx.fillStyle=PAL.red; ctx.fillRect(lx-1, GROUND-9, 2, 9);
     }
-    this.queueMan(GROUND, px);
   }
 
-  /* ⛔ 멀리뛰기에 **선수가 없었다** — 도움닫기도 도약도 그림이 없이 숫자만 움직였다
-     (48종목 전수 감사에서 잡혔다: 37종목은 그리는데 이 종목은 CharHD 호출이 0 이었다).
-     달릴 땐 달리는 자세, 공중에선 접은 자세 — 다른 종목과 같은 규칙으로 그린다. */
-  queueMan(GROUND, px){
-    const runup = this.phase==='RUNUP';
-    const x = runup ? clamp(px(this.runner.distM), 12, VW-12)
-                    : clamp(px(this.boardAt + (this.airT!==undefined ? this.range*0.5 : 0)), 12, VW-12);
-    const air = !runup && this.phase!=='MARK' && this.phase!=='DONE';
-    (this._hd=this._hd||[]).push({ sp:'hare', x, y:GROUND, ph:(this.runner.stridePhase||0),
-      /* ⚠ scale 1.25 는 이 화면에서 **너무 컸다**(트랙 종목과 배율이 다르다).
-         그리고 lean 을 함께 주면 몸이 늘어나 보였다 — 도움닫기엔 안 쓴다. */
-      o:{ air, rare:2, t:this.t, scale:0.82 } });
-  }
   drawUI(uctx){
-    if(this._hd){ for(const c of this._hd) CharHD.draw(uctx, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
     plate(uctx,0,0,VW,30,0.72);
     txt(uctx,'시기', 8,3,8,PAL.dim);
     txt(uctx,`${Math.min(this.attempt+1,3)} / 3`, 8,12,15,PAL.gold,'left',700);

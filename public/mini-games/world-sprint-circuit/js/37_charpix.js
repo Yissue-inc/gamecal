@@ -95,6 +95,15 @@ const CharPix = {
   shapeOf(sp){ return this.SHAPE[this.kindOf(sp)] || this.SHAPE.hoof; },
   /* 종족이 늘었는데 갈래에 안 넣으면 **조용히 기본 생김새**가 된다 — 그걸 막는다.
      ⚠ 부팅 때 한 번 부른다(99_main.js). 문서에만 있는 규약은 다음 리팩터링에 사라진다. */
+  /* ⛔ **없는 종족 이름은 조용히 사라진다** — 예외도 안 나고 그냥 안 그려진다.
+     실측: 사격에 'owl' 을 줬더니 CharHD.draw 가 90회 불렸는데 화면은 비어 있었다.
+     코드에 박힌 종족 이름을 부팅 때 대조한다. 조용한 실패보다 시끄러운 실패가 낫다. */
+  verifySpeciesNames(names){
+    const bad = (names||[]).filter(n => n && !SPECIES[n]);
+    if(bad.length) console.warn('⚠ 없는 종족 이름 — 그림이 조용히 사라진다: ' + bad.join(', '));
+    return bad.length===0;
+  },
+
   verifyKinds(){
     if(typeof SPECIES === 'undefined') return;
     const miss = Object.keys(SPECIES).filter(n => !this.kindOf(n) || !this._kmap[n]);

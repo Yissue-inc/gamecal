@@ -217,7 +217,17 @@ class GolfEvent {
     }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.35})`; ctx.fillRect(0,0,VW,VH); }
   }
+  /* ⛔ 골프에 **사람이 없었다** — 위에서 본 홀에 공만 굴러다녔다(감사에서 CharHD 0회).
+     티 자리에 선수를 세운다. 게이지를 채우는 동안 자세가 커지고, 치면 스윙이 돈다. */
+  drawGolfer(u){
+    const v=this._v; if(!v) return;
+    const swinging = this.phase==='SWING' || (this.t-(this.hitAt||-1e9)) < 420;
+    const ph = swinging ? clamp((this.t-(this.hitAt||this.t))/420, 0, 1)*0.6 + 0.2 : 0.25;
+    CharHD.draw(u, 'bear', v.cx-16, v.bot+10, ph,
+      { act:'spin', throwing:true, rare:2, t:this.t, scale:0.95 });
+  }
   drawUI(u){
+    this.drawGolfer(u);
     const V=this._v; if(!V) return;
     const toX=this._toX, toY=this._toY, H=this.H;
     /* 홀과 깃대 — 깃대는 공보다 앞이라 UI 층에 그린다 */

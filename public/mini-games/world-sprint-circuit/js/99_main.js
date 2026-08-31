@@ -93,6 +93,9 @@ function boot(){
   if(typeof CharPix!=='undefined') CharPix.verifyKinds();
   if(typeof Music!=='undefined') Music.verifyKinds();
   if(typeof PaceSkill!=='undefined') PaceSkill.verify();
+  /* 종목 코드가 직접 부르는 종족 이름들 — 오타 하나면 그 종목엔 사람이 사라진다 */
+  if(typeof CharPix!=='undefined' && CharPix.verifySpeciesNames)
+    CharPix.verifySpeciesNames(['eagle','bear','gazelle','hare','monkey','cheetah','elephant','kangaroo','ostrich']);
   CharHD.verifyCasts();
   verifyReady();
   verifyStatuses();
