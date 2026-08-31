@@ -162,7 +162,7 @@ class TriathlonEvent {
           그러자 이번엔 **띠 안에서** 레일 바늘이 총시간 숫자를 뚫었다('2:46▲82').
           한 줄에 [구간 · 피로 · 시간 · 레일] 넷을 다 넣으려 한 게 잘못이다 —
           **띠를 두 줄로 만든다**(22px). 윗줄은 이름·시간, 아랫줄은 막대·레일. */
-    const H=22, BY = VH - 54;
+    const H=22, BY = Track.botY(54);
     u.fillStyle='rgba(6,10,18,.94)'; u.fillRect(0, BY, VW, H);
     let x=6;
     TRI.legs.forEach((L,i)=>{

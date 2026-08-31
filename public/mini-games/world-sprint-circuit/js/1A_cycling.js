@@ -213,13 +213,13 @@ class CyclingEvent {
     });
     txt(u,'▲▼ 변속', gx+26, gy+19, 8, PAL.dim,'center');
     /* 체력 */
-    const bw=90, bx=8, by=VH-24;
+    const bw=90, bx=8, by=Track.botY(24);
     txt(u,'체력', bx, by-11, 8, PAL.dim);
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,7);
     u.fillStyle = this.stamina>0.8?PAL.green:this.stamina>0.65?PAL.gold:PAL.red;
     u.fillRect(bx,by,Math.round(bw*(this.stamina-0.40)/0.60),7);
     if(!this.sprintUsed && this.phase==='RUN')
-      txt(u,'액션 = 스퍼트 (한 번)', VW/2, VH-24, 10, PAL.gold,'center',700);
+      txt(u,'액션 = 스퍼트 (한 번)', VW/2, Track.botY(24), 10, PAL.gold,'center',700);
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, VH-24, 11, PAL.white,'center',700);
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 46, 12, this.msgBad?PAL.red:PAL.green,'center',700);

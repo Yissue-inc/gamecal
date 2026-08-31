@@ -235,7 +235,7 @@ class RowingEvent {
     /* 일정함 — 이 종목의 핵심 지표 */
     /* ⛔ 물 위에 어두운 글씨·가는 막대라 안 읽혔다(실측 스크린샷).
        이 종목의 **전부**가 이 값인데 제일 안 보였다 — 받침을 깔고 상태를 말로 붙인다. */
-    const bw=120, bx=VW/2-bw/2, by=VH-26;
+    const bw=120, bx=VW/2-bw/2, by=Track.botY(26);
     plate(u, bx-8, by-15, bw+16, 27, 0.74);
     const sc = this.smooth>0.75?PAL.green:this.smooth>0.5?PAL.gold:PAL.red;
     txt(u,'일정함', bx, by-12, 9, PAL.dim,'left');
@@ -246,7 +246,7 @@ class RowingEvent {
     u.fillRect(bx,by,Math.round(bw*this.smooth),8);
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
     else if(this.strokes<3) txt(u,'좌·우를 천천히 고르게 — 간격을 일정하게', VW/2, VH-56, 10, PAL.white,'center');  /* ⚠ VH-42(228) 는 '일정함' 줄(232)과 문다 */
-    else if(!this.pitchUsed) txt(u,'액션 = 피치 업 (한 번)', 8, VH-24, 9, PAL.gold,'left');
+    else if(!this.pitchUsed) txt(u,'액션 = 피치 업 (한 번)', 8, Track.botY(24), 9, PAL.gold,'left');
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 46, 12, this.msgBad?PAL.red:PAL.green,'center',700);
   }

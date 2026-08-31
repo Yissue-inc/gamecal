@@ -250,8 +250,51 @@ const Ctrl = {
     const on = this.mode==='touch';
     if(pad) pad.style.display = on ? 'grid' : 'none';
     Input.padEnabled = on;
+    this._inset = null;                     // 배치가 바뀌었다 — 다시 잰다
+  },
+
+  /* ── 터치 패드가 캔버스 바닥을 얼마나 덮나 (게임 좌표) ──────────────
+     ⛔⛔ **화면 밖 요소가 캔버스를 덮는 것은 캔버스만 봐서는 안 보인다.**
+        실측(2026-08-31 · 812×375 가로 폰 · 터치): 패드가 바닥을 덮어
+        **56개 문자열이 가려졌다** — 페이스 선택(Easy/Even/Push)·'액션 = 스퍼트'·
+        펜싱 사거리·사격 호흡 안내·투척 각도… 18종목.
+        ⚠ 하필 ▲▼ 버튼이 **페이스 선택 위**에 앉는다: 그 버튼이 조작하는 대상이
+          그 버튼에 가려서, 무엇이 골라졌는지 볼 수가 없었다.
+     그래서 바닥에 **자리를 예약**한다. 값은 DOM 에서 재고 캐시한다(리사이즈에 무효화).
+     ⚠ 키보드 모드·패드가 캔버스 밖인 화면에서는 0 이다 — 넓은 화면은 손해가 없다. */
+  _inset: null,
+  padInset(){
+    if(this._inset !== null) return this._inset;
+    let v = 0;
+    try{
+      if(this.mode === 'touch'){
+        const cv = document.getElementById('ui');
+        const pad = document.getElementById('pad');
+        if(cv && pad && getComputedStyle(pad).display !== 'none'){
+          const r = cv.getBoundingClientRect(), b = pad.getBoundingClientRect();
+          if(r.height > 0 && b.height > 0){
+            /* ⛔ **가운데 무리만 센다.** ◀▶ 는 화면 **양 끝**에 붙어 있어(경기 중 배치)
+               세로로는 높지만 가로로는 가장자리만 덮는다 — 그걸 같이 세면 예약이
+               두 배가 되어(실측 90px) 리듬 띠가 화면 한가운데로 올라온다.
+               게임의 바닥 UI 는 가운데에 있다. 가운데를 막는 것만 자리를 요구할 수 있다. */
+            let top = b.top;
+            for(const id of ['p-up','p-down','p-act']){
+              const el = document.getElementById(id); if(!el) continue;
+              const eb = el.getBoundingClientRect();
+              if(eb.height > 0 && eb.top < top) top = eb.top;
+            }
+            const gy = (top - r.top) / r.height * VH;
+            v = clamp(VH - gy, 0, 90);
+          }
+        }
+      }
+    }catch(e){ v = 0; }
+    this._inset = Math.round(v);
+    return this._inset;
   },
 };
+/* 창 크기가 바뀌면 다시 잰다 */
+try{ addEventListener('resize', ()=>{ Ctrl._inset = null; }); }catch(e){}
 
 /* ── 저장 ────────────────────────────────────────────────── */
 const SAVE_KEY = 'wsc_save';

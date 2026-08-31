@@ -206,7 +206,7 @@ class ShootingEvent {
     BG.obj(u, 'rifle-hd', 74, VH-46, 20);
     /* 호흡 막대 — 언제 떼야 하는지 화면에 있어야 한다.
        ⚠ 안 보이면 '왜 흔들리는지' 알 수 없고, 그건 실력이 아니라 운이다. */
-    const bw=150, bx=cx-bw/2, by=VH-34;
+    const bw=150, bx=cx-bw/2, by=Track.botY(34);
     const [a,b]=SHOOT.holdBest;
     u.fillStyle='rgba(255,255,255,.12)'; u.fillRect(bx,by,bw,8);
     u.fillStyle='rgba(92,255,156,.35)';
@@ -217,7 +217,7 @@ class ShootingEvent {
     }
     txt(u,'숨 참기', bx-6, by-1, 9, PAL.dim,'right');
     txt(u, this.phase==='HOLD'?'액션을 떼면 발사  ·  ▲ 다시 호흡':'액션을 눌러 숨을 참으세요',
-        cx, VH-20, 9, PAL.dim,'center');
+        cx, Track.botY(20), 9, PAL.dim,'center');
 
     /* ⛔ 양궁과 같은 병이었다 — '기준 90.0' 과 내 합계가 나란히 있어 뭐가 내 것인지
        한눈에 안 왔다. 점수판은 한 곳에서 그린다(05_scoreboard). */

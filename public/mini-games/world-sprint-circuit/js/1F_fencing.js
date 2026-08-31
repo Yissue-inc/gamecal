@@ -342,9 +342,9 @@ class FencingEvent {
     });
     /* 거리 — 이 종목의 핵심 지표 */
     const g=this.gap, inR = g<=FENCE.lungeRange;
-    u.fillStyle='rgba(8,11,18,.66)'; u.fillRect(0, VH-34, VW, 34);
-    txt(u,'거리 '+g.toFixed(2)+'m', VW/2, VH-30, 11, inR?PAL.red:PAL.white,'center',700);
-    txt(u, inR? '사거리 안 — 서로 닿는다' : '사거리 밖', VW/2, VH-18, 9, inR?PAL.red:PAL.dim,'center');
+    u.fillStyle='rgba(8,11,18,.66)'; u.fillRect(0, Track.botY(34), VW, 34);
+    txt(u,'거리 '+g.toFixed(2)+'m', VW/2, Track.botY(30), 11, inR?PAL.red:PAL.white,'center',700);
+    txt(u, inR? '사거리 안 — 서로 닿는다' : '사거리 밖', VW/2, Track.botY(18), 9, inR?PAL.red:PAL.dim,'center');
     if(this.phase==='SET') txt(u,'앙 갸르드', VW/2, 52, 13, PAL.white,'center',700);
     else if(A.touches+B.touches===0)
       txt(u,'← 물러서기 · → 다가가기 · 액션 = 런지', VW/2, Track.tipY(), 10, PAL.white,'center');

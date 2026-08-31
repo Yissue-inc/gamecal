@@ -204,11 +204,11 @@ class LiftingEvent {
       txt(u,'좌·우를 고르게 번갈아 눌러 자세를 잡으세요', VW/2, VH-40, 10, PAL.white,'center');
       for(let i=0;i<LIFT.gripNeed;i++){
         u.fillStyle = i<this.grips ? PAL.green : 'rgba(255,255,255,.18)';
-        u.fillRect(VW/2-34+i*18, VH-26, 14, 7);
+        u.fillRect(VW/2-34+i*18, Track.botY(26), 14, 7);
       }
     } else if(this.phase==='PULL'){
       const held = this.pullStart>=0 ? this.t-this.pullStart : 0;
-      const bw=170, bx=VW/2-bw/2, by=VH-26;
+      const bw=170, bx=VW/2-bw/2, by=Track.botY(26);
       u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,9);
       const best=LIFT.pullBestMs/LIFT.pullMaxMs;
       u.fillStyle='rgba(92,255,156,.45)'; u.fillRect(bx+bw*(best-0.11), by, bw*0.22, 9);
@@ -216,14 +216,14 @@ class LiftingEvent {
       txt(u,'누르고 있다가 초록에서 떼세요', VW/2, VH-40, 10, PAL.gold,'center',700);
     } else if(this.phase==='HOLD'){
       txt(u,`버티기 ${(LIFT.holdDur-this.holdT).toFixed(1)}초`, VW/2, VH-40, 11, PAL.white,'center',700);
-      const bw=180, bx=VW/2-bw/2, by=VH-24;
+      const bw=180, bx=VW/2-bw/2, by=Track.botY(24);
       u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,8);
       u.fillStyle='rgba(255,138,138,.30)';
       u.fillRect(bx,by,bw*0.12,8); u.fillRect(bx+bw*0.88,by,bw*0.12,8);
       const px2 = bx+bw/2 + (this.sway/1.6)*(bw/2);
       u.fillStyle = Math.abs(this.sway)>0.7 ? PAL.red : PAL.green;
       u.fillRect(px2-3, by-3, 6, 14);
-      txt(u,'기우는 반대쪽을 누르세요', VW/2, VH-11, 8, PAL.dim,'center');
+      txt(u,'기우는 반대쪽을 누르세요', VW/2, Track.botY(11), 8, PAL.dim,'center');
     }
     if(this.t-this.msgAt < 1100)
       txt(u, this.msg, VW/2, 44, 13, this.msgBad?PAL.red:PAL.green, 'center', 700);

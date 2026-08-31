@@ -209,7 +209,7 @@ class EquestrianEvent {
             VW/2, 60, 10, err<0.18?PAL.green:PAL.gold,'center');
     }
     /* 보폭 3단 */
-    const bw=44, x0=VW/2-(bw*3+8)/2, by=VH-30;
+    const bw=44, x0=VW/2-(bw*3+8)/2, by=Track.botY(30);
     EQU.strides.forEach((s,i)=>{
       const on=i===this.stride, bx=x0+i*(bw+4);
       u.fillStyle = on?PAL.gold:'rgba(255,255,255,.10)';

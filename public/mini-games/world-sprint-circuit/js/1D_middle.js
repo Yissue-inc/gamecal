@@ -349,7 +349,7 @@ class MiddleEvent {
                   distM:me.dist, trackM:this.trackM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });
     /* 페이스 3단 — 이 종목 조작의 중심이니 화면에서도 중심에 둔다 */
-    const bw=44, x0=VW/2-(bw*3+8)/2, y=VH-30;
+    const bw=44, x0=VW/2-(bw*3+8)/2, y=Track.botY(30);   /* ⚠ 터치 패드가 바닥을 덮는다 — Track.botY */
     for(let i=0;i<3;i++){
       const P=MID.PACE[i], on=i===this.pace, bx=x0+i*(bw+4);
       u.fillStyle = on ? P.color : 'rgba(255,255,255,.10)';

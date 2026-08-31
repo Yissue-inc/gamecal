@@ -160,7 +160,7 @@ class DecathlonEvent {
     /* 진행 띠 — 10종은 '지금 몇 번째이고 얼마나 벌었나'가 전부다
        ⛔ 15px 한 줄에 [진행 · 회차 · 점수 · 레일] 을 다 넣으려다 레일 바늘이
           점수 숫자를 뚫었다. 두 줄로 나눈다(윗줄 글자 · 아랫줄 막대와 레일). */
-    const H=22, BY = VH - 54;
+    const H=22, BY = Track.botY(54);
     u.fillStyle='rgba(6,10,18,.94)'; u.fillRect(0, BY, VW, H);
     for(let i=0;i<this.slots.length;i++){
       const w=Math.floor((VW-96)/this.slots.length), x=6+i*w;

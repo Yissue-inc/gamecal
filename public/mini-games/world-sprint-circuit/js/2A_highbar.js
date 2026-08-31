@@ -230,7 +230,7 @@ class HighBarEvent {
     u.restore();
 
     /* 스윙 막대 — 이 종목의 계기판 */
-    const bw=140, bx=VW/2-bw/2, by=VH-32;
+    const bw=140, bx=VW/2-bw/2, by=Track.botY(32);
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,9);
     u.fillStyle='rgba(92,255,156,.30)';
     u.fillRect(bx+bw*BAR.releaseMin, by, bw*(1-BAR.releaseMin), 9);

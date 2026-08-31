@@ -90,7 +90,16 @@ const Track = {
     for(let i=0;i<n;i++){ ys.push(y); y+=hs[i]; }
     this.LANE_Y = ys; this.LANE_HS = hs;
   },
-  GAUGE_Y:242, GAUGE_H:28,    // 242~270 리듬 게이지 전용 띠
+  /* ⛔ **GAUGE_Y 는 이제 상수가 아니라 계산값이다.**
+     터치(가로 폰)에서는 화면 바닥을 조작 패드가 덮는다 — 그 높이만큼 위로 올린다.
+     이 한 줄이 리듬 띠·도약/투척 게이지·수영 숨·허들 카운터·차례 배지를 **한꺼번에**
+     띄운다(전부 GAUGE_Y 를 기준으로 놓여 있다). 자리마다 고치면 새 종목에서 또 빠진다.
+     ⚠ 키보드 모드에서는 padInset()=0 이라 예전 값 그대로다. */
+  GAUGE_H:28,                 // 리듬 게이지 전용 띠의 높이
+  get GAUGE_Y(){
+    const inset = (typeof Ctrl !== 'undefined' && Ctrl.padInset) ? Ctrl.padInset() : 0;
+    return 242 - inset;
+  },
   /* ⛔ **한 줄 조작 안내의 y 는 여기서 정한다.**
      2인용 턴제에서는 화면 왼쪽 아래(222~239)를 **차례 배지**가 쓴다(20_screens.drawTurnBadge).
      그 자리를 두고 배지와 안내가 서로 밀어내다 세 번 자리를 바꿨고, 옮길 때마다
@@ -103,7 +112,15 @@ const Track = {
     return !!(typeof Party !== 'undefined' && Party.on && Party.modeFor &&
               typeof G !== 'undefined' && G.def && Party.modeFor(G.def) === 'turn');
   },
-  tipY(){ return this.turnBadgeOn() ? VH - 64 : VH - 48; },
+  tipY(){
+    const inset = (typeof Ctrl !== 'undefined' && Ctrl.padInset) ? Ctrl.padInset() : 0;
+    return (this.turnBadgeOn() ? VH - 64 : VH - 48) - inset;
+  },
+  /* 바닥에 붙는 것들이 쓰는 공통 뺄셈 — VH-30 대신 Track.botY(30) */
+  botY(off){
+    const inset = (typeof Ctrl !== 'undefined' && Ctrl.padInset) ? Ctrl.padInset() : 0;
+    return VH - off - inset;
+  },
 
   /* 시간대 — 대회마다 하늘이 다르면 "같은 트랙을 또 뛴다"가 덜하다.
      ⚠ 종목 id 로 고정한다. 무작위면 같은 대회를 다시 볼 때마다 하늘이 바뀌어

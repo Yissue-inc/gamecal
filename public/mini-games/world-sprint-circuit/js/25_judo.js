@@ -262,7 +262,7 @@ class JudoEvent {
             Party.color?Party.color(i):PAL.white,'center',700);
     });
     /* 깃 저울 — 이 종목의 전부라 화면 한가운데에 크게 */
-    const bw=190, bx=VW/2-bw/2, by=VH-38;
+    const bw=190, bx=VW/2-bw/2, by=Track.botY(38);
     u.fillStyle='rgba(255,255,255,.12)'; u.fillRect(bx,by,bw,10);
     const half=bw/2, g=clamp(this.grip,-1,1);
     u.fillStyle = g>0 ? PARTY_COLOR[0] : (this.humanCount>1?PARTY_COLOR[1]:'#8fa0b4');
@@ -284,7 +284,7 @@ class JudoEvent {
          : myEdge>=JUDO.wazaAt?'절반은 걸린다'
          : myEdge>=JUDO.counterAt?'아직 얕다'
          : '지금 지르면 역습당한다',
-        VW/2, VH-22, 10,
+        VW/2, Track.botY(22), 10,
         myEdge>=JUDO.ipponAt?PAL.green:myEdge>=JUDO.wazaAt?PAL.gold:PAL.red,'center',700);
 
     /* 점수판 */

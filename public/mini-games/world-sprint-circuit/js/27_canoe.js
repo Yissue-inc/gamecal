@@ -241,7 +241,7 @@ class CanoeEvent {
     else if(this.touched) txt(u, K('접촉')+' '+this.touched, 120, 36, 9, PAL.gold,'left');  /* ⚠ 8 은 바로 윗줄 기록/벌점(8,36)과 **같은 자리**였다 — 놓침 갈래만 120 으로 옮기고 이쪽을 안 옮겼다 */
 
     if(this.phase==='SET') txt(u,'출발 신호를 기다리세요', VW/2, 60, 12, PAL.white,'center',700);
-    else if(doneG<3) txt(u,'번갈아 저으면 빨라지고, 한쪽만 저으면 그 반대로 돈다', VW/2, VH-30, 10, PAL.white,'center');
+    else if(doneG<3) txt(u,'번갈아 저으면 빨라지고, 한쪽만 저으면 그 반대로 돈다', VW/2, Track.botY(30), 10, PAL.white,'center');
     const ng=this.nextGate;
     if(ng && ng.up && Math.abs(ng.m-this.dist)<14)
       txt(u,'빨간 문 — 거슬러 올라간다', VW/2, 44, 12, '#ff7b6b','center',700);
