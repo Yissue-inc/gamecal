@@ -131,7 +131,7 @@ class SwimEvent {
       else { j='LATE'; S.form=Math.max(0.62,S.form-0.035); }
     }
     S.judge[j]++; S.lastJudge=j; S.lastJudgeMs=tMs;
-    S.side=side; S.lastStroke=tMs;
+    S.side=side; S.prevStroke=S.lastStroke; S.lastStroke=tMs;
     /* 콤보 단계는 없지만 연속 PERFECT 를 세면 같은 '쌓이는 소리'를 줄 수 있다 */
     S.streak = (j==='PERFECT'||j==='GOOD') ? Math.min(60,(S.streak||0)+1) : 0;
     Sfx.step(j, [0,6,10,20,40,60].filter(n=>S.streak>=n).length-1);
@@ -259,7 +259,7 @@ class SwimEvent {
     /* 상대 */
     this.rivals.forEach((rv,i)=>{
       const y=LY[rv.lane]+LH/2-4, x=posOf(Math.min(rv.dist,this.trackM));
-      this.blob(ctx, x, y, '#7a9ab0', (this.t*0.006+i)%1);
+      this.blob(ctx, x, y, '#7a9ab0', (this.t*0.006+i)%1, false, { speed:rv.target||1 });
     });
     /* 사람 선수들 — 각자 자기 레인, 자기 색 */
     this.swimmers.forEach((S,p)=>{
@@ -267,7 +267,12 @@ class SwimEvent {
       const y=LY[lane]+LH/2-4, mx=posOf(Math.min(S.dist,this.trackM));
       const col = (this.swimmers.length>1 && typeof PARTY_COLOR!=='undefined')
         ? PARTY_COLOR[p] : this.strokeFor(this.swimmers[p]||this.swimmers[0]).color;
-      this.blob(ctx, mx, y, S.dq? '#5a5f70' : col, (this.t*0.008+p*0.3)%1, true);
+      /* ⚠ 팔 위상은 **실제 스트로크**에서 뽑는다 — 시계가 아니라 손이 정한다 */
+      const iv = this.targetIvOf(S) || 320;
+      const swPh = S.lastStroke>-1e8 ? clamp((this.t - S.lastStroke)/iv, 0, 1) : 0;
+      this.blob(ctx, mx, y, S.dq? '#5a5f70' : col, swPh, true,
+                { stroke:this.strokeKeyOf ? this.strokeKeyOf(S) : (S.stroke||this.strokeKey),
+                  breath:S.breath, speed:S.speed });
       /* 물보라 — 스트로크마다. 물을 젓고 있다는 게 보여야 한다. */
       if(this.phase==='RUN' && S.speed>0.6)
         BG.fx(BG.ctx(), 'water-splash', mx+6, y+8, 14, ((this.t - S.lastStroke)/260)%1, 4);
@@ -278,21 +283,77 @@ class SwimEvent {
 
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
   }
-  /* 물 위의 선수 — 물보라와 함께 */
-  blob(ctx, x, y, color, ph, mine){
-    const bob=Math.sin(ph*Math.PI*2)*2;
+  /* ⛔ 수영 선수를 **아예 안 그리고 있었다** — 타원 하나 + 작은 원 하나였다.
+     CK: "수영 픽셀 모드 구려요 아메바 같은 게 나와서 액션 동작도 없고 너무 심심해요". 맞다.
+     위에서 내려다본 레인이니 **위에서 본 수영**을 그린다:
+       ① 길쭉한 몸통과 머리(진행 방향을 향한다)
+       ② **팔이 번갈아 돈다** — 하나는 물 위로 넘어오고(밝게·크게) 하나는 물속을 당긴다(어둡게)
+       ③ 다리는 뒤에서 물장구 · 머리 앞에 뱃머리 물살(bow wave)
+     ⚠ 팔의 위상은 **실제 스트로크**를 따라간다 — 손이 하는 일이 화면에 보여야 한다.
+     ⚠ 영법마다 팔이 다르다: 접영은 두 팔이 **같이** 돈다(fly). */
+  blob(ctx, x, y, color, ph, mine, opt){
+    opt = opt || {};
+    const fly = opt.stroke === 'fly';
+    const bob = Math.sin(ph*Math.PI*2)*1.6;
+    const yy  = y + bob;
+    const dark = (c)=>{ /* 물속은 어둡고 흐리다 */ return c; };
+
+    /* ── 물속 그림자 — 몸이 물에 잠긴 만큼 */
+    ctx.fillStyle='rgba(10,30,50,.28)';
+    ctx.beginPath(); ctx.ellipse(x-1, yy+2, 11, 4, 0, 0, Math.PI*2); ctx.fill();
+
+    /* ── 다리 물장구 — 뒤쪽에서 위아래로 */
+    const kick = Math.sin(ph*Math.PI*4)*2.6;
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(x-7, yy);
+    ctx.lineTo(x-13, yy + (fly ? Math.abs(kick)*0.9 : kick));
+    ctx.stroke();
+    if(!fly){
+      ctx.beginPath(); ctx.moveTo(x-7, yy); ctx.lineTo(x-13, yy - kick); ctx.stroke();
+    }
+
+    /* ── 몸통 — 진행 방향으로 길쭉하게 */
     ctx.fillStyle=color;
-    ctx.beginPath(); ctx.ellipse(x, y+bob, 9, 4.5, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.75)';
-    ctx.beginPath(); ctx.arc(x+ (ph<0.5?6:-6), y+bob-2, 2.2, 0, Math.PI*2); ctx.fill();
-    /* 물보라 */
-    ctx.fillStyle='rgba(255,255,255,.35)';
+    ctx.beginPath(); ctx.ellipse(x, yy, 8, 3.2, 0, 0, Math.PI*2); ctx.fill();
+
+    /* ── 팔 — 번갈아(접영은 같이). 물 위 팔은 밝고 길게, 물속 팔은 어둡고 짧게 */
+    const armPh = fly ? [ph, ph] : [ph, (ph+0.5)%1];
+    armPh.forEach((a,i)=>{
+      const sgn = i ? -1 : 1;                       // 위/아래 레인 방향
+      const up  = a < 0.5;                          // 앞쪽 절반은 물 위 리커버리
+      const t   = up ? a*2 : (a-0.5)*2;
+      const ax  = x + (up ? (-2 + t*10) : (6 - t*12));
+      const ay  = yy + sgn*(up ? (3.4 + Math.sin(t*Math.PI)*2.2) : 2.2);
+      ctx.strokeStyle = up ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.42)';
+      ctx.lineWidth = up ? 2 : 1.5;
+      ctx.beginPath(); ctx.moveTo(x+2, yy + sgn*2); ctx.lineTo(ax, ay); ctx.stroke();
+      /* 손이 물에 들어가는 순간의 물보라 */
+      if(up && t>0.82){ ctx.fillStyle='rgba(255,255,255,.7)';
+        ctx.fillRect(Math.round(ax)-1, Math.round(ay)-1, 2, 2); }
+    });
+
+    /* ── 머리 — 앞쪽. 숨 쉴 땐 옆으로 돌린다 */
+    const breathing = opt.breath !== undefined && opt.breath > 0.86;
+    ctx.fillStyle = 'rgba(255,255,255,.88)';
+    ctx.beginPath(); ctx.arc(x+7, yy + (breathing? -2.2 : 0), 2.4, 0, Math.PI*2); ctx.fill();
+    /* 수영모 색 한 줄 — 누구인지 보인다 */
+    ctx.fillStyle=color; ctx.fillRect(Math.round(x+6), Math.round(yy + (breathing?-4:-1.8)), 3, 1);
+
+    /* ── 뱃머리 물살 — 빠를수록 크다 */
+    const wake = clamp((opt.speed||1)/2.6, 0.2, 1);
+    ctx.fillStyle='rgba(255,255,255,.5)';
+    ctx.beginPath(); ctx.moveTo(x+10, yy);
+    ctx.lineTo(x+6, yy-2.4*wake); ctx.lineTo(x+6, yy+2.4*wake); ctx.closePath(); ctx.fill();
+    /* 뒤로 흐르는 거품 */
+    ctx.fillStyle='rgba(255,255,255,.32)';
     for(let i=0;i<3;i++){
       const p=(ph+i/3)%1;
-      ctx.fillRect(x-10-p*8, y+bob-3+Math.sin(p*6)*3, 2, 2);
+      ctx.fillRect(x-11-p*7, yy-2+Math.sin(p*6+i)*2.4, 2, 1);
     }
-    if(mine){ ctx.fillStyle=PAL.gold; ctx.fillRect(x-4, y+bob-14, 8, 2); ctx.fillRect(x-1, y+bob-12, 2, 3); }
+    if(mine){ ctx.fillStyle=PAL.gold; ctx.fillRect(x-4, yy-14, 8, 2); ctx.fillRect(x-1, yy-12, 2, 3); }
   }
+
   drawUI(u){
     HUD.race(u, { timeS:Math.max(0,this.elapsed), speed:this.speed, distM:this.dist,
       trackM:this.trackM, qualify:this.qualify, best:Save.data.best[this.def.id] });
@@ -307,7 +368,14 @@ class SwimEvent {
     if(this.phase==='RUN'){
       const now=this.t;
       const err = this.lastStroke<-1e8?0:clamp(((now-this.lastStroke)-this.targetIv)/this.targetIv,-1,1);
-      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.side||1, phaseErr:err, form:this.form});
+      /* ⚠ 타수계가 0 으로 떠 있었다 — 수영엔 strideRate 가 없다.
+         스트로크 간격에서 뽑아 넘긴다(바퀴/초 단위라 ×0.5). */
+      const S0=this.swimmers[0];
+      const sIv = (S0 && S0.lastStroke>-1e8 && S0.prevStroke>-1e8)
+        ? Math.max(40, S0.lastStroke - S0.prevStroke) : 0;
+      const sRate = sIv ? (0.5/(sIv/1000)) : 0;
+      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.side||1,
+                      phaseErr:err, form:this.form, rate:sRate });
       /* 한 타의 피드백 — 판정 수명·타격 고리·자리 기준은 HUD.tap 한 곳에 있다.
          ⚠ 620ms 고정이면 다음 타 전에 안 사라져 매 타가 뭉갠다(달리기 실측: 2.6타 겹침). */
       HUD.tap(u, { j:this.lastJudge, ageMs:now-this.lastJudgeMs,
