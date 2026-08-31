@@ -138,10 +138,18 @@ const SB = {
     const gr = this.gradeOf(railVal, o.cuts, o.higher);
     const RIGHT = this.RX - 8, RAIL_W = 104, RAIL_X = RIGHT - RAIL_W;
     this.big(u, shown, RIGHT, 3, gr ? gr.col : PAL.gold, 'right');
-    if(o.unit) txt(u, o.unit, RAIL_X - 4, 9, 9, PAL.dim, 'right');
+    /* ⛔ 단위를 레일 왼쪽 끝에 뒀더니 **숫자에서 100px 떨어져 떠 있었다**(실측 승마 캡처:
+       'Faults' 가 화면 한가운데에 홀로). 단위는 숫자에 붙어야 단위다 — 폭을 재서 왼쪽에 붙인다. */
+    if(o.unit){
+      let w = 40;
+      try{ u.font = '700 19px "Galmuri11","Nanum Gothic Coding",monospace';
+           w = u.measureText(shown).width; }catch(e){}
+      txt(u, o.unit, RIGHT - w - 5, 9, 9, PAL.dim, 'right');
+    }
 
-    /* 레일은 내 숫자 **바로 밑**에 — 둘은 같은 이야기다 */
-    if(o.cuts) this.rail(u, RAIL_X, 26, RAIL_W, railVal, o.cuts, o.higher,
+    /* 레일은 내 숫자 **바로 밑**에 — 둘은 같은 이야기다.
+       ⚠ y=26 이면 바늘 끝(y−6=20)이 19px 숫자의 밑단과 닿는다. 두 칸 내린다. */
+    if(o.cuts) this.rail(u, RAIL_X, 28, RAIL_W, railVal, o.cuts, o.higher,
                          o.pace !== undefined, o.floor);
 
     /* ── 가운데: 시도별 칩. 예전엔 '0 0 1 3' 이 흐린 글씨로 붙어 있었다 */
@@ -178,12 +186,15 @@ const SB = {
     this.panel(u, 4, 2, this.RX - 4, H);
     const midX = (4 + this.RX) / 2;
 
-    /* 양쪽 큰 숫자 — 같은 크기여야 **차이가 크기로 읽힌다** */
-    const lead = (o.mine || 0) - (o.foe || 0);
+    /* 양쪽 큰 숫자 — 같은 크기여야 **차이가 크기로 읽힌다**
+       ⚠ 점수가 **숫자가 아닐 수 있다** — 유도는 '한판/절반' 이다.
+         그럴 땐 종목이 `lead` 를 직접 넘긴다(안 그러면 뺄셈이 NaN 이 되어 막대가 사라진다). */
+    const lead = (o.lead !== undefined) ? o.lead
+               : ((+o.mine || 0) - (+o.foe || 0));
     txt(u, o.myLabel || '나', 14, 5, 9, PAL.blue, 'left', 700);
-    this.big(u, String(o.mine ?? 0), 14, 13, lead >= 0 ? PAL.gold : PAL.white, 'left');
+    this.big(u, K(String(o.mine ?? 0)), 14, 13, lead >= 0 ? PAL.gold : PAL.white, 'left');
     txt(u, o.foeLabel || '상대', this.RX - 10, 5, 9, PAL.red, 'right', 700);
-    this.big(u, String(o.foe ?? 0), this.RX - 10, 13, lead <= 0 ? PAL.red : PAL.white, 'right');
+    this.big(u, K(String(o.foe ?? 0)), this.RX - 10, 13, lead <= 0 ? PAL.red : PAL.white, 'right');
 
     /* 가운데 — 목표와 상황 */
     if(o.target) txt(u, o.target, midX, 4, 9, PAL.dim, 'center');

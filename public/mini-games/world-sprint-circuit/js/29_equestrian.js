@@ -218,25 +218,29 @@ class EquestrianEvent {
       txt(u, s.m.toFixed(1)+'m', bx+bw/2, by+17, 8, PAL.dim,'center');
     });
     txt(u,'▲▼', x0-8, by+4, 9, PAL.dim,'right');
-    /* 말의 리듬 — 이게 좁아지면 도약 창도 좁아진다 */
-    const rw=64, rx=x0+bw*3+16;
-    txt(u,K('리듬'), rx-6, by+2, 9, PAL.dim,'right');
+    /* 말의 리듬 — 이게 좁아지면 도약 창도 좁아진다.
+       ⛔ 자리 계산이 **버튼 간격(+4씩)을 빼먹었다**(bw*3 이 아니라 bw*3+8 이 실제 폭이다).
+          그래서 '리듬' 라벨이 세 번째 보폭 버튼 위에 겹쳐 찍혔다(실측 캡처).
+       ⚠ 라벨을 왼쪽에 두면 버튼과 다투므로 **막대 위**로 올린다 — 자리를 안 뺏는다. */
+    const rw=64, rx=x0+bw*3+8+40;
+    txt(u,K('리듬'), rx, by-9, 9, PAL.dim,'left');
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(rx, by+3, rw, 7);
     u.fillStyle = this.balance>0.8?PAL.green : this.balance>0.55?PAL.gold : PAL.red;
     u.fillRect(rx, by+3, Math.round(rw*this.balance), 7);
 
     /* HUD */
-    plate(u,0,0,VW,26,.8);
-    txt(u, this.def.name, 8, 4, 11, PAL.gold,'left',700);
-    txt(u, this.cleared+' / '+this.fences.length, VW/2-40, 4, 12, PAL.white,'center',700);
-    txt(u, fmtTime(this.elapsed), VW/2+30, 4, 12,
-        this.elapsed>EQU.timeAllowed?PAL.red:PAL.white,'center',700);
-    txt(u, this.total? String(this.total) : '0', VW-30, 3, 15,
-        this.total<=this.qualify?PAL.green:PAL.red,'right',700);
-    txt(u, K('벌점')+' · '+K('기준')+' '+this.qualify, VW-8, 28, 9, PAL.dim,'right');
+    /* 벌점이 곧 점수다(낮을수록 좋다) — 기준은 레일 위 자리로(05_scoreboard) */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: this.cleared+' / '+this.fences.length,
+      mine: this.total || 0, unit: K('벌점'),
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+    });
+    txt(u, fmtTime(this.elapsed), 8, 36, 10,
+        this.elapsed>EQU.timeAllowed?PAL.red:PAL.dim, 'left');
     if(this.knocks||this.refusals)
       txt(u, (this.knocks?K('낙마봉')+' '+this.knocks+'  ':'')+(this.refusals?K('거부')+' '+this.refusals:''),
-          8, 28, 9, PAL.red,'left');
+          70, 36, 9, PAL.red,'left');
     if(this.phase==='SET') txt(u,'출발 신호를 기다리세요', VW/2, 76, 12, PAL.white,'center',700);
     else if(this.cleared===0 && !this.knocks)
       txt(u,'▲▼ 보폭 · 좌우 한 걸음 · 도약대에서 액션', VW/2, VH-48, 10, PAL.white,'center');

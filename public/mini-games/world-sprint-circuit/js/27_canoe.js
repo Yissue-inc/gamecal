@@ -226,22 +226,22 @@ class CanoeEvent {
     }
 
     /* HUD */
-    plate(u, 0,0, VW, 24, .8);
-    txt(u, this.def.name, 8, 4, 11, PAL.gold,'left',700);
-    txt(u, fmtTime(Math.max(0,this.raw)), VW/2-40, 4, 13, PAL.white,'center',700);
-    txt(u, this.penalty? '+'+this.penalty : '+0', VW/2+16, 4, 13,
-        this.penalty? PAL.red:PAL.dim,'center',700);
-    /* ⚠ 오른쪽 끝은 일시정지 버튼이 덮는다 — 합계는 조금 안쪽에 둔다 */
-    txt(u, fmtTime(Math.max(0,this.total)), VW-46, 3, 14,
-        this.total<=this.qualify?PAL.green:PAL.red,'right',700);
-    txt(u, K('기준')+' '+fmtTime(this.qualify), VW-8, 26, 9, PAL.dim,'right');
-    const done=this.gates.filter(g=>g.done).length;
-    txt(u, done+' / '+this.gates.length+K('문'), 8, 26, 9, PAL.dim,'left');
-    if(this.missed) txt(u, K('놓침')+' '+this.missed, 8, 36, 9, PAL.red,'left',700);
+    const doneG = this.gates.filter(g=>g.done).length;
+    /* 합계(=기록+벌점)가 내 점수다. 기준은 레일 위 자리로 보인다(05_scoreboard). */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: doneG+' / '+this.gates.length+K('문'),
+      mine: Math.max(0, this.total), fmt: v => fmtTime(v),
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+    });
+    /* 기록과 벌점을 갈라 보여 준다 — 합계만 보면 왜 나빠졌는지 모른다 */
+    txt(u, fmtTime(Math.max(0,this.raw)) + '  ' + (this.penalty? '+'+this.penalty : '+0'),
+        8, 36, 10, this.penalty? PAL.red : PAL.dim, 'left');
+    if(this.missed) txt(u, K('놓침')+' '+this.missed, 120, 36, 9, PAL.red,'left',700);
     else if(this.touched) txt(u, K('접촉')+' '+this.touched, 8, 36, 9, PAL.gold,'left');
 
     if(this.phase==='SET') txt(u,'출발 신호를 기다리세요', VW/2, 60, 12, PAL.white,'center',700);
-    else if(done<3) txt(u,'번갈아 저으면 빨라지고, 한쪽만 저으면 그 반대로 돈다', VW/2, VH-30, 10, PAL.white,'center');
+    else if(doneG<3) txt(u,'번갈아 저으면 빨라지고, 한쪽만 저으면 그 반대로 돈다', VW/2, VH-30, 10, PAL.white,'center');
     const ng=this.nextGate;
     if(ng && ng.up && Math.abs(ng.m-this.dist)<14)
       txt(u,'빨간 문 — 거슬러 올라간다', VW/2, 44, 12, '#ff7b6b','center',700);

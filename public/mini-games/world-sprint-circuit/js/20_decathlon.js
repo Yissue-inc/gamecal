@@ -168,6 +168,10 @@ class DecathlonEvent {
     }
     txt(u, (Math.min(this.slot+1,this.slots.length))+'/'+this.slots.length, VW-84, VH-H+3, 9, PAL.dim,'right');
     txt(u, this.total+'점', VW-8, VH-H+2, 11, PAL.gold,'right',700);
+    /* ⛔ **총점만 보여 주면 7000점이 좋은 건지 알 수 없다.** 동–은–금 자리를 함께 보인다.
+       ⚠ 상단은 하위 종목이 쓰므로 여기(하단 띠)에만 얹는다 — 겹치면 안 된다. */
+    if(typeof SB !== 'undefined')
+      SB.rail(u, VW-80, VH-4, 68, this.total, medalCuts(this.def), !!this.def.higher);
 
     if(this.phase==='INTRO'){
       const d=this.curDef;

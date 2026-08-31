@@ -291,12 +291,14 @@ class JudoEvent {
     plate(u, 0,0, VW, 28, .78);
     const A=this.fighters[0], B=this.fighters[1];
     const score=(f)=> f.pts>=JUDO.toWin ? '한판' : (f.waza? '절반'+(f.waza>1?' '+f.waza:'') : '0');
-    txt(u, this.humanCount>1?'1P':'나', 56, 4, 9, PAL.dim,'center');
-    txt(u, this.humanCount>1?'2P':'상대', VW-56, 4, 9, PAL.dim,'center');
-    txt(u, score(A), 56, 12, 14, PARTY_COLOR[0],'center',700);
-    txt(u, score(B), VW-56, 12, 14, this.humanCount>1?PARTY_COLOR[1]:PAL.white,'center',700);
-    txt(u,'한판 선취', VW/2, 4, 9, PAL.dim,'center');
-    txt(u, fmtTime(this.elapsed), VW/2, 13, 12, PAL.gold,'center',700);
+    /* 맞붙는 종목이라 versus 판을 쓴다 — 펜싱·탁구와 같은 얼굴(05_scoreboard).
+       ⚠ 유도 점수는 숫자가 아니라 '한판/절반' 이라 문자열을 그대로 넘긴다. */
+    SB.versus(u, {
+      myLabel: this.humanCount>1?'1P':'나', mine: score(A),
+      foeLabel: this.humanCount>1?'2P':'상대', foe: score(B),
+      target: '한판 선취', note: fmtTime(this.elapsed),
+      first: JUDO.toWin, lead: A.pts - B.pts,
+    });
 
     if(this.phase==='SET') txt(u,'하지메', VW/2, 52, 15, PAL.white,'center',700);
     else if(A.pts===0 && B.pts===0 && this.elapsed<4)

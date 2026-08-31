@@ -176,6 +176,10 @@ class TriathlonEvent {
       x += Math.max(12,w);
     });
     txt(u, fmtTime(this.total), VW-8, VH-H+2, 11, PAL.gold,'right',700);
+    /* 총 시간만으로는 좋은지 알 수 없다 — 동–은–금 자리를 같이 보인다(05_scoreboard).
+       ⚠ 상단은 하위 종목이 쓴다. 하단 띠에만 얹는다. */
+    if(typeof SB !== 'undefined' && this.total > 0)
+      SB.rail(u, VW-80, VH-4, 68, this.total, medalCuts(this.def), !!this.def.higher);
     /* 누적 피로 — 이 종목의 정체성이라 항상 보인다 */
     if(this.carry>0){
       const bw=54, bx=VW-70-bw;

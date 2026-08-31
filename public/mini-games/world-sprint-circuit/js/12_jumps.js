@@ -180,15 +180,19 @@ class LongJumpEvent extends FieldEvent {
   }
 
   drawUI(uctx){
-    plate(uctx,0,0,VW,30,0.72);
-    txt(uctx,'시기', 8,3,8,PAL.dim);
-    txt(uctx,`${Math.min(this.attempt+1,3)} / 3`, 8,12,15,PAL.gold,'left',700);
-    txt(uctx,K('속도'),66,3,8,PAL.dim);
-    txt(uctx,(this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s',66,13,11,PAL.white);
-    txt(uctx,K('최고'),150,3,8,PAL.dim);
-    txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(2)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    /* ⛔ 예전엔 **기준이 크고(13px 색) 내 최고가 작았다**(11px) — 양궁·사격과 같은
+       위계 뒤집힘이다. 화면에서 제일 큰 숫자는 내 것이어야 한다(05_scoreboard). */
+    SB.tally(uctx, {
+      name: this.def.name,
+      progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
+      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      /* 파울은 'F' 로 — 칩 한 칸에 '파울' 두 글자는 안 들어간다 */
+      history: (this.marks||[]).filter(m => m !== undefined)
+                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+    });
+    /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
+    txt(uctx, K('속도')+' '+((this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
     // 시기별 기록
     for(let i=0;i<3;i++){
       const m=this.marks[i];
@@ -337,15 +341,18 @@ class HighJumpEvent extends FieldEvent {
     }
   }
   drawUI(uctx){
-    plate(uctx,0,0,VW,30,0.72);
-    txt(uctx,'바 높이',8,3,8,PAL.dim);
-    txt(uctx,this.bar.toFixed(2)+'m',8,12,15,PAL.gold,'left',700);
-    txt(uctx,'실패',86,3,8,PAL.dim);
-    txt(uctx,'●'.repeat(this.misses)+'○'.repeat(RULES.hjMaxMisses-this.misses),86,13,12,PAL.red);
-    txt(uctx,K('최고'),160,3,8,PAL.dim);
-    txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',160,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(2)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    /* ⛔ 기준이 크고 내 최고가 작던 위계를 바로잡는다(05_scoreboard).
+       ⚠ 이 종목의 진행은 '몇 차' 가 아니라 **지금 바 높이**다. */
+    SB.tally(uctx, {
+      name: this.def.name,
+      progress: K('바 높이')+' '+this.bar.toFixed(2)+'m',
+      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      history: (this.marks||[]).filter(m => m !== undefined)
+                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+    });
+    txt(uctx, K('실패')+' '+'●'.repeat(this.misses)+'○'.repeat(RULES.hjMaxMisses-this.misses),
+        8, 36, 10, this.misses ? PAL.red : PAL.dim, 'left');
 
     if(this.phase==='APPROACH'){
       const left = this.plantOpenAt - this.approachT;

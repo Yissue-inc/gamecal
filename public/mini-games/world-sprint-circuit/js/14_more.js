@@ -135,15 +135,19 @@ class TripleJumpEvent extends LongJumpEvent {
     else drawRunner(ctx, x, y, this.phase==='RUNUP'?this.runner.stridePhase:0.25, '#ffd75e', { airborne:air });
   }
   drawUI(u){
-    plate(u,0,0,VW,30,0.72);
-    txt(u,'시기', 8,3,8,PAL.dim);
-    txt(u,`${Math.min(this.attempt+1,3)} / 3`, 8,12,15,PAL.gold,'left',700);
-    txt(u,K('속도'),66,3,8,PAL.dim);
-    txt(u,(this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s',66,13,11,PAL.white);
-    txt(u,K('최고'),150,3,8,PAL.dim);
-    txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(u,K('기준'),VW-30,3,8,PAL.dim,'right');
-    txt(u,this.qualify.toFixed(2)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    /* ⛔ 예전엔 **기준이 크고(13px 색) 내 최고가 작았다**(11px) — 양궁·사격과 같은
+       위계 뒤집힘이다. 화면에서 제일 큰 숫자는 내 것이어야 한다(05_scoreboard). */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
+      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      /* 파울은 'F' 로 — 칩 한 칸에 '파울' 두 글자는 안 들어간다 */
+      history: (this.marks||[]).filter(m => m !== undefined)
+                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+    });
+    /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
+    txt(u, K('속도')+' '+((this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(u, i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))), 250+i*70, 13, 9,
           m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
@@ -269,15 +273,16 @@ class ShotPutEvent extends JavelinEvent {
     }
   }
   drawUI(u){
-    plate(u,0,0,VW,30,0.72);
-    txt(u,'시기',8,3,8,PAL.dim); txt(u,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
-    txt(u,'회전',66,3,8,PAL.dim); txt(u,String(this.spinWork||0),66,13,11,PAL.white);
-    txt(u,K('최고'),150,3,8,PAL.dim); txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(u,K('기준'),VW-30,3,8,PAL.dim,'right');
-    txt(u,this.qualify.toFixed(1)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
-    for(let i=0;i<3;i++){ const m=this.marks[i];
-      txt(u,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
-          m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
+    /* ⛔ 기준이 크고 내 최고가 작던 위계를 바로잡는다(05_scoreboard) */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
+      mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      history: (this.marks||[]).filter(m => m !== undefined)
+                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+    });
+    txt(u, K('회전')+' '+String(this.spinWork||0), 8, 36, 9, PAL.dim, 'left');
 
     if(this.phase==='CHARGE'){
       plate(u,0,Track.GAUGE_Y,VW,Track.GAUGE_H,0.82);
@@ -450,13 +455,18 @@ class PoleVaultEvent extends FieldEvent {
     else drawRunner(ctx, x, y, this.phase==='RUNUP'?this.runner.stridePhase:0.25, '#5aaaff', {airborne:air});
   }
   drawUI(u){
-    plate(u,0,0,VW,30,0.72);
-    txt(u,'바 높이',8,3,8,PAL.dim); txt(u,this.bar.toFixed(2)+'m',8,12,15,PAL.gold,'left',700);
-    txt(u,'실패',86,3,8,PAL.dim);
-    txt(u,'●'.repeat(this.misses)+'○'.repeat(3-this.misses),86,13,12,PAL.red);
-    txt(u,K('최고'),160,3,8,PAL.dim); txt(u,this.best>0?this.best.toFixed(2)+'m':'--.--',160,13,11,PAL.blue);
-    txt(u,K('기준'),VW-30,3,8,PAL.dim,'right');
-    txt(u,this.qualify.toFixed(2)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    /* ⛔ 기준이 크고 내 최고가 작던 위계를 바로잡는다(05_scoreboard).
+       ⚠ 진행은 '몇 차' 가 아니라 **지금 바 높이**다. */
+    SB.tally(u, {
+      name: this.def.name,
+      progress: K('바 높이')+' '+this.bar.toFixed(2)+'m',
+      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      history: (this.marks||[]).filter(m => m !== undefined)
+                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+    });
+    txt(u, K('실패')+' '+'●'.repeat(this.misses)+'○'.repeat(3-this.misses),
+        8, 36, 10, this.misses ? PAL.red : PAL.dim, 'left');
 
     if(this.phase==='RUNUP'){
       const left=34-this.runner.distM;

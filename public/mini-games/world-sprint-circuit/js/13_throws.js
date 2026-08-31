@@ -119,12 +119,19 @@ class JavelinEvent extends FieldEvent {
     if(this.phase==='RUNUP' && this.runner && this.runner.lastJudge)
       HUD.tap(uctx, { j:this.runner.lastJudge, ageMs:this.t-this.runner.lastJudgeMs,
                       ivMs:this.runner.targetIntervalMs(), labelY:44 });
-    plate(uctx,0,0,VW,30,0.72);
-    txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
-    txt(uctx,K('속도'),66,3,8,PAL.dim); txt(uctx,this.runner.speed.toFixed(1)+' m/s',66,13,11,PAL.white);
-    txt(uctx,K('최고'),150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(1)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
+    /* ⛔ 예전엔 **기준이 크고(13px 색) 내 최고가 작았다**(11px) — 양궁·사격과 같은
+       위계 뒤집힘이다. 화면에서 제일 큰 숫자는 내 것이어야 한다(05_scoreboard). */
+    SB.tally(uctx, {
+      name: this.def.name,
+      progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
+      mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      /* 파울은 'F' 로 — 칩 한 칸에 '파울' 두 글자는 안 들어간다 */
+      history: (this.marks||[]).filter(m => m !== undefined)
+                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+    });
+    /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
+    txt(uctx, K('속도')+' '+(this.runner.speed.toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
     for(let i=0;i<3;i++){ const m=this.marks[i];
       txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
           m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
@@ -308,16 +315,16 @@ class HammerEvent extends FieldEvent {
     }
   }
   drawUI(uctx){
-    plate(uctx,0,0,VW,30,0.72);
-    txt(uctx,'시기',8,3,8,PAL.dim); txt(uctx,`${Math.min(this.attempt+1,3)} / 3`,8,12,15,PAL.gold,'left',700);
-    txt(uctx,'회전',66,3,8,PAL.dim); txt(uctx,this.spin.toFixed(1),66,13,11,
-      this.spin>=RULES.hammerOptSpin?PAL.green:(this.spin>=RULES.hammerMinSpin?PAL.gold:PAL.red));
-    txt(uctx,K('최고'),150,3,8,PAL.dim); txt(uctx,this.best>0?this.best.toFixed(2)+'m':'--.--',150,13,11,PAL.blue);
-    txt(uctx,K('기준'),VW-30,3,8,PAL.dim,'right');
-    txt(uctx,this.qualify.toFixed(1)+'m',VW-30,12,13,this.best>=this.qualify?PAL.green:PAL.red,'right',700);
-    for(let i=0;i<3;i++){ const m=this.marks[i];
-      txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
-          m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
+/* ⛔ 기준이 크고 내 최고가 작던 위계를 바로잡는다(05_scoreboard) */
+    SB.tally(uctx, {
+      name: this.def.name,
+      progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
+      mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      history: (this.marks||[]).filter(m => m !== undefined)
+                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+    });
+    txt(uctx, K('회전')+' '+(this.spin.toFixed(1)), 8, 36, 9, this.spin>=RULES.hammerOptSpin?PAL.green:(this.spin>=RULES.hammerMinSpin?PAL.gold:PAL.red), 'left');
 
     if(this.phase==='SPIN'){
       plate(uctx,0,Track.GAUGE_Y,VW,Track.GAUGE_H,0.82);
