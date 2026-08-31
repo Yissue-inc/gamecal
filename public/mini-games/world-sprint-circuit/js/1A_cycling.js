@@ -10,6 +10,7 @@
 'use strict';
 
 const CYCLE = {
+  mashKick: 0.30,        // 연타 한 번이 남은 여유의 몇 할을 채우나
   gears: [
     { name:'경', mul:0.86, ivMul:1.30, hard:0.70 },
     { name:'중', mul:1.00, ivMul:1.00, hard:1.00 },
@@ -61,7 +62,13 @@ class CyclingEvent {
     }
     const dt=tMs-this.lastPedal;
     let j='GOOD';
-    if(dt<60){ j='SPAM'; this.form=Math.max(0.55,this.form-0.05); }
+    /* ⛔ 연타 모드 — 페달도 빨리 밟을수록 빠르다. 제한은 **기어와 체력**이 맡는다.
+       무거운 기어는 최고속이 높지만 밟기 어렵고, 가벼운 기어는 반대다(G.mul/ivMul). */
+    if(RULES.mashMode){
+      if(this.side===side){ j='REPEAT'; this.form=Math.max(0.6,this.form-0.03); }
+      else { j='PERFECT'; this.form=Math.min(1.15,this.form+0.02); }
+    }
+    else if(dt<60){ j='SPAM'; this.form=Math.max(0.55,this.form-0.05); }
     else if(this.side===side){ j='REPEAT'; this.form=Math.max(0.6,this.form-0.06); }
     else if(this.lastPedal<-1e8){ j='GOOD'; }
     else {
@@ -79,7 +86,12 @@ class CyclingEvent {
     const mult={PERFECT:1.0,GOOD:0.82,EARLY:0.6,LATE:0.6,REPEAT:0.35,SPAM:0.15}[j];
     /* 관성이 크다 — 목표 속도로 천천히 다가간다 */
     const target = CYCLE.maxSpeed * this.G.mul * this.form * this.stamina * mult;
-    this.speed = lerp(this.speed, Math.max(this.speed*0.9, target), 0.28);
+    if(RULES.mashMode){
+      const room = Math.max(0, 1 - this.speed/Math.max(target,0.1));
+      this.speed = Math.min(target, this.speed + target*CYCLE.mashKick*room);
+    } else {
+      this.speed = lerp(this.speed, Math.max(this.speed*0.9, target), 0.28);
+    }
     this.cad = 1;
   }
   /* 위/아래 = 기어 */

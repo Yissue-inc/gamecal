@@ -57,7 +57,16 @@ class RowingEvent {
     }
     const dt = tMs - this.lastStroke;
     let j='GOOD';
-    if(this.side===side){ j='REPEAT'; }
+    /* ⛔ 연타 모드 — 노도 빨리 저을수록 빠르다. 실측(고치기 전): 초당 5타 이상이면 완주 불가.
+       ⚠ 다만 조정의 정체는 **고르게 젓기**다 — 그건 죽이지 않는다.
+          smooth(간격의 고름)가 그대로 배 속도의 상한을 정한다.
+          빨리 젓되 **고르게** 저어야 빠르다 — 그게 이 종목의 배분이다. */
+    if(RULES.mashMode){
+      if(this.side===side) j='REPEAT';
+      else if(this.lastStroke<-1e8) j='GOOD';
+      else { j='PERFECT'; this.ivs.push(dt); if(this.ivs.length>ROW.smoothN) this.ivs.shift(); }
+    }
+    else if(this.side===side){ j='REPEAT'; }
     else if(this.lastStroke<-1e8){ j='GOOD'; }
     else if(dt < ROW.catchMin){
       /* ⚠ 얕은 캐치는 '약한 스트로크'가 아니라 **손해**다.

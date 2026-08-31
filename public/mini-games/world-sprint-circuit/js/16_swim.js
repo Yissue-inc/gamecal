@@ -9,6 +9,7 @@
 
 const SWIM = {
   poolM: 50,                     // 한 레인 길이 (100m = 2바퀴)
+  mashKick: 0.42,                // 연타 한 번이 남은 여유의 몇 할을 채우나
   turnWindowM: 1.6,              // 벽 앞 이 거리 안에서 눌러야 턴
   breathEvery: 2600,             // 이 간격마다 숨을 쉬어야 한다(ms)
   stroke: {
@@ -106,7 +107,17 @@ class SwimEvent {
     if(S.dq || S.finished) return;
     const dt=tMs-S.lastStroke;
     let j='GOOD';
-    if(dt < 70){ j='SPAM'; S.fatigue=Math.min(1,S.fatigue+0.02); }
+    /* ⛔ 연타 모드 — 물에서도 **빨리 저을수록 빠르다.** 박자로 벌하지 않는다.
+       실측(고치기 전): 초당 5타 이상이면 **완주 자체가 불가능**했다(3타에서만 됐다).
+       단거리에서 "연타하라" 고 가르쳐 놓고 수영은 연타하면 못 끝내는 게임이었다.
+       규칙은 하나만 남는다: 좌·우 교대. 제한은 **숨**이 맡는다 —
+       빨리 저을수록 숨이 빨리 차고(아래 fatigue), 숨을 안 쉬면 속도가 60% 로 깎인다. */
+    if(RULES.mashMode){
+      if(S.side===side){ j='REPEAT'; S.form=Math.max(0.6,S.form-0.035); }
+      else { j='PERFECT'; S.form=Math.min(1.12,S.form+0.02);
+             S.fatigue=Math.min(1, S.fatigue+0.0016); }   // 한 번 저을 때마다 조금씩 찬다
+    }
+    else if(dt < 70){ j='SPAM'; S.fatigue=Math.min(1,S.fatigue+0.02); }
     else if(S.side===side){ j='REPEAT'; S.form=Math.max(0.6,S.form-0.07); }
     else if(S.lastStroke<-1e8){ j='GOOD'; }
     else {
@@ -130,7 +141,14 @@ class SwimEvent {
        아케이드는 감독 모드와 별도 물리라 따로 맞춰야 한다. */
     const base = 2.72 * this.strokeFor(S).speed;
     const target = base * S.form * (1-S.fatigue*0.3) * (0.6+S.breath*0.4) * mult;
-    S.speed = clamp(lerp(S.speed, target, 0.55), 0, 3.2);
+    if(RULES.mashMode){
+      /* 남은 여유에 비례해 더한다 — 빨리 저을수록 평형 속도가 올라간다.
+         물 저항(update 의 -dt*0.55)이 감속을 맡으므로 안 저으면 곧 느려진다. */
+      const room = Math.max(0, 1 - S.speed/Math.max(target, 0.1));
+      S.speed = clamp(S.speed + target*SWIM.mashKick*room, 0, 3.2);
+    } else {
+      S.speed = clamp(lerp(S.speed, target, 0.55), 0, 3.2);
+    }
   }
   /* 액션 = 턴 (벽 앞) 또는 숨쉬기 */
   onAction(tMs, pIdx){

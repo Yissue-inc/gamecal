@@ -114,6 +114,11 @@ class ClimbEvent {
     let j;
     if(c.side===side) j='SLIP';                     // 같은 손으로 두 번 — 몸이 꼬인다
     else if(c.lastGrab<-1e8) j='GOOD';
+    /* ⚠ 등반은 연타 전환을 **보류했다**(2026-08-31).
+       박자 판정을 걷어내니 마구 치면 벽을 날아올랐고(14타 1.45초 · 예전 천장 4.64초),
+       손 한계(210ms)를 넣자 이번엔 5·7·14타가 완주 실패로 돌아갔다 —
+       **원인을 설명하지 못한 상태**라 내보내지 않는다. 지금은 예전 리듬 모델 그대로다.
+       (다음 차례: 무시된 타가 c.iv·slip 경로에 무엇을 남기는지부터 확인) */
     else {
       const err=Math.abs(dt-iv);
       j = err<=CLIMB.perfectMs ? 'PERFECT' : err<=CLIMB.goodMs ? 'GOOD' : 'SLIP';
