@@ -21,6 +21,20 @@ const MID = {
     { name:'승부', spd:1.16, drain:1.85, ivMul:0.76, color:'#ff7b6b' },
   ],
   baseIv: 300,           // 유지 페이스의 스트로크 간격(ms)
+  /* ══ 연타 + 배분 (CK 확정 2026-08-31) ══════════════════════════════
+     CK: "중장거리는 연타가 있되 체력이 깎이는 것도 있어서 밸런스 배분이 중요한 걸로"
+     ⛔ 예전엔 한 번 디딜 때 상한의 16% 를 채웠다 — **일곱 번이면 최고속**이라
+        그 뒤로는 아무리 빨리 쳐도 같았다(실측: 14타 149.6s vs 7타 152.4s, 1.9%).
+     이제 ① 디딤은 남은 여유에 비례해 더하고 ② 안 치면 감속이 이긴다
+          ③ **페이스가 정한 박자보다 빨리 치면 그만큼 체력이 더 깎인다.**
+        빨리 치면 지금 빨라지지만 뒤가 없다 — 그 균형이 이 종목이다.
+     ⚠ 값을 한 번 과하게 걸었다가 되잡았다(kick 0.50·decay 0.50·overCost 0.0016).
+        그 값이면 800m 가 190~266초가 되고 체력이 전부 0 이었고,
+        **4타(194초)가 7타(266초)보다 빨랐다** — 연타가 손해면 그건 배분이 아니라 처벌이다.
+        지금 값: 4~14타에서 상한의 92~97.5% (속도 차 ~6%) + 체력 대가가 뒤에서 작동한다. */
+  mashKick: 0.62,        // 디딤 한 번이 남은 여유의 몇 할을 채우나
+  mashDecay: 0.22,       // 안 치면 초당 이만큼 빠진다(1/s)
+  overCost: 0.0004,      // 제 박자보다 빨리 친 대가(체력) — 페이스 drain 이 곱해진다
   goodMs: 72,            // 판정 창 — 스프린트(±19ms)보다 훨씬 넓다
   perfectMs: 26,
   maxSpeed: 8.4,         // 유지 페이스 최고속(m/s) — 종목별로 곱해진다
@@ -133,6 +147,11 @@ class MiddleEvent {
     let j;
     if(r.side===side) j='REPEAT';
     else if(r.lastStroke<-1e8) j='GOOD';
+    /* ⛔ 연타 모드에서는 **박자로 벌하지 않는다** — 그러면 연타가 곧 MISS 였다.
+       실측: 유지 페이스에서 4타 154.9s < 10타 208.7s — **더 치면 더 느렸다.**
+       CK 가 원한 건 그 반대다("연타가 있되 체력이 깎여 배분이 중요"). 제한은 **체력**이 맡는다.
+       규칙은 하나만 남는다: 좌·우를 번갈아 칠 것(같은 쪽은 REPEAT). */
+    else if(RULES.mashMode) j='PERFECT';
     else {
       const err=Math.abs(dt-iv);
       j = err<=MID.perfectMs ? 'PERFECT' : err<=MID.goodMs ? 'GOOD' : 'MISS';
@@ -152,9 +171,17 @@ class MiddleEvent {
     /* ⚠ 속도 비례 저항으로 바꾼 뒤 MISS 0.30 은 너무 비쌌다 — 보통 실력이 135초에서
        181초로 무너졌다. 중장거리는 스프린트만큼 정밀할 이유가 없다. */
     const gain={PERFECT:1.0,GOOD:0.80,MISS:0.46,REPEAT:0.12}[j];
-    const top = MID.maxSpeed*MID.PACE[r.pace].spd*(this.walk?0.42:1)
+    const P = MID.PACE[r.pace];
+    const top = MID.maxSpeed*P.spd*(this.walk?0.42:1)
               * (0.55+0.45*r.stamina) * (r.spurting?MID.spurtMul:1);
-    r.speed = Math.min(top, r.speed + top*0.16*gain);
+    /* 연타 추진 — 남은 여유에 비례해 더한다(단거리와 같은 규칙) */
+    const room = Math.max(0, 1 - r.speed/Math.max(top, 0.1));
+    r.speed = Math.min(top, r.speed + top*MID.mashKick*gain*room);
+    /* ⛔ 제 박자보다 빨리 치면 체력이 더 깎인다 — **이게 배분이다.**
+       over 1.0 = 페이스가 정한 박자의 두 배로 치는 중. 페이스가 셀수록 대가도 크다. */
+    const natIv = MID.baseIv*P.ivMul;
+    const over = clamp(natIv/Math.max(dt, 40) - 1, 0, 2);
+    if(over > 0) r.stamina = Math.max(0, r.stamina - MID.overCost*over*P.drain);
     /* ⚠ 리듬을 놓치면 '느려질' 뿐 아니라 **체력이 더 샌다**. 넓은 창을 준 대신
        엉망으로 달리면 대가를 치른다 — 안 그러면 아무렇게나 눌러도 완주한다. */
     if(j==='MISS'||j==='REPEAT') r.stamina=Math.max(0, r.stamina-0.006);
@@ -201,6 +228,8 @@ class MiddleEvent {
             **간 거리** 기준으로 깎는다 — 유지 페이스로 전 구간을 가면 결승선에서 딱 바닥난다.
             계수 1.00 은 모두를 바닥으로 보내 전략이 뭉쳤다(128~142초). 0.78 이면 유지로
             완주했을 때 0.22 가 남고, 그 여유분을 어디에 쓸지가 선택이 된다. */
+      /* 안 치면 느려진다 — 이게 있어야 '타수 = 속도'가 성립한다 */
+      r.speed *= Math.exp(-MID.mashDecay*sdt);
       const frac = (r.speed*sdt)/this.trackM;
       r.stamina = Math.max(0, r.stamina
         - frac*(0.78*MID.PACE[r.pace].drain + (r.spurting?MID.spurtDrain:0)));
