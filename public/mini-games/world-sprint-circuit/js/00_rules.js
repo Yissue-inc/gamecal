@@ -218,6 +218,17 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⛔⛔ **연타 전환 후 경보·마라톤 기준을 안 고쳤다 (2026-08-31 4차)**
+     중장거리를 연타+체력으로 바꾸면서 800m·1500m·5000m 는 다시 쟀는데
+     **경보와 마라톤은 빼먹었다.** 그 둘의 기준은 연타 전환 **이전** 실측값이었다.
+     결과: 9타로 뛰어도 마라톤 17,383s(기준 16,375) · 경보 23,078s(기준 12,200) — **둘 다 통과 불가.**
+     라이브에 그대로 나가 있었다.
+     ⚠ 한 종목군을 바꾸면 **그 군의 전부**를 다시 재야 한다. 셋만 재고 둘을 놓쳤다.
+     화면째 재측정(연타 효과도 함께 확인됐다):
+       마라톤 4타 ✗ · 5타 24,382 · 7타 19,874 · **9타 17,383**
+       경보   4타 ✗ · 5타 33,555 · 7타 26,875 · 9타 23,078 (9타는 실격 문턱이라 7타를 기준으로)
+     → 마라톤 동 20,700 · 은 18,450 · 금 17,400
+        경보   동 31,900 · 은 28,500 · 금 26,900 */
 /* ⛔ **중장거리도 연타로 (2026-08-31 3차, CK 확정)**
      CK: "중장거리는 연타가 있되 체력이 깎이는 것도 있어서 밸런스 배분이 중요한 걸로"
      세 가지를 바꿨다:
@@ -358,12 +369,12 @@ const EVENTS = [
   { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회' },
   { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
   { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, distanceM:5000, cuts:{silver:1053, gold:992}, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
-  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:20910, parS:7800.0, distanceM:20000, cuts:{silver:18670, gold:17590}, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
+  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
         거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
-  { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:16375,
-    parS:6720, distanceM:42195, cuts:{silver:14620, gold:13770}, kind:'middle',
+  { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:20700,
+    parS:6720, distanceM:42195, cuts:{silver:18450, gold:17400}, kind:'middle',
     tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
   { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:36.90, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
