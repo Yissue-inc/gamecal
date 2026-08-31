@@ -108,14 +108,20 @@ class GrowPickScreen extends Screen0 {
       /* ⛔ 긴 영어 이름이 카드에서 **툭 잘렸다**('LIAM WALK…'). 자르면 누구인지 모른다.
          칸에 맞춰 **글자를 줄인다** — 8px 까지는 읽힌다. 그보다 길면 그때 자른다. */
       { const room = cw - (tx - x) - 4;
-        let fs = 10;
-        u.font = `${on?700:400} ${fs}px "Galmuri11","Nanum Gothic Coding",monospace`;
-        while(fs > 7 && u.measureText(a.name).width > room){
-          fs -= 1;
-          u.font = `${on?700:400} ${fs}px "Galmuri11","Nanum Gothic Coding",monospace`;
+        let fs = 10, nm = a.name;
+        const fits = () => { u.font = `${on?700:400} ${fs}px "Galmuri11","Nanum Gothic Coding",monospace`;
+                             return u.measureText(nm).width <= room; };
+        while(fs > 7 && !fits()) fs -= 1;
+        /* ⛔ 7px 바닥까지 줄여도 안 들어가면 **그냥 잘려 나갔다** — 'FREYA KOWALS'.
+           자른 티도 안 나서 그게 이름인 줄 안다. 성을 머릿글자로 줄이고,
+           그래도 안 되면 말줄임표를 붙인다 — **잘렸다는 사실이 보여야 한다.** */
+        if(!fits() && nm.indexOf(' ') > 0){
+          const p2 = nm.split(' ');
+          nm = p2[0] + ' ' + p2[p2.length-1].charAt(0) + '.';
         }
+        while(!fits() && nm.length > 3) nm = nm.slice(0, -2) + '…';
         u.save(); u.beginPath(); u.rect(x+2, y+2, cw-4, ch-4); u.clip();
-        txt(u, a.name, tx, y+15+(10-fs)*0.5, fs, on?PAL.gold:PAL.white, 'left', on?700:400);
+        txt(u, nm, tx, y+15+(10-fs)*0.5, fs, on?PAL.gold:PAL.white, 'left', on?700:400);
         u.restore(); }
       /* ⛔ 챕터 8 — 이 화면은 **누구를 키울까**를 고르는 곳이다. 그렇다면 필요한 건
          '지금 얼마나 세냐(OVR)'가 아니라 **얼마나 더 클 수 있나** 다.
@@ -492,10 +498,16 @@ class GrowScreen extends Screen0 {
       /* ⚠ 자리는 계산해서 잡는다. UIK.itemBox 의 라벨은 y+size+2 = 181+36+2 = 219 에
          size 8 로 그려진다(219~229). 222 에 뒀더니 '스파이크' 위에 '스킬'이 얹혀
          '스킬발'로 읽혔다. 푸터는 VH-16(=254)부터다 — 231~249 만 쓸 수 있다. */
+      /* ⛔ 슬롯 점을 x=40 에 박아 뒀다 — 한국어 '스킬'(20px)은 넘었지만
+         영어 'Skills'(29px)의 마지막 s 위에 첫 점이 앉았다('Skillṣ').
+         라벨 폭을 재서 그 뒤에 놓는다 — 자리를 박으면 번역이 들어오는 날 깨진다. */
       txt(u, K('스킬'), 16, 230, 8, PAL.dim, 'left');
+      let dotX = 40;
+      try{ u.font = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+           dotX = 16 + Math.ceil(u.measureText(K('스킬')).width) + 6; }catch(e){}
       for(let k=0;k<cap;k++){
         u.fillStyle = k<eq.length ? PAL.green : 'rgba(255,255,255,.18)';
-        u.fillRect(40+k*7, 231, 5, 5);
+        u.fillRect(dotX+k*7, 231, 5, 5);
       }
       u.save(); u.beginPath(); u.rect(14, 239, 132, 11); u.clip();
       txt(u, eq.length ? eq.map(id=>SKILL.def(id).name).join(' · ') : K('아직 없음'),
@@ -756,12 +768,14 @@ class ScoutReportScreen extends Screen0 {
     txt(u, K('스카우트 리포트'), VW/2, 12, 13, PAL.gold, 'center', 700);
     txt(u, `${a.speciesName} ${a.name} · ${a.age}세 · Lv.${a.lv||1}`, VW/2, 28, 10, PAL.white, 'center');
     /* 확신도 */
+    /* ⚠ 막대를 52 에서 시작하면 영어 'Confidence'(16~64) 를 덮는다 —
+       글자끼리가 아니라 **글자와 그림**이 겹치는 경우다(겹침 감시는 이걸 못 본다). */
     txt(u, K('확신도'), 16, 44, 8, PAL.dim, 'left');
-    const bw=120;
-    u.fillStyle='rgba(255,255,255,.12)'; u.fillRect(52, 45, bw, 6);
+    const bw=120, cbx=72;
+    u.fillStyle='rgba(255,255,255,.12)'; u.fillRect(cbx, 45, bw, 6);
     u.fillStyle = conf>=0.7?PAL.green:conf>=0.45?PAL.gold:PAL.red;
-    u.fillRect(52, 45, Math.round(bw*conf), 6);
-    txt(u, K(DEPTH.confName(conf)), 52+bw+6, 43, 9, PAL.white, 'left', 700);
+    u.fillRect(cbx, 45, Math.round(bw*conf), 6);
+    txt(u, K(DEPTH.confName(conf)), cbx+bw+6, 43, 9, PAL.white, 'left', 700);
     txt(u, K('%1주 함께함').replace('%1', a.trainingWeeks||0), VW-16, 43, 9, PAL.dim, 'right');
 
     /* 스탯별 범위 — 현재값 위에 '여기까지 갈 수도' 를 띠로 */
@@ -771,10 +785,14 @@ class ScoutReportScreen extends Screen0 {
       txt(u, STAT_NAME[k], 16, y, 9, PAL.white, 'left');
       /* 적성 — 이 종이 그 스탯을 얼마나 빨리 올리나. 데이터는 처음부터 있었다. */
       /* 적성 등급 — 글자만 떠 있으면 눈에 안 걸린다. 배지가 오면 그 안에. */
+      /* ⛔ 배지 자리(66)와 막대 시작(76)이 **영어 스탯 이름 위**였다 —
+         'Acceleration' 은 9px 로 65px 이라 16~81 을 쓴다(한국어 '가속'은 20px 였다).
+         ⚠ 글자만 옮기고 배지를 안 옮기면 소용없다 — badge() 가 성공하면 아래 txt 는
+            **아예 안 불린다.** 두 갈래를 같이 옮긴다. */
       const ap=DEPTH.aptOf(a, k);
-      if(!UIK.badge(u, 66, y+5, 14, ap.key, ap.color))
-        txt(u, ap.key, 62, y, 10, ap.color, 'left', 700);
-      const x0=76, w=VW-76-70;
+      if(!UIK.badge(u, 84, y+5, 14, ap.key, ap.color))
+        txt(u, ap.key, 84, y, 10, ap.color, 'left', 700);
+      const x0=102, w=VW-102-90;
       const px=(v)=>x0 + (clamp(v,20,99)-20)/79*w;
       u.fillStyle='rgba(255,255,255,.08)'; u.fillRect(x0, y+2, w, 7);
       /* 예상 범위 */
@@ -816,11 +834,12 @@ class ScoutReportScreen extends Screen0 {
           뺏는다(연인원 결장 16 → 29). 다시 뽑을 수 있어야 한다. */
     const tr=a.traits||[], ry=VH-40;
     txt(u, K('특성'), 16, ry, 8, PAL.dim, 'left');
-    if(!tr.length) txt(u, K('없음'), 44, ry-1, 9, PAL.dim, 'left');
+    if(!tr.length) txt(u, K('없음'), 56, ry-1, 9, PAL.dim, 'left');
     tr.forEach((t,i)=>{
       const on = i===(this.tsel||0) && tr.length>0;
       const bad = (t==='glass'||t==='nervous');
-      const x = 44 + i*96;
+      /* ⚠ 44 면 강조 상자(x-4=40)가 영어 'Traits'(16~45) 를 문다 */
+      const x = 56 + i*96;
       /* ⚠ 높이 14 면 상자가 ry+11 까지 간다 — 설명 글이 ry+9 에서 시작하니 윗선 2px 를
          파고들어 글자가 뭉개진다. 이름 줄에서 딱 끊는다(ry-3 ~ ry+9). */
       if(on){ u.fillStyle='rgba(255,215,94,.18)'; u.fillRect(x-4, ry-3, 92, 12); }
@@ -950,7 +969,10 @@ class DailyScreen extends Screen0 {
     const r=this.evs.map(e=>{
       const v=d.marks[e.id];
       const done=v!==undefined;
-      return { label:(done?'✓ ':'▶ ')+e.name,
+      /* ⛔ 표시를 이름 **앞에 붙인 채로** K() 에 넘겼다 — '✓ 조정 500m' 은 표에 없다
+         (표에 있는 건 '조정 %1m'). 그래서 다른 종목은 번역되는데 이것만 한국어로 떴다.
+         조각마다 번역하고 붙인다 — 이 레포의 규칙 그대로. */
+      return { label:(done?'✓ ':'▶ ')+K(e.name),
         sub: done ? (v===null ? K('기록 없음')
                               : `${fmtRec(e,v)} · ${UIK.n(Daily.scoreOf(e,v))}점`)
                   : K('아직 안 뛰었다'),
@@ -1005,7 +1027,7 @@ class DailyScreen extends Screen0 {
     UIK.itemBox(u, VW-118, y+4, bs, { color:'#ffcf4a', qty:rw.coin, icon:'icon-coin' });
     UIK.itemBox(u, VW-88,  y+4, bs, { color:PAL.blue,  qty:rw.xp,   icon:'icon-xp' });
     txt(u, d.claimed ? K('받았습니다') : d.done ? K('받을 수 있습니다') : K('세 종목을 마치면 받습니다'),
-        VW-56, y+30, 8, d.claimed?PAL.dim:d.done?PAL.gold:PAL.dim, 'center');
+        VW-92, y+30, 8, d.claimed?PAL.dim:d.done?PAL.gold:PAL.dim, 'center');  /* ⚠ VW-56 은 영어에서 4px 넘친다(364~484) */
     UI.footer(u, '확인 도전/받기   취소 돌아가기');
   }
 }
@@ -1193,19 +1215,37 @@ class CodexScreen extends Screen0 {
     if(this.mg) UIK.resourceBar(u, 0, [{ value:Math.round(this.mg.club.budget), color:'#ffcf4a', icon:'icon-coin' }]);
     /* ⚠ VW-8 에 오른쪽 정렬하면 일시정지 아이콘과 겹친다(실측). 아이콘 폭만큼 비운다 */
     txt(u, K('종족 도감'), VW-26, 3, 11, PAL.gold, 'right', 700);
-    /* 전체 진행 */
-    txt(u, K('등록'), 8, 20, 8, PAL.dim, 'left');
-    txt(u, `${T.owned} / ${T.total}`, 32, 18, 12, PAL.gold, 'left', 700);
-    txt(u, K('본 것 %1').replace('%1', T.seen), 92, 20, 9, PAL.dim, 'left');
-    txt(u, K('전당 %1').replace('%1', T.hall), 140, 20, 9, PAL.blue, 'left');
-    /* 등급 탭 — ▲▼ 로 옮긴다 */
+    /* 전체 진행
+       ⛔ 자리를 8·32·92·140 으로 **박아 뒀다.** 한국어('등록' 2글자)로는 맞았지만
+          영어('Collected')는 43px 라 값 위로 올라타 'Colle30d / 60' 이 됐다
+          (2026-08-31 감독모드 캡처). 낱말 길이는 언어마다 다르다 —
+          **재서 이어 놓는다.** 박은 자리는 번역이 들어오는 순간 반드시 깨진다. */
+    const adv = (s2, size, weight) => {
+      try{ u.font = `${weight||400} ${size}px "Galmuri11","Nanum Gothic Coding",monospace`;
+           return u.measureText(K(s2)).width; }catch(e){ return String(s2).length*size*0.55; }
+    };
+    let cx = 8;
+    txt(u, K('등록'), cx, 20, 8, PAL.dim, 'left');        cx += adv('등록', 8) + 5;
+    const ownedS = `${T.owned} / ${T.total}`;
+    txt(u, ownedS, cx, 18, 12, PAL.gold, 'left', 700);    cx += adv(ownedS, 12, 700) + 10;
+    const seenS = K('본 것 %1').replace('%1', T.seen);
+    /* ⛔ 넷을 한 줄에 이어 놓으면 **오른쪽 등급 탭 위로 밀고 들어간다**(실측: 'Hall 0' 이
+       'Common' 탭을 25px 물었다). 벽을 세워 자르면 이번엔 **말없이 사라진다** —
+       잘라서 없애는 건 겹침을 고친 게 아니라 정보를 버린 것이다.
+       셋만 첫 줄에 두고 '전당'은 아래 줄로 내린다(격자는 y50 부터라 비어 있다). */
+    const WALL = VW - 8 - 4*62 - 58;
+    if(cx + adv(seenS, 9) <= WALL - 4) txt(u, seenS, cx, 20, 9, PAL.dim, 'left');
+    txt(u, K('전당 %1').replace('%1', T.hall), 8, 32, 9, PAL.blue, 'left');
+    /* 등급 탭 — ▲▼ 로 옮긴다.
+       ⚠ 이름을 칸 가운데, 개수를 칸 오른쪽 끝에 두면 **영어 이름이 길어질 때 서로 문다**
+         ('Elite' 와 '12/18' 이 3px 겹쳤다). 이름은 왼쪽, 개수는 오른쪽 — 층을 나눈다. */
     for(let t2=1;t2<=5;t2++){
       const on=t2===this.tier, c=Codex.countTier(t2);
       const rr=(typeof RARITY!=='undefined')?RARITY[t2]:{name:'',color:PAL.white};
       const x=VW-8-(5-t2)*62;
       UIK.tab(u, x-58, 16, 58, 15, '', on);
-      txt(u, K(rr.name), x-38, 19, 9, on?rr.color:PAL.dim, 'center', on?700:400);
-      txt(u, `${c.owned}/${c.total}`, x-6, 20, 7,
+      txt(u, K(rr.name), x-54, 19, 8, on?rr.color:PAL.dim, 'left', on?700:400);
+      txt(u, `${c.owned}/${c.total}`, x-5, 21, 7,
           (c.owned>=c.total&&c.total)?PAL.green:PAL.dim, 'right');
     }
     /* ── 격자 ─────────────────────────────────────────────
@@ -1267,10 +1307,12 @@ class CodexScreen extends Screen0 {
        나가 잘린다 — 실측으로 '종족당 +0.3%' 와 '30 / 36' 두 줄을 잃었다.
        그래서 셋째 줄에 있던 것은 전부 첫째 줄 라벨 안으로 접어 넣는다. */
     /* ① 등록 수가 곧 영구 성장 보너스 */
-    txt(u, K('영구 성장  종족당 +0.3%'), 16, VH-37, 7, PAL.dim, 'left');
+    /* ⚠ 이 라벨은 mx(=100) 에서 시작하는 '다음 이정표' 와 같은 줄이다 —
+       영어로 133px 이 되어 두 줄이 겹쳐 '+0N3xtpmelaspecies' 로 보였다. 짧게 옮긴다. */
+    txt(u, K('영구 성장 +0.3%/종'), 16, VH-37, 7, PAL.dim, 'left');
     txt(u, '+' + (Codex.growBonus().grow*100).toFixed(1) + '%', 16, VH-30, 13, PAL.green, 'left', 700);
     /* ② 다음 이정표 */
-    const mx=100, bw=110;
+    const mx=118, bw=100;   /* ⚠ 100 은 영어 'Growth +0.3% / species'(16~102) 와 겹친다 */
     if(nx){
       const prev=(Codex.MILESTONES.filter(m=>m.n<=T.owned).pop()||{n:0}).n;
       const p=clamp((T.owned-prev)/Math.max(1,nx.n-prev), 0, 1);

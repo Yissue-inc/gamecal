@@ -148,9 +148,7 @@ class TripleJumpEvent extends LongJumpEvent {
     });
     /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
     txt(u, K('속도')+' '+((this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
-    for(let i=0;i<3;i++){ const m=this.marks[i];
-      txt(u, i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))), 250+i*70, 13, 9,
-          m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
+    /* ⛔ 옛 '시기별 기록' 루프 제거 — SB.tally 의 칩과 중복이고 메달 레일을 덮었다 */
 
     if(this.phase==='RUNUP'){
       const left = RULES.boardPositionM - this.runner.distM;
@@ -465,7 +463,7 @@ class PoleVaultEvent extends FieldEvent {
       history: (this.marks||[]).filter(m => m !== undefined)
                  .map(m => m === null ? 'F' : +(+m).toFixed(2)),
     });
-    txt(u, K('실패')+' '+'●'.repeat(this.misses)+'○'.repeat(3-this.misses),
+    txt(u, K('무효')+' '+'●'.repeat(this.misses)+'○'.repeat(3-this.misses),
         8, 36, 10, this.misses ? PAL.red : PAL.dim, 'left');
 
     if(this.phase==='RUNUP'){
@@ -483,12 +481,12 @@ class PoleVaultEvent extends FieldEvent {
       txt(u,`꽂기 ${Math.round(this.plantQ*100)}%`,VW/2,80,10,
           this.plantQ>0.7?PAL.green:PAL.gold,'center');
     } else if(this.phase==='RESULT'){
-      txt(u,this.cleared?'성공!':'실패',VW/2,92,26,this.cleared?PAL.green:PAL.red,'center',700);
+      txt(u,this.cleared?'성공!':'넘지 못했다',VW/2,92,26,this.cleared?PAL.green:PAL.red,'center',700);
       if(this.reach) txt(u,`도달 ${this.reach.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`,VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; u.save(); u.globalAlpha=a;
-      txt(u,this.msg,VW/2,68,12,this.msgBad?PAL.red:PAL.green,'center',700); u.restore();
+      txt(u,this.msg,VW/2,104,12,this.msgBad?PAL.red:PAL.green,'center',700); u.restore();   /* ⚠ 68 은 '당기기 6/8'(62~77) 위다 */
     }
   }
 }

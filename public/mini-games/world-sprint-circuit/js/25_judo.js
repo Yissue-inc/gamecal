@@ -296,7 +296,7 @@ class JudoEvent {
     SB.versus(u, {
       myLabel: this.humanCount>1?'1P':'나', mine: score(A),
       foeLabel: this.humanCount>1?'2P':'상대', foe: score(B),
-      target: '한판 선취', note: fmtTime(this.elapsed),
+      target: '한판 선취', clock: fmtTime(this.elapsed),
       first: JUDO.toWin, lead: A.pts - B.pts,
     });
 

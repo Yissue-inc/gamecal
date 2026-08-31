@@ -46,7 +46,7 @@ class EntryScreen extends Screen0 {
         const set = [...new Set(ids.map(id=>TACTIC.of(S, id)))];
         plan = set.length===1 ? TACTIC.label(set[0]) : '섞임';
       }
-      return { label:(man?'▶ ':'')+ev.name,
+      return { label:(man?'▶ ':'')+K(ev.name),   /* ⚠ 표시를 붙인 채 넘기면 표에 안 맞는다(도전 화면과 같은 사고) */
         sub: (man? '직접 뛴다 · ' : '') + (names.length? names.join(', ') : '출전 없음')
              + (plan ? '  ·  ' + K('플랜') + ' ' + K(plan) : ''),
         right:`${ids.length} / ${cap}`,

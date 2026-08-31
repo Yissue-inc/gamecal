@@ -355,8 +355,11 @@ class SwimEvent {
   }
 
   drawUI(u){
-    HUD.race(u, { timeS:Math.max(0,this.elapsed), speed:this.speed, distM:this.dist,
-      trackM:this.trackM, qualify:this.qualify, best:Save.data.best[this.def.id] });
+    /* ⚠ 계영(2B_swimrelay)은 y30~52 에 구간 띠를 깔고 (6,34) 에 주자 정보를 쓴다 —
+       메달 레일과 고스트 순위표가 그 밑에 깔린다. 하위 클래스가 자리를 알려 준다. */
+    HUD.race(u, Object.assign({ def:this.def, timeS:Math.max(0,this.elapsed), speed:this.speed,
+      distM:this.dist, trackM:this.trackM, qualify:this.qualify,
+      best:Save.data.best[this.def.id] }, this.hudExtra || {}));
     txt(u, this.S.name, VW/2, 4, 12, this.S.color, 'center', 700);
 
     if(this.phase==='SET'){
@@ -402,7 +405,7 @@ class SwimEvent {
         }
       }
       if(this.turns.length)
-        txt(u, '턴 '+this.turns.map(q=>Math.round(q*100)+'%').join(' · '), VW-8, 40, 9, PAL.dim, 'right');
+        txt(u, '턴 '+this.turns.map(q=>Math.round(q*100)+'%').join(' · '), VW-8, 44, 9, PAL.dim, 'right');  /* ⚠ 40 은 메달 레일 받침(30~41)에 물린다 */
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; u.save(); u.globalAlpha=a;

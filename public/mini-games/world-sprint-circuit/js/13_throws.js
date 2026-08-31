@@ -132,9 +132,7 @@ class JavelinEvent extends FieldEvent {
     });
     /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
     txt(uctx, K('속도')+' '+(this.runner.speed.toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
-    for(let i=0;i<3;i++){ const m=this.marks[i];
-      txt(uctx,i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),250+i*70,13,9,
-          m===null?PAL.red:(m===undefined?PAL.dim:PAL.white)); }
+    /* ⛔ 옛 '시기별 기록' 루프 제거 — SB.tally 의 칩과 중복이고 메달 레일을 덮었다 */
 
     if(this.phase==='RUNUP'){
       const left = RULES.javelinFoulLineM - this.runner.distM;

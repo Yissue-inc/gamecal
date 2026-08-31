@@ -345,7 +345,7 @@ class MiddleEvent {
       });
     }
     const me=this.runners[0];
-    HUD.race(u, { timeS:Math.max(0,this.elapsed), speed:me.speed,
+    HUD.race(u, { def:this.def, timeS:Math.max(0,this.elapsed), speed:me.speed,
                   distM:me.dist, trackM:this.trackM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });
     /* 페이스 3단 — 이 종목 조작의 중심이니 화면에서도 중심에 둔다 */
@@ -358,7 +358,10 @@ class MiddleEvent {
     }
     txt(u,'▲▼', x0-8, y+4, 9, PAL.dim,'right');
     /* 체력 — 페이스 줄 위에 한 칸 띄워 놓는다(라벨이 막대를 덮고 있었다) */
-    const sw=110, sx=VW/2-sw/2, sy=y-17;
+    /* ⚠ y-17 은 **복합종목의 구간 띠**(216~238)와 같은 자리다 —
+       철인3종 달리기 구간에서 '체력' 라벨이 'Run' 위에 겹쳤다(2026-08-31 겹침 감시).
+       띠가 두 줄(22px)로 커지면서 한 번 더 올렸다. 단독 종목에선 한 칸 더 뜰 뿐이다. */
+    const sw=110, sx=VW/2-sw/2, sy=y-38;
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(sx,sy,sw,6);
     u.fillStyle=me.stamina>0.5?PAL.green:me.stamina>0.22?PAL.gold:PAL.red;
     u.fillRect(sx,sy,Math.round(sw*me.stamina),6);

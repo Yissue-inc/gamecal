@@ -193,12 +193,10 @@ class LongJumpEvent extends FieldEvent {
     });
     /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
     txt(uctx, K('속도')+' '+((this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
-    // 시기별 기록
-    for(let i=0;i<3;i++){
-      const m=this.marks[i];
-      txt(uctx, i+1+'차 '+(m===undefined?'-':(m===null?'파울':m.toFixed(2))),
-          250+i*70, 13, 9, m===null?PAL.red:(m===undefined?PAL.dim:PAL.white));
-    }
+    /* ⛔ 여기 있던 '시기별 기록' 루프를 지웠다(2026-08-31 캡처).
+       SB.tally 의 칩이 같은 것을 이미 보여 주는데 **옛 줄이 살아 남아** x=250·320·390 에
+       겹쳐 그렸고, 390 은 메달 레일(350~454) 위였다. 한 화면에 같은 정보가 두 벌 있으면
+       하나는 반드시 다른 것을 덮는다. */
 
     if(this.phase==='RUNUP'){
       const left = RULES.boardPositionM - this.runner.distM;
@@ -209,7 +207,10 @@ class LongJumpEvent extends FieldEvent {
       const now=this.t, tgt=this.runner.targetIntervalMs();
       const err = this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tgt)/tgt,-1,1);
       HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide:-this.runner.lastSide||1, phaseErr:err, form:this.runner.form, rate:(this.runner.strideRate||0)});
-      HUD.judge(uctx, this.runner.lastJudge, now-this.runner.lastJudgeMs);
+      /* ⚠ 기본 자리(y38, PERFECT 는 17px 라 38~55)는 **구름판 안내 줄(44)** 위다 —
+         'PERFECT!' 가 '28.2m to the board' 를 82px 물었다(2026-08-31 겹침 감시).
+         하늘 쪽으로 내린다(관중석은 y120 부터라 96 은 빈 하늘이다). */
+      HUD.judge(uctx, this.runner.lastJudge, now-this.runner.lastJudgeMs, undefined, 96);
     } else if(this.phase==='FLIGHT'){
       txt(uctx,'액션을 눌렀다 놓아 자세를 잡으세요', VW/2, 44, 12, PAL.gold,'center',700);
       if(this.holdStart>=0){
@@ -351,7 +352,7 @@ class HighJumpEvent extends FieldEvent {
       history: (this.marks||[]).filter(m => m !== undefined)
                  .map(m => m === null ? 'F' : +(+m).toFixed(2)),
     });
-    txt(uctx, K('실패')+' '+'●'.repeat(this.misses)+'○'.repeat(RULES.hjMaxMisses-this.misses),
+    txt(uctx, K('무효')+' '+'●'.repeat(this.misses)+'○'.repeat(RULES.hjMaxMisses-this.misses),
         8, 36, 10, this.misses ? PAL.red : PAL.dim, 'left');
 
     if(this.phase==='APPROACH'){
@@ -373,7 +374,7 @@ class HighJumpEvent extends FieldEvent {
       txt(uctx,'좌·우를 두드려 몸을 넘기세요', VW/2, 44, 13, PAL.gold,'center',700);
       txt(uctx,`${this.airTaps} / 6`, VW/2, 62, 15, this.airTaps>=6?PAL.green:PAL.white,'center',700);
     } else if(this.phase==='RESULT'){
-      txt(uctx, this.cleared?'성공!':'실패', VW/2, 92, 26, this.cleared?PAL.green:PAL.red,'center',700);
+      txt(uctx, this.cleared?'성공!':'넘지 못했다', VW/2, 92, 26, this.cleared?PAL.green:PAL.red,'center',700);
       if(this.reachM) txt(uctx, `도달 ${this.reachM.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`, VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){

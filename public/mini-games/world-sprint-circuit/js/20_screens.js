@@ -1007,12 +1007,22 @@ const G = {
         if(p.hurdlesClean!==undefined && ev.marks===undefined && this.def.id==='hurdles110')
           sub += `  ·  허들 ${p.hurdlesClean}/${RULES.hurdleCount}`;
         if(sub) txt(uctx, sub, VW/2, 151, 10, PAL.dim,'center');
-      } else if(ev.marks){
-        /* ⚠ 세 시기를 한 문자열로 붙이면 숫자가 6개라 번역 자리표가 안 맞는다 —
-           조각마다 번역하고 붙인다. */
-        txt(uctx, ev.marks.map((m,i)=>K('%1차 %2').replace('%1',i+1)
-              .replace('%2', m===null?K('파울'):m.toFixed(2))).join('   '),
-            VW/2, 138, 10, PAL.white,'center');
+      } else if(ev.marks && ev.marks.length){
+        /* ⛔ 세 시기짜리(도약·투척)만 보고 만든 줄이다. **사다리 종목은 시기가 8개까지 간다** —
+           높이뛰기 결과에서 이 줄이 −175~655px, 즉 화면(0~480) **양쪽으로 넘쳤다**
+           (2026-08-31 넘침 감시). 붙여 쓰는 줄에는 언제나 '몇 개까지'가 있어야 한다.
+           경기 중 점수판과 같은 얼굴(칩)로 그린다 — 폭이 값에 맞춰 잡히고 개수도 잘린다. */
+        const chips = ev.marks.map(m => m === null ? 'F' : +(+m).toFixed(2));
+        if(typeof SB !== 'undefined' && SB.chips){
+          let cw = 21;
+          try{ uctx.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
+               let mw = 0; for(const v of chips) mw = Math.max(mw, uctx.measureText(String(v)).width);
+               cw = Math.ceil(mw) + 5; }catch(e){}
+          const maxN = Math.max(1, Math.min(chips.length, Math.floor((VW - 32) / cw)));
+          SB.chips(uctx, chips, VW/2 - maxN*cw/2, 139, maxN, cw);
+        } else {
+          txt(uctx, chips.slice(-3).join('   '), VW/2, 138, 10, PAL.white, 'center');
+        }
       }
       /* ⛔ 결과가 '통과/미달' 둘뿐이라 **얼마나 잘했는지**가 안 보였다.
          메달과 **다음 칸까지 남은 거리**를 적는다 — 그게 다시 뛸 이유다. */
@@ -1020,10 +1030,13 @@ const G = {
         const m = medalOf(d, r.value), cuts = medalCuts(d);
         if(m){
           /* ⚠ y=124 는 '기준 11.30초'(y=116) 줄과 겹쳤다(실측). 그 아래 빈 칸으로 내린다.
-             판정 줄은 136 이므로 126~134 만 쓸 수 있다. */
-          const my = 126;
+             ⛔ 126 으로 내려 놓고 **동그라미는 안 옮겼다** — 원은 my+4 에 반지름 6 이라
+                위쪽 끝이 124 다. 글자만 내리고 그림은 그대로 두면 겹침이 그대로 남는다.
+                유도 결과 캡처(2026-08-31)에서 '銀' 배지가 '기준 45.00s' 를 물고 있었다.
+                글자 128(9px→137) · 원 반지름 5 로 127~137. 판정 줄(139) 바로 위에 딱 든다. */
+          const my = 128;
           uctx.fillStyle = MEDAL_COLOR[m];
-          uctx.beginPath(); uctx.arc(VW/2-56, my+4, 6, 0, Math.PI*2); uctx.fill();
+          uctx.beginPath(); uctx.arc(VW/2-56, my+4, 5, 0, Math.PI*2); uctx.fill();
           txt(uctx, MEDAL_MARK[m], VW/2-56, my, 9, '#2a2010', 'center', 700);
           const nextKey = m==='bronze' ? 'silver' : m==='silver' ? 'gold' : null;
           if(nextKey){

@@ -73,7 +73,9 @@ const SB = {
     const px = v => x + Math.round(w * frac(v));
 
     /* 기준 아래 구간은 어둡게 — '아직 메달권이 아니다' 가 색으로 읽힌다 */
-    u.fillStyle = 'rgba(242,245,250,.10)'; u.fillRect(x, y, w, 3);
+    /* ⚠ .10 은 어두운 판 위에서 **안 보인다** — 기준 아래 구간이 사라져서
+       바늘이 레일과 떨어져 허공에 떠 보였다(양궁·사격 캡처). 자는 끝까지 보여야 자다. */
+    u.fillStyle = 'rgba(242,245,250,.20)'; u.fillRect(x, y, w, 3);
     const seg = (v0, v1, col) => {
       const a = Math.min(px(v0), px(v1)), bx = Math.max(px(v0), px(v1));
       u.fillStyle = col; u.fillRect(a, y, Math.max(1, bx - a), 3);
@@ -127,14 +129,22 @@ const SB = {
       const w1 = u.measureText(K(o.name || '')).width;
       u.font = '700 11px "Galmuri11","Nanum Gothic Coding",monospace';
       const w2 = o.progress ? u.measureText(K(o.progress)).width : 0;
-      leftEnd = X + 10 + Math.max(w1, w2);
+      /* ⚠ 4px 로는 칩 바탕이 글자에 **닿는다**(높이뛰기 '1.77m|1.65'). 10px 로 띄운다. */
+      leftEnd = X + 16 + Math.max(w1, w2);
     }catch(e){}
 
     /* ── 오른쪽: 내 점수. **화면에서 제일 큰 숫자** */
     const val = o.mine;
     const shown = (val === undefined || val === null || !isFinite(val)) ? '--'
                 : (typeof o.fmt === 'function' ? o.fmt(val) : String(val));
-    const railVal = (o.pace !== undefined && isFinite(o.pace)) ? o.pace : val;
+    /* ⛔ **기록이 없을 때 바늘을 찍으면 '꼴찌'로 읽힌다.** 높이뛰기 캡처(2026-08-31):
+       첫 시기 전 best=0 이라 바늘이 레일 맨 왼쪽에 박혀 있었다 — 뜻은 '아직 안 뛰었다'인데
+       화면은 '한참 모자란다'로 말했다(양궁에서 이미 한 번 물린 것과 같은 실수다).
+       숫자에 자릿수가 하나도 없으면('--.--' · '—' · '--') **바늘을 아예 안 찍는다** —
+       레일은 목표 자리만 보여 주면 된다. */
+    const hasNum = /[0-9]/.test(shown);
+    const railVal = (o.pace !== undefined && isFinite(o.pace)) ? o.pace
+                  : (hasNum ? val : undefined);
     const gr = this.gradeOf(railVal, o.cuts, o.higher);
     const RIGHT = this.RX - 8, RAIL_W = 104, RAIL_X = RIGHT - RAIL_W;
     this.big(u, shown, RIGHT, 3, gr ? gr.col : PAL.gold, 'right');
@@ -154,9 +164,21 @@ const SB = {
 
     /* ── 가운데: 시도별 칩. 예전엔 '0 0 1 3' 이 흐린 글씨로 붙어 있었다 */
     if(o.history && o.history.length){
-      const cw = o.history.some(v => String(v).length > 2) ? 17 : 13;
+      /* ⛔ 칸 폭을 17/13 **둘 중 하나로 박아 뒀다.** '21.33' 은 8px 로 21px 이라
+         17px 칸에서 옆 칸 글자를 물었다(원반·해머 캡처에서 7px 겹침).
+         길이는 값이 정한다 — **제일 긴 값을 재서** 칸을 잡는다. */
+      let cw = 13;
+      try{
+        u.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
+        let mw = 0;
+        for(const v of o.history) mw = Math.max(mw, u.measureText(String(v)).width);
+        cw = Math.ceil(mw) + 5;
+      }catch(e){ cw = o.history.some(v => String(v).length > 2) ? 21 : 13; }
       const cx = leftEnd, room = RAIL_X - 8 - cx;
-      if(room > cw) this.chips(u, o.history, cx, 11, Math.max(1, Math.floor(room / cw)), cw);
+      /* ⛔ y=11 은 **종목 이름 줄(y 5~14) 과 겹친다** — 멀리뛰기 캡처에서 '4.98' 칩이
+         'Long Jump' 의 p 를 물고 있었다. 진행 줄(y 16~27)과 같은 높이로 내린다:
+         이름은 위 한 줄, 진행과 칩은 아래 한 줄 — 층이 갈려야 둘 다 읽힌다. */
+      if(room > cw) this.chips(u, o.history, cx, 18, Math.max(1, Math.floor(room / cw)), cw);
     }
 
     /* ── 상대가 있으면 나란히 */
@@ -198,6 +220,11 @@ const SB = {
 
     /* 가운데 — 목표와 상황 */
     if(o.target) txt(u, o.target, midX, 4, 9, PAL.dim, 'center');
+    /* ⛔ 시계를 `note` 로 넘기면 **점수로 읽힌다** — 펜싱 캡처에서 '0 · 13.51 · 5' 가
+       나란히 놓여 13.51 이 가운데 점수처럼 보였다(굵은 금색이라 더 그랬다).
+       시계는 시계처럼 — 흐린 흰색·보통 굵기. 금색 굵은 자리는 '매치포인트' 같은
+       **상황**에만 준다. */
+    if(o.clock)  txt(u, o.clock, midX, 16, 11, PAL.dim, 'center');
     if(o.note)   txt(u, o.note, midX, 15, 12, PAL.gold, 'center', 700);
 
     /* 우세 막대 — 누가 얼마나 앞서는지를 **길이**로 */

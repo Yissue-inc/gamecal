@@ -240,7 +240,7 @@ class RelayEvent extends SprintEvent {
   }
   drawUI(u){
     if(this._hd){ for(const c of this._hd) CharHD.draw(u, c.sp, c.x, c.y, c.ph, c.o); this._hd=null; }
-    HUD.race(u, { timeS:Math.max(0,this.elapsed), speed:this.legs[this.cur].speed,
+    HUD.race(u, { def:this.def, noStandings:true, timeS:Math.max(0,this.elapsed), speed:this.legs[this.cur].speed,
       distM:this.teamDist, trackM:400, qualify:this.qualify, best:Save.data.best[this.def.id] });
     /* 주자 표시 */
     plate(u, 6, 34, 116, 12+4*11, .8);

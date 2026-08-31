@@ -258,7 +258,7 @@ class GolfEvent {
     /* 바람 */
     const wdir=this.wind>0?'▶':'◀';
     txt(u, K('바람')+' '+wdir+' '+Math.abs(this.wind).toFixed(1),
-        VW-8, 30, 10, Math.abs(this.wind)>0.5?PAL.red:PAL.dim,'right',700);
+        VW-8, 38, 10, Math.abs(this.wind)>0.5?PAL.red:PAL.dim,'right',700);
     /* 게이지 — 세기와 정확도를 한 막대에서 본다 */
     if(this.phase==='POWER'||this.phase==='ACC'){
       const bw=170, bx0=VW/2-bw/2, by0=VH-30;
@@ -275,31 +275,31 @@ class GolfEvent {
       txt(u, this.phase==='POWER'? K('세기 — 액션으로 멈춤') : K('정확도 — 초록에서 액션'),
           VW/2, by0-14, 10, this.phase==='ACC'?PAL.green:PAL.white,'center',700);
     }
-    /* HUD */
-    plate(u,0,0,VW,26,.8);
-    txt(u, this.def.name, 8, 4, 11, PAL.gold,'left',700);
-    txt(u, (this.hole+1)+'번 홀  파 '+H.par, VW/2, 4, 12, PAL.white,'center',700);
-    txt(u, K('타수')+' '+this.strokes, VW/2+64, 6, 10, PAL.dim,'left',700);
+    /* HUD — ⛔ 골프만 **혼자 다른 얼굴**이었다(2026-08-31 캡처 대조).
+       47종목은 SB.tally 의 판 위에 [이름 | 진행 | 큰 숫자 | 레일] 로 서 있는데
+       골프는 자기 판(26px)에 자기 배치였다. 레일은 있었으니 '틀렸다'가 아니라
+       **한 게임처럼 안 보였다** — 점수판을 한 곳에서 그리기로 한 이유가 그것이다. */
     const rel=this.totalStrokes-this.totalPar;
-    txt(u, rel===0?'E':(rel>0?'+'+rel:String(rel)), VW-30, 3, 15,
-        rel<=0?PAL.green:PAL.red,'right',700);
-    /* 메달 레일 — 골프는 컷이 0 / −2 / −4 라 숫자만 봐선 어디쯤인지 안 잡힌다 */
-    if(typeof SB!=='undefined') SB.rail(u, VW-134, 21, 100, rel,
-      medalCuts(this.def), !!this.def.higher, false);
-    txt(u, K('남은 거리')+' '+Math.round(this.toHole)+'m', 8, 30, 10,
+    const relS = v => v===0?'E':(v>0?'+'+v:String(v));
+    SB.tally(u, {
+      name: this.def.name,
+      progress: K('%1번 홀').replace('%1', this.hole+1)+' · '+K('파')+' '+H.par,
+      mine: rel, fmt: relS,
+      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      /* 홀별 결과가 곧 시기별 기록이다 — 칩으로 */
+      history: this.scores.map(s => relS(s.strokes-s.par)),
+      foe: { label: K('타수'), value: String(this.strokes) },
+    });
+    /* ⚠ 아래 줄들은 예전 26px 판 기준이었다 — SB 판은 34 까지다. 그만큼 내린다. */
+    txt(u, K('남은 거리')+' '+Math.round(this.toHole)+'m', 8, 38, 10,
         this.onGreen?PAL.green:PAL.white,'left',700);
     if(this.phase==='AIM'){
-      txt(u, '▲▼ '+K(this.C.name)+'  '+this.C.dist+'m', 8, 42, 10, PAL.gold,'left',700);
+      txt(u, '▲▼ '+K(this.C.name)+'  '+this.C.dist+'m', 8, 50, 10, PAL.gold,'left',700);
       txt(u, K('라이')+' '+K(this.lie==='fairway'?'페어웨이':this.lie==='bunker'?'벙커':'러프'),
-          8, 54, 9, this.lie==='fairway'?PAL.dim:PAL.red,'left');
+          8, 62, 9, this.lie==='fairway'?PAL.dim:PAL.red,'left');
       if(this.strokes===0 && this.hole===0)
         txt(u,'←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)', VW/2, VH-46, 10, PAL.white,'center');
     }
-    this.scores.forEach((s,i)=>{
-      const d=s.strokes-s.par;
-      txt(u, (i+1)+': '+s.strokes+'('+(d===0?'E':(d>0?'+'+d:d))+')',
-          VW-8, 44+i*11, 9, d<=0?PAL.green:PAL.dim,'right');
-    });
     if(this.t-this.msgAt<1100)
       txt(u, this.msg, VW/2, 62, 14, this.msgBad?PAL.red:PAL.green,'center',700);
   }

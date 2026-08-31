@@ -715,6 +715,9 @@ const I18N_EN = {
   '총소리를 듣고 나서 두드리세요':'Wait for the gun, then tap',
   'SPACE: 다시  ·  Q: 종목 선택':'SPACE: Retry  ·  Q: Event list',
   '완벽':'Perfect', '어긋남':'Off', '성공!':'Made it!',
+  /* ⛔ 도약의 '실패' 를 역도의 '실패'(No lift) 와 같은 키로 쓰면 안 된다 —
+     높이뛰기 화면에 'No lift ○○○' 이 떴다(2026-08-31 캡처). 낱말을 갈랐다. */
+  '무효':'Misses', '넘지 못했다':'Missed',
   '세 번 모두 파울':'All three fouled', '기준 %1':'Target %1',
   '나':'You', '상대':'Rival', '점수':'Score', '높이':'Height', '회차':'Bounce',
 
@@ -1420,10 +1423,84 @@ const I18N_EN = {
   '저장된 클럽이 손상되어 열 수 없습니다':'The saved club is damaged and cannot be opened',
   /* 연타 게이지 */
   '타수':'Strokes',
-  '빠를수록 빠르다':'Faster taps = faster',
+  '빠를수록 빠르다':'Faster taps = faster', '연타수':'Taps/s',
   '막판에 — 결승선 앞에서 몸을 던진다':'Save it — lean at the finish line',
   '아직 자세를 못 잡았다':'Not set yet',
   '전환 구역 — 뛰어서 빠져나간다':'Transition — hustle through',
   '전환 구역':'Transition',
   '액션을 눌러 빨리 빠져나간다':'Press Action to hustle through',
+
+  /* ══ 백틱 템플릿에서 새던 39건 (2026-08-31) ═════════════════════════
+     ⛔ 이 39개는 **코드에 계속 있었는데 검사기가 한 번도 못 봤다** —
+        i18ncheck 가 작은따옴표만 읽고 `백틱`을 통째로 건너뛰었기 때문이다.
+        계영 캡처에서 '턴까지 5.6m' 이 영어 화면에 그대로 뜬 걸 눈으로 보고서야 알았다.
+        검사기가 초록불이면 '샌 게 없다'가 아니라 **'검사기가 본 것 중엔 없다'** 이다. */
+  '자세 %1%':'Form %1%',
+  '섹터 밖 (%1°)':'Outside the sector (%1°)',
+  '릴리스 %1°  (최적 45°)':'Release %1°  (best 45°)',
+  '완벽한 인계! %1%':'Perfect handoff! %1%',
+  '인계 %1%':'Handoff %1%',
+  '엉성한 인계 %1%':'Sloppy handoff %1%',
+  '인계 구역 — %1m 남음':'Changeover zone — %1m left',
+  '인계 구역까지 %1m':'%1m to the changeover zone',
+  '완벽한 턴! %1%':'Perfect turn! %1%',
+  '턴 %1%':'Turn %1%',
+  '턴까지 %1m':'%1m to the turn',
+  '%1 출전':'%1 entered',
+  '부상 %1명 — 치료를 지정하세요':'%1 injured — assign treatment',
+  '직접 지도 %1 / 3':'Hands-on coaching %1 / 3',
+  '안 켠 스킬 %1개가 있습니다':'%1 skills are still switched off',
+  '훈련 포인트 %1점이 놀고 있습니다':'%1 training points are sitting idle',
+  '팀 프로그램: %1':'Team programme: %1',
+  '컨디션 %1':'Condition %1',
+  '부상: %1 (%2주)':'Injury: %1 (%2 wks)',
+  '부상: %1 — %2주 남음':'Injury: %1 — %2 wks left',
+  '%1주 %2 — %3점':'Week %1 %2 — %3 pts',
+  '출전 %1 / %2종목 · 1인 최대 %3종목':'Entered %1 / %2 events · max %3 per athlete',
+  ' · %1명이 꽉 찼다':' · %1 at capacity',
+  '이 종목은 %1명까지':'Up to %1 in this event',
+  '%1으로 스카우트를 보냈습니다 (%2주)':'Scout sent to %1 (%2 wks)',
+  '이적료 %1   주급 %2':'Fee %1   Wage %2',
+  '정보 %1%2':'Info %1%2',
+  '%1 이적 — %2 수령':'%1 transferred — %2 received',
+  '제안액 %1':'Offer %1',
+  '평가 몸값 %1   ·   주급 %2':'Valuation %1   ·   Wage %2',
+  'OVR %1 / 잠재 %2 · %3세 · %4':'OVR %1 / POT %2 · age %3 · %4',
+  '%1 방출':'%1 released',
+  '%1 +1  (남은 포인트 %2)':'%1 +1  (%2 points left)',
+  '%1 · %2세':'%1 · age %2',
+  'Lv.%1 ↑  포인트 +%2':'Lv.%1 ↑  +%2 points',
+  '%1 해고':'%1 sacked',
+  '%1 영입':'%1 signed',
+  '%1 %2 · %3세 · Lv.%4':'%1 %2 · age %3 · Lv.%4',
+  '  (입상 %1)':'  (podiums %1)',
+
+  /* ══ 화면 머리·발에서 새던 14건 (2026-08-31) ══════════════════════
+     ⛔ UI.header / UI.footer 를 검사기 목록에 안 올려서 그 함수를 지나는 문구는
+        **한 번도 검사된 적이 없었다.** 선수 화면 발이 통째로 한국어였다. */
+  '%1년차 · %2 / 24주':'Year %1 · Week %2 / 24',
+  '▲ 내역 접기 · 확인/취소 돌아가기':'▲ Hide breakdown · Confirm/Cancel back',
+  '▲ 종합력 내역 · 확인/취소 돌아가기':'▲ OVR breakdown · Confirm/Cancel back',
+  '확인 선택 · ◀▶ 직접/자동 · 취소 돌아가기':'Confirm select · ◀▶ manual/auto · Cancel back',
+  '확인 선택/해제   취소 돌아가기':'Confirm toggle   Cancel back',
+  '확인 다음 종목   취소 결과 보기':'Confirm next event   Cancel see results',
+  '육성 보상':'Development rewards',
+  '%1 · %2주차':'%1 · week %2',
+  '◀▶ 페이지   ·   확인 계속':'◀▶ Page   ·   Confirm continue',
+  '%1세 · %2':'age %1 · %2',
+  '확인 · ▲ 리포트 · ▼ 계승 · ◀▶ 탭 · 취소':'Confirm · ▲ report · ▼ legacy · ◀▶ tab · Cancel',
+  '시상식':'Medal ceremony',
+  '확인 다음 시상':'Confirm next award',
+  '확인 계승   취소 돌아가기':'Confirm legacy   Cancel back',
+
+  '정보 ●●● 가 채워질수록 실제 능력에 가깝습니다.':'The more ●●● you have, the truer the numbers.',
+  '기다릴수록 드러나지만 뺏길 수도 있습니다.':'Wait and they sharpen — but a rival may take them.',
+  '아직 아무것도 없습니다':'Nothing here yet',
+
+  '영구 성장 +0.3%/종':'Growth +0.3% / species',
+
+  /* ⛔ 허들 판정 넷 중 **하나만 표에 없었다** — 영어판에서 '너무 멀어' 만 한글로 떴다.
+     그리는 순간을 재는 감시가 잡았다(i18ncheck 는 리터럴이라 잡았어야 했는데
+     hurdleMsg 대입은 txt() 호출 안이 아니라 못 봤다 — 대입식도 화면 문구다). */
+  '너무 멀어':'Too far out', '걸렸다!':'Clipped it!', '넘어졌다!':'Down!',
 };

@@ -224,7 +224,7 @@ class ShootingEvent {
     SB.tally(u, {
       name: this.def.name,
       progress: this.shot+' / '+SHOOT.shots+'발',
-      mine: +this.total.toFixed(1),
+      mine: +this.total.toFixed(1), unit: K('점'),
       fmt: v => v.toFixed(1),
       cuts: medalCuts(this.def), higher: !!this.def.higher,
       pace: this.shot > 0 ? this.total / this.shot * SHOOT.shots : undefined,

@@ -335,7 +335,7 @@ class SprintEvent {
       uctx.moveTo(m.x, my+6); uctx.lineTo(m.x-4, my); uctx.lineTo(m.x+4, my);
       uctx.closePath(); uctx.fill();
     }
-    HUD.race(uctx, {
+    HUD.race(uctx, { def:this.def,
       timeS: Math.max(0, this.elapsed),
       speed: this.player.speed,
       distM: this.player.distM,

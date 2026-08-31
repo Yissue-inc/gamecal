@@ -338,7 +338,7 @@ class FencingEvent {
       myLabel: this.humanCount>1?'1P':'나', mine: A.touches,
       foeLabel: this.humanCount>1?'2P':'상대', foe: B.touches,
       target: FENCE.touchesToWin+'점 선취', first: FENCE.touchesToWin,
-      note: fmtTime(Math.max(0,this.elapsed)),
+      clock: fmtTime(Math.max(0,this.elapsed)),
     });
     /* 거리 — 이 종목의 핵심 지표 */
     const g=this.gap, inR = g<=FENCE.lungeRange;

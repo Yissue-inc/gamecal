@@ -143,15 +143,12 @@ class TriathlonEvent {
 
   draw(ctx){
     if(this.sub && this.phase!=='TRANS') this.sub.draw(ctx);
-    /* 전환 구역 안내 — 누르면 빨라진다는 걸 여기서만 말해 준다 */
-    if(this.phase==='TRANS'){
-      const left = Math.max(0, (TRI.transitionMs-(this._cut||0)) - (this.t-this.transAt));
-      txt(ctx, K('전환 구역'), VW/2, 96, 13, PAL.gold, 'center', 700);
-      txt(ctx, K('액션을 눌러 빨리 빠져나간다'), VW/2, 114, 10, PAL.white, 'center');
-      txt(ctx, (left/1000).toFixed(1)+K('초'), VW/2, 130, 12, PAL.blue, 'center', 700);
-      if(this.transMsg && this.t-this.transMsgAt < (this.transMsgHold||700))
-        txt(ctx, this.transMsg, VW/2, 148, 9, this.transMsgHold?PAL.red:PAL.dim, 'center', this.transMsgHold?700:400);
-    }
+    /* ⛔ 여기 **전환 화면이 한 벌 더** 있었다(2026-08-31 겹침 감시로 발견).
+       drawUI 에도 같은 화면이 있어서 '전환 구역'·시계가 두 겹으로,
+       '액션을 눌러…'(y114) 가 '운동화로'(y100~122) 를 159px 물고 있었다.
+       나중에 안내를 붙이면서 **옛 화면을 안 지운 것** — 도약의 시기 루프와 같은 사고다.
+       한 화면은 한 곳에서 그린다. 여기는 배경만 맡고 글은 전부 drawUI 가 그린다. */
+    if(this.phase==='TRANS'){ /* 배경은 drawUI 의 덮개가 깐다 */ }
     else {
       const gt=Track.fieldBack(ctx,22);
       Track.fieldGround(ctx,{grassTop:gt, surface:'#4a4550'});
@@ -160,9 +157,13 @@ class TriathlonEvent {
   }
   drawUI(u){
     if(this.sub && this.phase!=='TRANS') this.sub.drawUI(u);
-    /* 구간 띠 — 지금 어디이고 얼마나 걸렸나 */
-    const H=15;
-    u.fillStyle='rgba(6,10,18,.86)'; u.fillRect(0, VH-H, VW, H);
+    /* 구간 띠 — 지금 어디이고 얼마나 걸렸나
+       ⛔ 처음엔 VH-H(하단 15px)에 뒀다가 하위 종목의 조작 안내를 덮어서 위로 올렸고,
+          그러자 이번엔 **띠 안에서** 레일 바늘이 총시간 숫자를 뚫었다('2:46▲82').
+          한 줄에 [구간 · 피로 · 시간 · 레일] 넷을 다 넣으려 한 게 잘못이다 —
+          **띠를 두 줄로 만든다**(22px). 윗줄은 이름·시간, 아랫줄은 막대·레일. */
+    const H=22, BY = VH - 54;
+    u.fillStyle='rgba(6,10,18,.94)'; u.fillRect(0, BY, VW, H);
     let x=6;
     TRI.legs.forEach((L,i)=>{
       const w=Math.floor((VW-120)/TRI.legs.length*(L.share*3));
@@ -170,23 +171,23 @@ class TriathlonEvent {
       /* 잃은 구간은 초록이 아니라 빨강이다 — '지나갔다' 와 '잃었다' 는 다르다 */
       const col = rec&&rec.bad ? PAL.red : done?PAL.green : now?PAL.gold : 'rgba(255,255,255,.16)';
       u.fillStyle = col;
-      u.fillRect(x, VH-H+5, Math.max(10,w-2), 5);
-      txt(u, L.name+(rec&&rec.bad?' ✕':''), x, VH-H+1, 7,
+      u.fillRect(x, BY+12, Math.max(10,w-2), 5);
+      txt(u, L.name+(rec&&rec.bad?' ✕':''), x, BY+2, 7,
           rec&&rec.bad?PAL.red:done?PAL.green:now?PAL.gold:PAL.dim,'left');
       x += Math.max(12,w);
     });
-    txt(u, fmtTime(this.total), VW-8, VH-H+2, 11, PAL.gold,'right',700);
+    txt(u, fmtTime(this.total), VW-8, BY+1, 11, PAL.gold,'right',700);
     /* 총 시간만으로는 좋은지 알 수 없다 — 동–은–금 자리를 같이 보인다(05_scoreboard).
        ⚠ 상단은 하위 종목이 쓴다. 하단 띠에만 얹는다. */
     if(typeof SB !== 'undefined' && this.total > 0)
-      SB.rail(u, VW-80, VH-4, 68, this.total, medalCuts(this.def), !!this.def.higher);
+      SB.rail(u, VW-84, BY+15, 62, this.total, medalCuts(this.def), !!this.def.higher);  /* ⚠ VW-70 이면 오른쪽 끝 472 가 일시정지 버튼(461~480) 밑이다 */
     /* 누적 피로 — 이 종목의 정체성이라 항상 보인다 */
     if(this.carry>0){
-      const bw=54, bx=VW-70-bw;
-      txt(u,'피로', bx-4, VH-H+3, 8, PAL.dim,'right');
-      u.fillStyle='rgba(255,255,255,.16)'; u.fillRect(bx, VH-H+5, bw, 5);
+      const bw=54, bx=VW-80-bw;
+      txt(u,'피로', bx-4, BY+2, 8, PAL.dim,'right');
+      u.fillStyle='rgba(255,255,255,.16)'; u.fillRect(bx, BY+12, bw, 5);
       u.fillStyle = this.carry>0.55?PAL.red:PAL.gold;
-      u.fillRect(bx, VH-H+5, Math.round(bw*this.carry), 5);
+      u.fillRect(bx, BY+12, Math.round(bw*this.carry), 5);
     }
 
     if(this.phase==='INTRO'){
@@ -197,15 +198,21 @@ class TriathlonEvent {
       txt(u,'기준 '+fmtTime(this.qualify), VW/2, 140, 11, PAL.green,'center',700);
       txt(u,'아무 키나 눌러 시작', VW/2, VH-42, 10, PAL.dim,'center');
     } else if(this.phase==='TRANS'){
-      const left=Math.max(0,(TRI.transitionMs-(this.t-this.transAt))/1000);
-      u.fillStyle='rgba(5,6,10,.72)'; u.fillRect(0,0,VW,VH);
+      /* ⚠ 줄 간격은 **글자 크기만큼** 띄운다 — 22px 짜리 밑에 10px 을 12px 아래 놓으면 문다.
+         84(11) · 100(22) · 126(10) · 140(15) · 158(11) · 172(9) · 186(9) */
+      const left=Math.max(0,((TRI.transitionMs-(this._cut||0))-(this.t-this.transAt))/1000);
+      u.fillStyle='rgba(5,6,10,.80)'; u.fillRect(0,0,VW,VH);
       txt(u,'전환 구역', VW/2, 84, 11, PAL.dim,'center');
       txt(u, this.leg===1?'자전거로':'운동화로', VW/2, 100, 22, PAL.gold,'center',700);
-      txt(u, left.toFixed(1)+'초', VW/2, 130, 15, PAL.white,'center',700);
+      txt(u,'액션을 눌러 빨리 빠져나간다', VW/2, 126, 10, PAL.white,'center');
+      txt(u, left.toFixed(1)+'초', VW/2, 140, 15, PAL.blue,'center',700);
       const last=this.splits[this.splits.length-1];
       if(last && !last.trans)
-        txt(u, last.name+' '+fmtTime(last.s), VW/2, 152, 11, PAL.green,'center');
-      txt(u,'여기서 쉬는 게 아니라 잃는 것이다', VW/2, VH-42, 9, PAL.dim,'center');
+        txt(u, last.name+' '+fmtTime(last.s), VW/2, 158, 11, PAL.green,'center');
+      if(this.transMsg && this.t-this.transMsgAt < (this.transMsgHold||700))
+        txt(u, this.transMsg, VW/2, 172, 9, this.transMsgHold?PAL.red:PAL.dim, 'center', this.transMsgHold?700:400);
+      /* ⚠ VH-42(228) 는 구간 띠(223~238) 안이다 — 덮개 위로 올린다 */
+      txt(u,'여기서 쉬는 게 아니라 잃는 것이다', VW/2, 188, 9, PAL.dim,'center');
     }
   }
 }

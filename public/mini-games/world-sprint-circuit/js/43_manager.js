@@ -14,7 +14,11 @@ const MG = {
     /* ⚠ 클럽은 한 나라를 대표한다. 국가 이름이 클럽 이름이 된다 —
        LA 2028 을 겨냥한 소속감의 출발점. */
     this.nation = nation || this.nation || 'KOR';
-    const nm = name || ((typeof nationName==='function' ? nationName(this.nation) : '') + ' 트랙 클럽');
+    /* ⛔ ' 트랙 클럽' 을 **날문자로 이어 붙였다** — 영어판에서 "Korea 트랙 클럽" 이 된다.
+       조립한 문자열은 번역표의 어떤 키와도 안 맞는다(표는 통째 키로만 찾는다).
+       조각마다 번역하고 붙인다 — 이 레포에서 세 번째 같은 사고다. */
+    const nm = name || ((typeof nationName==='function' ? nationName(this.nation) : '') +
+                        ' ' + (typeof K==='function' ? K('트랙 클럽') : '트랙 클럽'));
     this.club = Club.newClub(nm, seed, this.nation);
     this.season = new Season(this.club, seed);
     this.season.market = new Market(this.club, seed);

@@ -115,6 +115,9 @@ class SwimRelayEvent extends SwimEvent {
     }
   }
 
+  /* ⛔ 구간 띠(y30~52)와 주자 정보가 상단을 쓰므로, 부모의 레일과 순위표를 비켜 준다 */
+  get hudExtra(){ return { railY: 54, noStandings: true }; }
+
   drawUI(u){
     super.drawUI(u);
     /* 계영만의 정보 — 구간·팀 기록·인계 */

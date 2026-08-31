@@ -160,7 +160,9 @@ class HurdlesEvent extends SprintEvent {
            **리듬 게이지와 같은 눈금**을 준다 — 다가오는 표시를 보고 미리 준비한다.
            띠의 폭이 곧 판정이다(Clean 초록 · Safe 연초록). 보이는 게 곧 규칙이다. */
         const RANGE=4.0;                       // 4m 앞부터 보여 준다
-        const bw=132, bx=VW/2-bw/2, by=52, bh=9;
+        /* ⚠ by=52 면 라벨이 y44 에 앉는데 거기는 **판정 표시(HUD.judge 기본 38~55)** 자리다 —
+           'PERFECT!' 가 '3.1m' 위에 겹쳤다(2026-08-31 겹침 감시). 게이지를 아래로 내린다. */
+        const bw=132, bx=VW/2-bw/2, by=76, bh=9;
         const toX = m => bx + bw*clamp(0.5 + (m/RANGE)*0.5, 0, 1);   // 0m = 가운데
         plate(uctx, bx-6, by-9, bw+12, bh+16, 0.72);
         uctx.fillStyle='rgba(242,245,250,.14)'; uctx.fillRect(bx, by, bw, bh);

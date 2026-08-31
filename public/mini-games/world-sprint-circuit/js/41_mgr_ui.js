@@ -81,6 +81,13 @@ const UI = {
      위로 올려 봤더니 이번엔 머리말과 겹쳤다 — 자리를 옮길 게 아니라
      **첫 줄의 오른쪽 값을 그 폭만큼 안으로 미는** 것이 맞다. */
   list(u, rows, sel, x, y, w, rowH, maxRows){
+    /* ⛔ 목록이 비면 **아무 말도 안 하고 빈 칸만 남았다**(영입 후보 화면 캡처:
+       1주차엔 후보가 없어 화면 절반이 그냥 비어 있었다). 빈 상태는 상태다 — 말해야 한다. */
+    if(!rows || !rows.length){
+      plate(u, x, y, w, rowH, 0.32);
+      txt(u, K('아직 아무것도 없습니다'), x + w/2, y + Math.round((rowH-9)/2), 9, PAL.dim, 'center');
+      return 0;
+    }
     const n = Math.min(rows.length, maxRows);
     const first = clamp(sel - (maxRows>>1), 0, Math.max(0, rows.length-maxRows));
     /* 위 스크롤 표시가 차지할 폭 — 첫 줄의 오른쪽 값을 그만큼 안으로 민다(위 주석 참조) */
@@ -89,6 +96,17 @@ const UI = {
       u.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
       this._topTagW = Math.ceil(u.measureText('▴ '+first).width) + 10;
     }
+    /* ⛔ **위쪽 표시만 자리를 비켜 줬다.** 아래쪽 '▾ N' 도 똑같이 마지막 줄의
+       오른쪽 값 위에 앉는데 그건 안 밀어 줬다 — 훈련 화면 캡처에서
+       'Condition ave▾ 4' 로 잘렸다(2026-08-31). 대칭인 두 가지를 한쪽만 고치면
+       나머지 한쪽은 반드시 남는다. */
+    this._botTagW = 0;
+    const _below = rows.length - (first + maxRows);
+    if(_below > 0){
+      u.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
+      this._botTagW = Math.ceil(u.measureText('▾ '+_below).width) + 10;
+    }
+    const _lastI = n - 1;
     for(let i=0;i<n;i++){
       const idx = first+i, r = rows[idx]; if(!r) break;
       const ry = y + i*rowH, on = idx===sel;
@@ -179,16 +197,21 @@ const UI = {
       if(r.right){
         const rt = String(r.right), ry2 = ry+pad+(twoLine?2:0);
         const EMPTY = ['—','-','–','—'];
+        /* ⛔ **글자만 비켜 놓고 칩은 안 옮겼다** — 방출 화면 마지막 줄에서
+           '+37' 은 왼쪽으로 갔는데 파란 알약은 제자리라 '▾ 4' 밑에 빈 알약이 남았다.
+           고치기 전보다 나빠졌다. 스카우트 리포트의 배지 때와 **같은 실수**다 —
+           자리를 옮길 땐 **그 자리에 그리는 것 전부**를 옮긴다. 어긋남은 하나로 묶는다. */
+        const shift = (i===0 ? this._topTagW||0 : (i===_lastI ? this._botTagW||0 : 0));
         if(rt.length<=3 && EMPTY.indexOf(rt)<0 && typeof UIK!=='undefined'){
           u.font='700 10px "Galmuri11","Nanum Gothic Coding",monospace';
           const cw2 = Math.max(16, Math.ceil(u.measureText(rt).width)+10);
           u.save(); u.globalAlpha=0.55;
-          UIK.nine(u, 'chip-bg', x+w-8-cw2, ry2-2, cw2, 14, 8);
+          UIK.nine(u, 'chip-bg', x+w-8-shift-cw2, ry2-2, cw2, 14, 8);
           u.restore();
         }
-        txt(u, rt, x+w-8-(i===0 ? this._topTagW||0 : 0), ry2, 10, r.rightColor||PAL.white, 'right');
+        txt(u, rt, x+w-8-shift, ry2, 10, r.rightColor||PAL.white, 'right');
       }
-      if(r.right2) txt(u, r.right2, x+w-8, ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
+      if(r.right2) txt(u, r.right2, x+w-8-(i===_lastI ? this._botTagW||0 : 0), ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
     }
     if(rows.length > maxRows){
       /* ⚠ 막대는 **어디쯤인지**만 말한다. 처음 켠 사람에게 필요한 건
@@ -376,7 +399,7 @@ class OfficeScreen extends Screen0 {
     const todo = officeTodo(this.mg);
     const r=[];
     /* 맨 위 한 줄 — 지금 할 것. 없으면 아예 안 뜬다(빈 줄로 자리를 먹지 않는다) */
-    if(todo) r.push({ label:'▶ '+todo.text, sub:todo.why, icon:todo.icon,
+    if(todo) r.push({ label:'▶ '+K(todo.text), sub:todo.why, icon:todo.icon,
                       right:'!', rightColor:PAL.green, color:PAL.green,
                       go:todo.go });
     r.push(...[

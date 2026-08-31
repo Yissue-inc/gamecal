@@ -196,11 +196,13 @@ class CyclingEvent {
     if(this.phase==='RUN' && this._meX!==undefined)
       HUD.tap(u, { j:this.lastJudge, ageMs:this.t-this.lastJudgeMs, ivMs:this.targetIv,
                    x:this._meX, y:this._meY, labelY:this._meY-30 });
-    HUD.race(u, { timeS:Math.max(0,this.elapsed), speed:this.speed,
+    HUD.race(u, { def:this.def, timeS:Math.max(0,this.elapsed), speed:this.speed,
                   distM:this.dist, trackM:this.trackM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });
     /* 기어 */
-    const gx=VW-70, gy=44;
+    /* ⚠ gy=44 면 '기어' 라벨이 y 33~41 인데, 거기는 이제 **메달 레일 받침**(30~41)이다.
+       레일을 넣으면서 이 블록을 안 봤다 — 캡처에서 'Gear' 가 레일 밑에 깔렸다. 12px 내린다. */
+    const gx=VW-70, gy=56;
     txt(u,'기어', gx+26, gy-11, 8, PAL.dim,'center');
     CYCLE.gears.forEach((g,i)=>{
       const on=i===this.gear;

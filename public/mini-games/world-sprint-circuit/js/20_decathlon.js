@@ -157,21 +157,25 @@ class DecathlonEvent {
   }
   drawUI(u){
     if(this.sub) this.sub.drawUI(u);
-    /* 상단 진행 띠 — 10종은 '지금 몇 번째이고 얼마나 벌었나'가 전부다 */
-    const H=15;
-    u.fillStyle='rgba(6,10,18,.86)'; u.fillRect(0, VH-H, VW, H);
+    /* 진행 띠 — 10종은 '지금 몇 번째이고 얼마나 벌었나'가 전부다
+       ⛔ 15px 한 줄에 [진행 · 회차 · 점수 · 레일] 을 다 넣으려다 레일 바늘이
+          점수 숫자를 뚫었다. 두 줄로 나눈다(윗줄 글자 · 아랫줄 막대와 레일). */
+    const H=22, BY = VH - 54;
+    u.fillStyle='rgba(6,10,18,.94)'; u.fillRect(0, BY, VW, H);
     for(let i=0;i<this.slots.length;i++){
       const w=Math.floor((VW-96)/this.slots.length), x=6+i*w;
       const done=i<this.marks.length, now=i===this.slot;
       u.fillStyle = done ? PAL.green : now ? PAL.gold : 'rgba(255,255,255,.16)';
-      u.fillRect(x, VH-H+5, w-2, 5);
+      u.fillRect(x, BY+12, w-2, 5);
     }
-    txt(u, (Math.min(this.slot+1,this.slots.length))+'/'+this.slots.length, VW-84, VH-H+3, 9, PAL.dim,'right');
-    txt(u, this.total+'점', VW-8, VH-H+2, 11, PAL.gold,'right',700);
+    txt(u, (Math.min(this.slot+1,this.slots.length))+'/'+this.slots.length, VW-84, BY+3, 9, PAL.dim,'right');
+    txt(u, this.total+'점', VW-8, BY+1, 11, PAL.gold,'right',700);
     /* ⛔ **총점만 보여 주면 7000점이 좋은 건지 알 수 없다.** 동–은–금 자리를 함께 보인다.
-       ⚠ 상단은 하위 종목이 쓰므로 여기(하단 띠)에만 얹는다 — 겹치면 안 된다. */
+       ⚠ 상단은 하위 종목이 쓰므로 여기(하단 띠)에만 얹는다 — 겹치면 안 된다.
+       ⛔ x 는 VW-80(=400~468) 이 아니다 — **468 은 일시정지 버튼(461~480) 밑**이다.
+       ⛔ y 는 BY+H-2 가 아니다 — 바늘 끝이 240 까지 내려가 중거리 페이스 버튼(VH-30=240)에 닿았다. */
     if(typeof SB !== 'undefined')
-      SB.rail(u, VW-80, VH-4, 68, this.total, medalCuts(this.def), !!this.def.higher);
+      SB.rail(u, VW-84, BY+15, 62, this.total, medalCuts(this.def), !!this.def.higher);  /* ⚠ VW-70 이면 오른쪽 끝 472 가 일시정지 버튼(461~480) 밑이다 */
 
     if(this.phase==='INTRO'){
       const d=this.curDef;

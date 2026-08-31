@@ -354,7 +354,19 @@ const UIK = {
       u.strokeStyle = on?PAL.gold:'#3a4258'; u.lineWidth=1;
       u.strokeRect(x+.5, y+.5, w-1, h-1);
     }
-    txt(u, label, x+w/2, y+Math.round((h-9)/2), 9, on?PAL.gold:PAL.dim, 'center', on?700:400);
+    /* ⛔ 9px 로 박아 두면 **긴 번역이 칸 밖으로 삐져나온다** — 육성 화면의 'Raise Stats'
+       가 56px 칸 양쪽으로 밀려 나왔다(한국어 '스탯 올리기' 는 들어갔다).
+       글자와 **상자**의 겹침이라 겹침 감시가 못 본다 — 칸이 스스로 지켜야 한다.
+       ⚠ 칸을 넓히지 않는다(옆 칸을 밀게 된다). 글자를 줄인다. */
+    let sz = 9;
+    try{
+      const s2 = (typeof K==='function') ? K(label) : label;
+      for(; sz >= 6; sz--){
+        u.font = `${on?700:400} ${sz}px "Galmuri11","Nanum Gothic Coding",monospace`;
+        if(u.measureText(s2).width <= w - 8) break;
+      }
+    }catch(e){ sz = 9; }
+    txt(u, label, x+w/2, y+Math.round((h-sz)/2), sz, on?PAL.gold:PAL.dim, 'center', on?700:400);
   },
   /* ── 구분선 ──────────────────────────────────────────────
      divider-line (256×8) — 가운데가 밝고 양끝이 흐려진다. 이어 붙이지 않고 한 장을 늘인다. */

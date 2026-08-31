@@ -305,7 +305,7 @@ class ClimbEvent {
     });
     u.fillStyle='rgba(8,11,18,.72)'; u.fillRect(0, VH-46, VW, 46);
     const me=this.climbers[0];
-    HUD.race(u, { timeS:Math.max(0,this.elapsed), speed:me.h,
+    HUD.race(u, { def:this.def, timeS:Math.max(0,this.elapsed), speed:me.h,
                   distM:me.h, trackM:CLIMB.wallM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });
     /* 남은 미끄러짐 — 이 종목의 목숨 */

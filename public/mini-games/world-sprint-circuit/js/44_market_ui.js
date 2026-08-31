@@ -119,8 +119,12 @@ class ProspectScreen extends Screen0 {
   confirm(){ this.mg.push(new ProspectDetail(this.mg, this.M.prospects[this.sel])); }
   draw(u){
     UI.header(u,'영입 후보',`자금 ${MONEY(this.mg.club.budget)} · 선수단 ${this.mg.club.squad.length}/${MarketTune.squadMax}`);
-    txt(u,'정보 ●●● 가 채워질수록 실제 능력에 가깝습니다. 기다릴수록 드러나지만 뺏길 수도 있습니다.',8,27,9,PAL.dim);
-    UI.list(u,this.rows,this.sel,8,42,VW-16,26,6);
+    /* ⛔ 한 줄로 두면 **영어에서 화면 밖으로 나간다**(실측 8~566px, 화면은 480).
+       한국어로는 들어가던 문장이 번역되며 길어진 것이다 — 언어가 늘 때마다 터진다.
+       그래서 문장을 둘로 나눠 각각 번역한다(조각마다 번역하는 이 레포의 규칙과 같다). */
+    txt(u,'정보 ●●● 가 채워질수록 실제 능력에 가깝습니다.',8,27,9,PAL.dim);
+    txt(u,'기다릴수록 드러나지만 뺏길 수도 있습니다.',8,37,9,PAL.dim);
+    UI.list(u,this.rows,this.sel,8,50,VW-16,26,6);
     UI.footer(u,'확인 자세히   취소 돌아가기');
   }
 }

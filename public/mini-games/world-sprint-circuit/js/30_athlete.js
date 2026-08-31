@@ -51,6 +51,16 @@ const TRAITS = {
 const NAME_KO = { last:['김','이','박','최','정','강','조','윤','장','임','한','오','서','신','권'],
                   first:['민준','서연','도윤','하은','시우','지아','예준','수아','주원','채원',
                          '지호','유나','건우','소율','태윤','하준','서아'] };
+/* ⛔ **영어판에서 한국 선수 이름이 한글로 나왔다**(2026-08-31 감독모드 캡처:
+   'Jackal 이건우' · 'Antelope 오채원'). 바로 위 주석이 "영어판은 로마자 이름만 쓴다"
+   고 **선언만 하고 코드는 안 그랬다** — 국적이 KOR 이면 무조건 NAME_KO 였다.
+   선언한 규칙은 코드가 지켜야 규칙이다. 로마자 한국 이름 풀을 따로 둔다
+   (국적을 바꾸지 않는다 — 소속감은 그대로, 표기만 읽을 수 있게). */
+const NAME_KO_ROMAN = {
+  last:['KIM','LEE','PARK','CHOI','JUNG','KANG','CHO','YOON','JANG','IM','HAN','OH','SEO','SHIN','KWON'],
+  first:['MINJUN','SEOYEON','DOYOON','HAEUN','SIWOO','JIA','YEJUN','SUA','JUWON','CHAEWON',
+         'JIHO','YUNA','GEONWOO','SOYUL','TAEYOON','HAJUN','SEOAH'] };
+
 const NAME_EN = { last:['OKAFOR','ROSSI','HADDAD','MBEKI','SILVA','NOVAK','SHARMA','TANAKA','DUBOIS','REYES',
                         'ANDERSEN','COSTA','KELLY','NAKAMURA','OSEI'],
                   first:['JAMAL','LUCA','OMAR','NIA','KOFI','ELENA','RAVI','MAYA','TARO','SOFIA',
@@ -199,8 +209,10 @@ function rollAthlete(rng, opt){
   let name = null;
   if(nation!=='KOR' && typeof nationName2==='function') name = nationName2(nation, rng);
   if(!name){
-    const P = (nation==='KOR') ? NAME_KO : NAME_EN;
-    name = (P===NAME_KO)
+    /* ⚠ 한국 국적은 언어에 따라 표기를 고른다 — 한국어판은 한글, 영어판은 로마자 */
+    const enLang = (typeof LANG !== 'undefined' && LANG !== 'ko');
+    const P = (nation === 'KOR') ? (enLang ? NAME_KO_ROMAN : NAME_KO) : NAME_EN;
+    name = (P === NAME_KO)
       ? P.last[(rng()*P.last.length)|0] + P.first[(rng()*P.first.length)|0]
       : P.first[(rng()*P.first.length)|0] + ' ' + P.last[(rng()*P.last.length)|0];
   }
