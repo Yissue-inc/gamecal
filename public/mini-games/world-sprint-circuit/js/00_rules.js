@@ -218,6 +218,16 @@ function phaseAt(distM, trackM){
 /* ══ 종목표 ══
    qualify = 이 기록을 못 넘기면 탈락(레퍼런스의 QUALIFY 13sec00 과 같은 장치).
    higher  = 클수록 좋은 종목인가(던지기·뛰기) */
+/* ⛔⛔⛔ **같은 실수 세 번째 — 수영·조정 기준도 연타 전환 후 안 고쳤다 (5차)**
+     수영을 연타로 바꿨는데(초당 5타면 완주조차 못 하던 걸 고치면서) **기준은 그대로 뒀다.**
+     화면째 재측정: 자유형 최선 **40.65s** 인데 금컷이 **37.67s** — 어떻게 해도 금이 안 나온다.
+     여섯 영법이 **일관되게 8% 부족**했다 — 한 종목의 우연이 아니라 **전환을 안 따라간 흔적**이다.
+       자유형 40.65 · 배영 44.89 · 평영 53.77 · 접영 45.72 · 계영 206.61 · 조정 76.05
+     → 금 = 실측 최선보다 아주 살짝 위(닿는 쪽), 은 = 그 위 3.5%. 통과 기준은 이미 넉넉해 둔다.
+     ⚠ 처음엔 금을 실측 **아래로 내림**했다가(40.65 vs 40.6) 여섯 종목이 다 미달로 잡혔다 —
+        '닿는다' 는 **부등호가 맞아야** 하는 말이다.
+     ⚠ **한 종목군의 물리를 바꾸면 그 군의 기준을 전부 다시 잰다.**
+        이 규칙을 세 번 어겼다(중장거리 → 경보·마라톤 → 수영·조정). 이제 코드 옆에 적어 둔다. */
 /* ⛔⛔ **연타 전환 후 경보·마라톤 기준을 안 고쳤다 (2026-08-31 4차)**
      중장거리를 연타+체력으로 바꾸면서 800m·1500m·5000m 는 다시 쟀는데
      **경보와 마라톤은 빼먹었다.** 그 둘의 기준은 연타 전환 **이전** 실측값이었다.
@@ -390,10 +400,10 @@ const EVENTS = [
   { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션 · 릴리스 각도가 45°에 가까울수록 멀리 간다' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 회전이 많을수록 멀리 가지만 놓치기 쉽다' },
   /* ── 수영 ── */
-  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
-  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, kind:'swim', stroke:'back', tip:'배영 · 숨은 자유롭지만 벽이 안 보인다'  },
-  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, kind:'swim', stroke:'breast', tip:'평영 · 느리지만 리듬 창이 넓다'},
-  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, kind:'swim', stroke:'fly', tip:'접영 · 가장 빠르게 지치니 호흡을 놓치지 말 것'   },
+  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
+  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'배영 · 숨은 자유롭지만 벽이 안 보인다'  },
+  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'평영 · 느리지만 리듬 창이 넓다'},
+  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'접영 · 가장 빠르게 지치니 호흡을 놓치지 말 것'   },
   /* 다이빙 — 이 게임 유일의 '점수' 종목. 3시기 중 최고점. */
   { id:'diving',       name:'다이빙',       short:'DIVE',  unit:'점', higher:true,  qualify:60.0, kind:'dive', tip:'좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다' },
   /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
@@ -403,7 +413,7 @@ const EVENTS = [
   /* 트랙 사이클 — 기어 변속과 스퍼트가 핵심. */
   { id:'cycling',      name:'트랙 사이클',   short:'CYCL',  unit:'s', higher:false, qualify:34.0, parS:29.0, distanceM:500, kind:'cycle', tip:'좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회' },
   /* 조정 — 이 게임 유일의 '일정함' 종목. 빠름이 아니라 흔들리지 않음이 점수다. */
-  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, distanceM:500, kind:'row', tip:'좌·우를 천천히 고르게 — 빠름이 아니라 일정함이 속도다' },
+  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, distanceM:500, cuts:{silver:79, gold:76.5}, kind:'row', tip:'좌·우를 천천히 고르게 — 빠름이 아니라 일정함이 속도다' },
   /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
   { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:70, cuts:{silver:82, gold:91.5}, kind:'tramp', tip:'매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다' },
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
@@ -444,7 +454,7 @@ const EVENTS = [
   { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2600, parS:3500, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
   /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */
   { id:'swimRelay4x100', name:'계영 4×100m', short:'4×100F', unit:'s', higher:false,
-    qualify:220.0, parS:205.0, distanceM:400, kind:'swim', stroke:'free' , tip:'네 명이 이어 헤엄친다 · ▲ 인계는 벽을 찍기 직전에(먼저 뛰면 실격)' , legs:4, legEvent:'swimFree100'},
+    qualify:220.0, parS:205.0, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'네 명이 이어 헤엄친다 · ▲ 인계는 벽을 찍기 직전에(먼저 뛰면 실격)' , legs:4, legEvent:'swimFree100'},
 ];
 /* tip = 종목 선택 화면에서 미리 보여 주는 조작 한 줄.
    ⚠ 46종목이 각기 다른 조작인데, 시작한 뒤 잠깐 뜨는 한 줄이 설명의 전부였다 —
