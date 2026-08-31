@@ -39,8 +39,16 @@ class EntryScreen extends Screen0 {
       /* 직접 뛸 종목 표시 — 아케이드로 넘어가 손으로 뛴다(경험치 1.6배) */
       const man = !!(S.manualEvents && S.manualEvents[ev.id]);
       const playable = (typeof READY!=='undefined') && READY.includes(ev.id);
+      /* 레이스 플랜(4J_tactics) — 페이스가 있는 종목에만 붙는다.
+         ⚠ 선수마다 다르면 '섞임' 으로 적는다. 한 줄에 이름을 다 못 쓴다. */
+      let plan = '';
+      if(typeof TACTIC!=='undefined' && TACTIC.applies(ev) && ids.length){
+        const set = [...new Set(ids.map(id=>TACTIC.of(S, id)))];
+        plan = set.length===1 ? TACTIC.label(set[0]) : '섞임';
+      }
       return { label:(man?'▶ ':'')+ev.name,
-        sub: (man? '직접 뛴다 · ' : '') + (names.length? names.join(', ') : '출전 없음'),
+        sub: (man? '직접 뛴다 · ' : '') + (names.length? names.join(', ') : '출전 없음')
+             + (plan ? '  ·  ' + K('플랜') + ' ' + K(plan) : ''),
         right:`${ids.length} / ${cap}`,
         color: man?PAL.gold:undefined,
         rightColor: bad?PAL.red : ids.length?PAL.green:PAL.dim,
@@ -123,12 +131,30 @@ class PickEntryScreen extends Screen0 {
       const fit=eventFitNow(a,this.ev);
       const pb=a.best[this.ev.id];
       const fav = (typeof speciesFavors==='function') && speciesFavors(a, this.ev.id);
+      /* 레이스 플랜 — 출전시킨 선수에게만 뜬다(안 나가는 선수의 플랜은 뜻이 없다) */
+      const canPlan = typeof TACTIC!=='undefined' && TACTIC.applies(this.ev);
+      const pl = (canPlan && on) ? TACTIC.of(this.mg.season, a.id) : null;
       return { label:(on?'● ':'○ ')+`${a.speciesName} ${a.name}`+(fav?' ★':'')+(a.injury?' (부상)':''), nation:a.nation,
-        sub:`적합 ${Math.round(fit)} · 컨디션 ${UI.condName(a.condition)} · 피로 ${Math.round(a.fatigue)}`,
+        sub:`적합 ${Math.round(fit)} · 컨디션 ${UI.condName(a.condition)} · 피로 ${Math.round(a.fatigue)}`
+            + (pl ? `  ·  ${K('플랜')} ${K(TACTIC.label(pl))}` : ''),
         right: pb!==undefined ? fmtRec(this.ev, pb) : '기록 없음',
         rightColor: pb!==undefined?PAL.gold:PAL.dim,
         color: a.injury?PAL.red:(on?PAL.green:PAL.white), dim:!a.available };
     }).concat([{label:`— 확정 (${this.chosen.length}/${max})`, color:PAL.blue}]);
+  }
+  /* ◀▶ 로 레이스 플랜을 돌린다 — 선발과 지시를 한 화면에서 끝낸다.
+     ⚠ 새 화면을 만들지 않는다. 출전 여부를 정한 그 자리에서 바로 지시가 붙어야
+        '누구를 어떻게 뛰게 할까' 가 한 생각으로 이어진다. */
+  update(now){
+    if(typeof TACTIC!=='undefined' && TACTIC.applies(this.ev) && this.sel < this.cands.length){
+      const a = this.cands[this.sel];
+      if(a && this.chosen.includes(a.id) &&
+         (Input.pressed('right') || Input.pressed('left'))){
+        const p = TACTIC.cycle(this.mg.season, a.id);
+        this.mg.toast(`${a.name} — ${K(p.name)}`); Sfx.ui(); return;
+      }
+    }
+    super.update(now);
   }
   confirm(){
     const max=this.cap;
@@ -144,7 +170,9 @@ class PickEntryScreen extends Screen0 {
     UI.header(u, this.ev.name, `기준 ${fmtRec(this.ev, this.ev.qualify)}`);
     txt(u,'적합도는 컨디션까지 반영한 값입니다',8,27,9,PAL.dim);
     UI.list(u,this.rows,this.sel,8,40,VW-16,24,7);
-    UI.footer(u,'확인 선택/해제   취소 돌아가기');
+    UI.footer(u, (typeof TACTIC!=='undefined' && TACTIC.applies(this.ev))
+      ? '확인 선택/해제   ◀▶ 레이스 플랜   취소 돌아가기'
+      : '확인 선택/해제   취소 돌아가기');
   }
 }
 

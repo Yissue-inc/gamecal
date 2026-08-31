@@ -407,6 +407,16 @@ class OfficeScreen extends Screen0 {
                       go:()=>new CoachScreen(this.mg) }; })(),
       { label:'선수 사무소', icon:'ic-market', sub:`자금 ${Math.round(this.mg.club.budget)} · 스카우트·영입·이적`, right:'▶',
         go:()=>new MarketScreen(this.mg) },
+      /* 계약(4K_contract) — ⛔ 만료가 코앞이면 **빨갛게** 말한다. 모르고 잃으면 사고다 */
+      (()=>{ if(typeof CONTRACT==='undefined') return null;
+             const exp = CONTRACT.expiring(this.mg.club);
+             return { label:'계약', icon:'ic-career',
+                      sub: exp.length
+                        ? K('올해 끝나는 계약 %1 — %2 외').replace('%1', exp.length).replace('%2', exp[0].name)
+                        : '모두 여유 있음',
+                      right: exp.length ? String(exp.length) : '▶',
+                      rightColor: exp.length ? PAL.red : PAL.dim,
+                      go:()=>new ContractScreen(this.mg) }; })(),
       /* 시설(4F_facility) — 코인을 영구 성장으로. 지을 수 있으면 눈에 띄게 */
       (()=>{ const C=this.mg.club;
              const can=(typeof FACIL!=='undefined') &&
@@ -455,7 +465,9 @@ class OfficeScreen extends Screen0 {
                               color:PAL.green, right:'!', go:()=>new EntryScreen(this.mg) });
     else r.push({ label:'다음 주로', sub: meetW? `${meetW}주차 대회까지 ${meetW-S.week}주` : '시즌 마무리', right:'▶',
                   next:true });
-    return r;
+    /* ⛔ 조건부 줄이 null 을 돌려줄 수 있다(계약처럼 모듈이 없을 때) —
+       거르지 않으면 목록이 통째로 깨진다. */
+    return r.filter(Boolean);
   }
   /* ⚠ 예전엔 줄 목록과 switch(this.sel) 두 벌을 손으로 맞췄다. 줄을 하나 더할 때마다
      인덱스가 밀려 **다른 화면이 열린다**(이 코드베이스가 같은 이유로 여러 번 물렸다).
@@ -512,6 +524,7 @@ class OfficeScreen extends Screen0 {
       if(mi) u.drawImage(mi, mx, 38, 9, 9);
       txt(u, `${S.medals.gold}/${S.goal.gold}`, mx+(mi?11:0), 39, 8,
           okG?PAL.green:PAL.dim, 'left', 700);
+
     }
 
     // 요약 카드
@@ -534,6 +547,16 @@ class OfficeScreen extends Screen0 {
       { k:'피로', v:Math.round(avgF)+'', c:avgF>65?PAL.red:avgF>45?PAL.gold:PAL.green, icon:'ic-fatigue' },
       { k:'부상', v:inj.length?`${inj.length}명`:'없음', c:inj.length?PAL.red:PAL.green, icon:'ic-injury' },
     ];
+    /* ⛔ 이사회 신뢰는 시즌 **끝에만** 보여 주면 24주 동안 압박이 없다(4I_board).
+       ⚠ 목표 줄(y 39)에 넣으려다 두 번 겹쳤다 — 오른쪽은 '■ 대회 주' 범례,
+         가운데는 올림픽 카운트다운이 이미 쓰고 있다(실측 캡처 2회).
+         신뢰는 클럽 지표니 **요약 카드**가 제자리다. */
+    if(typeof BOARD !== 'undefined'){
+      BOARD.ensure(C);
+      cells.push({ k:'신뢰',
+        v: Math.round(C.trust) + (C.warnings>0 ? ' ⚠'+C.warnings : ''),
+        c: BOARD.color(C.trust), icon:'ic-morale' });
+    }
     /* ⛔ 아이콘만 두면 **처음 켠 사람에게는 여섯 칸이 전부 수수께끼다** —
        260 · 0 · 0·0·0 · 보통 · 0 · 없음 이 각각 뭔지 알 길이 없다(실측: 새 클럽 1주차).
        그렇다고 늘 라벨을 달면 CK 가 지적한 '글자가 너무 많다' 로 되돌아간다.

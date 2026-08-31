@@ -30,6 +30,12 @@ const MG = {
 
   /* 대회가 끝나면 그 주의 훈련도 처리하고 다음 주로 */
   afterMeet(){
+    /* ⛔ 신뢰가 시즌 끝에만 움직이면 24주 동안 얼어 있다 — 대회마다 조금씩 반응한다.
+       ⚠ 목표는 연간 값이라 **지금까지의 진도**로 견준다(안 그러면 1주차에 늘 미달이다). */
+    if(typeof BOARD !== 'undefined'){
+      BOARD.ensure(this.club);
+      this.lastBoard = BOARD.afterMeet(this.club, this.season);
+    }
     this.season.entries = {};
     this.nextWeek();
   },
@@ -72,10 +78,21 @@ const MG = {
     this.weekSummary = this.makeWeekSummary(before);
     this.focus = {};
     S.week++;
+    /* ⛔ 24주 중 대회는 4주뿐이라 **나머지 20주가 클릭 두 번**이었다(FM 실사표 ⑨ 0점).
+       화합이 사기를 끌어당기고, 가끔 사건이 뜬다 — 둘 다 기존 값만 건드린다. */
+    if(typeof CLUBLIFE !== 'undefined'){
+      CLUBLIFE.ensure(this.club);
+      CLUBLIFE.weeklyDrift(this.club);
+    }
     if(S.week > SEASON_WEEKS){
       this.stack=[this.seasonEndScreen()];
     } else {
       this.stack=[new OfficeScreen(this)];
+      /* 사건은 사무실 **위에** 얹는다 — 닫으면 평소 화면이 그대로 남는다 */
+      if(typeof CLUBLIFE !== 'undefined'){
+        const ev = CLUBLIFE.roll(this);
+        if(ev) this.stack.push(new ClubEventScreen(this, ev));
+      }
     }
     this.save();
   },
@@ -99,7 +116,16 @@ const MG = {
     };
     return S.endReport;
   },
-  seasonEndScreen(){ return new SeasonEndScreen(this, this.endSeasonOnce()); },
+  seasonEndScreen(){
+    const rep = this.endSeasonOnce();
+    /* ⛔ 등급(S/B/D)이 **장식**이었다 — D 를 받아도 다음 시즌이 똑같이 시작했다.
+       이사회가 그 등급을 읽고 신뢰를 움직인다(FM 12기둥 ⑥). 경고 두 번 뒤에야 경질이다. */
+    if(typeof BOARD !== 'undefined' && !rep.board){
+      BOARD.ensure(this.club);
+      rep.board = BOARD.endSeason(this.club, rep.grade ? rep.grade.grade : 'ok');
+    }
+    return new SeasonEndScreen(this, rep);
+  },
 
   /* ── 직접 뛸 종목 처리 ───────────────────────────────────
      대회는 이미 다 시뮬레이션돼 있다(runMeet). '직접'으로 표시한 종목만
@@ -305,6 +331,7 @@ class SeasonEndScreen extends Screen0 {
     this.pts = rep.points; this.medals = rep.medals;
     this.year = rep.year;
     this.olympic = rep.olympic;
+    this.board = rep.board || null;   // 이사회 판정(4I_board)
     this.grade = this.report
       ? ({good:'S', ok:'B', bad:'D'})[this.report.grade]
       : (this.pts>=200?'S' : this.pts>=140?'A' : this.pts>=90?'B' : this.pts>=50?'C':'D');
@@ -312,6 +339,11 @@ class SeasonEndScreen extends Screen0 {
   }
   update(now){
     if(Input.pressed('action')){
+      /* ⛔ 경질이면 다음 시즌으로 안 넘어간다 — 클럽이 바뀐다(커리어·기록은 남는다) */
+      const b = this.board;
+      if(b && b.verdict === 'fired' && typeof SackedScreen !== 'undefined'){
+        this.mg.stack = [new SackedScreen(this.mg, b)]; Sfx.fail(); return;
+      }
       const seed=(Date.now()^0x3c5f)>>>0;
       const prevMarket = this.mg.season.market;
       this.mg.season = startNextSeason(this.mg.club, seed);  // 연차는 이 함수 안에서만 오른다
@@ -345,6 +377,20 @@ class SeasonEndScreen extends Screen0 {
     if(this.report){
       const g=this.report.goal;
       txt(u,`목표 승점 ${g.points} · 금 ${g.gold}`, VW/2, 91, 8, PAL.dim, 'center'); // 91~99
+
+    /* ── 이사회 (4I_board) — 등급이 무엇을 바꿨는지 여기서 말한다 */
+    if(this.board){
+      const B=this.board, y=108;
+      txt(u, K('이사회 신뢰'), VW/2-70, y, 9, PAL.dim, 'right');
+      u.fillStyle='rgba(242,245,250,.14)'; u.fillRect(VW/2-62, y+1, 96, 7);
+      u.fillStyle = BOARD.color(B.trust);
+      u.fillRect(VW/2-62, y+1, Math.round(96*B.trust/100), 7);
+      txt(u, B.trust+'  '+(B.delta>=0?'+':'')+B.delta, VW/2+40, y-1, 10,
+          B.delta>=0?PAL.green:PAL.red, 'left', 700);
+      txt(u, K(BOARD.label(B.trust)), VW/2, y+12, 10, BOARD.color(B.trust), 'center', 700);
+      if(B.msg) txt(u, K(B.msg), VW/2, y+26, 9,
+                    B.verdict==='fired'?PAL.red:B.verdict==='warned'?PAL.gold:PAL.dim, 'center');
+    }
     }
     /* ⚠ 올림픽 표시는 y=20 이었다 — 헤더 구분선(22)과 액자 윗변에 끼여 잘렸다.
        액자 아래 제 줄로 내린다. */

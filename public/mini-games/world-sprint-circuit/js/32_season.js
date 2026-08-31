@@ -10,6 +10,28 @@ const SEASON_WEEKS = 24;
    리그는 42 에서 해마다 7% (42→45→48→51.5). 잘 키우면 앞서고, 방치하면 따라잡힌다. */
 let LEAGUE_BASE = 38;
 let LEAGUE_GROWTH = 1.07;
+
+/* ── 리그 시대 배수 ────────────────────────────────────────
+   ⛔ **복리는 결국 사람을 이긴다.** 1.07^n 은 20년차에 3.6배, 25년차에 5.1배다.
+      어떤 육성도 못 따라가고, 실측(tools/economy 20시즌)에서 9년차부터 클럽이
+      무너졌다 — 평균 OVR 82→65 · 상금 226→19. 난이도가 아니라 **시한폭탄**이었다.
+
+   ⚠ 그렇다고 곡선 전체를 갈면 **이미 검증된 초반 밸런스가 흔들린다**
+      (tune_league 가 지키는 것: 1년차에 메달이 나오고 3년차엔 강해진다).
+      그래서 **무릎(9년차)까지는 예전 값을 그대로 쓰고**, 그 뒤부터만 눕힌다.
+      → 1~9년차는 **바뀌는 값이 하나도 없다.** 달라지는 건 10년차부터다.
+
+   ⚠ 인자는 **경과 연수**(year−1)다 — 원래 `Math.pow(LEAGUE_GROWTH, year-1)` 를
+      그대로 대체하려고 같은 모양을 유지한다. 여기서 또 −1 하면 한 해가 두 번 깎인다. */
+const LEAGUE_ERA_KNEE = 8;        // 경과 8년(= 9년차)까지는 예전 복리 그대로
+const LEAGUE_ERA_CAP  = 2.60;     // 아무리 가도 2.6배를 안 넘는다
+const LEAGUE_ERA_K    = 6.0;      // 무릎 뒤에 눕는 속도
+function leagueEra(yearsElapsed){
+  const y = Math.max(0, yearsElapsed || 0);
+  if(y <= LEAGUE_ERA_KNEE) return Math.pow(LEAGUE_GROWTH, y);
+  const base = Math.pow(LEAGUE_GROWTH, LEAGUE_ERA_KNEE);
+  return base + (LEAGUE_ERA_CAP - base) * (1 - Math.exp(-(y - LEAGUE_ERA_KNEE) / LEAGUE_ERA_K));
+}
 let RIVAL_ADAPT = 0.15;    // 적응 비중. 1.0 이면 키운 만큼 상대도 세져 육성이 무의미해진다.
 const MEET_WEEKS = { 6:'regional', 12:'regional', 18:'invitational', 24:'championship' };
 const MEET_INFO = {
@@ -286,7 +308,7 @@ class Season {
       for(const a of mine) this._load[a.id]=(this._load[a.id]||0)+w;
       if(isTeamEvent(ev)){ this.runRelay(ev, mine, meet, info); continue; }
       const field = mine.concat(this.makeRivals(ev, kind, 8-mine.length));
-      const rows = simulateMeetEvent(ev, field, { rng:this.rng, big:info.big });
+      const rows = simulateMeetEvent(ev, field, { rng:this.rng, big:info.big, season:this });
       let evPts = 0;
       /* ⚠ 국가 메달표는 **모든 참가자**를 센다 — 우리 선수만 세면 메달표가 아니라
          우리 성적표다. 올림픽의 재미는 다른 나라와 견주는 데 있다. */
@@ -406,7 +428,7 @@ class Season {
     if(!spec) throw new Error('runRelay: 종목군을 모르는 kind '+legDef.kind);
     for(let i=0;i<5;i++){
       const rteam=[]; for(let k=0;k<nLeg;k++) rteam.push(this.rivalAt(spec, legDef,
-        (LEAGUE_BASE*Math.pow(LEAGUE_GROWTH,this.year-1))*relayMult(this.meetKind)*(0.9+this.rng()*0.24)));
+        (LEAGUE_BASE*leagueEra(this.year-1))*relayMult(this.meetKind)*(0.9+this.rng()*0.24)));
       const r=simulateRelay(rteam, { rng:this.rng, trackM:ev.distanceM, legs:nLeg, legEvent:ev.legEvent });
       rows.push({ athlete:rteam[0], team:rteam, res:r, value:r.timeS });
     }
@@ -455,7 +477,7 @@ class Season {
     const myBest = mine.length ? Math.max(...mine.map(a=>eventFit(a,ev))) : 45;
     const LB = (typeof LEAGUE_BASE_OVERRIDE!=='undefined') ? LEAGUE_BASE_OVERRIDE : LEAGUE_BASE;
     const AD = (typeof RIVAL_ADAPT_OVERRIDE!=='undefined') ? RIVAL_ADAPT_OVERRIDE : RIVAL_ADAPT;
-    const leagueBase = LB * Math.pow(LEAGUE_GROWTH, this.year-1);
+    const leagueBase = LB * leagueEra(this.year-1);
     const target = (leagueBase*mult) * (1-AD) + (myBest*mult) * AD;
     const out=[];
     for(let i=0;i<Math.max(0,n);i++){
@@ -620,9 +642,36 @@ class Club {
     /* ⚠ 실측(tools/economy.js): 신인이 tier 0.3~0.72 뿐이라 리그 성장(LEAGUE_GROWTH)을
        못 따라간다. 9년차 평균 OVR 81 이 17년차 66 으로 내려가고 상금이 131→18 로 마른다.
        유소년 아카데미가 이 자리를 민다 — 시설이 없으면 lift 는 0 이라 예전과 같다. */
+    /* ⛔ **계약 만료(4K_contract)** — 은퇴 처리 뒤·신인 보충 앞이다.
+       그래야 나간 자리가 그 해에 채워진다(정원은 아래 target 이 지킨다). */
+    if(typeof CONTRACT !== 'undefined'){
+      const gone = CONTRACT.tickSeason(this);
+      if(gone.length) out.leftFree = gone;
+    }
+
     const lift = (typeof FACIL!=='undefined') ? FACIL.rookieLift(this) : 0;
-    while(this.squad.length < 8){
-      const a = rollAthlete(rng, { age:17+((rng()*2)|0), tier:Math.min(1, 0.3+rng()*0.42+lift) });
+
+    /* ⛔ **보충 상한이 8 로 박혀 있었다.** 스쿼드는 10 으로 시작하는데 은퇴로 줄면
+       8 까지만 채운다 — 그래서 클럽이 **영구히 줄어들었다**(실측 tools/economy:
+       인원 10 → 8, 그 뒤로 영영 회복 없음). 유소년 아카데미가 정원을 되돌린다.
+       ⚠ squadMax(18) 까지 늘리지 않는다 — 인건비가 곧바로 감당 못 할 크기가 된다. */
+    const acad = (typeof FACIL!=='undefined' && this.facil) ? (this.facil.youth||0) : 0;
+    /* ⚠ 기본을 8 로 두면 아카데미를 안 지은 클럽은 **여전히 10→8 로 줄어든다**
+       (실측: 고친 뒤에도 20시즌 내내 8명이었다 — 하네스 클럽은 시설을 안 짓는다).
+       기본은 **시작 인원 그대로**(10) 유지하고, 아카데미는 그 위로 두 명을 더 준다. */
+    const target = Math.min(12, 10 + Math.ceil(acad/2));     // 아카데미 0→10 · 1~2→11 · 3+→12
+
+    /* ⛔ **신인 자질은 절대값인데 리그는 해마다 7% 세진다**(LEAGUE_GROWTH).
+       17년차 리그는 1년차의 2.9배인데 신인은 여전히 tier 0.3~0.72 로 들어온다 —
+       구조적으로 못 따라가고, 그게 9년차부터의 쇠퇴(평균 OVR 82→65)의 원인이었다.
+       시대 보정을 준다. ⛔ **전부 따라가게 하지 않는다**(0.35 만) — 그러면 육성이
+       무의미해지고 신인만 뽑는 게 최적이 된다. 어디까지나 '쇠퇴를 늦추는' 값이다. */
+    const era = leagueEra(Math.max(0, (this.year||1) - 1));
+    const eraLift = Math.min(0.45, (era - 1) * 0.35);
+
+    while(this.squad.length < target){
+      const a = rollAthlete(rng, { age:17+((rng()*2)|0),
+                                   tier:Math.min(1.15, 0.3+rng()*0.42+lift+eraLift) });
       this.squad.push(a); out.joined.push(a);
     }
     /* ⚠ 여기서 year++ 를 했었다. 시즌 마감은 '지난 시즌을 닫는 일'인데 연차를 먼저

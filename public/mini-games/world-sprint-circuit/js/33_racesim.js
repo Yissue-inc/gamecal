@@ -139,6 +139,10 @@ function simulateMiddle(a, opt){
   /* 거리별 페이스·후반 붕괴. 세계기록 대비 90~100% 가 되도록 실측으로 맞춘 값이다.
      (400m 를 스프린트 물리로 돌렸더니 36초가 나왔다 — 세계기록이 43초다) */
   const P = MidTune[trackM] || MidTune[800];   // 표는 '실제 거리'로 고른다
+  /* ── 레이스 플랜(4J_tactics) — **기본 '평균' 이면 전부 1.0 이라 예전과 완전히 같다.**
+     지시를 건 선수만 초반/후반 케이던스와 피로 누적이 달라진다. */
+  const TF = (typeof TACTIC !== 'undefined' && opt.plan)
+    ? TACTIC.factors(opt.plan, a) : { early:1, late:1, fat:1, sig:1 };
   const paceMult = P.pace;
   r.speedMul = P.speed;
   const st = a.stats.stamina/100;
@@ -164,11 +168,13 @@ function simulateMiddle(a, opt){
          특성 설명이 약속한 것을 코드가 안 하고 있었으므로 맞춘다. */
       const fade = prog>P.fadeAt
         ? 1 + (prog-P.fadeAt)*lerp(P.fadeHi,P.fadeLo,st)*(1+a.eff('lateFade')) : 1;
-      next = t + targetIv()*fade + gauss(rng)*sigma;
+      /* 플랜 — 초반과 후반의 케이던스를 갈라 준다(간격이므로 빠를수록 작아진다) */
+      const planMul = prog < 0.55 ? TF.early : TF.late;
+      next = t + targetIv()*fade/planMul + gauss(rng)*sigma*(TF.sig||1);
       if(next <= t + RULES.minInputIntervalMs) next = t + RULES.minInputIntervalMs + 4;
     }
     /* 장거리 피로는 따로 쌓는다 */
-    r.fatigue = Math.min(1, r.fatigue + DT*lerp(P.fatHi, P.fatLo, st)*zoom);
+    r.fatigue = Math.min(1, r.fatigue + DT*lerp(P.fatHi, P.fatLo, st)*zoom*TF.fat);
     r.simulate(DT, Math.round(t));
   }
   if(!r.finished) return { falseStart:false, dnf:true, timeS:DNF, splits:r.splits, judge:r.judge };
@@ -416,6 +422,10 @@ function simulateTri(a, def, opt){
 /* 종목 하나를 알맞은 시뮬레이터로 — 10종 경기와 개별 대회가 같은 길을 쓴다 */
 function simulateOne(a, def, opt){
   const o = Object.assign({}, opt, { trackM:def.distanceM });
+  /* 레이스 플랜 — 페이스가 있는 종목에만, 우리 선수에게만 건다.
+     ⚠ opt.plan 이 없으면 시뮬레이터가 '평균'으로 돌아가 예전과 같다. */
+  if(typeof TACTIC !== 'undefined' && opt && opt.season && TACTIC.applies(def))
+    o.plan = TACTIC.of(opt.season, a.id);
   if(def.kind==='sprint') return simulateSprint(a, o);
   if(def.kind==='hurdles') return simulateHurdles(a, o, def);
   if(def.kind==='middle' || def.kind==='walk') return simulateMiddle(a, o);
@@ -431,7 +441,8 @@ function simulateMeetEvent(eventDef, entries, opt){
   opt = opt||{};
   const rng = opt.rng || makeRng(Date.now()>>>0);
   const rows = entries.map(a=>{
-    const o = { rng, big:opt.big, trackM:eventDef.distanceM };
+    /* season 을 같이 넘겨야 simulateOne 이 그 선수의 레이스 플랜을 읽는다 */
+    const o = { rng, big:opt.big, trackM:eventDef.distanceM, season:opt.season };
     /* ⚠ 예전엔 여기가 '나머지는 전부 필드'였다. 모르는 종목을 조용히 필드로 보내면
        계수 표에 없는 이름으로 undefined 를 읽고 죽는다 — simulateOne 이 이름을 대며 실패한다. */
     const res = simulateOne(a, eventDef, o);

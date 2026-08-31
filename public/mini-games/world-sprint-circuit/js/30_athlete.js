@@ -135,7 +135,15 @@ class Athlete {
     const g=GROWTH[this.growth];
     return `${this.name} (${this.age}) ${this.overall}/${this.potOverall} ${g.name}`;
   }
-  get speciesName(){ return (typeof SPECIES!=='undefined' && SPECIES[this.species]) ? SPECIES[this.species].name : ''; }
+  /* ⛔ 여기서 **번역해서** 돌려준다. 화면들이 `${speciesName} ${name}` 로 조립해 넘기는데,
+     조립된 뒤에는 번역이 안 된다 — 조각 치환이 '한글이 남으면 거부' 하기 때문이다
+     (실측 2026-08-31: 라틴 이름 선수만 'Swift JOAO SILVA' 로 번역되고
+      한국 이름 선수는 '자칼 이건우' 로 남아 **한 목록 안에서 언어가 갈렸다**).
+     한 곳에서 고치면 모든 화면이 같이 낫는다. */
+  get speciesName(){
+    const raw = (typeof SPECIES!=='undefined' && SPECIES[this.species]) ? SPECIES[this.species].name : '';
+    return (raw && typeof K==='function') ? K(raw) : raw;
+  }
 }
 
 /* ── 선수 생성 ───────────────────────────────────────────── */
