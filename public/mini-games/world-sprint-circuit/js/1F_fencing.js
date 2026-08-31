@@ -88,7 +88,18 @@ class FencingEvent {
   }
   onAction(tMs, p){
     if(this.phase!=='RUN') return;
-    const f=this.R(p); if(f.ai||this.busy(f)||this.lunging(f)) return;
+    const f=this.R(p); if(f.ai) return;
+    /* ⛔ 회복 중·런지 중에 누르면 **아무 일도 안 했다** — 실측 누름의 44% 가 그랬다.
+       규칙은 맞다(회복 중엔 못 찌른다). 그런데 그걸 **알려 주지 않으면** 버튼이 고장 난 것이다.
+       (단거리에서 같은 것을 고쳤다 — CK: "액션 조작감이 너무 별로") */
+    if(this.busy(f) || this.lunging(f)){
+      if(!f.idx && tMs - (this._blockAt||-1e9) > 380){
+        this._blockAt = tMs;
+        Sfx.beep(240, 0.05, 'sine', 0.07);
+        this.say(K('아직 자세를 못 잡았다'));
+      }
+      return;
+    }
     this.lunge(f);
   }
   onActionUp(){}

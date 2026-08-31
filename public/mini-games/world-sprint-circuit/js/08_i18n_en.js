@@ -1079,4 +1079,8 @@ const I18N_EN = {
   '타수':'Strokes',
   '빠를수록 빠르다':'Faster taps = faster',
   '막판에 — 결승선 앞에서 몸을 던진다':'Save it — lean at the finish line',
+  '아직 자세를 못 잡았다':'Not set yet',
+  '전환 구역 — 뛰어서 빠져나간다':'Transition — hustle through',
+  '전환 구역':'Transition',
+  '액션을 눌러 빨리 빠져나간다':'Press Action to hustle through',
 };

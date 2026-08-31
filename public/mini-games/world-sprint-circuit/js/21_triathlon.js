@@ -53,6 +53,7 @@ class TriathlonEvent {
        철인3종이 아니라 그냥 묶음이 된다. */
     this.applyCarry(this.sub);
     this.phase = i===0 ? 'INTRO' : 'TRANS';
+    this._cut = 0;                       // 전환 단축은 구간마다 새로 번다
     this.introAt=this.t; this.transAt=this.t;
   }
   applyCarry(sub){
@@ -69,7 +70,30 @@ class TriathlonEvent {
   }
 
   onStride(s,tMs,p){ if(this.skipIntro()) return; if(this.sub) this.sub.onStride(s,tMs,p); }
-  onAction(tMs,p){ if(this.skipIntro()) return; if(this.sub) this.sub.onAction(tMs,p); }
+  onAction(tMs,p){
+    if(this.skipIntro()) return;
+    /* ⛔ 전환 구역에서는 액션이 **아무 일도 안 했다**(끝난 앞 종목으로 넘겨져 버려서).
+       실측 누름의 11% 가 여기서 죽었다. 그런데 실제 철인3종에서 전환 구역은
+       **뛰어서 통과하는 곳**이다 — 죽은 기다림을 조작으로 바꾼다.
+       누를수록 빨리 빠져나간다(최대 45% 까지 · 완전히 건너뛰지는 못한다). */
+    if(this.phase==='TRANS'){
+      const cap = TRI.transitionMs*0.45;
+      const before = this._cut||0;
+      this._cut = Math.min(cap, before + 130);
+      if(this._cut > before){
+        /* ⛔ 여기서 this.say() 를 불렀다가 크래시가 났다 — **이 클래스엔 say 가 없다.**
+           복합 종목은 화면을 하위 종목에 넘기므로 자기 문구 장치를 안 갖고 있다.
+           ⚠ 다른 종목에 있는 메서드가 여기에도 있으리라 짐작하지 말 것. */
+        Sfx.step('GOOD');
+        this.transMsg = K('전환 구역 — 뛰어서 빠져나간다');
+        this.transMsgAt = this.t;
+      } else if(tMs - (this._capAt||-1e9) > 400){
+        this._capAt = tMs; Sfx.beep(240,0.05,'sine',0.07);
+      }
+      return;
+    }
+    if(this.sub) this.sub.onAction(tMs,p);
+  }
   onActionUp(tMs,p){ if(this.sub&&this.sub.onActionUp) this.sub.onActionUp(tMs,p); }
   onUp(tMs,p){ if(this.sub&&this.sub.onUp) this.sub.onUp(tMs,p); }
   onDown(tMs,p){ if(this.sub&&this.sub.onDown) this.sub.onDown(tMs,p); }
@@ -81,8 +105,9 @@ class TriathlonEvent {
     if(this.phase==='INTRO'){ if(this.t-this.introAt>1500) this.phase='RUN'; return; }
     if(this.phase==='TRANS'){
       /* 전환 구역 — 시간이 흐른다. 여기서 쉬는 게 아니라 잃는 것이다. */
-      if(this.t-this.transAt > TRI.transitionMs){
-        this.splits.push({name:'전환', s:TRI.transitionMs/1000, trans:true});
+      const need = TRI.transitionMs - (this._cut||0);
+      if(this.t-this.transAt > need){
+        this.splits.push({name:'전환', s:need/1000, trans:true});
         this.phase='RUN';
       }
       return;
@@ -109,6 +134,15 @@ class TriathlonEvent {
 
   draw(ctx){
     if(this.sub && this.phase!=='TRANS') this.sub.draw(ctx);
+    /* 전환 구역 안내 — 누르면 빨라진다는 걸 여기서만 말해 준다 */
+    if(this.phase==='TRANS'){
+      const left = Math.max(0, (TRI.transitionMs-(this._cut||0)) - (this.t-this.transAt));
+      txt(ctx, K('전환 구역'), VW/2, 96, 13, PAL.gold, 'center', 700);
+      txt(ctx, K('액션을 눌러 빨리 빠져나간다'), VW/2, 114, 10, PAL.white, 'center');
+      txt(ctx, (left/1000).toFixed(1)+K('초'), VW/2, 130, 12, PAL.blue, 'center', 700);
+      if(this.transMsg && this.t-this.transMsgAt < 700)
+        txt(ctx, this.transMsg, VW/2, 148, 9, PAL.dim, 'center');
+    }
     else {
       const gt=Track.fieldBack(ctx,22);
       Track.fieldGround(ctx,{grassTop:gt, surface:'#4a4550'});
