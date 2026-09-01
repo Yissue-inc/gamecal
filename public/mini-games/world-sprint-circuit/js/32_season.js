@@ -556,12 +556,20 @@ class Season {
          여섯 라이벌 클럽 중 하나에 소속시킨다. 특기 종목군이면 더 자주, 더 세게. */
       const rc = (typeof RivalLeague!=='undefined') ? RivalLeague.pickFor(ev, this.rng, i) : null;
       const cs = rc ? RivalLeague.strengthOf(rc, ev, this.year) : 1;
-      let a=null;
-      for(let k=0;k<6;k++){
-        a = this.rivalAt(spec, ev, target*spread*cs);
-        if(!used.has(a.name)) break;
+      /* ⛔ 이름·종족은 **클럽 시즌 명단**에서 온다 — 실력만 대회마다 맞춘다.
+         예전엔 이름까지 매번 새로 굴려서 같은 사람이 시즌 중에 클럽을 옮겼다
+         (실측: 27명 반복 중 22명이 다른 클럽 · 22_rivalclubs 주석 참조).
+         ⚠ 명단이 동나면 예전처럼 굴린 이름을 쓴다 — 대회가 멈추면 안 된다.
+         ⚠ 정체성을 **먼저** 고른다 — 그 사람의 고정 편차(bias)가 목표치에 들어가야 하므로
+            선수를 만든 뒤에 이름만 갈아 끼울 수가 없다. */
+      const ident = rc && typeof RivalLeague!=='undefined' && RivalLeague.identityFor
+                  ? RivalLeague.identityFor(this, rc, ev, used) : null;
+      let a = this.rivalAt(spec, ev, target*spread*cs*(ident && ident.bias ? ident.bias : 1));
+      if(ident){ a.name = ident.name; a.species = ident.species; }
+      else {
+        for(let k=0;k<6 && used.has(a.name);k++) a = this.rivalAt(spec, ev, target*spread*cs);
+        if(used.has(a.name)) a.name = a.name + ' ' + (out.length+2);
       }
-      if(used.has(a.name)) a.name = a.name + ' ' + (out.length+2);
       used.add(a.name);
       a.isRival = true;
       if(rc){ a.clubId=rc.id; a.clubName=rc.name; a.nation=rc.nation; }

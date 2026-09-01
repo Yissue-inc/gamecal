@@ -1182,6 +1182,11 @@ class LeagueScreen extends Screen0 {
       u.fillStyle = r.mine ? 'rgba(255,215,94,.16)' : (i%2?'rgba(255,255,255,.04)':'transparent');
       u.fillRect(8, y-2, VW-16, rh-3);
       if(r.mine){ u.strokeStyle=PAL.gold; u.lineWidth=1; u.strokeRect(8.5, y-1.5, VW-17, rh-4); }
+      /* ⛔ 경기 결과에서 라이벌 이름 앞에 **클럽 색 점**을 찍기로 했는데, 그 색이
+         무슨 뜻인지 알려 주는 자리가 어디에도 없었다 — 범례 없는 색은 장식이다.
+         여기가 그 범례다. 같은 색을 순위표 왼쪽에 세로 띠로 둔다. */
+      u.fillStyle = r.mine ? PAL.gold : (r.color || PAL.dim);
+      u.fillRect(8, y-2, 2, rh-3);
       txt(u, String(r.rank), 16, y+2, 12, r.rank<=3?PAL.gold:PAL.dim,'center',700);
       /* 클럽 문장 — 라이벌이 이름만 있으면 '표의 한 줄'이지 클럽이 아니다 */
       const hasCrest = r.crest && BG.obj(u, r.crest, 32, y+rh-4, rh-5);

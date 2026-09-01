@@ -431,6 +431,13 @@ class MeetWatchScreen extends Screen0 {
         const y=44+i*15;
         if(mine){ u.fillStyle='rgba(255,215,94,.14)'; u.fillRect(10,y-2,VW-20,14); }
         txt(u, String(r.rank), 16, y, 10, r.rank===1?PAL.gold:PAL.white,'left',700);
+        /* ⛔ `clubName`·`clubId` 는 **설정만 하고 아무도 안 읽는 값**이었다(전 파일 검색).
+           라이벌 클럽을 여섯 개 만들고 리그 순위표까지 뽑아 놓고서, 정작 경기 결과에는
+           누가 어느 클럽인지 안 나왔다 — 순위표의 '고원 육상부 159점'이 누구인지 알 길이 없었다.
+           이름 앞에 클럽 색 점 하나. 글자를 늘리지 않고 소속이 보인다. */
+        const cc = (!mine && r.athlete && r.athlete.clubId && typeof RivalLeague!=='undefined'
+                    && RivalLeague.colorOf) ? RivalLeague.colorOf(r.athlete.clubId) : null;
+        if(cc){ u.fillStyle = cc; u.fillRect(28, y+2, 3, 6); }
         txt(u, r.team ? r.team.map(a=>a.name).join('·') : r.athlete.name,
             34, y, 10, mine?PAL.gold:PAL.white, 'left', mine?700:400);
         const bad = r.res.falseStart?'부정출발' : r.res.dnf?'실격' : r.res.allFoul?'파울' : null;

@@ -53,6 +53,76 @@ const RivalLeague = {
     const fit = club.spec===spec ? 1.07 : 0.96;
     return club.base * fit;   /* 해마다 세지는 건 리그 기준(LEAGUE_GROWTH)이 이미 한다 */
   },
+  /* ── 클럽 명단 — 라이벌도 '사람'이어야 한다 ──────────────────────────
+     ⛔ 이 파일 맨 위는 "이겨도 누구를 이겼는지 모른다"로 시작하는데, 고친 것은
+        **클럽까지**였다. 선수는 여전히 대회마다 새로 굴렸다. 실측(한 시즌·185명 출전):
+          · 고유 이름 153개 중 27개가 반복 등장
+          · 그중 **22개는 다른 클럽 소속**으로 나왔다
+            (ANITA WIJAYA: W6 하늘길 → W12 무쇠 → W18 무쇠 · 스탯 207→263→204)
+        같은 사람이 시즌 중에 클럽을 옮기고 능력이 오르내렸다. 이름이 거짓말을 했다.
+     그래서 클럽마다 **시즌 명단**을 만들어 두고 거기서 뽑아 쓴다.
+     ⚠ 실력은 예전과 똑같이 대회마다 목표치에 맞춰 스케일한다 —
+        바뀌는 건 **누가 나오나**뿐이다(리그 밸런스는 건드리지 않는다).
+     ⛔ 난수는 **메인 rng 를 안 쓴다.** 두 이유다:
+        ① 여기서 뽑으면 그 뒤 모든 대회 결과가 밀린다
+        ② 불러오기가 `new Season(c, Date.now()^0x99, {restore:true})` 로 **매번 새 시드**를
+           쓴다 — 메인 rng 로 만들면 저장할 때마다 명단이 통째로 바뀐다.
+        클럽 이름 + 연도 + 클럽 id 를 해시해 쓴다(저장을 안 건드려도 안 흔들린다). */
+  ROSTER_N: 16,
+  _rosterRng(season, club){
+    const s = String((season.club && season.club.name) || '') + '|' + (season.year||1) + '|' + club.id;
+    let h = 2166136261;
+    for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return makeRng(h>>>0);
+  },
+  ALL_SPECS: ['sprint','hurdles','endure','jump','throw','swim'],
+  ensureRoster(season){
+    if(typeof rollAthlete==='undefined') return null;
+    const key = String((season.club && season.club.name)||'') + '|' + (season.year||1);
+    if(season._rosterKey === key && season.rivalRoster) return season.rivalRoster;
+    const out = {};
+    /* ⛔ 중복 검사는 **명단 전체**로 해야 한다. 클럽마다 따로 검사했더니 두 클럽이
+       같은 이름을 뽑아 4명이 여전히 두 클럽 소속으로 나왔다(실측 22→4, 0 이 아니었다).
+       이름 풀은 하나인데 검사만 여섯 갈래였다. */
+    const seen = new Set((season.club && season.club.squad || []).map(a=>a.name));
+    for(const c of RIVAL_CLUBS){
+      const rng = this._rosterRng(season, c);
+      const list = [];
+      for(let i=0;i<this.ROSTER_N;i++){
+        /* 절반은 특기 종목군 — 던지기 강팀에 던지는 사람이 실제로 있어야 한다 */
+        const sp = (i < this.ROSTER_N/2) ? c.spec : this.ALL_SPECS[i % this.ALL_SPECS.length];
+        let a = null;
+        for(let k=0;k<8;k++){
+          a = rollAthlete(rng, { spec:sp, tier:0.55, age:20+((rng()*8)|0) });
+          if(!seen.has(a.name)) break;
+        }
+        if(!a || seen.has(a.name)) continue;
+        seen.add(a.name);
+        /* ⛔ 이름만 고정하면 **같은 사람의 실력이 대회마다 출렁인다.**
+           실측(한 시즌): 반복 등장하는 52명의 스탯 총합 진폭 중앙값 26%, 11명은 50% 이상
+           (JAN VAN DIJK 208↔356). 예전엔 이름이 매번 달라 안 보이던 것이 이제 보인다.
+           선수마다 **고정 편차**를 준다 — 평균 1.00 이라 리그 난이도는 그대로고,
+           "저 사람은 늘 까다롭다"가 성립한다. */
+        list.push({ name:a.name, species:a.species, spec:sp, bias: 0.94 + rng()*0.12 });
+      }
+      out[c.id] = list;
+    }
+    season.rivalRoster = out; season._rosterKey = key;
+    return out;
+  },
+  /* 이 클럽에서 이 종목에 내보낼 사람 — 특기가 맞는 사람 우선, 이미 나온 사람은 제외 */
+  identityFor(season, club, ev, used){
+    const R = this.ensureRoster(season); if(!R) return null;
+    const list = R[club.id] || [];
+    const free = list.filter(x => !used.has(x.name));
+    if(!free.length) return null;
+    const spec = (typeof SPEC_OF_KIND!=='undefined') ? SPEC_OF_KIND[ev.kind] : null;
+    const pref = free.filter(x => x.spec === spec);
+    const pool = pref.length ? pref : free;
+    return pool[(season.rng() * pool.length) | 0];
+  },
+  colorOf(clubId){ const c = RIVAL_CLUBS.find(x=>x.id===clubId); return c ? c.color : null; },
+
   /* 한 종목의 결과를 클럽 승점으로 — 클럽당 **최상위 한 명만** 센다.
      ⚠ 모든 선수를 세면 라이벌은 34종목 전부에 선수가 있고 우리는 8~10명뿐이라
         구조적으로 못 이긴다(실측: 올림픽 해에 라이벌 1056점 vs 우리 566점).
