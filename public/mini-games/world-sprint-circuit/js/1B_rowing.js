@@ -35,9 +35,15 @@ class RowingEvent {
     this.strokes=0; this.flash=0; this.msg=''; this.msgAt=-1e9;
     this.result=null; this.doneAt=0; this.camM=0;
     this.rivals=[];
+      /* ⛔ 라이벌을 **최고속의 몇 할**(AI.skill×maxSpeed)로 잡으면 사람이 실제로 내는
+         기록과 무관해진다 — 실측: 조정 세 난이도 전부 **1위 100%**였다.
+         난이도 손잡이가 달려 있는데 아무것도 안 움직였다(가장 나쁜 종류의 결함이다:
+         화면에는 '어려움'이라고 적혀 있었다).
+         스프린트·중거리·클라이밍이 이미 쓰는 **사람 기록 대비 배수**로 옮긴다. */
+    const par = this.def.rivalPar || this.def.parS || this.def.qualify;
     for(let i=0;i<2;i++){
-      const sk=AI.skill(0.72+i*0.10+Math.random()*0.07);
-      this.rivals.push({ lane:i===0?0:2, dist:0, spd:ROW.maxSpeed*sk });
+      const k = AI.parRatio() * (1 + i*0.05 + Math.random()*0.02);
+      this.rivals.push({ lane:i===0?0:2, dist:0, spd:this.trackM/(par*k) });
     }
   }
   get qualify(){ return this.def.qualify; }

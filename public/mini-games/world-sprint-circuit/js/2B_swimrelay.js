@@ -42,6 +42,15 @@ class SwimRelayEvent extends SwimEvent {
     this.spTeam = ['dolphin','orca','sealion','penguin'];
   }
   get qualify(){ return this.def.qualify; }
+  /* ⛔ 순위는 `rank:1` 로 **박혀 있었다** — 라이벌 두 명을 그려 놓고 결과는 무조건 1위였다.
+     실측: 208.2s(최선)든 216.2s(느린 손)든 어려움에서 똑같이 1위였다.
+     라이벌은 등속이라 완주 시간이 `4×100m / target` 으로 정확히 나온다 — 시간으로 견준다.
+     ⚠ 거리로 견주면 인계 이득(teamBonus)이 순위에 안 반영된다. 기록이 곧 순위여야 한다. */
+  teamRank(total){
+    const full = SWIMRELAY.legs*SWIMRELAY.legM;
+    let r=1; for(const rv of (this.rivals||[])) if(rv.target>0 && full/rv.target < total) r++;
+    return r;
+  }
   /* 팀 기록 = 지난 구간 합 + 지금 구간 경과 − 인계 이득 */
   get teamTime(){
     const done = this.legTimes.reduce((a,b)=>a+b,0);
@@ -97,7 +106,7 @@ class SwimRelayEvent extends SwimEvent {
       if(this.legIndex >= SWIMRELAY.legs-1){
         const total=this.teamTime;
         const pass = total<=this.qualify;
-        this.result={status: pass?'OK':'MISSED_QUALIFY', value:total, rank:1};
+        this.result={status: pass?'OK':'MISSED_QUALIFY', value:total, rank:this.teamRank(total)};
         this.phase='DONE';
         pass?Sfx.finish():Sfx.fail();
         return;
@@ -105,7 +114,13 @@ class SwimRelayEvent extends SwimEvent {
       /* 다음 구간 시작 — 상태만 초기화하고 팀 기록은 이어 간다 */
       this.legIndex++;
       const keepTimes=this.legTimes, keepEx=this.exchanges, keepBonus=this.teamBonus, keepLeg=this.legIndex;
+      /* ⛔ 라이벌은 **통째로 이어 간다.** super.reset() 은 라이벌을 새로 만드는데,
+         그때 this.trackM 은 이미 100(한 구간)이라 속도가 `100/par` 로 계산된다 —
+         2~4번 구간의 라이벌은 초속 0.48m 로 기어갔다(1번 구간의 1/4). 게다가 거리도
+         0 으로 되돌아가 **네 번 다시 출발**했다. 화면의 상대는 장식이었다. */
+      const keepRivals=this.rivals;
       super.reset();
+      this.rivals = keepRivals;
       this.trackM = SWIMRELAY.legM;
       this.legTimes=keepTimes; this.exchanges=keepEx; this.teamBonus=keepBonus; this.legIndex=keepLeg;
       this.armed=false; this.result=null;

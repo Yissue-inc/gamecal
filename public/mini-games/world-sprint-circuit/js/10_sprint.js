@@ -209,9 +209,17 @@ class SprintEvent {
       while(now >= r.aiNext && !r.finished){
         r.stride(r.aiSide, Math.round(r.aiNext), 'off');
         r.aiSide = -r.aiSide;
-        r.aiNext += r.targetIntervalMs() + (Math.random()*2-1)*r.aiJitter;
+        /* ⛔ 연타 모드에서는 `targetIntervalMs()` 로 치면 안 된다 — 그건 박자 모드의 값이라
+           라이벌이 사람의 절반 속도로 친다(0C_difficulty.MASH_IV 주석에 실측). */
+        const iv = (RULES.mashMode && typeof AI !== 'undefined' && AI.mashIv)
+                 ? AI.mashIv() : r.targetIntervalMs();
+        r.aiNext += iv + (Math.random()*2-1)*r.aiJitter;
       }
-      if(!r.leanDone && r.distM > RULES.leanWindowStartM + 2) r.lean();
+      /* ⛔ 린 구간은 **트랙 길이에 비례한다**(Runner.lean 은 trackM/100 을 곱한다).
+         여기서만 100m 기준 상수를 썼다 — 200m 라이벌이 92m 부터 lean() 을 불러
+         140~176m 를 통째로 LEAN_EARLY 벌칙 구간으로 달렸다(실측: 15.6s 까지 앞서다
+         17.6s 에 속도 10.63 → 3.82). 400m 는 더 길게 물렸다. */
+      if(!r.leanDone && r.distM > this.leanStart + 2) r.lean();
     }
   }
 

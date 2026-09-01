@@ -102,7 +102,9 @@ function simulateSprint(a, opt){
       }
     }
     /* 피니시 린 — 기술이 좋을수록 창을 잘 잡는다 */
-    if(!r.leanDone && r.distM >= RULES.leanWindowStartM){
+    /* ⛔ 100m 상수가 아니라 트랙 길이 비례 — 안 그러면 200m 이상에서
+       린 창보다 한참 전에 눌러 LEAN_EARLY 를 맞는다(10_sprint 와 같은 버그). */
+    if(!r.leanDone && r.distM >= trackM*(RULES.leanWindowStartM/100)){
       const grab = clamp((a.stats.technique/100)*a.formScore(), 0.05, 0.99);
       if(rng() < grab*DT*26) r.lean();
     }

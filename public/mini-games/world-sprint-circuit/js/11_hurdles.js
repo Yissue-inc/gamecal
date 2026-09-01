@@ -133,12 +133,12 @@ class HurdlesEvent extends SprintEvent {
       if(CharHD.enabled){
         const sp=['impala','springbok','serval'][i];
         (this._hd=this._hd||[]).push({ sp, x, y, ph:r.stridePhase,
-          o:{ lean:r.leanDone && r.distM>RULES.leanWindowStartM, crouch:this.phase==='SET',
+          o:{ lean:r.leanDone && r.distM>this.leanStart, crouch:this.phase==='SET',
               airborne:r.airUntil>this.t, scale:Track.laneScale(i),
               rare:(SPECIES[sp]&&SPECIES[sp].rare)||1, moving:this.phase==='RUN', t:this.t } });
       }
       else drawRunner(ctx, x, y, r.stridePhase, laneColor[i],
-        { lean:r.leanDone && r.distM>RULES.leanWindowStartM, crouch:this.phase==='SET' });
+        { lean:r.leanDone && r.distM>this.leanStart, crouch:this.phase==='SET' });
     }
     if(this.flash>0){ ctx.fillStyle=`rgba(255,255,255,${this.flash*0.5})`; ctx.fillRect(0,0,VW,VH); }
   }

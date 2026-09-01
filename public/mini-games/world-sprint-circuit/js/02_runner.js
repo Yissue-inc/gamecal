@@ -59,7 +59,7 @@ class Runner {
     this.reactionMs = -1;
     this.finished = false; this.finishTimeS = 0;
     this.falseStart = false;
-    this.leanDone = false; this.leanBonusS = 0;
+    this.leanDone = false; this.leanBonusS = 0; this.leanEarlyDone = false;
     this.started = false;
     this.splits = {};
     this.judge = { PERFECT:0, GOOD:0, EARLY:0, LATE:0, REPEAT:0, SPAM:0 };
@@ -220,6 +220,12 @@ class Runner {
       return 'LEAN';
     }
     if(d > 70*k && d < lo){
+      /* ⛔ 이 벌은 **한 번만** 준다. 예전엔 부를 때마다 곱했다 —
+         라이벌은 이걸 매 프레임 불러(10_sprint.aiStep) 200m 에서 속도가
+         10.6 → 2.7 로 무너졌다(실측). 사람도 린 키를 연타하면 같은 자멸이 됐다.
+         '일찍 눌렀다'는 사건이지 상태가 아니다. */
+      if(this.leanEarlyDone) return 'LEAN_EARLY';
+      this.leanEarlyDone = true;
       this.speed *= (1 - RULES.leanEarlyPenalty);
       return 'LEAN_EARLY';
     }

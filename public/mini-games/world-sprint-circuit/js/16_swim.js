@@ -67,12 +67,18 @@ class SwimEvent {
     const lanes = Math.max(3, humans);
     if(typeof Track!=='undefined' && Track.setLanes) Track.setLanes(lanes);
     this.rivals=[];
+    /* ⛔ 라이벌을 `AI.skill`(최고속의 몇 할) 로 잡으면 사람 기록과 무관해진다.
+       실측: 100m 네 영법 전부 **쉬움에서도 졌다** — 자유형 사람 최선 41.05s 인데
+       쉬움 라이벌이 40.2s·어려움이 38.5s 였다. 난이도를 낮춰도 이길 수 없는 종목이
+       여섯이나 있었다(개인 4 + 혼영 + 계영). 그리고 기준값이 `qualify` 였다 —
+       주석은 '기준선과 분리한다'고 적혀 있는데 **분리가 안 돼 있었다**(parS 가 없는 네
+       종목은 qualify 로 떨어진다). 다른 종목이 쓰는 rivalPar(사람 최선 실측)로 옮긴다.
+       ⚠ 라이벌은 등속이라 여기선 `trackM/(par*k)` 가 곧 라이벌 기록이다(중거리와 달리
+          사인 변조·킥이 없다). */
+    const par = this.def.rivalPar || this.def.parS || this.def.qualify;
     for(let i=humans;i<lanes;i++){
-      const sk=AI.skill(0.66+(i-humans)*0.13+Math.random()*0.08);
-      /* ⚠ 상대 속도를 qualify 로 계산하면 기준을 조일 때 상대까지 빨라진다.
-         상대는 '사람이 낼 만한 기록' 을 기준으로 잡는다 — 기준선과 분리한다. */
-      const parS = this.def.parS || this.def.qualify;
-      this.rivals.push({ lane:i, dist:0, target:(this.trackM)/(parS*(1.02-sk*0.16)) });
+      const k = AI.parRatio() * (1 + (i-humans)*0.05 + Math.random()*0.02);
+      this.rivals.push({ lane:i, dist:0, target:(this.trackM)/(par*k) });
     }
     this.camNone=true;
   }
