@@ -78,36 +78,55 @@ const PaceSkill = {
     return { skill: sk, jitter: clamp(90 + (over-1)*330, 90, 420) };
   },
 
-  /* ⚠ 표가 살아 있는 Runner 와 어긋나면 밸런스가 조용히 무너진다.
-     부팅 때 세 점만 싸게 대조한다(각 8회 · 100m). 3% 넘게 벌어지면 경고. */
+  /* ⛔ **이 검사기는 없어진 모델을 재고 있었다.**
+     예전 verify() 는 라이벌을 `r.targetIntervalMs()` 로 몰아 '표의 기록'과 대조했다.
+     그런데 2026-08-31 부터 라이벌은 **연타 간격(AI.mashIv)** 으로 뛴다 — 그 박자는
+     이제 아무도 안 쓴다. 그래서 부팅할 때마다 `⚠ PaceSkill 표가 낡았다` 가 떴고,
+     그 경고는 **맞는 말이었지만 고칠 수도 없는 말**이었다(표가 재는 대상이 사라졌다).
+     아무도 안 읽는 경고는 경고가 아니다.
+
+     연타 모델에서 이 표가 아직 맡는 일은 하나다: **라이벌의 스탯(실력값)**.
+     케이던스는 난이도가 정하고, 표는 '얼마나 좋은 선수인가'만 준다.
+     그래서 검사할 것도 하나로 줄었다 — **실력값이 아직 기록을 움직이는가.**
+     (실측 2026-08-31 · 100m/110ms: 실력 0.30→10.48s · 1.00→9.70s — 8% 띠)
+     ⚠ 여기서 움직임이 죽으면 난이도의 스탯 성분이 조용히 사라진다. 그때만 경고한다. */
   verify(){
     if(typeof Runner==='undefined') return true;
-    const DT=1/60, out=[];
-    /* 100m 에서 세 배수만 싸게 대조한다. 3% 넘게 벌어지면 표가 낡은 것이다. */
-    for(const ratio of [1.00, 1.10, 1.25]){
-      const sk = this.skillFor(ratio, 100);
+    const DT=1/60, D=100;
+    const iv = (typeof RULES!=='undefined' && RULES.mashMode && typeof AI!=='undefined' && AI.mashIv)
+             ? AI.mashIv() : null;
+    const time = (sk)=>{
       let sum=0;
-      for(let n=0;n<8;n++){
+      for(let n=0;n<6;n++){
         const r = new Runner(1, { speed:45+sk*45, acceleration:45+sk*40,
-                                  stamina:50, technique:50, rhythm:50 }, false, 100);
+                                  stamina:50, technique:50, rhythm:50 }, false, D);
         r.reset(0);
         let t=0, next=150, side=1;
         while(!r.finished && t<30000){
           t += DT*1000;
           while(t>=next && !r.finished){
             r.stride(side, Math.round(next), 'off'); side=-side;
-            next += r.targetIntervalMs() + (Math.random()*2-1)*((1-sk)*90);
+            /* ⛔ 게임의 aiStep 과 **같은 박자**로 몬다 — 여기만 다르면 아무것도 안 재는 것이다 */
+            next += (iv !== null ? iv : r.targetIntervalMs()) + (Math.random()*2-1)*((1-sk)*90);
           }
           r.simulate(DT, Math.round(t));
         }
         sum += (r.finishTimeS>0 ? r.finishTimeS : t/1000);
       }
-      const got  = sum/8;
-      const want = this.DIST[100].par * ratio;
-      if(Math.abs(got-want)/want > 0.03)
-        out.push(`x${ratio}: 표 ${want.toFixed(2)}s · 실제 ${got.toFixed(2)}s`);
+      return sum/6;
+    };
+    const rows = this.DIST[D].rows;
+    const lo = rows[rows.length-1][1], hi = rows[0][1];   // 가장 약한 · 가장 센 실력값
+    const tLo = time(lo), tHi = time(hi);
+    const spread = (tLo - tHi) / tLo;
+    if(!(spread > 0.03)){
+      console.warn('⚠ PaceSkill — 라이벌 실력값이 기록을 못 움직인다(띠 '
+        + (spread*100).toFixed(1) + '%). 난이도의 스탯 성분이 죽었다.'
+        + '\n  실력 ' + lo.toFixed(2) + ' → ' + tLo.toFixed(2) + 's · '
+        + hi.toFixed(2) + ' → ' + tHi.toFixed(2) + 's'
+        + '\n  절차: tools/DIFFICULTY_AUDIT.md');
+      return false;
     }
-    if(out.length) console.warn('⚠ PaceSkill 표가 낡았다 — tools/winrate.js 로 재측정할 것\n  ' + out.join('\n  '));
-    return out.length===0;
+    return true;
   },
 };

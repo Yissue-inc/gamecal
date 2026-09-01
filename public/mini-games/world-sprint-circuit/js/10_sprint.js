@@ -58,7 +58,12 @@ class SprintEvent {
       r.reset(this.gunMs); r.name = AI_NAMES[(Math.random()*AI_NAMES.length)|0];
       /* ⛔ 예전엔 여기에 AI.jitter 를 또 걸었다 — 난이도가 **두 번** 들어가
          어려움 라이벌이 목표보다 0.3초 빨랐고(9.34s vs 목표 9.65s) 1위 확률이 0% 였다.
-         난이도는 위의 배수 하나로 끝난다. 손떨림은 실력에서만 나온다. */
+         손떨림은 실력에서만 나온다.
+         ⚠ 2026-08-31 정정: '난이도는 배수 하나로 끝난다'고 적혀 있었는데 **지금은 둘이다.**
+            연타 모드에서 난이도는 ①라이벌 스탯(여기, parRatio→PaceSkill)과
+            ②라이벌 연타 간격(aiStep, AI.mashIv) **양쪽**에 들어간다.
+            둘 다 걸린 채로 사다리를 실측했고(어려움=초당 12타에서 38%) 모양이 맞아서 둔다 —
+            **한쪽만 만지면 사다리가 통째로 움직인다.** 손대기 전에 tools/DIFFICULTY_AUDIT.md 를 읽을 것. */
       /* ⛔ 손떨림도 라이벌 설계의 일부다 — 쉬움(아이용)은 실력 바닥에 닿아
          **손떨림으로만** 더 느려질 수 있다(0E_paceskill.rivalFor). */
       r.aiJitter = made.jitter; r.aiNext = 0; r.aiSide = 1;

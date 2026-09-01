@@ -165,6 +165,13 @@ const RULES = {
       **금 = 완벽한 박자**로 잡는다 → 은 × 0.942 (100m 금 9.90).
         실측 대조: ±0ms 9.5~9.9 = 금 · ±40ms 10.5 = 은 · 기준 11.3 = 동 · ±90ms 13.7 = 미달
    ⚠ higher(멀리·던지기·점수) 종목은 클수록 좋으니 **나눈다.** */
+/* ⛔ 시간 종목의 금컷은 **사람이 낼 수 있는 기록 대비**로 봐야 한다 (2026-08-31 실측).
+   금/완벽 비율: 800m 1.041 · 1500m 1.026 · 조정 1.042 · 클라이밍 1.042 · 수영 1.01~1.02
+   5000m 만 **1.000** 이었다 — 금 992s 를 따려면 **초당 14타를 16분 내내** 쳐야 했다
+   (iv70 3회: 992.26 · 992.22 · 992.24 — 컷과 오차 0.02%). 초당 10타면 1011s 라 금이 안 나온다.
+   금 992 → **1027**(비율 1.035, 800m 와 1500m 사이). 은 1053 은 그대로 — 이미 닿는다.
+   ⚠ run5000 의 rivalPar 는 992.22(기계의 완벽)가 아니라 **1011(초당 10타)** 로 둔다.
+      16분짜리 종목에서 100m 와 같은 '완벽'을 요구하면 어려움이 곧 불가능이 된다. */
 /* ⛔ `rivalPar` — **라이벌 속도만** 정하는 값. `parS`(은컷·감독 앵커)와 다르다.
    조작 모델을 바꾸면 사람이 낼 수 있는 기록이 바뀐다 → **rivalPar 를 다시 재라.**
    parS 를 같이 옮기면 메달 컷과 감독 기록이 조용히 따라 움직인다(그래서 나눴다). */
@@ -391,7 +398,7 @@ const EVENTS = [
   /* ── 트랙: 중·장거리 ── */
   { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회' },
   { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
-  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:992}, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
+  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:1027}, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
   { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
@@ -413,10 +420,10 @@ const EVENTS = [
   { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션 · 릴리스 각도가 45°에 가까울수록 멀리 간다' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 회전이 많을수록 멀리 가지만 놓치기 쉽다' },
   /* ── 수영 ── */
-  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:41.05, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
-  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.9, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'배영 · 숨은 자유롭지만 벽이 안 보인다'  },
-  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:54.5, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'평영 · 느리지만 리듬 창이 넓다'},
-  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:46.3, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'접영 · 가장 빠르게 지치니 호흡을 놓치지 말 것'   },
+  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:40.44, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
+  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.56, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'배영 · 숨은 자유롭지만 벽이 안 보인다'  },
+  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:53.34, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'평영 · 느리지만 리듬 창이 넓다'},
+  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:45.26, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'접영 · 가장 빠르게 지치니 호흡을 놓치지 말 것'   },
   /* 다이빙 — 이 게임 유일의 '점수' 종목. 3시기 중 최고점. */
   { id:'diving',       name:'다이빙',       short:'DIVE',  unit:'점', higher:true,  qualify:60.0, kind:'dive', tip:'좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다' },
   /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
@@ -453,7 +460,7 @@ const EVENTS = [
   { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:5853, parS:6882, cuts:{silver:6882, gold:7290}, kind:'combined', tip:'일곱 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 개인혼영 — 한 경기 안에서 영법이 **세 번 바뀐다**. 리듬이 그때마다 새로 잡혀야 한다.
      접영 → 배영 → 평영 → 자유형 (실제 순서) */
-  { id:'swimMedley200',name:'개인혼영 200m', short:'200IM', unit:'s', higher:false, qualify:126.0, parS:112.0, rivalPar:104.7,
+  { id:'swimMedley200',name:'개인혼영 200m', short:'200IM', unit:'s', higher:false, qualify:126.0, parS:112.0, rivalPar:102.88,
     distanceM:200, kind:'swim', stroke:'fly', medley:true , tip:'접영→배영→평영→자유형 · 영법마다 리듬을 새로 잡는다' },
   /* 탁구 — 이 게임에 없던 **랠리** 장르. 상대를 어디로 뛰게 만드느냐가 축이다. */
   { id:'tableTennis',  name:'탁구',         short:'TT',    unit:'s', higher:false, qualify:140.0, parS:110.0, kind:'rally', tip:'←→ 로 설 자리와 코스를 정하고, 공이 올 때 액션' },
@@ -477,7 +484,7 @@ const EVENTS = [
   { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2983, parS:4062, cuts:{silver:4062, gold:4630}, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
   /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */
   { id:'swimRelay4x100', name:'계영 4×100m', short:'4×100F', unit:'s', higher:false,
-    qualify:220.0, parS:205.0, rivalPar:208.2, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'네 명이 이어 헤엄친다 · ▲ 인계는 벽을 찍기 직전에(먼저 뛰면 실격)' , legs:4, legEvent:'swimFree100'},
+    qualify:220.0, parS:205.0, rivalPar:201.57, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'네 명이 이어 헤엄친다 · ▲ 인계는 벽을 찍기 직전에(먼저 뛰면 실격)' , legs:4, legEvent:'swimFree100'},
 ];
 /* tip = 종목 선택 화면에서 미리 보여 주는 조작 한 줄.
    ⚠ 46종목이 각기 다른 조작인데, 시작한 뒤 잠깐 뜨는 한 줄이 설명의 전부였다 —
