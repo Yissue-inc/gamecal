@@ -622,7 +622,7 @@ const I18N_EN = {
   'A / D · S':'A / D · S', '← / → · ↓':'← / → · ↓', 'J / L · K':'J / L · K',
   '숫자4 / 6 · 5':'Num 4 / 6 · 5',
 
-  'P%1 승리':'P%1 Wins', '%1위':'#%1',
+  'P%1 승리':'P%1 Wins', '%1위':'#%1', '무승부':'Draw', '상금 +%1':'Prize +%1',
   '확인 다시   ·   취소 종목 선택':'Confirm rematch   ·   Cancel event list',
 
   '범고래':'Orca', '바다사자':'Sea Lion', '수달':'Otter', '펭귄':'Penguin',

@@ -542,16 +542,34 @@ const G = {
       /* ⚠ 종목마다 사람 목록의 이름이 달라 하나만 보다가 수영에서 터졌고, 중장거리를
          붙일 때 **세 번째 이름(runners)** 이 생겼다. 이름을 늘리는 대신 정본 접근자
          `ev.people` 을 종목마다 달았다 — 여기는 그것만 본다. */
-      const ppl = ev.people || [];
-      rows = ppl.map((h,i)=>({ i, v: (h.dq||!h.finished) ? null : h.finishTimeS }));
-      rows.sort((a,b)=> a.v===null ? 1 : b.v===null ? -1 : a.v-b.v);
+      /* ⛔⛔ **듀얼 종목(펜싱·탁구·유도)에는 `finishTimeS` 가 없다.**
+         아래 map 은 `!h.finished` 에 걸려 두 사람 다 v=null 이 되고, 정렬이 아무것도
+         안 바꿔서 **언제나 'P1 승리'** 가 떴다. 실측(2026-09-01): 펜싱에서 게임은
+         `humanResults` 에 **P2 승리**로 적어 놓고 화면은 P1 이라고 썼다.
+         그 `humanResults` 는 다섯 종목(중거리·클라이밍·펜싱·탁구·유도)이 만들어 두고
+         **아무도 안 읽던 값**이었다 — 정답이 옆에 놓여 있었다.
+         모양은 다섯 다 같다: `[{p, ok, value}]` 를 value 오름차순(작을수록 좋다)으로 정렬. */
+      const hr = ev.humanResults;
+      if(hr && hr.length){
+        rows = hr.map(r=>({ i:r.p, v: r.ok ? r.value : null }));
+      } else {
+        const ppl = ev.people || [];
+        rows = ppl.map((h,i)=>({ i, v: (h.dq||!h.finished) ? null : h.finishTimeS }));
+        rows.sort((a,b)=> a.v===null ? 1 : b.v===null ? -1 : a.v-b.v);
+      }
     } else {
       rows = Party.ranking(!!def.higher);
     }
     u.fillStyle='rgba(5,6,10,.80)'; u.fillRect(0,0,VW,VH);
     txt(u, def.name, VW/2, 16, 13, PAL.dim, 'center');
     const win = rows[0];
-    txt(u, 'P'+(win.i+1)+' 승리', VW/2, 34, 22, PARTY_COLOR[win.i], 'center', 700);
+    /* ⛔ 1위의 기록이 없으면 **아무도 안 이긴 것**이다 — 그런데 그냥 'P1 승리'라고 썼다.
+       둘 다 부정출발·미완주여도, 듀얼에서 무승부여도 P1 이 이긴 것으로 나온다.
+       '이겼다'는 화면이 하는 말 중 제일 무거운 말이다. 근거가 없으면 하지 않는다. */
+    if(win.v === null || win.v === undefined)
+      txt(u, K('무승부'), VW/2, 34, 22, PAL.dim, 'center', 700);
+    else
+      txt(u, 'P'+(win.i+1)+' 승리', VW/2, 34, 22, PARTY_COLOR[win.i], 'center', 700);
     const x=90, w=VW-180;
     rows.forEach((r,k)=>{
       const y=74+k*30;
