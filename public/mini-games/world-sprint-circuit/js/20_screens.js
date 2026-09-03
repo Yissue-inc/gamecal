@@ -565,18 +565,34 @@ const G = {
     const win = rows[0];
     /* ⛔ 1위의 기록이 없으면 **아무도 안 이긴 것**이다 — 그런데 그냥 'P1 승리'라고 썼다.
        둘 다 부정출발·미완주여도, 듀얼에서 무승부여도 P1 이 이긴 것으로 나온다.
-       '이겼다'는 화면이 하는 말 중 제일 무거운 말이다. 근거가 없으면 하지 않는다. */
-    if(win.v === null || win.v === undefined)
+       '이겼다'는 화면이 하는 말 중 제일 무거운 말이다. 근거가 없으면 하지 않는다.
+       ⛔⛔ **동률도 마찬가지다.** Party.ranking 의 정렬은 같은 값에 0 을 돌려주므로
+          순서가 그대로 남아 **늘 P1 이 1위**가 된다. 턴제 종목에서 이건 예외가 아니라 기본이다 —
+          높이뛰기·장대높이뛰기의 기록은 **바 높이**라 같은 높이를 넘으면 그대로 동률이고,
+          투척·도약도 소수점 둘째 자리에서 곧잘 겹친다.
+          실측(2026-09-03): 높이뛰기 2.01=2.01 · 장대 5.40=5.40 · 포환 14.74=14.74 ·
+          멀리뛰기 6.55=6.55 — **넷 다 'P1 승리'** 였다. */
+    const tied = rows.length > 1 && win.v !== null && win.v !== undefined && rows[1].v === win.v;
+    if(win.v === null || win.v === undefined || tied)
       txt(u, K('무승부'), VW/2, 34, 22, PAL.dim, 'center', 700);
     else
       txt(u, 'P'+(win.i+1)+' 승리', VW/2, 34, 22, PARTY_COLOR[win.i], 'center', 700);
     const x=90, w=VW-180;
+    /* ⛔ 머리글은 '무승부'라고 써 놓고 아래 목록은 1위·2위였다 — **같은 화면 안에서 모순**.
+       같은 기록이면 같은 등수다(육상의 공동 순위). 앞과 값이 같으면 그 등수를 물려받는다. */
+    /* ⚠ 기록이 없는 사람에게는 등수를 주지 않는다 — 셋 다 파울인데 전원 '1위'가 됐다(실측). */
+    const places = rows.map(()=>null);
+    for(let k=0;k<rows.length;k++){
+      if(rows[k].v === null || rows[k].v === undefined) continue;
+      places[k] = (k>0 && rows[k-1].v === rows[k].v) ? places[k-1] : k+1;
+    }
     rows.forEach((r,k)=>{
       const y=74+k*30;
-      u.fillStyle = k===0 ? 'rgba(255,215,94,.16)' : 'rgba(22,26,38,.75)';
+      u.fillStyle = places[k]===1 ? 'rgba(255,215,94,.16)' : 'rgba(22,26,38,.75)';
       u.fillRect(x,y,w,26);
       u.fillStyle = PARTY_COLOR[r.i]; u.fillRect(x,y,3,26);
-      txt(u, (k+1)+'위', x+12, y+7, 12, k===0?PAL.gold:PAL.dim, 'left', 700);
+      txt(u, places[k]===null ? '—' : places[k]+'위', x+12, y+7, 12,
+          places[k]===1?PAL.gold:PAL.dim, 'left', 700);
       txt(u, 'P'+(r.i+1), x+46, y+7, 13, PARTY_COLOR[r.i], 'left', 700);
       const val = r.v===null ? '기록 없음'
         : (v=>v + (def.unit==='s' && needsSec(v) ? K('초') : ''))(fmtRec(def, r.v));
