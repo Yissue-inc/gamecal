@@ -134,10 +134,18 @@ const G = {
        튜토리얼을 **맨 위**에 둔다 — 이미 해 본 사람에게는 안 보인다. */
     const tut = (typeof Tutorial!=='undefined') && !Tutorial.seen();
     const items = (MG.hasSave() ? 3 : 2) + (tut ? 1 : 0);
+    /* ⛔ 여기 `titleSel = 1` 에 `// 0=새 클럽 1=직접 뛰기` 라고 적혀 있었다.
+       그 번호표는 **튜토리얼 줄이 없던 시절 것**이다. 튜토리얼이 보이면 0번이 그것이고
+       나머지가 한 칸씩 밀리므로, 1 은 '직접 뛰기'가 아니라 **'새 클럽'** 이었다 —
+       주석이 말한 자리에 한 번도 안 갔다(2026-09-04 첫 실행 감사에서 화면으로 확인).
+       ⚠ CK 지시(2026-09-04): **처음 온 사람은 튜토리얼이 기본.**
+       항목 순서 — 튜토리얼(있으면) · 이어하기(세이브 있으면) · 새 클럽 · 직접 뛰기 */
     if(!this.titleDefaulted){
       this.titleDefaulted = true;
       const 뛴적있다 = Object.keys(Save.data.best||{}).length > 0;
-      if(!MG.hasSave() && !뛴적있다) this.titleSel = 1;      // 0=새 클럽 1=직접 뛰기
+      const 처음온사람 = !MG.hasSave() && !뛴적있다;
+      this.titleSel = 처음온사람 ? (tut ? 0 : 1)    // 튜토리얼 → 없으면 '직접 뛰기'
+                                 : (tut ? 1 : 0);    // 돌아온 사람은 튜토리얼을 건너뛴 첫 줄
     }
     if(Input.pressed('up'))   { this.titleSel=(this.titleSel+items-1)%items; Sfx.ui(); }
     if(Input.pressed('down')) { this.titleSel=(this.titleSel+1)%items; Sfx.ui(); }
