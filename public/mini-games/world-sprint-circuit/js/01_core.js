@@ -111,17 +111,36 @@ const Input = {
   down(act){ return this.map[act].some(c=>this.keys[c]); },
   /* 눌린 시각(ms) — 판정은 프레임이 아니라 실제 시각으로 한다 */
   pressTime:{},
+  /* ⛔ 예전엔 `e.code` 만 읽었다. `code` 는 **물리 키 자리**라 배열이 달라도 같은 값이 와서
+     이 게임에 딱 맞지만, **비어 있는 입력기가 있다** — 일부 안드로이드 소프트 키보드,
+     화면 키보드, 원격 데스크톱·보조기기, 그리고 브라우저 자동화가 그렇다.
+     그러면 `this.keys[""]` 만 켜지고 **아무 키도 안 먹는다**(2026-09-04 실측: 첫 화면에서
+     ▲ 와 Space 가 통째로 무시됐다 — keydown 은 도착하는데 `e.code` 가 `""` 였다).
+     ⚠ 이게 내 감사에도 구멍이었다: 지금까지의 측정은 전부 Input 내부를 직접 건드려서
+        **실제 입력층을 한 번도 지나간 적이 없다.** 여기가 고장 나 있었어도 못 잡는다.
+     ⚠ `code` 가 있으면 무조건 그걸 쓴다 — AZERTY 에서 물리 A 는 `code:'KeyQ'` 인데
+        `key` 로 되돌리면 자리가 어긋난다. **없을 때만** key 로 만든다. */
+  codeOf(e){
+    if(e.code) return e.code;
+    const k = e.key;
+    if(!k) return '';
+    if(k === ' ' || k === 'Spacebar') return 'Space';
+    if(k.length === 1) return 'Key' + k.toUpperCase();
+    return k;                                    /* ArrowLeft·Enter·Escape·Shift… 이름이 같다 */
+  },
   init(){
     addEventListener('keydown', e=>{
       if(e.repeat) return;                       // 키 꾹 누름의 자동반복은 스트라이드가 아니다
-      if(!this.keys[e.code]) this.pressBuf[e.code]=true;
-      this.keys[e.code]=true; this.pressTime[e.code]=performance.now();
-      if(this.owns(e.code)) e.preventDefault();
+      const code = this.codeOf(e); if(!code) return;
+      if(!this.keys[code]) this.pressBuf[code]=true;
+      this.keys[code]=true; this.pressTime[code]=performance.now();
+      if(this.owns(code)) e.preventDefault();
     });
     addEventListener('keyup', e=>{
-      if(this.keys[e.code]) this.relBuf[e.code]=true;
-      this.keys[e.code]=false;
-      if(this.owns(e.code)) e.preventDefault();
+      const code = this.codeOf(e); if(!code) return;
+      if(this.keys[code]) this.relBuf[code]=true;
+      this.keys[code]=false;
+      if(this.owns(code)) e.preventDefault();
     });
     addEventListener('blur', ()=>{ for(const k in this.keys){ if(this.keys[k]) this.relBuf[k]=true; this.keys[k]=false; } });
     this.initPad();

@@ -1538,7 +1538,7 @@ const I18N_EN = {
   /* ⛔ 튜토리얼(4G) 의 say·wait — **새 플레이가 제일 먼저 보는 여섯 줄**인데
      검사기의 속성 목록에 `say` 가 없어 한 번도 검사된 적이 없었다.
      영어판 튜토리얼이 '박자가 전부입니다' 로 시작하고 있었다. */
-  '박자가 전부입니다':'The beat is everything',
+  '교대가 전부입니다':'Alternating is everything',
   '기록이 남습니다':'Your records stick',
   '이제 감독입니다':'Now you are the manager',
   '훈련 지시를 여세요':'Open the training screen',
