@@ -30,7 +30,7 @@ const TRAMP = {
 class TrampolineEvent {
   constructor(def){ this.def=def; this.reset(); }
   reset(){
-    this.phase='READY';        // READY → AIR → RESULT
+    this.phase='READY';        // READY → AIR → DONE  (⛔ 'RESULT' 아니다 — 위 주석)
     this.t=0; this.bounce=0;
     this.height=TRAMP.baseH; this.y=0; this.vy=0;
     this.spin=0; this.rot=0; this.opened=false; this.tucking=false;
@@ -107,7 +107,13 @@ class TrampolineEvent {
     if(this.bounce >= TRAMP.bounces){
       /* 배율은 측정으로 잡았다 — 4.0 일 때 최고 플레이가 38.9 로 기준(52)에 한참 못 미쳤다 */
       const score = this.sum/TRAMP.bounces * 7.4;
-      this.phase='RESULT'; this.doneAt=this.t;
+      /* ⛔⛔ 예전엔 `phase='RESULT'` 였다. 그런데 **경기 화면은 `phase==='DONE'` 만 본다**
+         (20_screens: `if(ev.phase==='DONE' && now-ev.doneAt>1100)`).
+         그래서 트램폴린은 점수를 내고 마무리 소리까지 낸 뒤 **영원히 그 화면에 머물렀다** —
+         결과 화면이 안 뜨고, 기록도 커리어도 메달도 하나도 안 쌓였다.
+         실측(2026-09-03): 1308프레임에 결과가 났는데 40,000프레임(11분)까지 상태가 PLAY.
+         48종목 중 이 한 종목만 그랬다. 단계 이름은 화면과 맺은 **계약**이다. */
+      this.phase='DONE'; this.doneAt=this.t;
       const pass = score >= this.qualify;
       this.result={status:pass?'OK':'MISSED_QUALIFY', value:score, rank:pass?1:3};
       pass?Sfx.finish():Sfx.fail();
@@ -217,12 +223,12 @@ class TrampolineEvent {
     txt(u,'회전', 84, y0, 9, PAL.dim,'left');
     txt(u, (this.spin*0.5).toFixed(1)+'바퀴', 84, y0+13, 15,
         this.opened?PAL.green:(this.spin>0?PAL.red:PAL.white),'left',700);
-    const cur = this.sum/Math.max(1,this.bounce-(this.phase==='RESULT'?0:1))*7.4;
+    const cur = this.sum/Math.max(1,this.bounce-(this.phase==='DONE'?0:1))*7.4;
     /* 점수판은 한 곳에서 — 기준을 숫자로 또 쓰지 않고 **레일 위 자리**로 보여 준다 */
     SB.tally(u, {
       name: this.def.name,
       progress: (this.bounce||0)+' / '+TRAMP.bounces+'회',
-      mine: +(this.phase==='RESULT' ? this.result.value : (cur||0)).toFixed(1),
+      mine: +(this.phase==='DONE' ? this.result.value : (cur||0)).toFixed(1),
       fmt: v => (+v).toFixed(1),
       cuts: medalCuts(this.def), higher: !!this.def.higher,
     });
