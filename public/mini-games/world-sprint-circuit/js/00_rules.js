@@ -197,6 +197,22 @@ function medalCuts(def){
   const s = (def.parS !== undefined) ? def.parS : q * MEDAL_SILVER;
   return { bronze:q, silver:s, gold:s * MEDAL_GOLD };
 }
+/* 이 기록이 메달 사다리 위 **어디쯤**인가 — 0(기준=동) ~ 1(금). 범위 밖은 자른다.
+   ⛔ 여기 있는 이유: 감독 모드의 '직접 뛰기'가 손놀림 품질을 잴 때 쓰고,
+      `tools/quality.js` 가 같은 함수로 단조성을 검사한다. **공식을 두 벌 두지 않는다** —
+      예전에 라이벌 공식을 node 쪽에 베껴 뒀다가 원본이 바뀐 뒤 검사기만 남아
+      초록불이 뜨는데 아무것도 안 재고 있었다(tools/balance.js, 삭제됨).
+   ⚠ 0 도 음수도 정상값인 종목이 있다 — 승마는 벌점(0 이 완벽), 골프는 언더파(−4 가 금).
+      그래서 '기준 대비 비율'로는 못 잰다. 사다리 위의 위치로만 잰다. */
+function ladderQuality(def, value){
+  if(!def || value===undefined || value===null) return null;
+  if(typeof medalCuts!=='function') return null;
+  const c = medalCuts(def);
+  if(!c || c.gold === c.bronze) return null;
+  const t = def.higher ? (value - c.bronze) / (c.gold - c.bronze)
+                       : (c.bronze - value) / (c.bronze - c.gold);
+  return clamp(t, 0, 1);
+}
 /* 이 기록이 어느 메달인가 — 없으면 null */
 function medalOf(def, v){
   if(!def || v===undefined || v===null) return null;

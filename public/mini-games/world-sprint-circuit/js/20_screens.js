@@ -695,12 +695,20 @@ const G = {
       const all  = (j.PERFECT|0)+(j.GOOD|0)+(j.EARLY|0)+(j.LATE|0)+(j.REPEAT|0)+(j.SPAM|0);
       if(all >= 5) return clamp(good/all, 0, 1);
     }
-    /* 판정이 없는 종목(점수제)은 기준기록 대비로 본다 */
+    /* 판정이 없는 종목(점수제)은 **메달 사다리 위의 위치**로 본다.
+       ⛔ 예전엔 `기준기록 대비 비율`이었는데 두 군데서 무너졌다(2026-09-03 실측):
+         · **골프는 `qualify:0`** 이다 → `def_qualifyOf(ev)` 가 falsy 라 이 분기가
+           **아예 안 돌았다.** −6타든 +3타든 품질이 늘 0.5 — 잘 쳐도 감독 모드에 안 잡혔다.
+         · **승마는 벌점**이라 0 이 완벽인데 `r.value>0` 이 그걸 걸러냈다.
+           그래서 완벽한 라운드가 0.5, **4벌점이 1.0** 이었다(q/v = 8/4 = 2 → 상한).
+           제일 잘한 판이 제일 낮게 잡히는 뒤집힌 곡선이었다.
+       사다리(동=기준 → 금)는 0 도 음수도 자연스럽게 다룬다 — 두 종목 다 여기서 풀린다.
+       ⚠ 판정이 있는 종목 24개는 위 갈래로 빠지므로 이 변경과 무관하다. */
     const r=ev.result;
-    if(r && r.value>0 && r.value<DNF && def_qualifyOf(ev)){
-      const q=def_qualifyOf(ev);
-      const ratio = ev.def.higher ? r.value/q : q/r.value;
-      return clamp((ratio-0.8)/0.45, 0, 1);
+    if(r && r.value < DNF && r.status!=='DQ' && r.status!=='FALSE_START'
+       && typeof ladderQuality==='function'){
+      const t = ladderQuality(ev.def, r.value);
+      if(t !== null) return t;
     }
     return 0.5;
   },
