@@ -31,8 +31,10 @@ const ST = { TITLE:0, SELECT:1, PLAY:2, RESULT:3, MANAGER:4, CAREER:5, SETTINGS:
 /* 실제로 플레이 가능한 종목. 여기 없는 건 선택 화면에서 '준비 중'으로 잠근다.
    ⚠ 목록만 늘려놓고 구현이 없으면 플레이어는 빈 화면을 만난다. */
 /* 아케이드(직접 뛰기)에서 조작이 구현된 종목.
-   ⚠ 감독 모드는 14종목 전부 돌지만, 아케이드는 화면·조작이 있는 것만 연다.
-      목록만 늘리고 구현이 없으면 플레이어는 빈 화면을 만난다. */
+   ⚠ 목록만 늘리고 구현이 없으면 플레이어는 빈 화면을 만난다.
+   ⚠ '감독 모드는 14종목 전부 돈다'고 적혀 있었다 — 종목이 14개이던 시절의 문장이다.
+      지금은 **감독도 48종목을 다 쓴다**(지역 7 · 초청 12 · 챔피언십은 EVENTS 전부).
+      READY 도 48 = EVENTS 48 로 빈칸이 없다(2026-09-04 대조: 누락 0 · 유령 0 · 중복 0). */
 const READY = ['sprint100','sprint200','sprint400','hurdles110','hurdles400','steeple3000','marathon','rings',
                'longJump','tripleJump','highJump',
                'shotPut','discus','javelin','hammer','relay4x100',

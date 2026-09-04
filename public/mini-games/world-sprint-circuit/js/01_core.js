@@ -299,6 +299,12 @@ try{ addEventListener('resize', ()=>{ Ctrl._inset = null; }); }catch(e){}
 /* ── 저장 ────────────────────────────────────────────────── */
 const SAVE_KEY = 'wsc_save';
 const Save = {
+  /* ⚠ `unlocked` 는 **아무도 안 읽는다**(2026-09-04 전 파일 검색). 종목 잠금은
+     20_screens 의 READY 목록이 하고, 그 목록은 48종목을 전부 연다.
+     여기 남겨 두는 건 옛 세이브가 이 칸을 갖고 있기 때문이다 — 지우면 되살릴 것도 없다.
+     ⛔ 이걸 보고 잠금 시스템을 새로 얹지 말 것. 얹으려면 READY 쪽에서 시작한다.
+     ⚠ tools/deadvalues.js 는 `x.foo =` 꼴만 본다 — 이런 리터럴 속성은 못 잡는다.
+        리터럴까지 훑어 봤더니 1226개 중 258개가 걸려(국가코드·상태키 등) 게이트로 못 쓴다. */
   data:{ best:{}, unlocked:['sprint100'], lastEvent:'sprint100' },
   load(){ try{ const s=localStorage.getItem(SAVE_KEY); if(s) Object.assign(this.data, JSON.parse(s)); }catch(_){} },
   write(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); }catch(_){} },
