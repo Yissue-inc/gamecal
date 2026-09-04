@@ -25,7 +25,7 @@ const RING = {
   noise: 6.0,           // 흔들림에 직접 실리는 잡음
   diverge: 0.9,         // 기운 쪽으로 더 기우는 정도(발산) — 가만 두면 커진다
   nudge: 0.30,          // 한 번 되잡을 때 흔들림이 줄어드는 양
-  overshoot: 0.13,      // 되잡으면 반대로 조금 밀린다 — 연타하면 이게 쌓인다
+  /* ⛔ overshoot(0.13) 은 **배선이 끊긴 채로 있었다** — onStride 주석 참조. 지웠다. */
   fallAt: 1.0,          // |흔들림| 이 이걸 넘으면 자세가 무너진다
   settleMs: 260,        // 자세를 바꾼 직후엔 흔들림을 안 센다(잡을 틈)
   routineMs: 42000,
@@ -39,7 +39,6 @@ class RingsEvent {
     this.t=0; this.phase='HOLD';        // HOLD → SWITCH → DISMOUNT → MARK → DONE
     this.idx=0;                          // 지금 몇 번째 자세
     this.wob=0;                          // 흔들림 (−1..1)
-    this.vel=0;                          // 흔들림 속도
     this.held=0;                         // 이 자세를 버틴 시간(초)
     this.enteredAt=0;
     this.taps=0;                         // 되잡은 횟수 — 많으면 감점
@@ -66,13 +65,18 @@ class RingsEvent {
     const helping = (dir>0) !== (this.wob>0);          // 흔들리는 반대쪽인가
     if(helping){
       this.wob -= Math.sign(this.wob) * RING.nudge;
-      /* ⚠ 되잡기에 대가가 없으면 **연타가 최적**이 된다(다른 종목의 습관 그대로).
-         되잡을 때마다 반대로 조금 밀린다 — 필요한 만큼만 눌러야 한다. */
-      this.vel += dir * RING.overshoot;
+      /* ⛔ 여기 `this.vel += dir * RING.overshoot` 이 있었다. 주석은 이렇게 말했다:
+         "되잡기에 대가가 없으면 **연타가 최적**이 된다. 되잡을 때마다 반대로 조금 밀린다."
+         그런데 `vel` 은 **아무도 안 읽는다** — HOLD 업데이트가 매 프레임 `this.vel = 0` 으로
+         지우기만 한다(2026-09-04 죽은 값 검사로 적발). 흔들림 물리를 다시 짤 때
+         (`vel` 에 잡음+감쇠 → `wob` 에 직접 잡음, 아래 주석 참조) **이 줄만 남았다.**
+         즉 **되잡기의 대가는 지금 존재하지 않는다.**
+         ⚠ 지워서 되살리지 않는다 — 값을 새로 정하려면 이 종목을 사람이 칠 수 있는
+            드라이버가 먼저 있어야 한다(내 드라이버는 기준 11.7 에 5.06 로 한참 못 미친다).
+            **못 재는 값을 지어내느니 없는 채로 두고 적어 둔다.** 균형 결정은 CK 몫. */
       Sfx.step('GOOD');
     } else {
-      this.wob += dir * RING.nudge * 0.6;
-      this.vel += dir * RING.overshoot * 1.4;
+      this.wob += dir * RING.nudge * 0.6;      // 반대쪽을 누르면 더 밀린다 — 이 대가는 산다
       Sfx.step('MISS');
     }
     this.taps++;
@@ -111,7 +115,7 @@ class RingsEvent {
     this.broke++;
     this.quality.push(this._frames ? clamp(this._acc/this._frames*0.4, 0, 1) : 0);
     this.say('자세가 무너졌다', true); Sfx.fail(); this.flash=0.5;
-    this.wob=0; this.vel=0;
+    this.wob=0;
     this.idx++;
     this._acc=0; this._frames=0; this.held=0; this.enteredAt=this.t;
     if(this.idx >= RING.holds.length){ this.phase='DISMOUNT'; this.dismountT=0; }
@@ -158,7 +162,6 @@ class RingsEvent {
       this.wob += (this.rnd()*2-1) * H.drift * dt * RING.noise;
       this.wob *= 1 + H.drift * dt * RING.diverge;
       this.wob = clamp(this.wob, -1.6, 1.6);
-      this.vel = 0;
 
       const settling = this.t - this.enteredAt < RING.settleMs;
       if(!settling){
