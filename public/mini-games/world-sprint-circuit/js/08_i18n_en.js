@@ -81,7 +81,7 @@ const I18N_EN = {
   '훈련 효율이 오른다':'Trains more efficiently',
   '훈련 효율이 크게 오른다':'Trains far more efficiently',
   '모든 면이 조금씩 낫다':'A little better at everything',
-  '좌·우를 **일정한 박자**로 번갈아 — 빨리가 아니라 고르게':'Alternate left/right on a **steady beat** — even, not fast',
+  '좌·우를 **번갈아** 빠르게 — 규칙은 교대 하나뿐이다':'**Alternate** left/right, fast — that is the only rule',
   '개인 최고를 깨면 커리어가 오릅니다':'Beat your personal best to raise your career',
   '최고 선수들을 맡았습니다. 매주 **세 명까지** 직접 지도합니다':'You have the best squad. Coach **up to three** each week',
   '세 명을 고르고 확인 — 나머지는 팀 프로그램대로 훈련합니다':'Pick three and confirm — the rest follow the team programme',
@@ -1001,7 +1001,7 @@ const I18N_EN = {
     'Four swimmers in turn · ▲ hands over just before the wall (early = DQ)',
 
   /* ── 부팅 화면(HTML) · 화면 버튼 ── */
-  '좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게': 'Alternate ◀ ▶ at a steady beat — even, not fast',
+  '좌·우를 번갈아 — 빠를수록 빠르다': 'Alternate ◀ ▶ — the faster you tap, the faster you run',
   '어떻게 조작할까요?': 'How do you want to play?',
   '키보드로': 'Keyboard', 'A / D · Space': 'A / D · Space',
   '화면 버튼으로': 'On-screen buttons', '손가락이나 마우스로': 'Finger or mouse',
@@ -1044,8 +1044,20 @@ const I18N_EN = {
   '조금씩 늦습니다 — 게이지보다 살짝 먼저 누르세요': 'A touch late — press just before the marker',
   '아래 게이지의 초록 칸에서 두드리면 빨라집니다': 'Tap inside the green band below to go faster',
   '완주하지 못했습니다': 'You did not finish',
-  '좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발':
-    'Alternate ◀ ▶ at a steady beat — even, not fast · early press = false start',
+  '좌·우를 빠르게 번갈아 — 곡선에서도 손을 늦추지 않는다':
+    'Alternate ◀ ▶ fast — do not ease off on the bend',
+  '좌·우를 빠르게 번갈아 — 한 바퀴다. 손이 끝까지 버텨야 한다':
+    'Alternate ◀ ▶ fast — one full lap. Your hands have to last',
+  '좌·우를 빠르게 번갈아 달리다 허들 앞에서 액션':
+    'Alternate ◀ ▶ fast, then Action at each hurdle',
+  '좌·우를 빠르게 번갈아 · 인계 구역에서 액션(속도가 비슷할 때)':
+    'Alternate ◀ ▶ fast · Action in the exchange zone (when speeds match)',
+  '좌·우를 빠르게 번갈아 — 젓는 횟수가 속도다':
+    'Alternate ◀ ▶ fast — strokes per second is your speed',
+  '좌·우를 빠르게 번갈아 — 손이 빠를수록 빨리 오른다 · 액션 = 도약 1회':
+    'Alternate ◀ ▶ fast — faster hands climb faster · Action = one dyno',
+  '좌·우를 빠르게 번갈아 — 타수가 곧 속도다 · 총성 전엔 부정 출발':
+    'Alternate ◀ ▶ fast — your tap rate is your speed · early press = false start',
   '좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다':
     'Alternate ◀ ▶ at a steady beat — keep it through the bend',
   '좌·우를 일정한 박자로 — 한 바퀴다. 초반에 다 쓰면 무너진다':

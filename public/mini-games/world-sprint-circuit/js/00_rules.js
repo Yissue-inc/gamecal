@@ -400,11 +400,11 @@ function phaseAt(distM, trackM){
       기준이 벽이 된다 — 가끔은 넘어야 다시 해 본다. */
 const EVENTS = [
   /* ── 트랙: 단거리 ── */
-  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.4, distanceM:100, cuts:{silver:10.5, gold:9.95}, kind:'sprint', tip:'좌·우를 일정한 박자로 번갈아 — 빨리가 아니라 고르게 · 총성 전엔 부정 출발' },
-  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:23.1, distanceM:200, cuts:{silver:21.4, gold:20.3}, kind:'sprint', tip:'좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다' },
-  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:48.6, distanceM:400, cuts:{silver:45.2, gold:43.3}, kind:'middle', tip:'좌·우를 일정한 박자로 — 한 바퀴다. 초반에 다 쓰면 무너진다' },
+  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.4, distanceM:100, cuts:{silver:10.5, gold:9.95}, kind:'sprint', tip:'좌·우를 빠르게 번갈아 — 타수가 곧 속도다 · 총성 전엔 부정 출발' },
+  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:23.1, distanceM:200, cuts:{silver:21.4, gold:20.3}, kind:'sprint', tip:'좌·우를 빠르게 번갈아 — 곡선에서도 손을 늦추지 않는다' },
+  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:48.6, distanceM:400, cuts:{silver:45.2, gold:43.3}, kind:'middle', tip:'좌·우를 빠르게 번갈아 — 한 바퀴다. 손이 끝까지 버텨야 한다' },
   { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:13.8, distanceM:110, cuts:{silver:12.5, gold:11.8}, kind:'hurdles',
-    hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우를 일정한 박자로 달리다 허들 앞에서 액션' },
+    hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우를 빠르게 번갈아 달리다 허들 앞에서 액션' },
   /* 400m 허들 — 허들이 낮고 간격이 넓다. 지구력 종목에 가깝다. */
   { id:'hurdles400', name:'400m 허들',    short:'400MH', unit:'s', higher:false, qualify:48.7, distanceM:400, cuts:{silver:45.2, gold:43.0}, kind:'hurdles',
     hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'허들 10개 · 보폭이 흐트러지면 발이 안 맞는다' },
@@ -423,7 +423,7 @@ const EVENTS = [
     parS:6720, rivalPar:16490, distanceM:42195, cuts:{silver:18450, gold:17400}, kind:'middle',
     tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
-  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:38.00, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 일정한 박자로 · 인계 구역에서 액션(속도가 비슷할 때)' },
+  { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:38.00, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 빠르게 번갈아 · 인계 구역에서 액션(속도가 비슷할 때)' },
   { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:174.2, parS:147.5, distanceM:1600, rivalPar:152.40, cuts:{silver:161.9, gold:153.9}, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다' },
@@ -448,12 +448,15 @@ const EVENTS = [
   { id:'archery',      name:'양궁',         short:'ARCH',  unit:'점', higher:true,  qualify:51, cuts:{silver:52, gold:54.5}, kind:'aim', tip:'액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사' },
   /* 트랙 사이클 — 기어 변속과 스퍼트가 핵심. */
   { id:'cycling',      name:'트랙 사이클',   short:'CYCL',  unit:'s', higher:false, qualify:34.0, parS:29.0, rivalPar:26.9, distanceM:500, kind:'cycle', tip:'좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회' },
-  /* 조정 — 이 게임 유일의 '일정함' 종목. 빠름이 아니라 흔들리지 않음이 점수다. */
-  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, rivalPar:73.4, distanceM:500, cuts:{silver:79, gold:76.5}, kind:'row', tip:'좌·우를 천천히 고르게 — 빠름이 아니라 일정함이 속도다' },
+  /* ⛔ 여기 '이 게임 유일의 일정함 종목. 빠름이 아니라 흔들리지 않음이 점수다' 라고 적혀 있었다.
+     **틀렸다.** 실측(2026-09-04): 같은 평균 간격에서 흔들림을 ±0/±120/±300ms 로 바꿔도
+     83.20 / 83.21 / 83.74 — 차이가 없다. 반면 간격을 1050ms(자연 박자) → 60ms 로 줄이면
+     83.20 → **75.98**. 젓는 횟수가 속도다. 연타 모델로 바꾼 뒤 문구만 남아 있었다. */
+  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, rivalPar:73.4, distanceM:500, cuts:{silver:79, gold:76.5}, kind:'row', tip:'좌·우를 빠르게 번갈아 — 젓는 횟수가 속도다' },
   /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
   { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:70, cuts:{silver:82, gold:91.5}, kind:'tramp', tip:'매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다' },
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
-  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:4.6, parS:3.9, rivalPar:3.36, cuts:{silver:3.9, gold:3.5}, kind:'climb', tip:'좌·우를 고르게 — 정확하면 빨라진다 · 액션 = 도약 1회' },
+  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:4.6, parS:3.9, rivalPar:3.36, cuts:{silver:3.9, gold:3.5}, kind:'climb', tip:'좌·우를 빠르게 번갈아 — 손이 빠를수록 빨리 오른다 · 액션 = 도약 1회' },
   /* 펜싱 — 이 게임에서 유일하게 '리듬'이 아니라 '거리'가 축인 종목. 5투셰 선취까지의 시간. */
   { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, cuts:{silver:18, gold:13}, parS:42.0, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
   /* 10종 경기 — 새 물리가 아니라 **그릇**이다. 있는 열 종목을 이어 뛰고 IAAF 표로 합산한다. */
