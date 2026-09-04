@@ -41,6 +41,12 @@ const Tutorial = {
         Party.count = 1;
         Tutorial.forceSpecies = 'cheetah';
         G.start(EVENTS.find(e=>e.id==='sprint100'));
+        /* ⛔ 처음 오는 사람은 '무엇을 눌러야 하나'를 읽는 중인데 그 사이 총성이 울리고
+           라이벌만 달려 나간다(실측 2026-09-04: 읽는 동안 −67m 로 꼴찌).
+           **읽을 시간은 사람이 정한다** — 첫 입력이 올 때까지 시계를 세운다(CK 지시).
+           그리고 이 판에서는 부정 출발로 죽지 않는다 — 튜토리얼의 일은 교대를
+           가르치는 것이지 출발 규율을 시험하는 게 아니다. 둘 다 **이 판 한정**이다. */
+        if(G.event){ G.event.holdStart = true; G.event.noFalseStart = true; }
       },
       done(){ return G.state===ST.RESULT; } },
 

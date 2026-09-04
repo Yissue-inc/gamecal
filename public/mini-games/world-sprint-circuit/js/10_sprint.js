@@ -19,6 +19,15 @@ class SprintEvent {
     this.phase = 'SET';                       // SET | GO | RUN | DONE
     this.t = 0;                               // ms
     this.gunMs = 1400 + Math.random()*1600;   // 총성까지 — 매번 달라야 미리 못 누른다
+    /* ⛔ 튜토리얼 첫 판 전용 두 손잡이 (CK 지시 2026-09-04). 기본값은 예전 그대로다.
+       ① holdStart — **첫 입력이 올 때까지 시계를 세운다.**
+          처음 오는 사람은 '무엇을 눌러야 하나'를 읽는 중인데 그 사이 총성이 울리고
+          라이벌만 달려 나간다(실측: 읽는 동안 −67m). 읽을 시간은 사람이 정해야 한다.
+       ② noFalseStart — 그 판에서는 부정 출발로 죽지 않는다.
+          튜토리얼의 일은 **교대를 가르치는 것**이지 출발 규율을 시험하는 게 아니다.
+          안 그러면 배우려던 사람이 2초 만에 '부정 출발'로 첫 판을 잃는다. */
+    this.holdStart = false;
+    this.noFalseStart = false;
     this.setBeeps = 0;
     /* ── 사람 선수들 ──────────────────────────────────
        ⚠ 동시 대결이면 사람이 최대 4명. 레인 수도 그만큼 늘린다.
@@ -41,6 +50,8 @@ class SprintEvent {
     }
     this.player = this.humans[0];             // 옛 호출부 호환
     this.rivals = [];
+    /* 사람 선수 이름까지 포함해 겹치지 않게 한다 */
+    const usedNames = new Set(this.humans.map(h=>h.name).filter(Boolean));
     for(let i=humans; i<lanes; i++){
       /* ⛔ 예전엔 실력값을 직접 뽑았다(0.62 + i*0.16). 그런데 실력→기록 곡선은
          0.78 위에서 포화한다 — 가장 빠른 라이벌이 9.10~9.28s 로 **사람의 상한(9.57s) 바깥**
@@ -55,7 +66,18 @@ class SprintEvent {
       const skill = made.skill;
       const r = new Runner(i, { speed:45+skill*45, acceleration:45+skill*40,
         stamina:50, technique:50, rhythm:50 }, false, this.trackM);
-      r.reset(this.gunMs); r.name = AI_NAMES[(Math.random()*AI_NAMES.length)|0];
+      /* ⛔ 이름을 그냥 무작위로 뽑고 있었다 — **같은 경기에 같은 이름이 둘** 나온다.
+         2026-09-04 튜토리얼 첫 화면 캡처에 '2 REYES · 3 REYES' 가 그대로 찍혔다.
+         순위표에 같은 이름이 둘이면 누가 누군지 읽을 수가 없다.
+         ⚠ 감독 경로(32_season.makeRivals)에는 이 가드가 **이미 있다**
+            ("같은 경기에 같은 이름이 둘 나오면 순위표가 못 읽힌다 — 실측 '임시우' 2명").
+            아케이드 경로에만 안 심겨 있었다 — 같은 결함을 다른 길에서 다시 만난 것이다. */
+      r.reset(this.gunMs);
+      for(let tries=0; tries<12; tries++){
+        r.name = AI_NAMES[(Math.random()*AI_NAMES.length)|0];
+        if(!usedNames.has(r.name)) break;
+      }
+      usedNames.add(r.name);
       /* ⛔ 예전엔 여기에 AI.jitter 를 또 걸었다 — 난이도가 **두 번** 들어가
          어려움 라이벌이 목표보다 0.3초 빨랐고(9.34s vs 목표 9.65s) 1위 확률이 0% 였다.
          손떨림은 실력에서만 나온다.
@@ -105,10 +127,12 @@ class SprintEvent {
   onStride(side, tMs, pIdx){
     const P = this.humans[pIdx||0] || this.player;
     if(this.phase==='DONE') return;
+    /* 이 한 번은 '시작하겠다'는 뜻이다 — 디딤으로도, 부정 출발로도 세지 않는다 */
+    if(this.holdStart){ this.holdStart = false; return; }
     if(this.phase!=='RUN'){
       /* 총성 전 입력 = 부정출발.
          ⚠ 여러 명일 땐 **누른 사람만** 실격이다 — 남의 실수로 내가 죽으면 안 된다. */
-      if(tMs < this.gunMs && tMs > this.gunMs - 1200){
+      if(!this.noFalseStart && tMs < this.gunMs && tMs > this.gunMs - 1200){
         P.falseStart = true; P.dq = true;
         Sfx.fail();
         /* 혼자면 그대로 경기 종료(예전과 같다) */
@@ -148,6 +172,8 @@ class SprintEvent {
 
   /* ── 진행 ── */
   update(dt){
+    /* 첫 입력을 기다리는 동안은 시간이 흐르지 않는다 — 총성도, 라이벌도 멈춰 있다 */
+    if(this.holdStart) return;
     this.t += dt*1000;
     const now = this.t;
 
@@ -380,12 +406,17 @@ class SprintEvent {
             그래서 남은 시간을 보여 주면 안 된다. 대신 이미 나고 있는 **신호음 3번**을
             눈으로도 보여 준다 — 구조(셋 다음에 총성)를 알려 주되 순간은 안 알려 준다. */
       plate(uctx, VW/2-70, VH/2-28, 140, 48, 0.7);
+      if(this.holdStart){
+        txt(uctx, '준비되면', VW/2, VH/2-22, 15, PAL.gold, 'center', 700);
+        txt(uctx, '좌·우 아무 쪽이나 누르세요', VW/2, VH/2-4, 10, PAL.white, 'center');
+      } else {
       txt(uctx, '제자리에', VW/2, VH/2-22, 15, PAL.gold, 'center', 700);
       txt(uctx, '총성을 기다리세요', VW/2, VH/2-4, 10, PAL.dim, 'center');
       for(let k=0;k<3;k++){
         const lit = k < (this.setBeeps|0);
         uctx.fillStyle = lit ? PAL.gold : 'rgba(242,245,250,.20)';
         uctx.fillRect(VW/2-14+k*11, VH/2+11, 7, 4);
+      }
       }
     } else if(this.phase==='RUN'){
       const now=this.t;
