@@ -700,7 +700,7 @@ class OfficeScreen extends Screen0 {
       log.slice(0,3).forEach((e,i)=>
         txt(u, e.msg, 14, VH-46+i*11, 9,
           e.t==='injury'?PAL.red : e.t==='break'?PAL.green : e.t==='slump'?'#ffa04c' : PAL.white));
-    } else {
+    } else if(!(typeof Tutorial!=='undefined' && Tutorial.on)){
       /* 이 상자가 '무엇에 대한 말인지' 잇는다 — 목록에서 고른 줄을 꼬리로 가리킨다 */
       UIK.tail(u, 30, VH-62, 10);
       UIK.divider(u, 14, VH-60, VW-28);
@@ -708,6 +708,13 @@ class OfficeScreen extends Screen0 {
       txt(u,'매주 3명까지 직접 지도할 수 있습니다. 나머지는 팀 프로그램대로 훈련합니다.',14,VH-46,9,PAL.white);
       txt(u,'피로가 쌓이면 성장이 멈추고 부상이 급증합니다 — 대회 직전엔 쉬게 하세요.',14,VH-35,9,PAL.dim);
     }
+    /* ⛔ 튜토리얼 띠가 감독 모드에서 `VH-56` 에 높이 34 로 앉는다 — 위 '감독 노트' 두 줄
+       (VH-46 · VH-35)이 **정확히 그 안**이다. 실측(2026-09-04 첫 실행 감사, 한/영 둘 다):
+       겹침 2건 — "매주 3명까지…" ↔ "이제 감독입니다" · "피로가 쌓이면…" ↔ 튜토리얼 힌트.
+       ⚠ 4G_tutorial 주석에 **같은 사고가 이미 한 번** 적혀 있다("y=26 고정이라 지표 줄을 덮었다").
+          그때 띠를 아래로 내렸고, 이번엔 아래쪽 줄을 덮었다 — **반대쪽 끝에서 같은 실수**다.
+       자리를 옮겨 피하지 않고 **말을 하나만 하게** 한다: 튜토리얼이 말하는 동안은
+       그게 안내다. 두 안내가 동시에 뜨면 겹치지 않아도 소음이다. */
     UI.footer(u, '▲▼ 이동   확인 선택');
   }
 }
