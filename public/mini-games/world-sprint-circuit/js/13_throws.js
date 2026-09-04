@@ -217,6 +217,18 @@ class HammerEvent extends FieldEvent {
     if(this.spin < RULES.hammerMinSpin){ this.say('회전이 부족하다', true); return; }
     this.release(tMs);
   }
+  /* ⛔ **화면은 7.0 이 최적이라고 말하는데 물리는 8.5까지 보상하고 있었다.**
+     회전 게이지는 `spin >= RULES.hammerOptSpin` 이면 초록으로 바뀐다 — 즉 '여기가 목표'라고
+     알려 준다. 그런데 `release` 는 `spin` 을 그대로 곱해서, 초록을 지나 상한까지 돌리면
+     훨씬 멀리 난다. 실측(2026-09-04): 회전 7.0 → 원반 74.0m(세계기록 74.35m) ·
+     **회전 8.5 → 100.7m**. 화면을 믿은 사람이 손해를 본다.
+     `hammerOptSpin` 은 그때까지 **그림 색칠에만** 쓰이고 물리에는 안 닿아 있었다
+     (링의 `overshoot` 와 같은 병 — 선언은 있고 배선이 없다).
+     넘긴 만큼 깎는다. 창던지기의 과충전 벌(charge>1 이면 되돌아온다)과 같은 모양이다. */
+  effSpin(){
+    const opt = RULES.hammerOptSpin, s = this.spin;
+    return s <= opt ? s : Math.max(RULES.hammerMinSpin, opt - (s-opt)*0.8);
+  }
   release(tMs){
     // 각도 바늘이 24°~66° 안에 있어야 유효, 45°가 최적
     const deg = ((this.angle*180/Math.PI) % 360 + 360) % 360;
@@ -224,7 +236,7 @@ class HammerEvent extends FieldEvent {
     this.releaseAngle = shot;
     this.foul = shot < RULES.hammerMinAngleDeg || shot > RULES.hammerMaxAngleDeg;
     const th = shot*Math.PI/180;
-    const v = 4.2 + this.spin*3.1;
+    const v = 4.2 + this.effSpin()*3.1;
     this.vx = v*Math.cos(th); this.vy = v*Math.sin(th);
     this.px=0; this.py=1.6;
     this.phase='FLIGHT';

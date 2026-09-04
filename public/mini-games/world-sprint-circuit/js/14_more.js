@@ -313,7 +313,12 @@ class ShotPutEvent extends JavelinEvent {
 class DiscusEvent extends HammerEvent {
   newAttempt(){
     super.newAttempt();
-    this.sectorLo = 28; this.sectorHi = 60; this.optAngle = 36;
+    this.sectorLo = 28; this.sectorHi = 60;
+    /* ⚠ `optAngle` 은 **아무도 안 읽는다**(전 파일 검색) — 그리고 값도 틀렸다.
+       실측 2026-09-04: 회전 7.0 에서 사거리가 가장 긴 각은 **44°** 다(36°는 65.6m, 44°는 72.0m).
+       손 높이(1.7m) 때문에 45° 보다 아주 조금 낮은 자리가 최적이다 — tools/ceiling.js 의
+       `throwRange` 가 각도를 훑어 같은 답을 낸다. 지우지 않고 값을 맞춰 둔다. */
+    this.optAngle = 44;
   }
   release(tMs){
     const deg=((this.angle*180/Math.PI)%360+360)%360;
@@ -323,7 +328,7 @@ class DiscusEvent extends HammerEvent {
     const th=shot*Math.PI/180;
     /* 원반은 해머보다 가볍다 — 같은 회전에서 더 멀리 난다.
        예전 계수는 55m 로 세계기록(74.35m)의 74% 에 그쳤다. */
-    const v = 3.6 + this.spin*3.30;
+    const v = 3.6 + this.effSpin()*3.30;   /* ⛔ 과회전 벌 — HammerEvent.effSpin 주석 참조 */
     this.vx=v*Math.cos(th); this.vy=v*Math.sin(th);
     this.px=0; this.py=1.7;
     this.phase='FLIGHT';
