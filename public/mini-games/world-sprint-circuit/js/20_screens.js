@@ -708,6 +708,22 @@ const G = {
   /* 이번 판을 얼마나 잘 쳤나 — 0(엉망) ~ 1(완벽). 스탯과 무관한 순수 손놀림. */
   playQuality(){
     const ev=this.event; if(!ev) return 0.5;
+    /* ⛔ **판정 비율을 먼저 보고 있었다.** 그런데 연타 모드로 바꾸면서
+       `02_runner.js` 가 "교대만 하면 좋은 디딤" 이라며 모든 타를 PERFECT 로 센다.
+       그래서 얼마나 빨리 치든 비율이 1 이었다 — 실측(2026-09-05, 대회에서 직접 뛰기):
+         110ms 간격 → OK 11.25초 · 260ms → 기준미달 14.97초 · 700ms → 시간초과(완주 실패)
+         **셋 다 quality 1** → 매번 +4%. '직접 뛰기'가 **공짜 보너스**였다.
+       기록이 있으면 **메달 사다리 위의 위치**가 정본이다. 판정 비율은
+       사다리를 못 그리는 종목(점수제·판정제)의 폴백으로 내린다.
+       ⚠ 못 끝낸 판(실격·부정출발·완주 실패)은 0 이다 — 그래야
+          "못 끝냄 ≤ 나쁜 기록 ≤ 좋은 기록" 이 뒤집히지 않는다.
+          (일시정지로 **그만두는** 건 여전히 0.5 다 — 그 결정은 backToSelect 에 있다) */
+    const r0 = ev.result;
+    if(r0 && (r0.status==='DQ' || r0.status==='FALSE_START' || !(r0.value < DNF))) return 0;
+    if(r0 && typeof ladderQuality==='function'){
+      const t0 = ladderQuality(ev.def, r0.value);
+      if(t0 !== null) return t0;
+    }
     const p = ev.player || (ev.runners && ev.runners[0]) || (ev.climbers && ev.climbers[0]);
     const j = p && p.judge;
     if(j){
@@ -724,12 +740,6 @@ const G = {
            제일 잘한 판이 제일 낮게 잡히는 뒤집힌 곡선이었다.
        사다리(동=기준 → 금)는 0 도 음수도 자연스럽게 다룬다 — 두 종목 다 여기서 풀린다.
        ⚠ 판정이 있는 종목 24개는 위 갈래로 빠지므로 이 변경과 무관하다. */
-    const r=ev.result;
-    if(r && r.value < DNF && r.status!=='DQ' && r.status!=='FALSE_START'
-       && typeof ladderQuality==='function'){
-      const t = ladderQuality(ev.def, r.value);
-      if(t !== null) return t;
-    }
     return 0.5;
   },
 

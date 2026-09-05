@@ -155,16 +155,35 @@ const MG = {
       if(typeof MANUAL!=='undefined') MANUAL.begin(mine[0]);
       G.playForManager(slot.ev, (res, quality)=>{
         if(typeof MANUAL!=='undefined') MANUAL.end();
-        this.applyManual(slot, quality);
+        this.applyManual(slot, quality, res);
         next();
       });
     };
     next();
   },
-  applyManual(slot, quality){
-    const q = (typeof quality==='number') ? clamp(quality,0,1) : 0.5;
-    const swing = (q - 0.5) * 2 * this.MANUAL_SWING;     // -0.04 ~ +0.04
+  /* raw: 사람이 실제로 낸 결과(`event.result`). 없으면 quality 로 떨어진다. */
+  applyManual(slot, quality, raw){
     const ev = slot.ev;
+    let q = (typeof quality==='number') ? clamp(quality,0,1) : 0.5;
+    /* ⛔ 예전엔 화면이 준 `quality` 만 썼다. 그런데 연타 모드에서는 교대만 맞으면
+       모든 타가 PERFECT 라 **얼마나 빨리 치든 1** 이었다 — 직접 뛰기가 공짜 +4% 였다
+       (실측 2026-09-05: 110ms OK · 260ms 기준미달 · 700ms 완주실패, 셋 다 q=1).
+       그걸 메달 사다리로 바꿔 봤더니 이번엔 반대로 기울었다 — 좋은 판(11.33초)도
+       사다리 바닥이라 **거의 항상 −4%** 였다. 세계기록 잣대는 이 기능의 잣대가 아니다.
+       이 기능의 뜻은 하나다: **당신 손이 그 선수가 냈을 기록을 움직였나.**
+       그러니 사람이 낸 기록을 **그 선수의 시뮬 기록**과 견준다 — 약한 선수는 기준도 낮다.
+       ⚠ 못 끝냈으면(실격·부정출발·완주실패) 견줄 기록이 없다 — 화면이 준 값을 쓴다. */
+    const mine = slot.rows.filter(r => this.club.has(r.athlete) && r.value>0 && r.value<DNF);
+    if(raw && raw.value>0 && raw.value<DNF && mine.length){
+      const sim = ev.higher ? Math.max(...mine.map(r=>r.value))
+                            : Math.min(...mine.map(r=>r.value));
+      if(sim>0){
+        /* 시뮬 대비 몇 % 나은가 — ±5% 면 끝까지 간다 */
+        const better = ev.higher ? (raw.value - sim)/sim : (sim - raw.value)/sim;
+        q = clamp(0.5 + better*10, 0, 1);
+      }
+    }
+    const swing = (q - 0.5) * 2 * this.MANUAL_SWING;     // -0.04 ~ +0.04
     for(const r of slot.rows){
       if(!this.club.has(r.athlete)) continue;
       r.manual = true; r.manualQ = q;
