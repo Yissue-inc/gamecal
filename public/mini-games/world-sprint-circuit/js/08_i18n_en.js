@@ -1392,6 +1392,12 @@ const I18N_EN = {
   '같은 쪽 %1': 'same side %1',
   '교대는 정확합니다 — 더 빠르게 두드리세요': 'Your alternation is clean — tap faster',
   '좌·우를 번갈아 더 빠르게 — 타수가 곧 속도입니다': 'Alternate ◀▶ faster — taps are speed',
+  '너무 빨라': 'Too early',
+  '너무 늦어': 'Too late',
+  '같은 발!': 'Same foot!',
+  '너무 일찍': 'Too soon',
+  '미끄러졌습니다 — 같은 손으로 두 번 잡으면 몸이 꼬입니다':
+    'You slipped — grabbing twice with the same hand twists you',
   '이미 저장된 클럽이 있습니다':'You already have a saved club',
   '새로 시작하면 그 클럽은 사라집니다':'Starting over deletes that club',
   '확인 다시 누르면 새로 시작 · 취소로 돌아가기':'Confirm again to start over · Cancel to go back',

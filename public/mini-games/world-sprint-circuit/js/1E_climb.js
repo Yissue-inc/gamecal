@@ -130,6 +130,7 @@ class ClimbEvent {
     }
     if(j==='SLIP'){
       const twisted = (c.side===side);      // 판정 전 값으로 사유를 정한다
+      /* ⚠ 연타 모드에서 SLIP 은 twisted 일 때만 난다 — 아래 '리듬' 갈래는 옛 모델 전용이다 */
       c.side=side; this.slip(c, p, twisted?'손이 꼬였다':'리듬이 어긋났다'); return;
     }
     c.judge[j]++; c.side=side; c.lastGrab=tMs;
@@ -200,8 +201,13 @@ class ClimbEvent {
     const status = c0.falseStart ? 'FALSE_START' : c0.fell ? 'DQ'
                  : c0.timedOut ? 'TIMEOUT' : (total<=this.qualify ? 'OK':'MISSED_QUALIFY');
     /* ⚠ '실격'만 뜨고 왜인지 안 나오면 다음 판에 같은 실수를 한다 */
+    /* ⛔ 미끄러진 사유를 **'리듬이 어긋나면'** 이라고 말하고 있었다. 연타 모드에서
+       미끄러지는 길은 **같은 손으로 두 번 잡는 것 하나뿐**이다(위 onGrab 의 갈래를 보라) —
+       박자는 미끄러짐과 아무 상관이 없다. 화면이 없는 규칙을 가르치고 있었다
+       (2026-09-05, `mashMode` 뒤끝 점검). ⚠ 옛 모델에서는 맞는 말이라 갈라 둔다. */
     const reason = c0.falseStart ? '총성 전에 움직였습니다'
-                 : c0.fell ? '미끄러졌습니다 — 리듬이 어긋나면 손이 빠집니다'
+                 : c0.fell ? (RULES.mashMode ? '미끄러졌습니다 — 같은 손으로 두 번 잡으면 몸이 꼬입니다'
+                                             : '미끄러졌습니다 — 리듬이 어긋나면 손이 빠집니다')
                  : c0.timedOut ? '제한 시간 안에 완등하지 못했습니다' : null;
     this.result={ status, value:total, rank:this.rankOf(), reason };
     if(status!=='OK') Sfx.fail();
