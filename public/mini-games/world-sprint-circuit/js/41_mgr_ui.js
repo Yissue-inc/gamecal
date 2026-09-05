@@ -174,7 +174,8 @@ const UI = {
                           : Math.max(2, Math.round((rowH-1-11)/2));
       txt(u, r.label, lx, ry+pad, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
       if(showSub){
-        txt(u, r.sub, lx, ry+pad+11, 8, PAL.dim);
+        /* ⚠ 고른 줄은 금빛으로 하이라이트된다 — 그 위의 PAL.dim 은 대비 2.4 다(실측). */
+        txt(u, r.sub, lx, ry+pad+11, 8, on?PAL.dimOn:PAL.dim);
         /* 부제 뒤에 아이콘을 잇는다 — 글자로 쓰면 20자가 되는 것들이다.
            ⚠ 폭을 재기 전에 부제와 **같은 폰트**를 지정해야 아이콘이 글자를 파고들지 않는다. */
         if(r.icons && r.icons.length && typeof UIK!=='undefined'){

@@ -369,8 +369,12 @@ const UIK = {
         if(u.measureText(s2).width <= w - 8) break;
       }
     }catch(e){ sz = 9; }
-    txt(u, label, x+w/2, y+Math.round((h-sz)/2), sz, on?PAL.gold:PAL.dim, 'center', on?700:400);
+    /* ⛔ 안 고른 탭 글자를 `PAL.dim` 으로 뒀는데 **탭 알약 어셋(tab-idle)이 파랑**이다 —
+       대비 1.53 으로 거의 안 보였다(실측 2026-09-04, 육성 화면 '장비'·'스킬').
+       상태 구분은 **굵기와 알약**이 하고, 색은 읽히는 쪽으로 둔다. */
+    txt(u, label, x+w/2, y+Math.round((h-sz)/2), sz, on?PAL.gold:PAL.dimOn, 'center', on?700:400);
   },
+
   /* ── 구분선 ──────────────────────────────────────────────
      divider-line (256×8) — 가운데가 밝고 양끝이 흐려진다. 이어 붙이지 않고 한 장을 늘인다. */
   divider(u, x, y, w){

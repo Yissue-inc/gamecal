@@ -1245,9 +1245,10 @@ class CodexScreen extends Screen0 {
       const rr=(typeof RARITY!=='undefined')?RARITY[t2]:{name:'',color:PAL.white};
       const x=VW-8-(5-t2)*62;
       UIK.tab(u, x-58, 16, 58, 15, '', on);
-      txt(u, K(rr.name), x-54, 19, 8, on?rr.color:PAL.dim, 'left', on?700:400);
+      /* ⚠ 이 두 줄은 UIK.tab 이 그린 **파란 알약 위**에 얹힌다 — PAL.dim 은 거기서 1.48 이다 */
+      txt(u, K(rr.name), x-54, 19, 8, on?rr.color:PAL.dimOn, 'left', on?700:400);
       txt(u, `${c.owned}/${c.total}`, x-5, 21, 7,
-          (c.owned>=c.total&&c.total)?PAL.green:PAL.dim, 'right');
+          (c.owned>=c.total&&c.total)?PAL.green:PAL.dimOn, 'right');
     }
     /* ── 격자 ─────────────────────────────────────────────
        ⚠ 전설은 5종뿐이라 한 줄로 끝난다. 위에 붙여 그리면 아래가 통째로 빈다 —
