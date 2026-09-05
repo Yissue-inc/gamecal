@@ -986,11 +986,33 @@ const G = {
           hard?PAL.red:easy?PAL.green:PAL.dim, 'right', AI.level!=='normal'?700:400);
     }
     if(n>1){
+      /* ⛔ 여기가 **P2~P4 가 자기 키를 듣는 유일한 자리**다(동시 대결엔 차례 배지가 없다).
+         두 가지를 고쳤다(2026-09-04, 겹침 감시 실측).
+         ① 예전엔 이 줄을 VH-42 우측에 그렸는데 **`M 캐릭터` 줄과 같은 자리**였다 —
+            2·3·4인 전부에서 마지막 사람 키 라벨이 58~66px 덮여 있었다.
+         ② 좌·우·액션 셋만 적었다. ▲▼ 로 페이스를 고르는 중장거리·경보에서
+            P2 는 자기 키가 ↑ 와 **오른쪽 Shift** 라는 걸 끝내 못 알았다.
+         자리싸움 대신 **판을 키운다** — 격자는 y=190 에서 끝나므로 위로 열려 있다. */
+      const ud = Party.usesUpDown(def);
+      const top = VH - 58 - (ud?2:1)*9 - 2;
+      plate(uctx, 0, top, VW, VH-58-top, .84);
+      /* ⛔ 간격을 `글자수 × 4.6` 으로 **추정**하고 있었다. 한글·영어·기호가 폭이 달라
+         영어 4인에서 P3 와 P4 가 3px 붙었다(2026-09-04 겹침 감시). **글자를 재서** 띄운다. */
+      const F8 = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+      const wOf = t => { uctx.font = F8; return Math.ceil(uctx.measureText(t).width); };
       let px=VW-10;
       for(let p=n-1;p>=0;p--){
         const lab='P'+(p+1)+' '+PARTY_KEYS[p].label;
-        txt(uctx, lab, px, VH-42, 8, PARTY_COLOR[p],'right');
-        px -= lab.length*4.6+10;
+        txt(uctx, lab, px, top+2, 8, PARTY_COLOR[p],'right');
+        px -= wOf(lab)+10;
+      }
+      if(ud){
+        let qx=VW-10;
+        for(let p=n-1;p>=0;p--){
+          const lab='▲▼ '+PARTY_KEYS[p].udLabel;
+          txt(uctx, lab, qx, top+11, 8, PARTY_COLOR[p],'right');
+          qx -= wOf(lab)+10;
+        }
       }
     }
     txt(uctx, K('◀▶ 고르기 · ▲▼ 줄·갈래 · 확인 시작 · 취소 뒤로'), VW/2, VH-14, 9, PAL.dim,'center');

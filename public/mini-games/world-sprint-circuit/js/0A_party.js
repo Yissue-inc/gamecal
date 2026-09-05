@@ -12,11 +12,16 @@
    ══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+/* ⚠ `label` 은 **좌·우·액션 셋만** 적는다. 위/아래는 `udLabel` 로 따로 둔다 —
+     ▲▼ 를 쓰는 종목(중장거리 페이스·경보·사이클 변속)에서만 화면에 붙이기 위해서다.
+     ⛔ 없으면 2인용 800m 에서 P2 는 자기 페이스 키가 **↑ 와 오른쪽 Shift** 라는 걸
+        어디서도 못 듣는다(2026-09-04 발견). 화살표를 액션에 뺏겨 아래가 Shift 로 밀린
+        건 P2 뿐이라 더 그렇다 — 다른 사람 키를 보고 유추할 수도 없다. */
 const PARTY_KEYS = [
-  { left:'KeyA',       right:'KeyD',        action:'KeyS',      up:'KeyW',       down:'KeyX',      label:'A / D · S' },
-  { left:'ArrowLeft',  right:'ArrowRight',  action:'ArrowDown', up:'ArrowUp',    down:'ShiftRight',label:'← / → · ↓' },
-  { left:'KeyJ',       right:'KeyL',        action:'KeyK',      up:'KeyI',       down:'KeyM',      label:'J / L · K' },
-  { left:'Numpad4',    right:'Numpad6',     action:'Numpad5',   up:'Numpad8',    down:'Numpad2',   label:'숫자4 / 6 · 5' },
+  { left:'KeyA',       right:'KeyD',        action:'KeyS',      up:'KeyW',       down:'KeyX',      label:'A / D · S',      udLabel:'W / X' },
+  { left:'ArrowLeft',  right:'ArrowRight',  action:'ArrowDown', up:'ArrowUp',    down:'ShiftRight',label:'← / → · ↓',      udLabel:'↑ / R-Shift' },
+  { left:'KeyJ',       right:'KeyL',        action:'KeyK',      up:'KeyI',       down:'KeyM',      label:'J / L · K',      udLabel:'I / M' },
+  { left:'Numpad4',    right:'Numpad6',     action:'Numpad5',   up:'Numpad8',    down:'Numpad2',   label:'숫자4 / 6 · 5',  udLabel:'숫자8 / 2' },
 ];
 /* 1인용 전용 — 예전 키를 전부 살려 둔다 */
 /* ⚠ 예전엔 action 에 KeyS·ArrowDown 이 같이 들어 있었다. 방향키가 그냥 '보조 액션'이던
@@ -45,6 +50,15 @@ const Party = {
   color(i){ return PARTY_COLOR[i % PARTY_COLOR.length]; },
   species(i){ return PARTY_SPECIES[i % PARTY_SPECIES.length]; },
   keyLabel(i){ return this.on ? PARTY_KEYS[i].label : 'A/D/←/→ · Space'; },
+  udLabel(i){ return this.on ? PARTY_KEYS[i].udLabel : 'W/↑ · X/S/↓'; },
+  /* 이 종목이 위/아래를 쓰나 — 클래스에 onUp/onDown 이 있으면 쓴다.
+     ⚠ 종목마다 목록에 적으면 새 종목에서 또 빠진다(이 코드베이스가 병렬 목록으로 물린 자리다).
+        **구현 자체를 물어본다.** */
+  usesUpDown(def){
+    if(typeof G==='undefined' || !G.classFor) return false;
+    const K = G.classFor(def);
+    return !!(K && K.prototype && (K.prototype.onUp || K.prototype.onDown));
+  },
 
   /* 이번 프레임에 i번 플레이어가 act 를 눌렀나 */
   pressed(i, act){
