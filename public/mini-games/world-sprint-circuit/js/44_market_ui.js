@@ -252,8 +252,22 @@ class ReleaseScreen extends Screen0 {
       right:`+${Math.round(valueOf(a)*0.25)}`, rightColor:PAL.dim,
       color: a.injury?PAL.red:PAL.white }));
   }
+  /* ⛔ 화면이 **'되돌릴 수 없습니다'** 라고 빨갛게 적어 놓고 **한 번 누르면 실행**했다.
+     이 게임은 되돌릴 수 없는 일에 두 번 묻는다 — '새 클럽'(natConfirm)·튜토리얼(tutConfirm).
+     방출은 그중 제일 아픈 쪽인데(선수는 안 돌아온다) 확인이 없었다(2026-09-05 감사).
+     ⚠ 커서를 옮기거나 취소하면 예약은 풀린다 — **다른 선수를 방출하는 사고**를 막는다. */
+  move(d){ this.pending=null; super.move(d); }
+  cancel(){ if(this.pending){ this.pending=null; Sfx.ui(); return; } super.cancel(); }
   confirm(){
     const a=this.mg.club.squad[this.sel];
+    if(!a) return;
+    if(this.pending !== a.id){
+      this.pending = a.id;
+      this.mg.toast(K('확인 한 번 더 — %1 방출').replace('%1', a.name));
+      Sfx.beep(420,0.1,'square',0.12);
+      return;
+    }
+    this.pending = null;
     const err=this.mg.season.market.release(a);
     if(err){ this.mg.toast(err); Sfx.fail(); return; }
     Sfx.ui(); this.mg.toast(`${a.name} 방출`);
@@ -263,6 +277,6 @@ class ReleaseScreen extends Screen0 {
     UI.header(u,'선수 방출',`선수단 ${this.mg.club.squad.length} (최소 ${MarketTune.squadMin})`);
     txt(u,'방출하면 주급이 줄지만 몸값의 25%만 회수됩니다. 되돌릴 수 없습니다.',8,27,9,PAL.red);
     UI.list(u,this.rows,this.sel,8,42,VW-16,26,6);
-    UI.footer(u,'확인 방출   취소 돌아가기');
+    UI.footer(u, this.pending ? '확인 한 번 더 방출   취소 그만두기' : '확인 방출   취소 돌아가기');
   }
 }

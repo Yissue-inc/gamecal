@@ -194,6 +194,75 @@ class GrowPickScreen extends Screen0 {
 }
 
 /* ── 육성 — 한 선수 ─────────────────────────────────────── */
+/* ── 창고 아이템 하나로 할 수 있는 일 ─────────────────────────
+   ⛔ 왜 화면을 따로 두나: 예전엔 ▲=합성 · ▼=판매 였다. ▲▼ 는 이동 키다 —
+      아래로 훑어보려던 사람이 **창고를 지나가는 대로 팔았고**, 커서가 안 움직여
+      둘째 항목부터는 닿지도 못했다(2026-09-05). 되돌릴 수 없는 일은 눈으로 고르게 한다. */
+class ItemScreen extends Screen0 {
+  constructor(mg, a, idx){ super(mg); this.a = a; this.idx = idx; this.pending = false; }
+  get item(){ return (this.mg.club.inventory||[])[this.idx]; }
+  get rows(){
+    const it = this.item; if(!it) return [];
+    const inv = this.mg.club.inventory;
+    const fusable = (typeof RPG.canFuse==='function') && RPG.canFuse(inv, it);
+    return [
+      { label:'장착한다', sub:'지금 착용 중인 것은 창고로 돌아갑니다' },
+      { label:'합성한다', sub:'같은 장비 3개를 한 등급 위로', dim:!fusable,
+        right: fusable ? '3' : '—' },
+      { label:'판다', sub:'되돌릴 수 없습니다', color:PAL.red,
+        right:'+'+RPG.sellPrice(it) },
+      { label:'돌아가기' },
+    ];
+  }
+  move(d){ this.pending=false; super.move(d); }
+  cancel(){ if(this.pending){ this.pending=false; Sfx.ui(); return; } super.cancel(); }
+  confirm(){
+    const it = this.item, a = this.a, inv = this.mg.club.inventory;
+    if(!it){ this.mg.pop(); return; }
+    if(this.sel===3){ this.mg.pop(); return; }
+    if(this.sel===0){
+      /* ⚠ `RPG.equip` 은 **창고에서 빼지 않는다** — 빼고, 벗겨진 것을 돌려놓는 건 부르는 쪽 일이다.
+         (처음에 `res.back` 이라 잘못 읽어 창고 수가 안 맞았다. 계약은 `{removed}` 다.) */
+      const res = RPG.equip(a, it);
+      if(typeof res==='string'){ Sfx.fail(); this.mg.toast(res); return; }
+      inv.splice(this.idx, 1);
+      if(res.removed) inv.push(res.removed);
+      Sfx.record(); Screen.shake(0.25);
+      this.mg.toast(RPG.itemName(it)+' 착용');
+      this.mg.pop(); return;
+    }
+    if(this.sel===1){
+      /* ⛔ 원래 문구는 '같은 등급 3개' 였는데 `canFuse` 는 **같은 id + 같은 등급** 3개를 본다.
+         등급만 맞춰 모은 사람은 왜 안 되는지 알 수 없었다 — 화면이 조건을 틀리게 말했다. */
+      if(!RPG.canFuse(inv, it)){ Sfx.fail(); this.mg.toast('같은 장비 3개가 필요합니다'); return; }
+      const made = RPG.fuse(inv, it);
+      Sfx.record(); Screen.shake(0.35);
+      this.mg.toast('합성 → %1'.replace('%1', RPG.itemName(made)));
+      this.mg.pop(); return;
+    }
+    /* 판매 — 이 게임이 되돌릴 수 없는 일에 쓰는 방식대로 한 번 더 묻는다 */
+    if(!this.pending){
+      this.pending = true;
+      this.mg.toast(K('확인 한 번 더 — %1 판매').replace('%1', RPG.itemName(it)));
+      Sfx.beep(420,0.1,'square',0.12);
+      return;
+    }
+    this.pending = false;
+    const p = RPG.sellPrice(it);
+    inv.splice(this.idx, 1);
+    this.mg.club.budget = +(this.mg.club.budget + p).toFixed(1);
+    Sfx.record(); this.mg.toast(RPG.itemName(it)+' 판매 · 코인 +'+p);
+    this.mg.pop();
+  }
+  draw(u){
+    const it = this.item;
+    if(!it){ UI.header(u, '창고', ''); return; }
+    UI.header(u, RPG.itemName(it), K('코인 %1').replace('%1', this.mg.club.budget));
+    UI.list(u, this.rows, this.sel, 8, 42, VW-16, 26, 4);
+    UI.footer(u, this.pending ? '확인 한 번 더 판매   취소 그만두기' : '확인 선택   취소 돌아가기');
+  }
+}
+
 class GrowScreen extends Screen0 {
   get hdBg(){ return 'bg-training'; }  get hdBgDim(){ return 0.82; }
   /* 0=스탯 1=장비 2=스킬.
@@ -297,37 +366,16 @@ class GrowScreen extends Screen0 {
       }
       Sfx.ui(); this.mg.push(new HallScreen(this.mg, this.a)); return;
     }
-    /* ▲(장비 탭) — 합성. 같은 것 3개를 한 등급 위로 */
-    if(this.tab===1 && Input.pressed('up')){
-      const r=this.rows[this.sel];
-      if(r && r._inv!==undefined){
-        const inv=this.mg.club.inventory, it=inv[r._inv];
-        if(it && RPG.canFuse(inv, it)){
-          const made=RPG.fuse(inv, it);
-          Sfx.record(); Screen.shake(0.35);
-          this.getFxAt = this.t||0;                 // 아이템이 생긴 순간
-          this.mg.toast('합성 → %1'.replace('%1', RPG.itemName(made)));
-          this.sel=Math.min(this.sel, this.rows.length-1);
-        } else { Sfx.fail(); this.mg.toast('같은 등급 3개가 필요합니다'); }
-        return;
-      }
-    }
-    /* 창고의 장비는 ▼ 로 판다 — 창고가 쌓이기만 하면 의미가 없다 */
-    if(this.tab===1 && Input.pressed('down')){
-      const r=this.rows[this.sel];
-      if(r && r._inv!==undefined){
-        const inv=this.mg.club.inventory, it=inv[r._inv];
-        if(it){
-          const p=RPG.sellPrice(it);
-          inv.splice(r._inv,1);
-          this.mg.club.budget = +(this.mg.club.budget + p).toFixed(1);
-          Sfx.record(); this.mg.toast(RPG.itemName(it)+' 판매 · 코인 +'+p);
-          this.sel=Math.min(this.sel, this.rows.length-1);
-          return;
-        }
-      }
-    }
+    /* ⛔ 여기서 ▲=합성 · ▼=판매 였다. 그런데 ▲▼ 는 **이 게임 전체의 이동 키**다.
+       결과가 둘이었다(2026-09-05 실측):
+         ① 창고 첫 줄에서 ▼ 를 누르면 **아이템이 즉시·영구히 팔린다.** 확인이 없다.
+            아래로 훑어보려던 사람은 지나가는 대로 창고를 비운다.
+         ② 커서가 거기서 안 움직이므로 **창고 둘째 항목부터는 닿을 수도 없다** —
+            장착도 합성도 첫 줄에만 된다.
+       이동 키는 이동만 한다. 아이템의 일은 **아이템 메뉴**로 옮긴다(확인으로 연다). */
     super.update(now);
+    /* 목록이 줄어들면(판매·합성) 커서가 밖으로 나간다 */
+    const n=this.rows.length; if(n && this.sel>=n) this.sel=n-1;
   }
   /* 행동 앞뒤로 종합력을 재서 +N 을 띄운다 — 뭘 해도 숫자가 움직이는 게 보여야 한다 */
   act(fn){
@@ -396,6 +444,8 @@ class GrowScreen extends Screen0 {
     if(r._inv!==undefined){
       const inv=this.mg.club.inventory;
       const it=inv[r._inv]; if(!it) return;
+      /* 장착·합성·판매 중 무엇을 할지는 **눈으로 고르게** 한다 — 판매는 되돌릴 수 없다 */
+      if(typeof ItemScreen!=='undefined'){ Sfx.ui(); this.mg.push(new ItemScreen(this.mg, a, r._inv)); return; }
       const res=RPG.equip(a, it);
       if(typeof res==='string'){ Sfx.fail(); this.mg.toast(res); return; }
       inv.splice(r._inv,1);
