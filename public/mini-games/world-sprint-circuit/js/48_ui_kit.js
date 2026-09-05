@@ -215,7 +215,10 @@ const UIK = {
      레퍼런스는 예외 없이 카드 왼쪽 위에 Lv 를 붙인다. */
   lvBadge(u, x, y, lv, color){
     const s = 'Lv.'+lv;
-    const w = s.length*4.6 + 6;
+    /* ⚠ 폭을 `글자수 × 4.6` 으로 잡고 있었다 — 8px ASCII 실측은 4.816 이다.
+       숫자만 들어가는 뱃지라 티가 안 났을 뿐, 같은 실수가 오늘 세 곳에서 나왔다. */
+    u.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
+    const w = Math.ceil(u.measureText(s).width) + 8;
     u.fillStyle = 'rgba(6,9,16,.9)'; u.fillRect(x, y, w, 9);
     u.strokeStyle = color || PAL.gold; u.lineWidth=1;
     u.strokeRect(x+.5, y+.5, w-1, 8);
@@ -397,7 +400,9 @@ const UIK = {
              u.arc(x+5, y+h/2, 3.2, 0, 6.284); u.fill(); }
       const s = this.n(it.value);
       txt(u, s, x+13, y+4, 10, it.color||PAL.white, 'left', 700);
-      x += 13 + s.length*5.4 + 14;
+      /* ⚠ `글자수 × 5.4` 였다 — 10px ASCII 실측은 6.02 라 **좁게 잡혀** 다음 칸이 붙는다 */
+      u.font = '700 10px "Galmuri11","Nanum Gothic Coding",monospace';
+      x += 13 + Math.ceil(u.measureText(s).width) + 14;
     }
   },
 
