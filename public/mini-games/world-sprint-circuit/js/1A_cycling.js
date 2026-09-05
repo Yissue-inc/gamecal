@@ -209,18 +209,21 @@ class CyclingEvent {
     /* ⚠ gy=44 면 '기어' 라벨이 y 33~41 인데, 거기는 이제 **메달 레일 받침**(30~41)이다.
        레일을 넣으면서 이 블록을 안 봤다 — 캡처에서 'Gear' 가 레일 밑에 깔렸다. 12px 내린다. */
     const gx=VW-70, gy=56;
-    txt(u,'기어', gx+26, gy-11, 8, PAL.dim,'center');
+    txtOn(u,'기어', gx+26, gy-11, 8, PAL.dim,'center');
     CYCLE.gears.forEach((g,i)=>{
       const on=i===this.gear;
+      /* ⛔ 칸을 반투명으로만 칠했더니 **밝은 도로 위에서 글자와 칸이 같은 색**이 됐다
+         (금색 글자 on 금색 칸, 대비 1.25 — 실측 2026-09-04). 어두운 바탕을 먼저 깐다. */
+      u.fillStyle = 'rgba(6,9,16,.78)'; u.fillRect(gx+i*18, gy, 16, 16);
       u.fillStyle = on? 'rgba(255,215,94,.25)':'rgba(255,255,255,.07)';
       u.fillRect(gx+i*18, gy, 16, 16);
       u.strokeStyle = on?PAL.gold:'#3a4258'; u.lineWidth=1; u.strokeRect(gx+i*18+.5, gy+.5, 15, 15);
       txt(u, g.name, gx+i*18+8, gy+4, 10, on?PAL.gold:PAL.dim,'center', on?700:400);
     });
-    txt(u,'▲▼ 변속', gx+26, gy+19, 8, PAL.dim,'center');
+    txtOn(u,'▲▼ 변속', gx+26, gy+19, 8, PAL.dim,'center');
     /* 체력 */
     const bw=90, bx=8, by=Track.botY(24);
-    txt(u,'체력', bx, by-11, 8, PAL.dim);
+    txtOn(u,'체력', bx, by-11, 8, PAL.dim);
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,7);
     u.fillStyle = this.stamina>0.8?PAL.green:this.stamina>0.65?PAL.gold:PAL.red;
     u.fillRect(bx,by,Math.round(bw*(this.stamina-0.40)/0.60),7);

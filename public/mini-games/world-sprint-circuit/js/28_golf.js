@@ -301,6 +301,6 @@ class GolfEvent {
         txt(u,'←→ 조준 · ▲▼ 클럽 · 액션 3번(시작·세기·정확도)', VW/2, Track.tipY(), 10, PAL.white,'center');
     }
     if(this.t-this.msgAt<1100)
-      txt(u, this.msg, VW/2, 62, 14, this.msgBad?PAL.red:PAL.green,'center',700);
+      txtOn(u, this.msg, VW/2, 62, 14, this.msgBad?PAL.red:PAL.green,'center',700);
   }
 }

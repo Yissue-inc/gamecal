@@ -13,6 +13,22 @@ function txt(ctx, s, x, y, size, color, align, weight){
   ctx.fillStyle = color||PAL.white;
   ctx.fillText(s, x, y);
 }
+/* 경기장 **위에** 놓는 작은 라벨 — 글자에 딱 맞는 판을 뒤에 깐다.
+   ⛔ 왜 필요한가: `PAL.dim`(#7d8699) 이 **빨간 트랙**(rgb 188,106,88) 위에 그대로 놓여
+      대비가 **1.06** 이었다(WCAG 최소 3.0). 실측 2026-09-04 — 체력·경고·▲▼·도달 라벨 등.
+      이 파일 아래 판정 라벨 주석이 같은 말을 한다("빨간 트랙 위에서 글자가 묻혔다").
+      그때는 그 한 곳만 고쳤다. 배경은 종목마다 바뀌므로 **놓는 방식**을 바꾼다.
+   ⚠ `txt` 가 안에서 K() 를 부르므로 폭도 **번역된 문자열**로 잰다. */
+function txtOn(ctx, s, x, y, size, color, align, weight){
+  const str = (typeof K === 'function') ? K(s) : s;
+  ctx.font = `${weight||400} ${size}px "Galmuri11","Nanum Gothic Coding",monospace`;
+  const w = Math.ceil(ctx.measureText(str).width);
+  const a = align || 'left';
+  const x0 = a === 'right' ? x - w : a === 'center' ? x - w/2 : x;
+  ctx.fillStyle = 'rgba(6,9,16,.74)';
+  ctx.fillRect(Math.round(x0 - 3), Math.round(y - 2), w + 6, size + 4);
+  txt(ctx, s, x, y, size, color, align, weight);
+}
 /* 글자 뒤에 어두운 판을 깔아 어떤 배경에서도 읽히게 한다 */
 function plate(ctx, x, y, w, h, a){
   ctx.fillStyle = `rgba(5,6,10,${a??0.62})`;

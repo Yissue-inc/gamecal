@@ -374,7 +374,7 @@ class HammerEvent extends FieldEvent {
     } else if(this.phase==='RESULT'){
       const m=this.pending;
       txt(uctx,m===null?'파울':m.toFixed(2)+'m',VW/2,92,28,m===null?PAL.red:PAL.gold,'center',700);
-      if(this.releaseAngle) txt(uctx,`릴리스 ${this.releaseAngle.toFixed(0)}°  (최적 45°)`,VW/2,124,11,PAL.dim,'center');
+      if(this.releaseAngle) txtOn(uctx,`릴리스 ${this.releaseAngle.toFixed(0)}°  (최적 45°)`,VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){ const a=1-(this.t-this.msgAt)/900;
       uctx.save(); uctx.globalAlpha=a;

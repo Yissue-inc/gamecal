@@ -179,7 +179,7 @@ class TripleJumpEvent extends LongJumpEvent {
     } else if(this.phase==='RESULT'){
       const m=this.pending;
       txt(u, m===null?'파울':m.toFixed(2)+'m', VW/2, 100, 28, m===null?PAL.red:PAL.gold,'center',700);
-      txt(u, this.hops.map((q,i)=>K(hopName(i))+' '+Math.round(q*100)+'%').join('  ·  '),
+      txtOn(u, this.hops.map((q,i)=>K(hopName(i))+' '+Math.round(q*100)+'%').join('  ·  '),
           VW/2, 132, 10, PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){
@@ -487,7 +487,8 @@ class PoleVaultEvent extends FieldEvent {
           this.plantQ>0.7?PAL.green:PAL.gold,'center');
     } else if(this.phase==='RESULT'){
       txt(u,this.cleared?'성공!':'넘지 못했다',VW/2,92,26,this.cleared?PAL.green:PAL.red,'center',700);
-      if(this.reach) txt(u,`도달 ${this.reach.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`,VW/2,124,11,PAL.dim,'center');
+      /* ⚠ 같은 문구가 높이뛰기(12_jumps)에도 있다 — 한쪽만 고쳐서 한 번 놓쳤다 */
+      if(this.reach) txtOn(u,`도달 ${this.reach.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`,VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; u.save(); u.globalAlpha=a;

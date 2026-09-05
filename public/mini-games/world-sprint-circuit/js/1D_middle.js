@@ -376,7 +376,7 @@ class MiddleEvent {
       u.fillRect(bx, y, bw, 15);
       txt(u, P.name, bx+bw/2, y+3, 10, on?'#0d1017':'rgba(255,255,255,.5)','center',on?700:400);
     }
-    txt(u,'▲▼', x0-8, y+4, 9, PAL.dim,'right');
+    txtOn(u,'▲▼', x0-8, y+4, 9, PAL.dim,'right');
     /* 체력 — 페이스 줄 위에 한 칸 띄워 놓는다(라벨이 막대를 덮고 있었다) */
     /* ⚠ y-17 은 **복합종목의 구간 띠**(216~238)와 같은 자리다 —
        철인3종 달리기 구간에서 '체력' 라벨이 'Run' 위에 겹쳤다(2026-08-31 겹침 감시).
@@ -385,7 +385,7 @@ class MiddleEvent {
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(sx,sy,sw,6);
     u.fillStyle=me.stamina>0.5?PAL.green:me.stamina>0.22?PAL.gold:PAL.red;
     u.fillRect(sx,sy,Math.round(sw*me.stamina),6);
-    txt(u,'체력', sx-8, sy-1, 9, PAL.dim,'right');
+    txtOn(u,'체력', sx-8, sy-1, 9, PAL.dim,'right');
     /* 랩 · 스퍼트 — 좌우로 갈라 놓는다 */
     if(this.road){
       const km = (v)=> (v/1000).toFixed(1);
@@ -393,12 +393,12 @@ class MiddleEvent {
           VW-10, sy-14, 10, PAL.white,'right',700);
     } else {
       const laps=Math.ceil(this.trackM/this.lapM);
-      txt(u, (me.lap+1)+' / '+laps+' 바퀴', VW-10, sy-14, 10, PAL.white,'right',700);
+      txtOn(u, (me.lap+1)+' / '+laps+' 바퀴', VW-10, sy-14, 10, PAL.white,'right',700);
     }
-    if(this.walk) txt(u,'경고 '+me.warns+' / 3', 10, sy-14, 10,
+    if(this.walk) txtOn(u,'경고 '+me.warns+' / 3', 10, sy-14, 10,
                       me.warns?PAL.red:PAL.dim,'left',700);
-    else if(me.spurting) txt(u,'스퍼트 중', 10, sy-14, 10, PAL.red,'left',700);
-    else if(me.spurtLeft>0) txt(u,'액션 = 스퍼트 1회', 10, sy-14, 9, PAL.gold,'left');
+    else if(me.spurting) txtOn(u,'스퍼트 중', 10, sy-14, 10, PAL.red,'left',700);
+    else if(me.spurtLeft>0) txtOn(u,'액션 = 스퍼트 1회', 10, sy-14, 9, PAL.gold,'left');
 
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
     if(this.t-me.msgAt<900)

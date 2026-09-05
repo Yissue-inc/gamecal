@@ -375,7 +375,7 @@ class HighJumpEvent extends FieldEvent {
       txt(uctx,`${this.airTaps} / 6`, VW/2, 62, 15, this.airTaps>=6?PAL.green:PAL.white,'center',700);
     } else if(this.phase==='RESULT'){
       txt(uctx, this.cleared?'성공!':'넘지 못했다', VW/2, 92, 26, this.cleared?PAL.green:PAL.red,'center',700);
-      if(this.reachM) txt(uctx, `도달 ${this.reachM.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`, VW/2,124,11,PAL.dim,'center');
+      if(this.reachM) txtOn(uctx, `도달 ${this.reachM.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`, VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; uctx.save(); uctx.globalAlpha=a;

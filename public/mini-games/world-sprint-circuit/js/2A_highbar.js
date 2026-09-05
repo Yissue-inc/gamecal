@@ -237,7 +237,7 @@ class HighBarEvent {
     u.fillStyle = this.amp>=BAR.releaseMin?PAL.green:PAL.gold;
     u.fillRect(bx,by,Math.round(bw*this.amp),9);
     u.fillStyle='rgba(255,255,255,.7)'; u.fillRect(bx+bw*BAR.releaseMin-1, by-3, 2, 15);
-    txt(u,K('스윙'), bx-8, by, 9, PAL.dim,'right');
+    txtOn(u,K('스윙'), bx-8, by, 9, PAL.dim,'right');
     txt(u, this.amp>=BAR.releaseMin? K('이탈 가능') : K('더 흔들어라'),
         bx+bw+8, by, 9, this.amp>=BAR.releaseMin?PAL.green:PAL.dim,'left',700);
 
@@ -250,7 +250,7 @@ class HighBarEvent {
         u.strokeStyle = Math.abs(d)<=BAR.catchWindow?PAL.green:'rgba(255,255,255,.45)';
         u.lineWidth=2; u.beginPath();
         u.arc(V.cx, this.dismount? V.floorY-4 : V.barY, Math.max(5,20-k*14), 0, 6.284); u.stroke();
-        txt(u, this.dismount? K('착지') : K('잡기'), V.cx, (this.dismount?V.floorY-24:V.barY-26),
+        txtOn(u, this.dismount? K('착지') : K('잡기'), V.cx, (this.dismount?V.floorY-24:V.barY-26),
             10, Math.abs(d)<=BAR.catchWindow?PAL.green:PAL.dim,'center',700);
       }
     }

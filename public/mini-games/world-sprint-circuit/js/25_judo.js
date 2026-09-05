@@ -275,12 +275,12 @@ class JudoEvent {
       u.fillRect(bx+half-half*v-1, by-3, 2, 16);
     }
     u.fillStyle='rgba(255,255,255,.5)'; u.fillRect(bx+half-1, by-4, 2, 18);
-    txt(u,'깃 싸움', bx-8, by+1, 9, PAL.dim,'right');
+    txtOn(u,'깃 싸움', bx-8, by+1, 9, PAL.dim,'right');
     if(Math.abs(this.dominance)>0.8)
-      txt(u, this.dominance>0?'우세':'열세', bx+bw+8, by+1, 9,
+      txtOn(u, this.dominance>0?'우세':'열세', bx+bw+8, by+1, 9,
           this.dominance>0?PAL.green:PAL.red,'left',700);
     const myEdge=this.edgeOf(this.fighters[0]);
-    txt(u, myEdge>=JUDO.ipponAt?'지금! 한판이 걸린다'
+    txtOn(u, myEdge>=JUDO.ipponAt?'지금! 한판이 걸린다'
          : myEdge>=JUDO.wazaAt?'절반은 걸린다'
          : myEdge>=JUDO.counterAt?'아직 얕다'
          : '지금 지르면 역습당한다',
@@ -302,7 +302,7 @@ class JudoEvent {
 
     if(this.phase==='SET') txt(u,'하지메', VW/2, 52, 15, PAL.white,'center',700);
     else if(A.pts===0 && B.pts===0 && this.elapsed<4)
-      txt(u,'좌·우를 번갈아 두드려 깃을 잡고, 기울면 액션', VW/2, Track.tipY(), 10, PAL.white,'center');
+      txtOn(u,'좌·우를 번갈아 두드려 깃을 잡고, 기울면 액션', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-this.lastCallAt<1200)
       txt(u, this.lastCall, VW/2, 52, 15, PAL.gold,'center',700);
     else if(this.t-A.msgAt<800)

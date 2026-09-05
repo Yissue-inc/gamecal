@@ -328,7 +328,7 @@ class FencingEvent {
         u.fillStyle='rgba(255,120,90,.85)';
         u.fillRect(x-7, y-30, 14, 3);
       }
-      if(stuck){ txt(u,'굳음', x, y-32, 8, PAL.red,'center',700); }
+      if(stuck){ txtOn(u,'굳음', x, y-32, 8, PAL.red,'center',700); }
       else if(this.riposting(f)) txt(u,'리포스트', x, y-32, 8, PAL.green,'center',700);
     });
     /* 점수판 */

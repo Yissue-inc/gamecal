@@ -215,15 +215,15 @@ class EquestrianEvent {
       u.fillStyle = on?PAL.gold:'rgba(255,255,255,.10)';
       u.fillRect(bx,by,bw,15);
       txt(u, K(s.name), bx+bw/2, by+3, 10, on?'#0d1017':'rgba(255,255,255,.5)','center',on?700:400);
-      txt(u, s.m.toFixed(1)+'m', bx+bw/2, by+17, 8, PAL.dim,'center');
+      txtOn(u, s.m.toFixed(1)+'m', bx+bw/2, by+17, 8, PAL.dim,'center');
     });
-    txt(u,'▲▼', x0-8, by+4, 9, PAL.dim,'right');
+    txtOn(u,'▲▼', x0-8, by+4, 9, PAL.dim,'right');
     /* 말의 리듬 — 이게 좁아지면 도약 창도 좁아진다.
        ⛔ 자리 계산이 **버튼 간격(+4씩)을 빼먹었다**(bw*3 이 아니라 bw*3+8 이 실제 폭이다).
           그래서 '리듬' 라벨이 세 번째 보폭 버튼 위에 겹쳐 찍혔다(실측 캡처).
        ⚠ 라벨을 왼쪽에 두면 버튼과 다투므로 **막대 위**로 올린다 — 자리를 안 뺏는다. */
     const rw=64, rx=x0+bw*3+8+40;
-    txt(u,K('리듬'), rx, by-9, 9, PAL.dim,'left');
+    txtOn(u,K('리듬'), rx, by-9, 9, PAL.dim,'left');
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(rx, by+3, rw, 7);
     u.fillStyle = this.balance>0.8?PAL.green : this.balance>0.55?PAL.gold : PAL.red;
     u.fillRect(rx, by+3, Math.round(rw*this.balance), 7);
