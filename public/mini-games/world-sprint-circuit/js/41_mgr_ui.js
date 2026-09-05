@@ -197,6 +197,7 @@ const UI = {
             비어 있다는 뜻이 '뭔가 있다'로 보인다(실측). */
       if(r.right){
         const rt = String(r.right), ry2 = ry+pad+(twoLine?2:0);
+        let onChip = false;
         const EMPTY = ['—','-','–','—'];
         /* ⛔ **글자만 비켜 놓고 칩은 안 옮겼다** — 방출 화면 마지막 줄에서
            '+37' 은 왼쪽으로 갔는데 파란 알약은 제자리라 '▾ 4' 밑에 빈 알약이 남았다.
@@ -206,13 +207,23 @@ const UI = {
         if(rt.length<=3 && EMPTY.indexOf(rt)<0 && typeof UIK!=='undefined'){
           u.font='700 10px "Galmuri11","Nanum Gothic Coding",monospace';
           const cw2 = Math.max(16, Math.ceil(u.measureText(rt).width)+10);
+          /* ⛔ 알약 위 글자가 2.1~2.6 이길래 "받침이 흐려서다" 하고 알파를 0.82 로 올렸다.
+             **더 나빠졌다**(+28 이 2.11 → 1.90). `chip-bg` 는 어두운 받침이 아니라
+             **파란 어셋**이다 — 진하게 깔수록 파래진다. 받침을 의심하기 전에 **받침의 색**을
+             봤어야 했다. 알파는 되돌리고, 알약 위에서는 **글자 색**을 밝은 쪽으로 바꾼다. */
           u.save(); u.globalAlpha=0.55;
           UIK.nine(u, 'chip-bg', x+w-8-shift-cw2, ry2-2, cw2, 14, 8);
           u.restore();
+          onChip = true;
         }
-        txt(u, rt, x+w-8-shift, ry2, 10, r.rightColor||PAL.white, 'right');
+        /* 파란 알약 위에서는 dim·red 가 안 읽힌다 — 같은 뜻의 밝은 짝으로 바꾼다 */
+        let rc = r.rightColor||PAL.white;
+        if(onChip){ if(rc===PAL.dim) rc=PAL.dimOn; else if(rc===PAL.red) rc=PAL.redOn; }
+        txt(u, rt, x+w-8-shift, ry2, 10, rc, 'right');
       }
-      if(r.right2) txt(u, r.right2, x+w-8-(i===_lastI ? this._botTagW||0 : 0), ry+pad+13, 8, r.right2Color||PAL.dim, 'right');
+      /* ⚠ 부제와 같은 이유로 고른 줄에서는 밝은 쪽을 쓴다 — 금빛 하이라이트 위의
+         PAL.dim 은 2.4 다(실측 2026-09-05: '부상 4주' · '컨디션 보통' · '스피드·가속'). */
+      if(r.right2) txt(u, r.right2, x+w-8-(i===_lastI ? this._botTagW||0 : 0), ry+pad+13, 8, r.right2Color||(on?PAL.dimOn:PAL.dim), 'right');
     }
     if(rows.length > maxRows){
       /* ⚠ 막대는 **어디쯤인지**만 말한다. 처음 켠 사람에게 필요한 건
