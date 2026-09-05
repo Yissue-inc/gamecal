@@ -464,7 +464,7 @@ class SprintEvent {
           BG.fx(uctx, 'fx-tierup', VW-28, 50, 30, clamp(age/45, 0, 0.999), 4);
         txt(uctx, 'TIER '+P.tier, VW-10, 44, sz,
             fresh ? PAL.gold : 'rgba(255,215,94,.55)', 'right', 700);
-        txt(uctx, P.combo+' 연속', VW-10, 44+sz+2, 8, PAL.dim, 'right');
+        txtOn(uctx, P.combo+' 연속', VW-10, 44+sz+2, 8, PAL.dim, 'right');
       }
       // 린 안내
       if(this.player.distM >= this.leanStart && !this.player.leanDone){

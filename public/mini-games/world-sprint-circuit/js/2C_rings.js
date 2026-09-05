@@ -277,7 +277,7 @@ class RingsEvent {
        배지가 남긴 오른쪽 끝만큼 게이지를 통째로 민다. */
     const bw=180, by=Track.botY(40);
     const bx0=Math.max(VW/2-bw/2, Track.badgeRight(u)+36);
-    txt(u, K('흔들림'), bx0-8, by-1, 9, PAL.dim, 'right');
+    txtOn(u, K('흔들림'), bx0-8, by-1, 9, PAL.dim, 'right');
     u.fillStyle='rgba(255,255,255,.10)'; u.fillRect(bx0, by, bw, 8);
     /* 안전 구간 */
     u.fillStyle='rgba(92,255,156,.20)'; u.fillRect(bx0+bw*0.35, by, bw*0.30, 8);
@@ -301,14 +301,14 @@ class RingsEvent {
     const over = this.taps - RING.holds.length*3;
     /* ⚠ 8px 글자를 VH-7 에 두면 아랫변(270)을 넘어 잘린다 — 실측으로 확인했다 */
     txtOn(u, K('되잡기 %1').replace('%1', this.taps), 8, Track.botY(19), 9, over>0?PAL.red:PAL.dim);
-    if(over>0) txt(u, K('너무 자주 잡으면 몸이 출렁인다'), 8, Track.botY(9), 8, PAL.red);
+    if(over>0) txtOn(u, K('너무 자주 잡으면 몸이 출렁인다'), 8, Track.botY(9), 8, PAL.red);
 
     /* ⛔ 이 한 줄이 세 번 자리를 옮겼다 — 그때마다 **먼저 살던 것**과 부딪혔다:
          오른쪽 VH-19 → 2인용 차례 배지(GAUGE_Y+3 = 245~262)
          왼쪽  VH-19 → 바로 위 '되잡기 %1'(같은 줄, 같은 x)
        "자리를 옮길 땐 그 자리에 누가 사는지 재 보고 옮긴다" 고 **주석에 쓴 바로 다음 편집**에서
        그걸 어겼다. 이번엔 남은 자리를 세어서 놓는다 — 되잡기 줄 위, 링 화면의 빈 띠. */
-    txt(u, K('좌·우로 되잡아 흔들림을 0 에 둔다'), 8, Track.botY(32), 9, PAL.dim, 'left');
+    txtOn(u, K('좌·우로 되잡아 흔들림을 0 에 둔다'), 8, Track.botY(32), 9, PAL.dim, 'left');
 
     if(this.t-this.msgAt < 1400)
       txt(u, this.msg, VW/2, 44, 13, this.msgBad?PAL.red:PAL.green, 'center', 700);

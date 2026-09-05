@@ -421,7 +421,7 @@ class SwimEvent {
         }
       }
       if(this.turns.length)
-        txt(u, '턴 '+this.turns.map(q=>Math.round(q*100)+'%').join(' · '), VW-8, 44, 9, PAL.dim, 'right');  /* ⚠ 40 은 메달 레일 받침(30~41)에 물린다 */
+        txtOn(u, '턴 '+this.turns.map(q=>Math.round(q*100)+'%').join(' · '), VW-8, 44, 9, PAL.dim, 'right');  /* ⚠ 40 은 메달 레일 받침(30~41)에 물린다 */
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; u.save(); u.globalAlpha=a;

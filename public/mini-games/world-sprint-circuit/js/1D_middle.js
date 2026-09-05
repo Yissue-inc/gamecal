@@ -389,7 +389,7 @@ class MiddleEvent {
     /* 랩 · 스퍼트 — 좌우로 갈라 놓는다 */
     if(this.road){
       const km = (v)=> (v/1000).toFixed(1);
-      txt(u, K('남은 %1km').replace('%1', km(Math.max(0, this.trackM-me.dist))),
+      txtOn(u, K('남은 %1km').replace('%1', km(Math.max(0, this.trackM-me.dist))),
           VW-10, sy-14, 10, PAL.white,'right',700);
     } else {
       const laps=Math.ceil(this.trackM/this.lapM);

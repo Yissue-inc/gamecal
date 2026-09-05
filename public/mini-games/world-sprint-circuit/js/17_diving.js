@@ -187,6 +187,6 @@ class DivingEvent {
     if(this.t - this.msgAt < 1100)
       txt(u, this.msg, VW/2, 46, 13, this.msgBad?PAL.red:PAL.green, 'center', 700);
     /* 시기 기록 */
-    this.marks.forEach((m,i)=> txt(u, `${i+1}차 ${m.toFixed(2)}`, 8, 24+i*12, 9, PAL.dim, 'left'));
+    this.marks.forEach((m,i)=> txtOn(u, `${i+1}차 ${m.toFixed(2)}`, 8, 24+i*12, 9, PAL.dim, 'left'));
   }
 }

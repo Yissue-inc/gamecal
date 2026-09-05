@@ -185,7 +185,7 @@ class HurdlesEvent extends SprintEvent {
       const a=1-(this.t-this.hurdleMsgAt)/700;
       uctx.save(); uctx.globalAlpha=a;
       const bad = /걸|넘어|멀/.test(this.hurdleMsg);
-      txt(uctx, this.hurdleMsg, VW/2, 76, 13, bad?PAL.red:PAL.green, 'center', 700);
+      txtOn(uctx, this.hurdleMsg, VW/2, 76, 13, bad?PAL.red:PAL.green, 'center', 700);
       uctx.restore();
     }
     const p=this.player;

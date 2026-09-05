@@ -215,8 +215,8 @@ class ShootingEvent {
       const p=clamp(this.holdMs/SHOOT.holdMax,0,1);
       u.fillStyle=PAL.white; u.fillRect(bx+bw*p-1, by-3, 2, 14);
     }
-    txt(u,'숨 참기', bx-6, by-1, 9, PAL.dim,'right');
-    txt(u, this.phase==='HOLD'?'액션을 떼면 발사  ·  ▲ 다시 호흡':'액션을 눌러 숨을 참으세요',
+    txtOn(u,'숨 참기', bx-6, by-1, 9, PAL.dim,'right');
+    txtOn(u, this.phase==='HOLD'?'액션을 떼면 발사  ·  ▲ 다시 호흡':'액션을 눌러 숨을 참으세요',
         cx, Track.botY(20), 9, PAL.dim,'center');
 
     /* ⛔ 양궁과 같은 병이었다 — '기준 90.0' 과 내 합계가 나란히 있어 뭐가 내 것인지

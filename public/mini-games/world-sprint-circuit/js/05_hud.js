@@ -368,9 +368,14 @@ const HUD = {
     ctx.save(); ctx.globalAlpha=a;
     /* ⚠ 선수 옆으로 옮기니 **빨간 트랙 위에서 글자가 묻혔다**(하늘에 있을 땐 잘 보였다).
        가까이 두는 값을 지키면서 읽히게 — 글자 뒤에만 좁은 받침을 깐다. */
-    if(y!==undefined){
-      const w = label.length*sz*0.62 + 12;
-      ctx.globalAlpha = a*0.55; ctx.fillStyle='#070a12';
+    /* ⛔ 받침을 **y 를 준 종목에만** 깔았고 알파도 0.55 였다.
+       그래서 y 를 안 주는 종목(수영·조정 등)은 하늘 위에 맨글자였고, 준 종목도
+       밝은 배경에서 대비 2.0 이었다(실측 2026-09-04, PERFECT! 가 화면에서 제일 자주 뜬다).
+       ⚠ 폭도 `글자수 × 0.62` 추정이었다 — 오늘 네 번째 같은 실수다. 재서 잡는다. */
+    {
+      ctx.font = `700 ${sz}px "Galmuri11","Nanum Gothic Coding",monospace`;
+      const w = Math.ceil(ctx.measureText((typeof K==='function')?K(label):label).width) + 12;
+      ctx.globalAlpha = a*0.78; ctx.fillStyle='#070a12';
       ctx.fillRect(Math.round(VW/2-w/2), Math.round(yy-3), Math.round(w), sz+6);
       ctx.globalAlpha = a;
     }

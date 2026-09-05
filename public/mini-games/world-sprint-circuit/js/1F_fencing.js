@@ -329,7 +329,7 @@ class FencingEvent {
         u.fillRect(x-7, y-30, 14, 3);
       }
       if(stuck){ txtOn(u,'굳음', x, y-32, 8, PAL.red,'center',700); }
-      else if(this.riposting(f)) txt(u,'리포스트', x, y-32, 8, PAL.green,'center',700);
+      else if(this.riposting(f)) txtOn(u,'리포스트', x, y-32, 8, PAL.green,'center',700);
     });
     /* 점수판 */
     plate(u, 0,0, VW, 30, .76);
@@ -347,7 +347,7 @@ class FencingEvent {
     txt(u, inR? '사거리 안 — 서로 닿는다' : '사거리 밖', VW/2, Track.botY(18), 9, inR?PAL.red:PAL.dim,'center');
     if(this.phase==='SET') txt(u,'앙 갸르드', VW/2, 52, 13, PAL.white,'center',700);
     else if(A.touches+B.touches===0)
-      txt(u,'← 물러서기 · → 다가가기 · 액션 = 런지', VW/2, Track.tipY(), 10, PAL.white,'center');
+      txtOn(u,'← 물러서기 · → 다가가기 · 액션 = 런지', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-this.lastTouchAt < 1100)
       txt(u, this.lastTouch, VW/2, 54, 13, PAL.gold,'center',700);
     else if(this.t-A.msgAt < 900)

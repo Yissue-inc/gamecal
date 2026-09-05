@@ -238,7 +238,7 @@ class HighBarEvent {
     u.fillRect(bx,by,Math.round(bw*this.amp),9);
     u.fillStyle='rgba(255,255,255,.7)'; u.fillRect(bx+bw*BAR.releaseMin-1, by-3, 2, 15);
     txtOn(u,K('스윙'), bx-8, by, 9, PAL.dim,'right');
-    txt(u, this.amp>=BAR.releaseMin? K('이탈 가능') : K('더 흔들어라'),
+    txtOn(u, this.amp>=BAR.releaseMin? K('이탈 가능') : K('더 흔들어라'),
         bx+bw+8, by, 9, this.amp>=BAR.releaseMin?PAL.green:PAL.dim,'left',700);
 
     if(this.phase==='AIR'){
@@ -273,7 +273,7 @@ class HighBarEvent {
     if(this.t-this.msgAt<900){
       /* 결과 카드(72~126)가 떠 있으면 그 자리도 비켜야 한다 */
       const card = (this.phase==='MARK' && this.mark!=null) ? {y0:72, y1:126} : null;
-      txt(u, this.msg, VW/2, HUD.sayY(60,12,card), 12, this.msgBad?PAL.red:PAL.green,'center',700);
+      txtOn(u, this.msg, VW/2, HUD.sayY(60,12,card), 12, this.msgBad?PAL.red:PAL.green,'center',700);
     }
   }
 }

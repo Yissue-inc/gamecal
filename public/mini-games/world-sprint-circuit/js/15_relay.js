@@ -272,7 +272,7 @@ class RelayEvent extends SprintEvent {
           const good = Math.abs(ratio-RELAY.optOverlap) < 0.2;
           txt(u, good? '지금 넘겨!' : `인계 구역 — ${left.toFixed(0)}m 남음`,
               VW/2, 56, good?16:12, good?PAL.green:PAL.gold, 'center', 700);
-          txt(u, '늦게 넘길수록 마지막 주자가 덜 뜁니다', VW/2, 70, 9, PAL.dim, 'center');
+          txtOn(u, '늦게 넘길수록 마지막 주자가 덜 뜁니다', VW/2, 70, 9, PAL.dim, 'center');
           /* 속도 맞추기 게이지 */
           const w=170,x=(VW-w)/2,y=76;
           plate(u,x-4,y-4,w+8,16,.7);
@@ -281,7 +281,7 @@ class RelayEvent extends SprintEvent {
           u.fillRect(x+w*(RELAY.optOverlap-0.14), y, w*0.28, 8);
           u.fillStyle=PAL.white; u.fillRect(x+w*clamp(ratio,0,1.2)/1.2-1, y-2, 2, 12);
         } else if(left < RELAY.zoneM+20){
-          txt(u, `인계 구역까지 ${(left-RELAY.zoneM).toFixed(0)}m`, VW/2, 56, 11, PAL.dim,'center');
+          txtOn(u, `인계 구역까지 ${(left-RELAY.zoneM).toFixed(0)}m`, VW/2, 56, 11, PAL.dim,'center');
         }
       }
     }
