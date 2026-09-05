@@ -931,8 +931,8 @@ const I18N_EN = {
     'Run with ◀ ▶, Action in the exchange zone · hand over at matched speed',
   '한 바퀴씩 네 명 · 인계 품질이 13초를 가른다':
     'Four runners, a lap each · the handoffs decide 13 seconds',
-  '좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다':
-    '◀ ▶ to run, Action on the board · hold and release Action in the air',
+  '좌·우로 달려 구름판 **직전**에 액션 · 공중에서 액션을 쥐었다 놓는다':
+    'Run left/right, Action **just before** the board · in the air, hold and release Action',
   '홉·스텝·점프 — 정점마다 액션':
     'Hop, step, jump — Action at each peak',
   '좌·우로 달려 액션으로 뛰고, 좌·우로 몸을 넘긴다':

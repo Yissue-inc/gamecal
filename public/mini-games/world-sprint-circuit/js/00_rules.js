@@ -426,7 +426,7 @@ const EVENTS = [
   { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:38.00, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 빠르게 번갈아 · 인계 구역에서 액션(속도가 비슷할 때)' },
   { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:174.2, parS:147.5, distanceM:1600, rivalPar:152.40, cuts:{silver:161.9, gold:153.9}, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
   /* ── 필드: 도약 ── */
-  { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판에서 액션 · 공중에서 액션을 쥐었다 놓는다' },
+  { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판 **직전**에 액션 · 공중에서 액션을 쥐었다 놓는다' },
   { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump', tip:'홉·스텝·점프 — 정점마다 액션' },
   { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump', tip:'좌·우로 달려 액션으로 뛰고, 좌·우로 몸을 넘긴다' },
   { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump', tip:'액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다' },
