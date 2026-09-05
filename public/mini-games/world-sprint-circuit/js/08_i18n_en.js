@@ -588,8 +588,8 @@ const I18N_EN = {
 
   '%1 연속':'%1 in a row',
 
-  '▲▼ 이동 · 확인 선택   |   ◀▶ 언어 · B 커리어 · P 조작':
-    '▲▼ Move · Confirm   |   ◀▶ Language · B Career · P Controls',
+  '▲▼ 이동 · 확인 선택   |   ◀▶ 언어 · B 커리어 · P 설정':
+    '▲▼ Move · Confirm   |   ◀▶ Language · B Career · P Settings',
   '커리어':'Career', '랭크 상승':'Rank up',
   '뱃지 %1 / %2':'Badges %1 / %2',
   '%1경기 · 최고 %2회 · 금 %3 · 시즌 %4':'%1 races · %2 PBs · %3 gold · %4 seasons',

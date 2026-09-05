@@ -156,7 +156,9 @@ class TriathlonEvent {
     }
   }
   drawUI(u){
-    if(this.sub && this.phase!=='TRANS') this.sub.drawUI(u);
+    /* ⛔ INTRO 도 뺀다 — TRANS 만 빼 놓아서 첫 구간 인트로에서 하위 UI 가 비쳤다
+       ('제자리에' 가 안내 문장을 117px 덮었다, 겹침 감시 2026-09-04). */
+    if(this.sub && this.phase!=='TRANS' && this.phase!=='INTRO') this.sub.drawUI(u);
     /* 구간 띠 — 지금 어디이고 얼마나 걸렸나
        ⛔ 처음엔 VH-H(하단 15px)에 뒀다가 하위 종목의 조작 안내를 덮어서 위로 올렸고,
           그러자 이번엔 **띠 안에서** 레일 바늘이 총시간 숫자를 뚫었다('2:46▲82').

@@ -836,7 +836,9 @@ const G = {
     txt(uctx,'◀', lx+8, ly+4, 10, PAL.dim,'left');
     txt(uctx, LANG==='ko'?'한국어':'English', VW/2, ly+4, 11, PAL.gold,'center',700);
     txt(uctx,'▶', lx+lw-8, ly+4, 10, PAL.dim,'right');
-    txt(uctx,'▲▼ 이동 · 확인 선택   |   ◀▶ 언어 · B 커리어 · P 조작', VW/2, VH-20, 9, PAL.dim,'center');
+    /* ⛔ 'P 조작' 이라고 적혀 있었지만 P 가 여는 건 **설정** 화면이다(제목도 '설정').
+       조작 도움말을 찾아 누른 사람은 음량 슬라이더를 만난다. 키가 하는 일을 그대로 적는다. */
+    txt(uctx,'▲▼ 이동 · 확인 선택   |   ◀▶ 언어 · B 커리어 · P 설정', VW/2, VH-20, 9, PAL.dim,'center');
   },
 
   drawSelect(ctx,uctx){
