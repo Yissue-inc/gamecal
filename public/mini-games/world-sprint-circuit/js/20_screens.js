@@ -1238,10 +1238,8 @@ const G = {
     const label = 'P'+(i+1), y = Track.GAUGE_Y - 20;
     /* ⚠ 96px 로 잡았더니 '차례' 와 키 라벨이 맞붙었다('차례A / D · S').
        키 라벨은 '숫자4 / 6 · 5' 처럼 길어질 수 있어 **글자 폭을 재서** 칸을 잡는다. */
-    u.font = '8px "Galmuri11","Nanum Gothic Coding",monospace';
-    const kw = Math.ceil(u.measureText(keys.label).width);
-    const w = Math.max(104, 58 + kw + 8);
-    const bx = 6;
+    /* ⛔ 폭 공식은 `Track.badgeW` **한 곳**이다 — 바닥 무리가 같은 값을 봐야 비킬 수 있다 */
+    const w = Track.badgeW(u), bx = Track.BADGE_X;
     plate(u, bx, y, w, 17, 0.86);
     u.strokeStyle = col; u.lineWidth = 1; u.strokeRect(bx+0.5, y+0.5, w-1, 16);
     txt(u, label, bx + 6, y+3, 11, col, 'left', 700);

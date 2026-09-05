@@ -281,7 +281,7 @@ class TableTennisEvent {
     if(this.phase==='SERVE'){
       const mine=this.server===0;
       txt(u, mine?'서브 — 액션':'상대 서브', VW/2, 48, 13, mine?PAL.green:PAL.dim,'center',700);
-      if(mine) txt(u,'←/→ 로 설 자리와 코스를 고른다', VW/2, VH-42, 10, PAL.white,'center');
+      if(mine) txt(u,'←/→ 로 설 자리와 코스를 고른다', VW/2, Track.tipY(), 10, PAL.white,'center');
     }
     if(this.t-this.lastPointAt<1000)
       txt(u, this.lastPoint, VW/2, 48, 13, PAL.gold,'center',700);

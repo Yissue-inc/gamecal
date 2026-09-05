@@ -199,7 +199,7 @@ class TriathlonEvent {
       txt(u,'수영 → 사이클 → 달리기', VW/2, 92, 20, PAL.gold,'center',700);
       txt(u,'끊기지 않는다 — 앞 구간에서 쓴 힘이 뒤로 넘어간다', VW/2, 122, 10, PAL.white,'center');
       txt(u,'기준 '+fmtTime(this.qualify), VW/2, 140, 11, PAL.green,'center',700);
-      txt(u,'아무 키나 눌러 시작', VW/2, VH-42, 10, PAL.dim,'center');
+      txt(u,'아무 키나 눌러 시작', VW/2, Track.tipY(), 10, PAL.dim,'center');
     } else if(this.phase==='TRANS'){
       /* ⚠ 줄 간격은 **글자 크기만큼** 띄운다 — 22px 짜리 밑에 10px 을 12px 아래 놓으면 문다.
          84(11) · 100(22) · 126(10) · 140(15) · 158(11) · 172(9) · 186(9) */

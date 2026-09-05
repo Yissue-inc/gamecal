@@ -194,7 +194,7 @@ class DecathlonEvent {
           VW/2, 132, 11, PAL.white,'center');
       if(this.marks.length)
         txt(u, '지금까지 '+this.total+'점', VW/2, 150, 12, PAL.green,'center',700);
-      txt(u,'아무 키나 눌러 시작', VW/2, VH-46, 10, PAL.dim,'center');
+      txt(u,'아무 키나 눌러 시작', VW/2, Track.tipY(), 10, PAL.dim,'center');
     }
     /* 하위 종목이 끝난 직후 — 점수 환산을 보여 준다 */
     else if(this.sub && this.sub.result && this.subDoneAt>0){

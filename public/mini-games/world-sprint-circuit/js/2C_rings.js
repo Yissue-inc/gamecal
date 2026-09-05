@@ -272,7 +272,11 @@ class RingsEvent {
     /* 흔들림 — 이 종목의 전부다. 가운데가 0. */
     /* ⚠ 여기만 VH-40 으로 남겨 뒀더니 **아래 줄들만 올라가고 이건 안 올라가** 서로 물었다
        (터치 예약 33px 을 넣은 직후). 한 화면의 바닥 무리는 **같은 기준**을 써야 한다. */
-    const bw=180, bx0=VW/2-bw/2, by=Track.botY(40);
+    /* ⛔ 4인 턴제에서 P4 라벨('숫자4 / 6 · 5')이 제일 길어 배지가 x=135 까지 자란다 —
+       '흔들림' 라벨(bx0-8 오른쪽정렬)이 그 안으로 들어갔다(2026-09-04 실측 7px).
+       배지가 남긴 오른쪽 끝만큼 게이지를 통째로 민다. */
+    const bw=180, by=Track.botY(40);
+    const bx0=Math.max(VW/2-bw/2, Track.badgeRight(u)+36);
     txt(u, K('흔들림'), bx0-8, by-1, 9, PAL.dim, 'right');
     u.fillStyle='rgba(255,255,255,.10)'; u.fillRect(bx0, by, bw, 8);
     /* 안전 구간 */

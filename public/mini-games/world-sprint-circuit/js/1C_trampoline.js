@@ -236,9 +236,9 @@ class TrampolineEvent {
     if(this.combo>=2) txt(u, this.combo+'연속 완벽', VW-14, y0+13, 12, PAL.gold,'right',700);
 
     if(this.phase==='READY')
-      txt(u,'아무 키나 눌러 시작 — 매트에 닿는 순간 액션', VW/2, VH-40, 11, PAL.white,'center',700);
+      txt(u,'아무 키나 눌러 시작 — 매트에 닿는 순간 액션', VW/2, Track.tipY(), 11, PAL.white,'center',700);
     else if(this.phase==='AIR' && this.bounce<=2)
-      txt(u,'좌우 = 회전 · 착지 전에 액션으로 펴고, 닿는 순간 다시 액션', VW/2, VH-40, 10, PAL.white,'center');
+      txt(u,'좌우 = 회전 · 착지 전에 액션으로 펴고, 닿는 순간 다시 액션', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-this.judgeAt<650)
       txt(u, this.judgeTxt, VW/2, 94, 14,
           this.judgeBad ? PAL.red : (this.judgeTxt.startsWith('완벽')?PAL.green:PAL.gold),'center',700);

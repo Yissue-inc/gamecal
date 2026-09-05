@@ -122,6 +122,20 @@ const Track = {
     const ev = (typeof G !== 'undefined') ? G.event : null;
     return !!(ev && ev.hasProgressBand);
   },
+  /* 차례 배지의 폭·오른쪽 끝. **공식은 여기 하나뿐**이다 — `drawTurnBadge` 도 이걸 쓴다.
+     ⛔ 처음엔 배지가 그리면서 남긴 사각형을 읽게 했다. 그런데 배지는 종목 UI **뒤에**
+        그려지므로 **첫 프레임엔 값이 없다** — 링에서 5px 이 그대로 남았다(실측).
+        '지난 프레임 값'에 기대지 말고 **같은 공식을 두 곳이 부르게** 한다.
+     ⚠ 라벨은 P4 의 '숫자4 / 6 · 5' 처럼 길어질 수 있어 반드시 재서 잡는다. */
+  badgeW(u){
+    if(!this.turnBadgeOn() || typeof PARTY_KEYS==='undefined') return 0;
+    const k = PARTY_KEYS[(Party.turn|0) % PARTY_KEYS.length];
+    if(!k) return 0;
+    u.font = '8px "Galmuri11","Nanum Gothic Coding",monospace';
+    return Math.max(104, 58 + Math.ceil(u.measureText(k.label).width) + 8);
+  },
+  BADGE_X: 6,
+  badgeRight(u){ const w = this.badgeW(u); return w ? this.BADGE_X + w : 0; },
   tipY(){
     const inset = (typeof Ctrl !== 'undefined' && Ctrl.padInset) ? Ctrl.padInset() : 0;
     let y = this.turnBadgeOn() ? VH - 64 : VH - 48;

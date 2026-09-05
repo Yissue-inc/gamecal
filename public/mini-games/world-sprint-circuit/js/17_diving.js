@@ -169,7 +169,7 @@ class DivingEvent {
     });
 
     if(this.phase==='BOUNCE'){
-      txt(u,'좌·우를 번갈아 눌러 반동을 키우세요', VW/2, VH-42, 10, PAL.white, 'center');
+      txt(u,'좌·우를 번갈아 눌러 반동을 키우세요', VW/2, Track.tipY(), 10, PAL.white, 'center');
       const bw=140, bx=VW/2-bw/2, by=VH-28;
       u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,7);
       u.fillStyle=PAL.green; u.fillRect(bx,by,Math.round(bw*this.power),7);
@@ -179,9 +179,9 @@ class DivingEvent {
       u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,9);
       u.fillStyle='rgba(92,255,156,.45)'; u.fillRect(bx+bw*0.34,by,bw*0.32,9);   // 초록 구간
       u.fillStyle='#ffffff'; u.fillRect(bx+Math.round(bw*p)-1, by-3, 2, 15);
-      txt(u,'초록에서 액션', VW/2, VH-42, 10, PAL.gold, 'center', 700);
+      txt(u,'초록에서 액션', VW/2, Track.tipY(), 10, PAL.gold, 'center', 700);
     } else if(this.phase==='AIR'){
-      txt(u,`회전 ${this.spin.toFixed(1)}`, VW/2, VH-42, 11, PAL.white, 'center', 700);
+      txt(u,`회전 ${this.spin.toFixed(1)}`, VW/2, Track.tipY(), 11, PAL.white, 'center', 700);
       if(!this.opened) txt(u,'수면 직전에 액션으로 펴세요', VW/2, VH-28, 9, PAL.dim, 'center');
     }
     if(this.t - this.msgAt < 1100)
