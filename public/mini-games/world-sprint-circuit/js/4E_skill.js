@@ -113,17 +113,21 @@ const SKILL = {
     const d = this.SKILLS[id]; if(!d) return '없는 스킬';
     this.ensure(a);
     if(a.skills.indexOf(id) >= 0) return '이미 배웠습니다';
-    if((a.lv||1) < d.lv) return `Lv.${d.lv} 부터`;
+    /* ⛔ 이 문자열은 UI 에서 설명과 **이어 붙는다**(`${desc} · ${why}`). 조립한 문자열은
+       번역표의 어떤 키와도 안 맞아 영어판에 한국어가 그대로 떴다(2026-09-05 실행 감시).
+       조각을 각각 번역 가능한 모양으로 돌려준다. */
+    if((a.lv||1) < d.lv) return (typeof K==='function'?K('Lv.%1 부터'):'Lv.%1 부터').replace('%1', d.lv);
     if(this.rarityOf(a) < d.tier){
       const nm = (typeof RARITY!=='undefined' && RARITY[d.tier]) ? RARITY[d.tier].name : d.tier;
-      return `${nm} 등급 종족만`;
+      return (typeof K==='function'?K('%1 등급 종족만'):'%1 등급 종족만').replace('%1', nm);
     }
     if(d.spec && a.spec !== d.spec){
       const S = { sprint:'단거리', hurdles:'허들', jump:'도약', throw:'투척' };
-      return `${S[d.spec]||d.spec} 선수만`;
+      return (typeof K==='function'?K('%1 선수만'):'%1 선수만').replace('%1', K(S[d.spec]||d.spec));
     }
-    if(d.needs && a.skills.indexOf(d.needs) < 0) return `${this.SKILLS[d.needs].name} 먼저`;
-    if((a.tp||0) < d.cost) return `훈련 포인트 ${d.cost} 필요`;
+    if(d.needs && a.skills.indexOf(d.needs) < 0)
+      return (typeof K==='function'?K('%1 먼저'):'%1 먼저').replace('%1', K(this.SKILLS[d.needs].name));
+    if((a.tp||0) < d.cost) return (typeof K==='function'?K('훈련 포인트 %1 필요'):'훈련 포인트 %1 필요').replace('%1', d.cost);
     return null;                                   // null = 배울 수 있다
   },
   canLearn(a, id){ return this.why(a, id) === null; },

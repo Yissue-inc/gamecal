@@ -331,8 +331,10 @@ class GrowScreen extends Screen0 {
         const rr=(typeof RARITY!=='undefined'&&RARITY[d.tier])?RARITY[d.tier]:null;
         return {
           label: d.name, icon: d.icon, subAlways:true,
-          sub: p.known ? d.desc
-             : (p.why===null ? `${d.desc} · 포인트 ${d.cost}` : `${d.desc} · ${p.why}`),
+          /* ⚠ 설명과 조건을 **이어 붙이면** 표와 안 맞는다 — 조각마다 K() 를 통과시킨다 */
+          sub: p.known ? K(d.desc)
+             : (p.why===null ? `${K(d.desc)} · ${K('포인트 %1').replace('%1', d.cost)}`
+                             : `${K(d.desc)} · ${p.why}`),
           right: p.known ? (p.on?'ON':'OFF') : (p.why===null ? `−${d.cost}` : '잠김'),
           rightColor: p.known ? (p.on?PAL.green:PAL.dim)
                     : (p.why===null ? PAL.gold : PAL.dim),
