@@ -1411,6 +1411,8 @@ const I18N_EN = {
   '아직 여지가 있다': 'Still some room',
   '거의 다 자랐다': 'Nearly fully grown',
   '더 볼 것이 없다': 'Nothing more to see',
+  '좌·우를 빠르고 고르게 — 간격이 일정할수록 빨라진다':
+    'Alternate ◀▶ fast and evenly — steadier spacing is faster',
   '이미 저장된 클럽이 있습니다':'You already have a saved club',
   '새로 시작하면 그 클럽은 사라집니다':'Starting over deletes that club',
   '확인 다시 누르면 새로 시작 · 취소로 돌아가기':'Confirm again to start over · Cancel to go back',

@@ -251,7 +251,11 @@ class RowingEvent {
     u.fillStyle = sc;
     u.fillRect(bx,by,Math.round(bw*this.smooth),8);
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
-    else if(this.strokes<3) txt(u,'좌·우를 천천히 고르게 — 간격을 일정하게', VW/2, Track.botY(56), 10, PAL.white,'center');  /* ⚠ VH-42(228) 는 '일정함' 줄(232)과 문다 */
+    /* ⛔ **'천천히'** 라고 적혀 있었다. 위 연타 갈래의 주석은 정반대를 말한다 —
+       *"노도 빨리 저을수록 빠르다"*. 조정에서 살아 있는 건 **고름**이지 느림이 아니다
+       (smooth 가 배 속도의 상한을 정한다). 연타 모델로 바꿀 때 이 줄만 옛 말로 남았다
+       (2026-09-05, 드라이버를 고친 뒤 다시 훑다가 잡혔다). ⚠ VH-42(228)는 '일정함' 줄과 문다 */
+    else if(this.strokes<3) txtOn(u,'좌·우를 빠르고 고르게 — 간격이 일정할수록 빨라진다', VW/2, Track.botY(56), 10, PAL.white,'center');
     else if(!this.pitchUsed) txt(u,'액션 = 피치 업 (한 번)', 8, Track.botY(24), 9, PAL.gold,'left');
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 46, 12, this.msgBad?PAL.red:PAL.green,'center',700);
