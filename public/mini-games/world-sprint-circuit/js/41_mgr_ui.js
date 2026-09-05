@@ -172,7 +172,14 @@ const UI = {
       const twoLine = showSub || !!r.right2;
       const pad = twoLine ? Math.max(2, Math.round((rowH-1-19)/2))
                           : Math.max(2, Math.round((rowH-1-11)/2));
-      txt(u, r.label, lx, ry+pad, 11, r.dim?PAL.dim:(r.color||PAL.white), 'left', on?700:400);
+      /* ⚠ 흐린 글자가 **고른 줄**에 오면 금빛 하이라이트 위라 1.78 이다
+         (실측 2026-09-05: 스킬 목록의 잠긴 줄 · '전당에서 물려받기').
+         ⛔ 처음엔 `r.dim` 만 봤는데, 줄에 따라 `color: PAL.dim` 을 **직접** 넣기도 한다 —
+            호출처를 하나씩 고치는 대신 **그리는 자리에서** 한 번에 바꾼다. */
+      /* 고른 줄은 금빛으로 밝다 — 그 위에서 흐린 회색과 빨강은 안 읽힌다.
+         (dim 1.78 · red 1.99 — 실측 2026-09-05, 훈련 프로그램의 '부하 1.15') */
+      const lit = c => !on ? c : (c===PAL.dim ? PAL.dimOn : c===PAL.red ? PAL.redOn : c);
+      txt(u, r.label, lx, ry+pad, 11, lit(r.dim?PAL.dim:(r.color||PAL.white)), 'left', on?700:400);
       if(showSub){
         /* ⚠ 고른 줄은 금빛으로 하이라이트된다 — 그 위의 PAL.dim 은 대비 2.4 다(실측). */
         txt(u, r.sub, lx, ry+pad+11, 8, on?PAL.dimOn:PAL.dim);
@@ -217,13 +224,13 @@ const UI = {
           onChip = true;
         }
         /* 파란 알약 위에서는 dim·red 가 안 읽힌다 — 같은 뜻의 밝은 짝으로 바꾼다 */
-        let rc = r.rightColor||PAL.white;
+        let rc = lit(r.rightColor||PAL.white);
         if(onChip){ if(rc===PAL.dim) rc=PAL.dimOn; else if(rc===PAL.red) rc=PAL.redOn; }
         txt(u, rt, x+w-8-shift, ry2, 10, rc, 'right');
       }
       /* ⚠ 부제와 같은 이유로 고른 줄에서는 밝은 쪽을 쓴다 — 금빛 하이라이트 위의
          PAL.dim 은 2.4 다(실측 2026-09-05: '부상 4주' · '컨디션 보통' · '스피드·가속'). */
-      if(r.right2) txt(u, r.right2, x+w-8-(i===_lastI ? this._botTagW||0 : 0), ry+pad+13, 8, r.right2Color||(on?PAL.dimOn:PAL.dim), 'right');
+      if(r.right2) txt(u, r.right2, x+w-8-(i===_lastI ? this._botTagW||0 : 0), ry+pad+13, 8, lit(r.right2Color||PAL.dim), 'right');
     }
     if(rows.length > maxRows){
       /* ⚠ 막대는 **어디쯤인지**만 말한다. 처음 켠 사람에게 필요한 건

@@ -285,7 +285,7 @@ class GrowScreen extends Screen0 {
       const starN = k => (typeof specStars==='function') ? specStars(a.spec,k) : 2;
       const star  = k => '◆'.repeat(starN(k)) + '◇'.repeat(3-starN(k));
       const starC = k => [PAL.dim,'#8a94ad',PAL.white,PAL.gold][starN(k)];
-      return STAT_KEYS.map(k=>{
+      const list = STAT_KEYS.map(k=>{
         const cap=a.potential[k], cur=a.stats[k];
         const full = cur>=cap-0.01;
         /* 스탯 표도 **데이터**다 — 어느 칸에 여유가 있는지 훑을 수 있어야 한다
@@ -308,6 +308,18 @@ class GrowScreen extends Screen0 {
           color: why===null?PAL.gold:PAL.dim,
           right2:star(k), right2Color:starC(k), _k:k, _full:true, _break: why===null };
       });
+      /* ⛔ 이 둘은 원래 ▲/▼ 단축키였다. 그런데 ▲▼ 는 **이동 키**라, 누르면 화면이 열리고
+         **커서는 0번(스피드)에서 영영 못 나갔다** — 나머지 다섯 스탯을 아예 못 올렸다
+         (2026-09-05 실측: 길게 눌러도 안 움직인다 · repeat 이 예약될 기회조차 없다).
+         창고에서와 같은 처방 — **줄로 내린다.** 이동 키는 이동만 한다. */
+      const hallN = (typeof DEPTH!=='undefined' && DEPTH.hall) ? DEPTH.hall(this.mg.club).length : 0;
+      return list.concat([
+        { label:'스카우트 리포트', sub:'잠재치를 범위로 본다', _open:'scout' },
+        { label:'전당에서 물려받기',
+          sub: a.inherited ? K('이미 %1의 자질을 물려받았습니다').replace('%1', a.inherited.from)
+                           : (hallN ? '전당의 선수에게서 자질을 받는다' : '전당이 비어 있습니다'),
+          dim: !!a.inherited || !hallN, _open:'hall' },
+      ]);
     }
     if(this.tab===2){
       /* 스킬 탭 — 배운 것 · 배울 수 있는 것 · 조건 미달 순(SKILL.pool 이 정렬한다).
@@ -342,8 +354,10 @@ class GrowScreen extends Screen0 {
     inv.forEach((it,i)=>{
       const fuseOk = RPG.canFuse(inv, it);
       rows.push({ label:'  '+RPG.itemName(it),
-        sub: RPG.itemLine(it) + (fuseOk ? '  · ▲합성 가능' : ''),
-        right:'착용 · ▼팔기 '+RPG.sellPrice(it),
+        /* ⛔ '▲합성 · ▼팔기' 라고 적혀 있었다 — 그 키는 이제 **이동**이다(아이템 메뉴로 옮겼다).
+           조작을 바꾸면 그 조작을 설명하는 문장을 같이 고친다(오늘 여러 번 물린 자리다). */
+        sub: RPG.itemLine(it) + (fuseOk ? '  · 합성 가능' : ''),
+        right:'확인 '+RPG.sellPrice(it),
         rightColor:RPG.rarityOf(it.r).color, color:RPG.rarityOf(it.r).color, _inv:i });
     });
     if(!inv.length) rows.push({ label:'  창고가 비었다', sub:'대회에서 장비가 나옵니다', color:PAL.dim });
@@ -354,18 +368,7 @@ class GrowScreen extends Screen0 {
     const NT = GrowScreen.TABS.length;
     if(Input.pressed('right')){ this.tab=(this.tab+1)%NT; this.sel=0; Sfx.ui(); return; }
     if(Input.pressed('left')) { this.tab=(this.tab+NT-1)%NT; this.sel=0; Sfx.ui(); return; }
-    /* ▲ — 스카우트 리포트(잠재치를 범위로 본다) */
-    if(Input.pressed('up') && this.tab===0){
-      if(typeof ScoutReportScreen!=='undefined'){ Sfx.ui(); this.mg.push(new ScoutReportScreen(this.mg, this.a)); return; }
-    }
-    /* ▼(스탯 탭) — 계승. 아직 안 받은 선수만 전당으로 보낸다 */
-    if(Input.pressed('down') && this.tab===0){
-      if(this.a.inherited){ Sfx.fail(); this.mg.toast('이미 %1의 자질을 물려받았습니다'.replace('%1', this.a.inherited.from)); return; }
-      if(typeof HallScreen==='undefined' || !DEPTH.hall(this.mg.club).length){
-        Sfx.fail(); this.mg.toast('전당이 비어 있습니다'); return;
-      }
-      Sfx.ui(); this.mg.push(new HallScreen(this.mg, this.a)); return;
-    }
+    /* (스카우트 리포트·계승은 ▲▼ 단축키였다 → 목록의 줄로 내렸다. 위 rows 주석 참조) */
     /* ⛔ 여기서 ▲=합성 · ▼=판매 였다. 그런데 ▲▼ 는 **이 게임 전체의 이동 키**다.
        결과가 둘이었다(2026-09-05 실측):
          ① 창고 첫 줄에서 ▼ 를 누르면 **아이템이 즉시·영구히 팔린다.** 확인이 없다.
@@ -416,6 +419,17 @@ class GrowScreen extends Screen0 {
       return;
     }
     if(this.tab===0){
+      if(r._open==='scout'){
+        if(typeof ScoutReportScreen==='undefined'){ Sfx.fail(); return; }
+        Sfx.ui(); this.mg.push(new ScoutReportScreen(this.mg, this.a)); return;
+      }
+      if(r._open==='hall'){
+        if(this.a.inherited){ Sfx.fail(); this.mg.toast('이미 %1의 자질을 물려받았습니다'.replace('%1', this.a.inherited.from)); return; }
+        if(typeof HallScreen==='undefined' || !DEPTH.hall(this.mg.club).length){
+          Sfx.fail(); this.mg.toast('전당이 비어 있습니다'); return;
+        }
+        Sfx.ui(); this.mg.push(new HallScreen(this.mg, this.a)); return;
+      }
       if(r._full){
         /* 닿은 스탯은 **돌파**한다 — 포인트가 갈 곳이 없어 쌓이던 자리 */
         if(!r._break){ Sfx.fail(); this.mg.toast(K(RPG.whyBreak(a, r._k)||'잠재치에 닿았습니다')); return; }
