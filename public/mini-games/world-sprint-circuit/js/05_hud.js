@@ -51,10 +51,17 @@ function unitOf(def){
    ⚠ 실격 화면이 '--.--초' 로 나왔다(기록이 없는데 단위가 붙었다). */
 function needsSec(str){ return str.indexOf(':')<0 && str!=='--.--'; }
 
+/* 정수로만 세는 단위 — 역도(kg)·승마(벌점)·골프(타). 소수를 붙이지 않는다. */
+const INT_UNITS = new Set(['kg','벌점','타']);
 function fmtRec(def, v){
   if(v===undefined || v===null || !isFinite(v) || v>=DNF) return '--.--';
   if(def.unit==='s') return fmtTime(v);   // 초 단위는 부르는 쪽이 붙인다
   /* 복합종목 점수는 네 자리다 — 소수 둘까지 쓰면 'Target 6500.00 pts' 가 칸을 넘는다 */
+  /* ⛔ 소수를 붙일지를 **값의 크기**로 정하고 있었다. 그래서 정수로만 세는 단위가
+     '8.00벌점' · '-3.00타' · '140.00kg' 로 나왔다(2026-09-05 전수 표기 점검).
+     틀린 값은 아니지만 그 종목을 그렇게 세지 않는다 — **단위가 정한다.**
+     ⚠ m·점 은 그대로 소수 둘이다(도마 10.50 · 링 11.70 은 진짜 소수다). */
+  if(INT_UNITS.has(def.unit)) return Math.round(v) + unitOf(def);
   return (v>=1000 ? Math.round(v) : v.toFixed(2)) + unitOf(def);
 }
 
