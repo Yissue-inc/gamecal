@@ -477,16 +477,23 @@ const UIK = {
 
   /* ── 분당 획득률 ─────────────────────────────────────────
      3,300(+1,607)/m 형태. 보너스가 있으면 괄호로 따로 보여 준다. */
+  /* ⛔ 라벨 폭을 **34px 로 박아** 두고 그 뒤에 숫자를 찍었다. 한국어 '1명당'(3자)은
+     들어가지만 영어 'per athlete'(11자)는 넘쳐 숫자와 '/분'을 물었다
+     (2026-09-04 실측: 방치 보상 화면에서 13px·12px). 뒤 폭도 `글자수 × 5.8` 추정치였다.
+     ⚠ `txt()` 가 안에서 K() 를 부르므로 **번역된 문자열을 재야** 한다. */
   rate(u, x, y, label, per, bonus, color){
+    const wOf = (t, sz, wt) => { u.font = `${wt||400} ${sz}px "Galmuri11","Nanum Gothic Coding",monospace`;
+                                 return Math.ceil(u.measureText(typeof K==='function'?K(t):t).width); };
     txt(u, label, x, y, 9, PAL.dim, 'left', 700);
     let s = this.n(per);
-    txt(u, s, x+34, y-1, 11, color||PAL.white, 'left', 700);
-    let w = 34 + s.length*5.8;
+    let w = Math.max(34, wOf(label, 9, 700) + 6);
+    txt(u, s, x+w, y-1, 11, color||PAL.white, 'left', 700);
+    w += wOf(s, 11, 700) + 2;
     if(bonus>0){
       const b='(+'+this.n(bonus)+')';
       txt(u, b, x+w, y, 9, PAL.green, 'left', 700);
-      w += b.length*4.8;
+      w += wOf(b, 9, 700) + 2;
     }
-    txt(u, '/분', x+w+2, y, 8, PAL.dim, 'left');
+    txt(u, '/분', x+w, y, 8, PAL.dim, 'left');
   },
 };
