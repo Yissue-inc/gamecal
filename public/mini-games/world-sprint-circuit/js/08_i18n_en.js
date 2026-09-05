@@ -1352,6 +1352,10 @@ const I18N_EN = {
   '공유 카드를 만들지 못했습니다':'Could not create the share card',
   '카드를 만들지 못했습니다':'Could not create the card',
   '초':'s',
+  '튜토리얼은 새 클럽으로 시작합니다 — 그 클럽은 사라집니다':
+    'The tutorial starts a new club — that club will be gone',
+  '확인 다시 누르면 시작 · 취소로 돌아가기':
+    'Press Confirm again to start · Cancel to go back',
   '이미 저장된 클럽이 있습니다':'You already have a saved club',
   '새로 시작하면 그 클럽은 사라집니다':'Starting over deletes that club',
   '확인 다시 누르면 새로 시작 · 취소로 돌아가기':'Confirm again to start over · Cancel to go back',

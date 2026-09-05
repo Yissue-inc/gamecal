@@ -147,12 +147,13 @@ const G = {
       this.titleSel = 처음온사람 ? (tut ? 0 : 1)    // 튜토리얼 → 없으면 '직접 뛰기'
                                  : (tut ? 1 : 0);    // 돌아온 사람은 튜토리얼을 건너뛴 첫 줄
     }
-    if(Input.pressed('up'))   { this.titleSel=(this.titleSel+items-1)%items; Sfx.ui(); }
-    if(Input.pressed('down')) { this.titleSel=(this.titleSel+1)%items; Sfx.ui(); }
+    if(Input.pressed('up'))   { this.titleSel=(this.titleSel+items-1)%items; this.tutConfirm=false; Sfx.ui(); }
+    if(Input.pressed('down')) { this.titleSel=(this.titleSel+1)%items; this.tutConfirm=false; Sfx.ui(); }
     /* 커리어 화면 — 쌓인 걸 볼 데가 있어야 모으는 의미가 생긴다 */
     if(Input.pressed('up')&&false){}
     if(Input.keys['KeyB']&&!this._bLatch){ this._bLatch=true; this.state=ST.CAREER; Sfx.ui(); }
     if(!Input.keys['KeyB']) this._bLatch=false;
+    if(Input.pressed('back') && this.tutConfirm){ this.tutConfirm=false; Sfx.ui(); return; }
     if(Input.pressed('pause')){ this.state=ST.SETTINGS; this.setSel=0; Sfx.ui(); }
     /* 언어 전환 — 출시 대상이 스팀·모바일이라 게임 안에서 바꿀 수 있어야 한다 */
     if(Input.pressed('left')||Input.pressed('right')){
@@ -161,7 +162,16 @@ const G = {
     if(Input.pressed('action')){
       Sfx.ui();
       /* 튜토리얼이 있으면 0번이다 — 나머지는 한 칸씩 밀린다 */
-      if(tut && this.titleSel===0){ Tutorial.start(); return; }
+      if(tut && this.titleSel===0){
+        /* ⛔ 튜토리얼 3걸음째가 `MG.newGame()` 을 부른다 — **기존 클럽이 말없이 사라진다.**
+           바로 아래 '새 클럽' 에는 이 확인이 있는데(natConfirm) 여기엔 없었다.
+           튜토리얼 줄은 `Tutorial.seen()` 이 false 이면 계속 뜨므로, 아케이드로 놀다
+           클럽을 만든 사람이 나중에 호기심에 눌러 볼 수 있다(2026-09-05 첫 실행 감사).
+           같은 결과에는 같은 확인을 붙인다. */
+        if(MG.hasSave() && !this.tutConfirm){ this.tutConfirm=true; Sfx.beep(420,0.1,'square',0.12); return; }
+        this.tutConfirm=false; Tutorial.start(); return;
+      }
+      this.tutConfirm=false;
       const off = tut ? 1 : 0;
       const hasSave=MG.hasSave();
       const pick = hasSave ? (this.titleSel-off) : (this.titleSel-off+1);   // 0=이어하기 1=새 클럽 2=직접 뛰기
@@ -760,7 +770,19 @@ const G = {
     }
   },
 
+  /* 덮어쓰기 경고 — 튜토리얼도 클럽을 새로 만든다. '새 클럽'(natConfirm)과 같은 문구다. */
+  drawOverwriteWarn(uctx){
+    uctx.fillStyle='#05060a'; uctx.fillRect(0,0,VW,VH);
+    txt(uctx,'이미 저장된 클럽이 있습니다', VW/2, 88, 14, PAL.red,'center',700);
+    txt(uctx,'튜토리얼은 새 클럽으로 시작합니다 — 그 클럽은 사라집니다', VW/2, 110, 11, PAL.white,'center');
+    txt(uctx,'확인 다시 누르면 시작 · 취소로 돌아가기', VW/2, 140, 11, PAL.dim,'center');
+  },
   drawTitle(ctx,uctx){
+    /* ⛔ 덮어쓰기 경고는 **전면 카드**다. 예전엔 메뉴를 다 그린 뒤 alpha .88 을 덮었는데,
+       타이틀은 메뉴 줄이 바로 그 자리라 밑 글자가 비쳤다(겹침 감시 실측 2026-09-05:
+       '뱃지 11 / 11' 위에 경고문이 얹혔다). 오늘 네 번 나온 것과 같은 모양이다 —
+       **덮개는 가리는 도구가 아니다.** 카드가 뜨면 메뉴는 **안 그린다.** */
+    if(this.tutConfirm){ this.drawOverwriteWarn(uctx); return; }
     /* 첫 화면 배경 — 전용 아트가 있으면 그걸 쓰고, 없으면 달리는 트랙으로 폴백한다 */
     const hasArt = BG.fill(BG.ctx(), 'title-backdrop', 0, VH);
     if(!hasArt){
@@ -839,6 +861,7 @@ const G = {
     /* ⛔ 'P 조작' 이라고 적혀 있었지만 P 가 여는 건 **설정** 화면이다(제목도 '설정').
        조작 도움말을 찾아 누른 사람은 음량 슬라이더를 만난다. 키가 하는 일을 그대로 적는다. */
     txt(uctx,'▲▼ 이동 · 확인 선택   |   ◀▶ 언어 · B 커리어 · P 설정', VW/2, VH-20, 9, PAL.dim,'center');
+
   },
 
   drawSelect(ctx,uctx){
