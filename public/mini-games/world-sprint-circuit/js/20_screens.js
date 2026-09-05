@@ -1069,8 +1069,26 @@ const G = {
     /* ⛔ 거의 안 두드린 판에도 아무 말이 없었다 — 처음 켠 사람이 딱 그렇게 한다.
        (조작을 모르면 화면만 보고 있게 된다) */
     if(total < 6) return '좌·우를 번갈아 두드려야 앞으로 갑니다';
-    if((j.SPAM|0) > total*0.15)   return '연타는 오히려 느려집니다 — 리듬을 맞추세요';
     if((j.REPEAT|0) > total*0.15) return '같은 쪽을 연달아 눌렀습니다 — 좌·우를 번갈아';
+    /* ⛔ 연타 모드에서는 판정이 **PERFECT 와 REPEAT 둘뿐**이다(02_runner.js).
+       아래 SPAM·EARLY·LATE 갈래는 전부 죽었는데 **말은 살아 있었다** —
+       그중 하나는 규칙과 정반대다("연타는 오히려 느려집니다 — 리듬을 맞추세요").
+       지금 규칙은 '타수가 곧 속도' 다. 죽은 갈래로 내려가지 않게 여기서 끊는다.
+       ⚠ `mashMode` 를 끄면 아래 옛 갈래가 다시 맞는 말이 된다 — 지우지 않고 가른다. */
+    if(RULES.mashMode){
+      const good0=(j.PERFECT|0)+(j.GOOD|0);
+      if(good0 > total*0.7){
+        const prog0 = (p.trackM ? (p.distM||0)/p.trackM : 1);
+        /* ⚠ '완주했으니 됐다' 로 끊으면 **기준을 못 넘긴 판에 아무 말도 안 한다** —
+           실측(2026-09-05): 200ms 간격으로 12.84초(기준 11.30) 를 내고도 조언이 null 이었다.
+           끝까지 갔는지가 아니라 **통과했는지**를 본다. */
+        const 통과 = ev.result && ev.result.status==='OK';
+        if(prog0 < 0.98 || !통과) return '교대는 정확합니다 — 더 빠르게 두드리세요';
+        return null;
+      }
+      return '좌·우를 번갈아 더 빠르게 — 타수가 곧 속도입니다';
+    }
+    if((j.SPAM|0) > total*0.15)   return '연타는 오히려 느려집니다 — 리듬을 맞추세요';
     const early=j.EARLY|0, late=j.LATE|0, good=(j.PERFECT|0)+(j.GOOD|0);
     if(early > total*0.4 && early > late*2)
       return '너무 빨리 두드렸습니다 — 아래 게이지의 초록 칸에 맞추세요';
@@ -1125,7 +1143,20 @@ const G = {
       txt(uctx, '기준 '+q+(needsSec(q)?sfx:''), VW/2, 116, 11, PAL.dim,'center');
       const p=ev.player;
       if(p){
-        const line = `PERFECT ${p.judge.PERFECT}  ·  GOOD ${p.judge.GOOD}  ·  놓침 ${p.judge.EARLY+p.judge.LATE}`;
+        /* ⛔ `PERFECT n · GOOD 0 · 놓침 0` 을 늘 띄우고 있었다. 연타 모드에서는
+           교대만 맞으면 전부 PERFECT 라, **완주도 못 한 판에도 '전부 완벽'** 이라고 말했다
+           (2026-09-05). 지금 속도를 만드는 건 **타수**다 — 그걸 보여 준다. */
+        let line;
+        if(RULES.mashMode){
+          const taps = (p.judge.PERFECT|0)+(p.judge.REPEAT|0);
+          const secs = (typeof ev.elapsed==='number' && ev.elapsed>0) ? ev.elapsed
+                     : ((r.value>0 && r.value<DNF) ? r.value : 0);
+          const rate = secs>0 ? (taps/secs).toFixed(1) : '--';
+          line = K('타수 %1  ·  초당 %2').replace('%1', taps).replace('%2', rate)
+               + ((p.judge.REPEAT|0) ? '  ·  ' + K('같은 쪽 %1').replace('%1', p.judge.REPEAT|0) : '');
+        } else {
+          line = `PERFECT ${p.judge.PERFECT}  ·  GOOD ${p.judge.GOOD}  ·  놓침 ${p.judge.EARLY+p.judge.LATE}`;
+        }
         txt(uctx, line, VW/2, 139, 10, PAL.white,'center');
         /* ⛔ 세 조각을 이어 붙여 **통짜로** K() 에 넘겼다 — 표엔 그런 키가 없다.
            영어판 결과 화면에 '반응 142ms · 순위 1위' 가 그대로 떴다
