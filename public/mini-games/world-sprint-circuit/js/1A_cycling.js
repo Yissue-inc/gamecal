@@ -226,7 +226,7 @@ class CyclingEvent {
     u.fillRect(bx,by,Math.round(bw*(this.stamina-0.40)/0.60),7);
     if(!this.sprintUsed && this.phase==='RUN')
       txt(u,'액션 = 스퍼트 (한 번)', VW/2, Track.botY(24), 10, PAL.gold,'center',700);
-    if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, VH-24, 11, PAL.white,'center',700);
+    if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, Track.botY(24), 11, PAL.white,'center',700);
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 46, 12, this.msgBad?PAL.red:PAL.green,'center',700);
   }

@@ -302,7 +302,7 @@ class JudoEvent {
 
     if(this.phase==='SET') txt(u,'하지메', VW/2, 52, 15, PAL.white,'center',700);
     else if(A.pts===0 && B.pts===0 && this.elapsed<4)
-      txt(u,'좌·우를 번갈아 두드려 깃을 잡고, 기울면 액션', VW/2, VH-52, 10, PAL.white,'center');
+      txt(u,'좌·우를 번갈아 두드려 깃을 잡고, 기울면 액션', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-this.lastCallAt<1200)
       txt(u, this.lastCall, VW/2, 52, 15, PAL.gold,'center',700);
     else if(this.t-A.msgAt<800)

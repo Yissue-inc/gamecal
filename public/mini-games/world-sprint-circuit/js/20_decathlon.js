@@ -164,10 +164,14 @@ class DecathlonEvent {
     /* ⚠ 하위 **결과 카드**가 뜬 1.5초 동안도 마찬가지다 — 카드의 종목 이름(y=80)에
        하위의 안내 문구가 겹쳤다('거부 3회 — 실격 ≡ 승마 장애물' 49px, 근대5종). */
     if(this.sub && this.phase!=='INTRO' && !(this.sub.result && this.subDoneAt>0)) this.sub.drawUI(u);
+    /* ⛔ 인트로 카드 아래에서는 **띠도 안 그린다** — 덮개(alpha .78)로는 안 가려진다.
+       철인3종에서 같은 모양이 모바일 겹침으로 잡혔다(2026-09-04). */
+    const 카드 = (this.phase==='INTRO');
     /* 진행 띠 — 10종은 '지금 몇 번째이고 얼마나 벌었나'가 전부다
        ⛔ 15px 한 줄에 [진행 · 회차 · 점수 · 레일] 을 다 넣으려다 레일 바늘이
           점수 숫자를 뚫었다. 두 줄로 나눈다(윗줄 글자 · 아랫줄 막대와 레일). */
     const H=22, BY = Track.botY(54);
+    if(!카드){
     u.fillStyle='rgba(6,10,18,.94)'; u.fillRect(0, BY, VW, H);
     for(let i=0;i<this.slots.length;i++){
       const w=Math.floor((VW-96)/this.slots.length), x=6+i*w;
@@ -183,6 +187,7 @@ class DecathlonEvent {
        ⛔ y 는 BY+H-2 가 아니다 — 바늘 끝이 240 까지 내려가 중거리 페이스 버튼(VH-30=240)에 닿았다. */
     if(typeof SB !== 'undefined')
       SB.rail(u, VW-84, BY+15, 62, this.total, medalCuts(this.def), !!this.def.higher);  /* ⚠ VW-70 이면 오른쪽 끝 472 가 일시정지 버튼(461~480) 밑이다 */
+    }
 
     if(this.phase==='INTRO'){
       const d=this.curDef;

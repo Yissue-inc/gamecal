@@ -257,10 +257,18 @@ const Ctrl = {
   playPad(ev){
     const pad=document.getElementById('pad'); if(!pad) return;
     const act=document.getElementById('p-act');
-    if(!ev){ pad.classList.remove('play','noud'); if(act) act.textContent='확인'; return; }
+    /* ⛔ **배치가 바뀌면 예약도 다시 재야 한다.** `_inset` 은 `apply()`(키보드↔터치)와
+       리사이즈에서만 무효화됐고 **여기서는 안 됐다** — 그런데 메뉴와 경기는 패드 배치가
+       다르다(경기에서는 ◀▶ 가 화면 양 끝으로 빠져 가운데 무리가 낮아진다).
+       실측(812×375, 2026-09-04): 메뉴 **90px** · 경기 **33px**.
+       메뉴에서 재고 경기로 들어가면 경기 내내 **90 을 쓴다** — 바닥 UI 가 57px 떠오른다.
+       이 파일 아래 주석이 경고한 증상 그대로다("리듬 띠가 화면 한가운데로 올라온다").
+       고친 건 재는 법이었지 **다시 재는 시점**이 아니었다. */
+    if(!ev){ pad.classList.remove('play','noud'); if(act) act.textContent='확인'; this._inset = null; return; }
     pad.classList.add('play');
     pad.classList.toggle('noud', !ev.onUp && !ev.onDown);
     if(act) act.textContent = (typeof K==='function') ? K('액션') : '액션';
+    this._inset = null;                     // ↓ 아래 설명
   },
   suggested(){ return (('ontouchstart' in window) || (navigator.maxTouchPoints||0)>0 ||
     (matchMedia && matchMedia('(pointer:coarse)').matches)) ? 'touch' : 'keyboard'; },

@@ -251,7 +251,7 @@ class RowingEvent {
     u.fillStyle = sc;
     u.fillRect(bx,by,Math.round(bw*this.smooth),8);
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
-    else if(this.strokes<3) txt(u,'좌·우를 천천히 고르게 — 간격을 일정하게', VW/2, VH-56, 10, PAL.white,'center');  /* ⚠ VH-42(228) 는 '일정함' 줄(232)과 문다 */
+    else if(this.strokes<3) txt(u,'좌·우를 천천히 고르게 — 간격을 일정하게', VW/2, Track.botY(56), 10, PAL.white,'center');  /* ⚠ VH-42(228) 는 '일정함' 줄(232)과 문다 */
     else if(!this.pitchUsed) txt(u,'액션 = 피치 업 (한 번)', 8, Track.botY(24), 9, PAL.gold,'left');
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 46, 12, this.msgBad?PAL.red:PAL.green,'center',700);

@@ -160,6 +160,11 @@ class TriathlonEvent {
     /* ⛔ INTRO 도 뺀다 — TRANS 만 빼 놓아서 첫 구간 인트로에서 하위 UI 가 비쳤다
        ('제자리에' 가 안내 문장을 117px 덮었다, 겹침 감시 2026-09-04). */
     if(this.sub && this.phase!=='TRANS' && this.phase!=='INTRO') this.sub.drawUI(u);
+    /* ⛔ 전면 카드 아래에서는 **띠도 안 그린다.** 카드 덮개가 alpha .78 이라 띠 글자가 비친다 —
+       모바일에서 패드 예약만큼 띠가 올라오자 카드 문구와 물었다
+       ('달리기 ≡ 여기서 쉬는 게 아니라 잃는 것이다' 12px, 812×375 실측 2026-09-04).
+       오늘 같은 모양이 넷째다 — **덮개는 가리는 도구가 아니다.** */
+    if(this.phase==='INTRO' || this.phase==='TRANS'){ this.drawCard(u); return; }
     /* 구간 띠 — 지금 어디이고 얼마나 걸렸나
        ⛔ 처음엔 VH-H(하단 15px)에 뒀다가 하위 종목의 조작 안내를 덮어서 위로 올렸고,
           그러자 이번엔 **띠 안에서** 레일 바늘이 총시간 숫자를 뚫었다('2:46▲82').
@@ -192,7 +197,11 @@ class TriathlonEvent {
       u.fillStyle = this.carry>0.55?PAL.red:PAL.gold;
       u.fillRect(bx, BY+12, Math.round(bw*this.carry), 5);
     }
+    /* (INTRO·TRANS 는 위에서 이미 카드를 그리고 돌아갔다) */
+  }
 
+  /* 전면 카드(인트로·전환) — 이것만 그리는 판이 있다(위 drawUI 의 이른 반환) */
+  drawCard(u){
     if(this.phase==='INTRO'){
       u.fillStyle='rgba(5,6,10,.78)'; u.fillRect(0,0,VW,VH);
       txt(u,'철인3종', VW/2, 76, 11, PAL.dim,'center');

@@ -228,7 +228,7 @@ class ArcheryEvent {
       txt(u, this.drawStart<0 ? '액션을 누르고 있으면 당겨집니다'
             : (pull<1 ? '더 당기세요' : '흔들림이 작을 때 떼세요'),
           VW/2, VH-40, 10, this.drawStart<0?PAL.white:(pull<1?PAL.gold:PAL.green), 'center', 700);
-      if(this.drawStart>=0) txt(u,'좌·우로 조준 보정', VW/2, VH-12, 8, PAL.dim,'center');
+      if(this.drawStart>=0) txt(u,'좌·우로 조준 보정', VW/2, Track.botY(12), 8, PAL.dim,'center');
     }
     if(this.t-this.msgAt<1000)
       txt(u, this.msg, VW/2, 44, 14, this.msgBad?PAL.red:PAL.green, 'center', 700);

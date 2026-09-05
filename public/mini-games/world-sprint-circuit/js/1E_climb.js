@@ -309,7 +309,7 @@ class ClimbEvent {
                   distM:me.h, trackM:CLIMB.wallM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });
     /* 남은 미끄러짐 — 이 종목의 목숨 */
-    txt(u,'미끄러짐', 10, VH-40, 9, PAL.dim,'left');
+    txt(u,'미끄러짐', 10, Track.botY(40), 9, PAL.dim,'left');
     for(let k=0;k<CLIMB.maxSlips;k++){
       u.fillStyle = k<me.slips ? PAL.red : 'rgba(255,255,255,.28)';
       u.fillRect(10+k*12, VH-28, 9, 6);
@@ -322,10 +322,10 @@ class ClimbEvent {
     u.fillStyle= flow>0.6?PAL.green : flow>0.25?PAL.gold : 'rgba(255,255,255,.5)';
     u.fillRect(tx,ty,Math.round(tw*flow),6);
     txt(u, Math.round(me.iv)+'ms', tx+tw+6, ty-1, 8, PAL.dim,'left');
-    if(!me.dynoUsed) txt(u,'액션 = 도약 1회 (두 칸)', VW-10, VH-28, 9, PAL.gold,'right');
-    txt(u, me.hold+' / '+CLIMB.holds+' 홀드', VW-10, VH-40, 10, PAL.white,'right',700);
+    if(!me.dynoUsed) txt(u,'액션 = 도약 1회 (두 칸)', VW-10, Track.botY(28), 9, PAL.gold,'right');
+    txt(u, me.hold+' / '+CLIMB.holds+' 홀드', VW-10, Track.botY(40), 10, PAL.white,'right',700);
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
-    else if(me.hold<3) txt(u,'좌·우를 고르게 번갈아 — 서두르면 미끄러진다', VW/2, VH-52, 10, PAL.white,'center');
+    else if(me.hold<3) txt(u,'좌·우를 고르게 번갈아 — 서두르면 미끄러진다', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-me.msgAt<900)
       txt(u, me.msg, VW/2, 60, 12, me.msgBad?PAL.red:PAL.green,'center',700);
   }

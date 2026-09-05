@@ -182,7 +182,7 @@ class DivingEvent {
       txt(u,'초록에서 액션', VW/2, Track.tipY(), 10, PAL.gold, 'center', 700);
     } else if(this.phase==='AIR'){
       txt(u,`회전 ${this.spin.toFixed(1)}`, VW/2, Track.tipY(), 11, PAL.white, 'center', 700);
-      if(!this.opened) txt(u,'수면 직전에 액션으로 펴세요', VW/2, VH-28, 9, PAL.dim, 'center');
+      if(!this.opened) txt(u,'수면 직전에 액션으로 펴세요', VW/2, Track.botY(28), 9, PAL.dim, 'center');
     }
     if(this.t - this.msgAt < 1100)
       txt(u, this.msg, VW/2, 46, 13, this.msgBad?PAL.red:PAL.green, 'center', 700);
