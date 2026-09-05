@@ -1387,6 +1387,7 @@ const I18N_EN = {
   '  · 합성 가능': '  · can fuse',
   '전당의 선수에게서 자질을 받는다': 'Inherit a trait from a hall member',
   '확인 ': 'Confirm ',
+  '확인 한 번 더 — %1 다시 뽑기': 'Press Confirm again to reroll %1',
   '이미 저장된 클럽이 있습니다':'You already have a saved club',
   '새로 시작하면 그 클럽은 사라집니다':'Starting over deletes that club',
   '확인 다시 누르면 새로 시작 · 취소로 돌아가기':'Confirm again to start over · Cancel to go back',

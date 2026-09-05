@@ -811,10 +811,20 @@ class ScoutReportScreen extends Screen0 {
       if(Input.pressed('left'))  { this.tsel=((this.tsel||0)+tr.length-1)%tr.length; Sfx.ui(); }
       if(Input.pressed('right')) { this.tsel=((this.tsel||0)+1)%tr.length; Sfx.ui(); }
     }
+    if(tr.length && (Input.pressed('left')||Input.pressed('right'))) this.pending=false;
     if(tr.length && Input.pressed('up')){
       const i=this.tsel||0, why=RPG.whyReroll(this.a, i);
       if(why){ Sfx.fail(); this.mg.toast(K(why)); }
+      /* ⛔ 훈련 포인트를 쓰고 **특성을 영구히 바꾼다**(옛 특성은 안 돌아온다).
+         이 게임은 되돌릴 수 없는 일에 두 번 묻는다 — 여기만 한 번이었다(2026-09-05).
+         ⚠ 특성을 바꿔 고르면(◀▶) 예약은 풀린다 — 엉뚱한 특성을 굴리는 사고를 막는다. */
+      else if(!this.pending){
+        this.pending = true;
+        this.mg.toast(K('확인 한 번 더 — %1 다시 뽑기').replace('%1', TRAITS[tr[i]].name));
+        Sfx.beep(420,0.1,'square',0.12);
+      }
       else {
+        this.pending = false;
         const r=RPG.reroll(this.a, i);
         if(r){ Sfx.record(); Screen.shake(0.3); this.rerollAt=this.t;
                this.mg.toast('%1 → %2'.replace('%1', TRAITS[r.from].name)
@@ -823,6 +833,7 @@ class ScoutReportScreen extends Screen0 {
       }
       return;
     }
+    if(this.pending && Input.pressed('back')){ this.pending=false; Sfx.ui(); return; }
     if(Input.pressed('back')||Input.pressed('action')) this.mg.pop();
   }
   draw(u){
