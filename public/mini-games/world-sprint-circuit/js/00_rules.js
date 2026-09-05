@@ -400,46 +400,46 @@ function phaseAt(distM, trackM){
       기준이 벽이 된다 — 가끔은 넘어야 다시 해 본다. */
 const EVENTS = [
   /* ── 트랙: 단거리 ── */
-  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.4, distanceM:100, cuts:{silver:10.5, gold:9.95}, kind:'sprint', tip:'좌·우를 빠르게 번갈아 — 타수가 곧 속도다 · 총성 전엔 부정 출발' },
-  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:23.1, distanceM:200, cuts:{silver:21.4, gold:20.3}, kind:'sprint', tip:'좌·우를 빠르게 번갈아 — 곡선에서도 손을 늦추지 않는다' },
-  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:48.6, distanceM:400, cuts:{silver:45.2, gold:43.3}, kind:'middle', tip:'좌·우를 빠르게 번갈아 — 한 바퀴다. 손이 끝까지 버텨야 한다' },
+  { id:'sprint100',  name:'100m 달리기',  short:'100M',  unit:'s', higher:false, qualify:11.4, distanceM:100, cuts:{silver:10.5, gold:9.95}, kind:'sprint', tip:'좌·우 빠르게 번갈아 — 타수가 곧 속도 · 막판 액션 = 기울이기' },
+  { id:'sprint200',  name:'200m 달리기',  short:'200M',  unit:'s', higher:false, qualify:23.1, distanceM:200, cuts:{silver:21.4, gold:20.3}, kind:'sprint', tip:'좌·우 빠르게 번갈아 — 곡선에서도 늦추지 않는다 · 막판 액션 = 기울이기' },
+  { id:'sprint400',  name:'400m 달리기',  short:'400M',  unit:'s', higher:false, qualify:48.6, distanceM:400, cuts:{silver:45.2, gold:43.3}, kind:'middle', tip:'좌·우 빠르게 번갈아 — 한 바퀴다 · 막판 액션 = 기울이기' },
   { id:'hurdles110', name:'110m 허들',    short:'110MH', unit:'s', higher:false, qualify:13.8, distanceM:110, cuts:{silver:12.5, gold:11.8}, kind:'hurdles',
     hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우를 빠르게 번갈아 달리다 허들 앞에서 액션' },
   /* 400m 허들 — 허들이 낮고 간격이 넓다. 지구력 종목에 가깝다. */
   { id:'hurdles400', name:'400m 허들',    short:'400MH', unit:'s', higher:false, qualify:48.7, distanceM:400, cuts:{silver:45.2, gold:43.0}, kind:'hurdles',
-    hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'허들 10개 · 보폭이 흐트러지면 발이 안 맞는다' },
+    hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'좌·우로 달리고 액션으로 넘는다 · 허들 10개, 보폭이 관건' },
   /* 3000m 장애물 — 고정 장애물과 물웅덩이. 5번째마다 물이다. */
   { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:451, distanceM:3000, cuts:{silver:403, gold:380}, kind:'hurdles',
-    hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'허들 + 물웅덩이 · 물 앞에서는 일찍 뛴다' },
+    hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'좌·우로 달리고 액션으로 넘는다 · 물 앞에서는 일찍 뛴다' },
   /* ── 트랙: 중·장거리 ── */
-  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'▲▼ 페이스(여유·유지·승부) · 액션 = 스퍼트 1회' },
-  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'▲▼ 페이스 배분이 전부 · 승부는 한 번뿐' },
-  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:1027}, kind:'middle', tip:'▲▼ 페이스 · 길다. 유지로 가다 마지막에 지른다' },
-  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'▲▼ 페이스 · 너무 빠른 케이던스는 경고, 3회면 실격' },
+  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회' },
+  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 배분이 전부 · 액션 = 승부 1회' },
+  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:1027}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션은 마지막에 딱 한 번' },
+  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션 스퍼트 · 빠르면 경고 3회 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
         거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
   { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:20700,
     parS:6720, rivalPar:16490, distanceM:42195, cuts:{silver:18450, gold:17400}, kind:'middle',
-    tip:'▲▼ 페이스 · 가장 긴 종목이다. 초반에 지르면 뒤가 없다' },
+    tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션 스퍼트 · 초반에 지르면 뒤가 없다' },
   /* ── 트랙: 계주 ── */
   { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:38.00, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 빠르게 번갈아 · 인계 구역에서 액션(속도가 비슷할 때)' },
-  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:174.2, parS:147.5, distanceM:1600, rivalPar:152.40, cuts:{silver:161.9, gold:153.9}, kind:'relay', legs:4, tip:'한 바퀴씩 네 명 · 인계 품질이 13초를 가른다' },
+  { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:174.2, parS:147.5, distanceM:1600, rivalPar:152.40, cuts:{silver:161.9, gold:153.9}, kind:'relay', legs:4, tip:'좌·우 번갈아 · 인계 구역에서 액션 · 한 바퀴씩 네 명' },
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판 **직전**에 액션 · 공중에서 액션을 쥐었다 놓는다' },
-  { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump', tip:'홉·스텝·점프 — 정점마다 액션' },
-  { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump', tip:'좌·우로 달려 액션으로 뛰고, 좌·우로 몸을 넘긴다' },
+  { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump', tip:'좌·우로 달려 홉·스텝·점프 — 정점마다 액션 · 공중에서 쥐었다 놓기' },
+  { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump', tip:'좌·우로 달려 액션으로 뛰고, 공중에서 액션을 쥐었다 놓는다' },
   { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump', tip:'액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다' },
   /* ── 필드: 투척 ── */
-  { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:13.5, cuts:{silver:14.8, gold:15.7}, kind:'throw', tip:'액션을 눌러 힘을 모으고 가득 찼을 때 놓는다' },
+  { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:13.5, cuts:{silver:14.8, gold:15.7}, kind:'throw', tip:'좌·우로 달려 액션을 눌러 힘을 모으고 가득 찼을 때 놓는다' },
   { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:59.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
-  { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션 · 릴리스 각도가 45°에 가까울수록 멀리 간다' },
-  { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 회전이 많을수록 멀리 가지만 놓치기 쉽다' },
+  { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션을 쥐었다 놓는다 · 45°에 가까울수록 멀리' },
+  { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다' },
   /* ── 수영 ── */
   { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:40.44, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
-  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.56, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'배영 · 숨은 자유롭지만 벽이 안 보인다'  },
-  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:53.34, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'평영 · 느리지만 리듬 창이 넓다'},
-  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:45.26, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'접영 · 가장 빠르게 지치니 호흡을 놓치지 말 것'   },
+  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.56, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · 배영은 벽이 안 보인다'  },
+  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:53.34, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · 평영은 리듬 창이 넓다'},
+  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:45.26, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · 접영은 가장 빨리 지친다'   },
   /* 다이빙 — 이 게임 유일의 '점수' 종목. 3시기 중 최고점. */
   { id:'diving',       name:'다이빙',       short:'DIVE',  unit:'점', higher:true,  qualify:60.0, kind:'dive', tip:'좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다' },
   /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
@@ -452,7 +452,7 @@ const EVENTS = [
      **틀렸다.** 실측(2026-09-04): 같은 평균 간격에서 흔들림을 ±0/±120/±300ms 로 바꿔도
      83.20 / 83.21 / 83.74 — 차이가 없다. 반면 간격을 1050ms(자연 박자) → 60ms 로 줄이면
      83.20 → **75.98**. 젓는 횟수가 속도다. 연타 모델로 바꾼 뒤 문구만 남아 있었다. */
-  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, rivalPar:73.4, distanceM:500, cuts:{silver:79, gold:76.5}, kind:'row', tip:'좌·우를 빠르게 번갈아 — 젓는 횟수가 속도다' },
+  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, rivalPar:73.4, distanceM:500, cuts:{silver:79, gold:76.5}, kind:'row', tip:'좌·우를 빠르게 번갈아 — 젓는 횟수가 속도 · 액션 = 피치 업 1회' },
   /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
   { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:70, cuts:{silver:82, gold:91.5}, kind:'tramp', tip:'매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다' },
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
@@ -474,13 +474,13 @@ const EVENTS = [
   /* 철인3종 — 두 번째 그릇. 10종과 달리 **끊기지 않는다**(피로가 구간을 관통한다). */
   { id:'triathlon',    name:'철인3종',      short:'TRI',   unit:'s', higher:false, qualify:285, parS:250, cuts:{silver:258, gold:243}, kind:'tri', tip:'수영 → 사이클 → 달리기 · 앞 구간에서 쓴 힘이 뒤로 넘어간다' },
   /* 사격 — 양궁과 달리 거리가 없다. 축은 **호흡**이다. 10발 소수점 채점(109.0 만점). */
-  { id:'shooting',     name:'10m 공기소총', short:'AR10', unit:'점', higher:true,  qualify:90, parS:99.0, cuts:{silver:96, gold:101}, kind:'shoot', tip:'액션을 눌러 숨을 참고 가장 잔잔할 때 뗀다 · ▲ 다시 호흡' },
+  { id:'shooting',     name:'10m 공기소총', short:'AR10', unit:'점', higher:true,  qualify:90, parS:99.0, cuts:{silver:96, gold:101}, kind:'shoot', tip:'←→ 조준 · 액션을 눌러 숨을 참고 잔잔할 때 뗀다 · ▲ 다시 호흡' },
   /* 7종 경기 — 10종과 **같은 그릇**을 쓴다. 표(HEPTA)만 다르다. */
   { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:5853, parS:6882, cuts:{silver:6882, gold:7290}, kind:'combined', tip:'일곱 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 개인혼영 — 한 경기 안에서 영법이 **세 번 바뀐다**. 리듬이 그때마다 새로 잡혀야 한다.
      접영 → 배영 → 평영 → 자유형 (실제 순서) */
   { id:'swimMedley200',name:'개인혼영 200m', short:'200IM', unit:'s', higher:false, qualify:126.0, parS:112.0, rivalPar:102.88,
-    distanceM:200, kind:'swim', stroke:'fly', medley:true , tip:'접영→배영→평영→자유형 · 영법마다 리듬을 새로 잡는다' },
+    distanceM:200, kind:'swim', stroke:'fly', medley:true , tip:'접영→배영→평영→자유형 · 좌·우 번갈아 · 벽에서 액션 = 턴' },
   /* 탁구 — 이 게임에 없던 **랠리** 장르. 상대를 어디로 뛰게 만드느냐가 축이다. */
   { id:'tableTennis',  name:'탁구',         short:'TT',    unit:'s', higher:false, qualify:140.0, parS:110.0, kind:'rally', tip:'←→ 로 설 자리와 코스를 정하고, 공이 올 때 액션' },
   /* 유도 — 격투기가 통째로 비어 있었다. 붙잡고 버티다 한순간에 뒤집는 종목. */
@@ -494,16 +494,16 @@ const EVENTS = [
   /* 승마 장애물 — 허들과 달리 간격이 제각각이다. 축은 **보폭 계산**(라인 보기). */
   { id:'equestrian',   name:'승마 장애물',   short:'JUMP',  unit:'벌점', higher:false, qualify:8.0, parS:0.0, cuts:{silver:4, gold:0}, kind:'ride', tip:'▲▼ 보폭 · 좌·우 한 걸음 · 도약대에 발이 맞으면 액션' },
   /* 철봉 — 이 게임에서 유일하게 **놓았다가 다시 잡는** 종목. 스윙이 난도를 허락한다. */
-  { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym', tip:'좌·우로 흔들어 스윙을 키우고 액션으로 이탈 · 다시 액션으로 잡는다' },
+  { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym', tip:'좌·우로 흔들어 액션으로 이탈 · 다시 액션으로 잡기 · ▲ 내리기' },
   /* 링 — 이 게임에서 유일하게 '누르지 않는 것'이 잘하는 종목 */
   { id:'rings', name:'링', short:'RG', unit:'점', higher:true, qualify:11.7,
     parS:12.4, kind:'gym',
-    tip:'좌·우로 흔들림을 되잡아 버틴다 — 많이 누를수록 감점' },
+    tip:'좌·우로 되잡아 버틴다(많이 누를수록 감점) · 액션으로 다음 기술' },
   /* 근대5종 — 펜싱·수영·승마·사격·달리기. 다섯 종목이 이미 다 있어서 그릇만 얹었다. */
   { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2983, parS:4062, cuts:{silver:4062, gold:4630}, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
   /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */
   { id:'swimRelay4x100', name:'계영 4×100m', short:'4×100F', unit:'s', higher:false,
-    qualify:220.0, parS:205.0, rivalPar:201.57, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'네 명이 이어 헤엄친다 · ▲ 인계는 벽을 찍기 직전에(먼저 뛰면 실격)' , legs:4, legEvent:'swimFree100'},
+    qualify:220.0, parS:205.0, rivalPar:201.57, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · ▲ 인계는 벽 찍기 직전에' , legs:4, legEvent:'swimFree100'},
 ];
 /* tip = 종목 선택 화면에서 미리 보여 주는 조작 한 줄.
    ⚠ 46종목이 각기 다른 조작인데, 시작한 뒤 잠깐 뜨는 한 줄이 설명의 전부였다 —
