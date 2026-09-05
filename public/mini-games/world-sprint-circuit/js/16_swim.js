@@ -425,7 +425,7 @@ class SwimEvent {
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; u.save(); u.globalAlpha=a;
-      txt(u,this.msg,VW/2,76,13,this.msgBad?PAL.red:PAL.green,'center',700); u.restore();
+      txt(u,this.msg,VW/2,HUD.sayY(76,13),13,this.msgBad?PAL.red:PAL.green,'center',700); u.restore();
     }
   }
 }

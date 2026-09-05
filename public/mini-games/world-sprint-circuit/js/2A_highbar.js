@@ -270,7 +270,10 @@ class HighBarEvent {
       txt(u, this.fell? K('추락') : K('난도')+' '+(1+this.releases*0.62+this.twist*0.45).toFixed(2),
           VW/2, 106, 10, PAL.dim,'center');
     }
-    if(this.t-this.msgAt<900)
-      txt(u, this.msg, VW/2, 60, 12, this.msgBad?PAL.red:PAL.green,'center',700);
+    if(this.t-this.msgAt<900){
+      /* 결과 카드(72~126)가 떠 있으면 그 자리도 비켜야 한다 */
+      const card = (this.phase==='MARK' && this.mark!=null) ? {y0:72, y1:126} : null;
+      txt(u, this.msg, VW/2, HUD.sayY(60,12,card), 12, this.msgBad?PAL.red:PAL.green,'center',700);
+    }
   }
 }

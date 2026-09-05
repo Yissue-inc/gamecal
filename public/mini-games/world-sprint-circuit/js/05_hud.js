@@ -360,5 +360,32 @@ const HUD = {
     }
     txt(ctx, label, VW/2, yy, sz, col, 'center', 700);
     ctx.restore();
+    /* 이 판정이 **어느 자리를 썼는지** 남긴다 — 안내 문구가 비키기 위해서다(아래 sayY). */
+    this._jbox = { y0: yy-3, y1: yy+sz+3, stamp: (typeof performance!=='undefined'?performance.now():0) };
+  },
+
+  /* ── 안내 문구가 판정 글자를 피한다 ──────────────────────────────
+     ⛔ 판정 라벨(PERFECT!/GOOD)은 **선수 옆 y** 를 받아도 x 는 늘 화면 중앙이다.
+        안내 문구도 중앙이라, 선수가 그 높이에 오면 매번 포갠다. 실측(2026-09-04):
+          수영 5종   PERFECT! ≡ 완벽한 턴! 78%     82px
+          철봉       PERFECT! ≡ 완벽하게 잡았다!   82px · GOOD ≡ … 31px
+        자리를 옮기는 걸로는 안 끝난다(선수가 움직이니까). **규칙을 둔다** —
+        판정이 그 줄을 쓰고 있으면 문구가 그 아래로 비킨다.
+     ⚠ 40ms 창은 '같은 프레임에 그려졌나'를 뜻한다. 판정을 먼저 그리든 나중에 그리든
+        (한 프레임 늦은 값이라도) 답이 같도록 시각으로 잰다. */
+  /* avoid: 이 종목이 '여기도 비어 있지 않다'고 알려 주는 사각형({y0,y1}) — 결과 카드 같은 것.
+     ⚠ 없이 만들었더니 철봉에서 문구가 판정을 피해 **결과 카드 위로** 내려앉았다
+        ('12.04 ≡ 연기 시간 초과' 72px). 한 곳만 피하면 다른 데서 부딪힌다. */
+  sayY(want, h, avoid){
+    const now = (typeof performance!=='undefined'?performance.now():0);
+    const b = this._jbox, live = b && (now - b.stamp <= 40);
+    const clash = y => (live && !(y + h < b.y0 || y > b.y1))
+                    || (avoid && !(y + h < avoid.y0 || y > avoid.y1));
+    if(!clash(want)) return want;
+    if(live){
+      const down = clamp(b.y1 + 5, 40, VH-80); if(!clash(down)) return down;
+      const up   = clamp(b.y0 - h - 5, 40, VH-80); if(!clash(up)) return up;
+    }
+    return want;
   },
 };

@@ -80,6 +80,7 @@ class DecathlonEvent {
   reset(){
     this.slot=0; this.total=0; this.marks=[];
     this.phase='INTRO'; this.t=0; this.introAt=0;
+    this.hasProgressBand = true;   /* 바닥 진행 띠를 쓴다 — 한 줄 안내가 비키도록(Track.tipY) */
     this.result=null; this.doneAt=0;
     this.sub=null; this.subDoneAt=-1e9;
     this.startSlot(0);
@@ -160,7 +161,9 @@ class DecathlonEvent {
        alpha .78 을 덮고 있었다 — 밑 글자가 비쳐 종목 이름(24px 금색)에 유령이 겹쳤다.
        실측(겹침 감시 2026-09-04): '제자리에 ≡ 100m 달리기' 52px · 영어는 117px.
        10종·7종·근대5종·철인3종 넷 다, 한·영 모두. 덮지 말고 **안 그린다**. */
-    if(this.sub && this.phase!=='INTRO') this.sub.drawUI(u);
+    /* ⚠ 하위 **결과 카드**가 뜬 1.5초 동안도 마찬가지다 — 카드의 종목 이름(y=80)에
+       하위의 안내 문구가 겹쳤다('거부 3회 — 실격 ≡ 승마 장애물' 49px, 근대5종). */
+    if(this.sub && this.phase!=='INTRO' && !(this.sub.result && this.subDoneAt>0)) this.sub.drawUI(u);
     /* 진행 띠 — 10종은 '지금 몇 번째이고 얼마나 벌었나'가 전부다
        ⛔ 15px 한 줄에 [진행 · 회차 · 점수 · 레일] 을 다 넣으려다 레일 바늘이
           점수 숫자를 뚫었다. 두 줄로 나눈다(윗줄 글자 · 아랫줄 막대와 레일). */

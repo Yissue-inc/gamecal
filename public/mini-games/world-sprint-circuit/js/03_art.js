@@ -112,9 +112,21 @@ const Track = {
     return !!(typeof Party !== 'undefined' && Party.on && Party.modeFor &&
               typeof G !== 'undefined' && G.def && Party.modeFor(G.def) === 'turn');
   },
+  /* 복합종목의 진행 띠가 지금 화면에 있나 — 바닥에서 54~32 를 그 띠가 쓴다.
+     ⛔ 안내 줄(VH-48=222)이 띠(216~238) **안**이었다. 한국어는 짧아서 띠의
+        오른쪽 숫자(3/5 · 2553점)에 못 닿았을 뿐이다 — 영어로 바꾸자 바로 물렸다
+        (2026-09-04 실측: 근대5종 16px·5px). 길이가 아니라 **자리가 틀렸다.**
+     ⚠ '슬롯이 있으면 복합' 식으로 추측하지 않는다(계주도 legs 를 갖는다).
+        해당 종목이 **스스로 신고**한다(hasProgressBand). */
+  bandOn(){
+    const ev = (typeof G !== 'undefined') ? G.event : null;
+    return !!(ev && ev.hasProgressBand);
+  },
   tipY(){
     const inset = (typeof Ctrl !== 'undefined' && Ctrl.padInset) ? Ctrl.padInset() : 0;
-    return (this.turnBadgeOn() ? VH - 64 : VH - 48) - inset;
+    let y = this.turnBadgeOn() ? VH - 64 : VH - 48;
+    if(this.bandOn()) y = Math.min(y, VH - 70);
+    return y - inset;
   },
   /* 바닥에 붙는 것들이 쓰는 공통 뺄셈 — VH-30 대신 Track.botY(30) */
   botY(off){

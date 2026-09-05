@@ -28,6 +28,7 @@ class TriathlonEvent {
   constructor(def){ this.def=def; this.reset(); }
   reset(){
     this.leg=0; this.phase='INTRO'; this.t=0; this.introAt=0;
+    this.hasProgressBand = true;   /* 바닥 진행 띠를 쓴다 — 한 줄 안내가 비키도록(Track.tipY) */
     this.splits=[]; this.carry=0;          // 누적 피로 (0~1)
     this.sub=null; this.transAt=-1e9;
     this.result=null; this.doneAt=0;
