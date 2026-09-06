@@ -15,7 +15,10 @@ class HurdlesEvent extends SprintEvent {
     this.hCount   = H.count   ?? RULES.hurdleCount;
     this.hFirst   = H.first   ?? RULES.hurdleFirstM;
     this.hSpacing = H.spacing ?? RULES.hurdleSpacingM;
-    this.waterAt  = H.waterEvery || 0;          // 3000m 장애물 물웅덩이 간격(번째)
+    /* ⚠ 물웅덩이는 **그림만 다르다** — 판정은 일반 장애물과 완전히 같다(draw 에서만 쓴다).
+       팁이 '물 앞에서는 일찍 뛴다' 라고 말하고 있었는데, 일찍 뛰면 `EARLY_JUMP` 로
+       속도만 잃는다. 2026-09-05 에 팁을 고쳤다. 물 전용 판정을 넣을 거면 여기부터다. */
+    this.waterAt  = H.waterEvery || 0;          // 3000m 장애물 물웅덩이 간격(번째) — 표시 전용
     this.hurdleMarks = [];
     for(let i=0;i<this.hCount;i++) this.hurdleMarks.push(this.hFirst + i*this.hSpacing);
     this.cleared = new Map();               // runner → Set(index)

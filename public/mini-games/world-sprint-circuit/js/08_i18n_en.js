@@ -924,8 +924,8 @@ const I18N_EN = {
     'Alternate ◀ ▶, then Action to clear each hurdle',
   '좌·우로 달리고 액션으로 넘는다 · 허들 10개, 보폭이 관건':
     'Run ◀▶, Action to clear · 10 hurdles, stride is everything',
-  '좌·우로 달리고 액션으로 넘는다 · 물 앞에서는 일찍 뛴다':
-    'Run ◀▶, Action to clear · take off early before the water',
+  '좌·우로 달리고 액션으로 넘는다 · 28개, 물웅덩이도 판정은 같다':
+    'Run with ◀▶ · Action to clear · 28 of them, water is the same',
   '좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회':
     'Alternate ◀▶ to run, ▲▼ pace · Action = one spurt',
   '좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 = 승부':

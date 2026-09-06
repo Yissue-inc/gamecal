@@ -410,7 +410,7 @@ const EVENTS = [
     hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'좌·우로 달리고 액션으로 넘는다 · 허들 10개, 보폭이 관건' },
   /* 3000m 장애물 — 고정 장애물과 물웅덩이. 5번째마다 물이다. */
   { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:451, distanceM:3000, cuts:{silver:403, gold:380}, kind:'hurdles',
-    hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'좌·우로 달리고 액션으로 넘는다 · 물 앞에서는 일찍 뛴다' },
+    hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'좌·우로 달리고 액션으로 넘는다 · 28개, 물웅덩이도 판정은 같다' },
   /* ── 트랙: 중·장거리 ── */
   { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회' },
   { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 = 승부' },
