@@ -433,7 +433,7 @@ const EVENTS = [
   /* ── 필드: 투척 ── */
   { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:18.65, kind:'throw', tip:'좌·우로 몸통을 돌리고 액션을 눌러 힘을 모아 가득 찼을 때 놓는다' },
   { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:59.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
-  { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션을 쥐었다 놓는다 · 45°에 가까울수록 멀리' },
+  { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:69.9,  kind:'throw', tip:'좌·우로 달려 액션을 쥐었다 놓는다 · 45°에 가까울수록 멀리' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다' },
   /* ── 수영 ── */
   { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:40.44, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
@@ -470,13 +470,13 @@ const EVENTS = [
        은 = 전부 '은' 으로 해냈을 때의 합
        금 = 은 + (금−은)×0.55 — 열 종목을 한 판에 전부 금 내라는 건 도전이 아니라 벌이다
      ⚠ 하위 종목 기준을 고치면 이 값도 다시 뽑아야 한다 → tools/medalladder.js 가 막는다 */
-  { id:'decathlon',    name:'10종 경기',    short:'DEC',   unit:'점', higher:true,  qualify:7578, parS:8884, cuts:{silver:8884, gold:9400}, kind:'combined', tip:'열 종목을 이어서 · 각 종목의 조작 그대로' },
+  { id:'decathlon',    name:'10종 경기',    short:'DEC',   unit:'점', higher:true,  qualify:7578, parS:8884, cuts:{silver:8884, gold:9700}, kind:'combined', tip:'열 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 철인3종 — 두 번째 그릇. 10종과 달리 **끊기지 않는다**(피로가 구간을 관통한다). */
   { id:'triathlon',    name:'철인3종',      short:'TRI',   unit:'s', higher:false, qualify:285, parS:250, cuts:{silver:258, gold:243}, kind:'tri', tip:'수영 → 사이클 → 달리기 · 앞 구간에서 쓴 힘이 뒤로 넘어간다' },
   /* 사격 — 양궁과 달리 거리가 없다. 축은 **호흡**이다. 10발 소수점 채점(109.0 만점). */
   { id:'shooting',     name:'10m 공기소총', short:'AR10', unit:'점', higher:true,  qualify:90, parS:99.0, cuts:{silver:96, gold:101}, kind:'shoot', tip:'←→ 조준 · 액션을 눌러 숨을 참고 잔잔할 때 뗀다 · ▲ 다시 호흡' },
   /* 7종 경기 — 10종과 **같은 그릇**을 쓴다. 표(HEPTA)만 다르다. */
-  { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:5853, parS:6882, cuts:{silver:6882, gold:7290}, kind:'combined', tip:'일곱 종목을 이어서 · 각 종목의 조작 그대로' },
+  { id:'heptathlon',   name:'7종 경기',     short:'HEP',   unit:'점', higher:true,  qualify:5853, parS:6882, cuts:{silver:6882, gold:7670}, kind:'combined', tip:'일곱 종목을 이어서 · 각 종목의 조작 그대로' },
   /* 개인혼영 — 한 경기 안에서 영법이 **세 번 바뀐다**. 리듬이 그때마다 새로 잡혀야 한다.
      접영 → 배영 → 평영 → 자유형 (실제 순서) */
   { id:'swimMedley200',name:'개인혼영 200m', short:'200IM', unit:'s', higher:false, qualify:126.0, parS:112.0, rivalPar:102.88,
