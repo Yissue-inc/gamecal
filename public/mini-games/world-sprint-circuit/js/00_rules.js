@@ -415,7 +415,7 @@ const EVENTS = [
   { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회' },
   { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 배분이 전부 · 액션 = 승부 1회' },
   { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:1027}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션은 마지막에 딱 한 번' },
-  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션 스퍼트 · 빠르면 경고 3회 실격' },
+  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'좌·우 번갈아 · ▲▼ 페이스가 전부 — 액션 스퍼트는 없다 · 빠르면 경고 3회 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
         거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
@@ -447,7 +447,7 @@ const EVENTS = [
   /* 양궁 — 이 게임 유일의 '정지 조준'. 6발 합계 60점 만점. */
   { id:'archery',      name:'양궁',         short:'ARCH',  unit:'점', higher:true,  qualify:51, cuts:{silver:52, gold:54.5}, kind:'aim', tip:'액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사' },
   /* 트랙 사이클 — 기어 변속과 스퍼트가 핵심. */
-  { id:'cycling',      name:'트랙 사이클',   short:'CYCL',  unit:'s', higher:false, qualify:34.0, parS:29.0, rivalPar:26.9, distanceM:500, kind:'cycle', tip:'좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회' },
+  { id:'cycling',      name:'트랙 사이클',   short:'CYCL',  unit:'s', higher:false, qualify:34.0, parS:29.0, rivalPar:26.9, distanceM:500, kind:'cycle', tip:'좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회 — 막판에만, 일찍 쓰면 손해' },
   /* ⛔ 여기 '이 게임 유일의 일정함 종목. 빠름이 아니라 흔들리지 않음이 점수다' 라고 적혀 있었다.
      **틀렸다.** 실측(2026-09-04): 같은 평균 간격에서 흔들림을 ±0/±120/±300ms 로 바꿔도
      83.20 / 83.21 / 83.74 — 차이가 없다. 반면 간격을 1050ms(자연 박자) → 60ms 로 줄이면

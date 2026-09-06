@@ -218,7 +218,9 @@ class MiddleEvent {
   onAction(tMs, p){
     if(this.phase!=='RUN' || this.walk) return;
     const r=this.R(p); if(r.finished||r.dq) return;
-    if(r.spurtLeft<=0){ this.say('스퍼트는 한 번뿐', true, p); return; }
+    /* ⛔ 경보는 `spurtLeft` 가 **0 에서 시작한다**(93행 `this.walk?0:1`) — 설계상 맞다.
+       그런데 답이 '한 번뿐' 이라 **한 번은 있었던 것처럼** 들렸다(2026-09-05). */
+    if(r.spurtLeft<=0){ this.say(this.walk?'경보엔 스퍼트가 없다':'스퍼트는 한 번뿐', true, p); return; }
     r.spurtLeft--; r.spurting=true;
     this.say('스퍼트!',false,p); Sfx.beep(1200,0.16,'square',0.16); Track.cheer(0.6);
   }

@@ -932,8 +932,8 @@ const I18N_EN = {
     'Alternate ◀▶ · ▲▼ pacing is everything · Action = one push',
   '좌·우 번갈아 · ▲▼ 페이스 · 액션은 마지막에 딱 한 번':
     'Alternate ◀▶ · ▲▼ pace · save the Action for the very end',
-  '좌·우 번갈아 · ▲▼ 페이스 · 액션 스퍼트 · 빠르면 경고 3회 실격':
-    'Alternate ◀▶ · ▲▼ pace · Action spurt · too fast = warn, 3 = DQ',
+  '좌·우 번갈아 · ▲▼ 페이스가 전부 — 액션 스퍼트는 없다 · 빠르면 경고 3회 실격':
+    'Alternate ◀▶ · ▲▼ pace is all · no Action spurt · 3 warnings = DQ',
   '좌·우로 달리고 인계 구역에서 액션 · 속도가 비슷할 때 넘긴다':
     'Run with ◀ ▶, Action in the exchange zone · hand over at matched speed',
   '좌·우 번갈아 · 인계 구역에서 액션 · 한 바퀴씩 네 명':
@@ -968,8 +968,8 @@ const I18N_EN = {
     '◀▶ to set stance · hold Action to lift · press against the tilt',
   '액션을 누르고 있으면 당겨진다 · 좌·우로 조준 · 떼면 발사':
     'Hold Action to draw · ◀ ▶ to aim · release to shoot',
-  '좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회':
-    '◀ ▶ to pedal · ▲▼ gears · Action = one attack',
+  '좌·우로 페달 · ▲▼ 기어 · 액션 = 스퍼트 1회 — 막판에만, 일찍 쓰면 손해':
+    '◀▶ pedal · ▲▼ gear · Action = one sprint — save it for the finish',
   '좌·우를 천천히 고르게 — 빠름이 아니라 일정함이 속도다':
     '◀ ▶ slowly and evenly — speed comes from consistency, not haste',
   '매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다':
@@ -1351,6 +1351,8 @@ const I18N_EN = {
   '실격 — 경고 3회':'DQ — three warnings',
   '경고 ':'Warning ',
   '스퍼트는 한 번뿐':'One kick only',
+  '경보엔 스퍼트가 없다':
+    'Race walking has no spurt',
   '액션 = 스퍼트 1회':'Action = one kick',
   '액션 = 도약 1회 (두 칸)':'Action = one leap (two holds)',
   '거리 ':'Distance ',
