@@ -433,7 +433,7 @@ const EVENTS = [
   /* ── 필드: 투척 ── */
   { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:18.65, kind:'throw', tip:'좌·우로 몸통을 돌리고 액션을 눌러 힘을 모아 가득 찼을 때 놓는다' },
   { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:59.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
-  { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:69.9,  kind:'throw', tip:'좌·우로 달려 액션을 쥐었다 놓는다 · 45°에 가까울수록 멀리' },
+  { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:69.9,  kind:'throw', tip:'좌·우로 달려 파울선 직전에 액션을 쥐었다 놓는다 — 선에 가까울수록 멀리' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다' },
   /* ── 수영 ── */
   { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:40.44, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },

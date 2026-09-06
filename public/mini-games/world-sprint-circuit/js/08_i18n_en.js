@@ -950,8 +950,8 @@ const I18N_EN = {
     'Turn with ◀▶ · hold Action to build power, release when full',
   '좌·우 번갈아 회전을 올리고 액션으로 놓는다':
     'Alternate ◀ ▶ to spin up, Action to release',
-  '좌·우로 달려 액션을 쥐었다 놓는다 · 45°에 가까울수록 멀리':
-    'Run ◀▶, hold and release Action · nearer 45° flies further',
+  '좌·우로 달려 파울선 직전에 액션을 쥐었다 놓는다 — 선에 가까울수록 멀리':
+    'Run ◀▶ · hold Action, release at the line — closer flies further',
   '좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다':
     'Alternate ◀▶ to spin · Action to release — more spins, riskier',
   '좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴':
