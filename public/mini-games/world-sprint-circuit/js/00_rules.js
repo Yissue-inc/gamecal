@@ -431,7 +431,7 @@ const EVENTS = [
   { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump', tip:'좌·우로 달려 액션으로 뛰고, 공중에서 액션을 쥐었다 놓는다' },
   { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump', tip:'액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다' },
   /* ── 필드: 투척 ── */
-  { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:13.5, cuts:{silver:14.8, gold:15.7}, kind:'throw', tip:'좌·우로 달려 액션을 눌러 힘을 모으고 가득 찼을 때 놓는다' },
+  { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:13.5, cuts:{silver:14.8, gold:15.7}, kind:'throw', tip:'좌·우로 몸통을 돌리고 액션을 눌러 힘을 모아 가득 찼을 때 놓는다' },
   { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:59.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
   { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:52.0,  kind:'throw', tip:'좌·우로 달려 액션을 쥐었다 놓는다 · 45°에 가까울수록 멀리' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다' },

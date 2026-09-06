@@ -939,8 +939,8 @@ const I18N_EN = {
     'Run ◀▶, Action to jump, then hold and release Action in the air',
   '액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다':
     'Action to plant the pole, ◀ ▶ to haul yourself up',
-  '좌·우로 달려 액션을 눌러 힘을 모으고 가득 찼을 때 놓는다':
-    'Run ◀▶ · hold Action to build power, release when it is full',
+  '좌·우로 몸통을 돌리고 액션을 눌러 힘을 모아 가득 찼을 때 놓는다':
+    'Turn with ◀▶ · hold Action to build power, release when full',
   '좌·우 번갈아 회전을 올리고 액션으로 놓는다':
     'Alternate ◀ ▶ to spin up, Action to release',
   '좌·우로 달려 액션을 쥐었다 놓는다 · 45°에 가까울수록 멀리':
