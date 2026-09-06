@@ -428,8 +428,8 @@ const EVENTS = [
   /* ── 필드: 도약 ── */
   { id:'longJump',   name:'멀리뛰기',      short:'LJ',    unit:'m', higher:true,  qualify:5.90,  kind:'jump', tip:'좌·우로 달려 구름판 **직전**에 액션 · 공중에서 액션을 쥐었다 놓는다' },
   { id:'tripleJump', name:'세단뛰기',      short:'TJ',    unit:'m', higher:true,  qualify:11.00, kind:'jump', tip:'좌·우로 달려 홉·스텝·점프 — 정점마다 액션 · 공중에서 쥐었다 놓기' },
-  { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump', tip:'좌·우로 달려 액션으로 뛰고, 공중에서 액션을 쥐었다 놓는다' },
-  { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump', tip:'액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다' },
+  { id:'highJump',   name:'높이뛰기',      short:'HJ',    unit:'m', higher:true,  qualify:1.70,  kind:'jump', tip:'타이밍 맞춰 액션 = 발구름 · 공중에서 좌·우 연타 + 액션을 쥐었다 놓는다' },
+  { id:'poleVault',  name:'장대높이뛰기',  short:'PV',    unit:'m', higher:true,  qualify:5.40,  kind:'jump', tip:'좌·우로 달려 박스에서 액션 = 꽂기 · 공중에서 좌·우로 끌어올린다' },
   /* ── 필드: 투척 ── */
   { id:'shotPut',    name:'포환던지기',    short:'SP',    unit:'m', higher:true,  qualify:13.5, cuts:{silver:14.8, gold:15.7}, kind:'throw', tip:'좌·우로 몸통을 돌리고 액션을 눌러 힘을 모아 가득 찼을 때 놓는다' },
   { id:'discus',     name:'원반던지기',    short:'DT',    unit:'m', higher:true,  qualify:59.00, kind:'throw', tip:'좌·우 번갈아 회전을 올리고 액션으로 놓는다' },
@@ -437,9 +437,9 @@ const EVENTS = [
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다' },
   /* ── 수영 ── */
   { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:40.44, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
-  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.56, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · 배영은 벽이 안 보인다'  },
-  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:53.34, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · 평영은 리듬 창이 넓다'},
-  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:45.26, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · 접영은 가장 빨리 지친다'   },
+  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.56, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 배영은 벽이 안 보인다'  },
+  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:53.34, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 평영은 리듬 창이 넓다'},
+  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:45.26, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 접영은 숨이 가장 급하다'   },
   /* 다이빙 — 이 게임 유일의 '점수' 종목. 3시기 중 최고점. */
   { id:'diving',       name:'다이빙',       short:'DIVE',  unit:'점', higher:true,  qualify:60.0, kind:'dive', tip:'좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다' },
   /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
@@ -480,7 +480,7 @@ const EVENTS = [
   /* 개인혼영 — 한 경기 안에서 영법이 **세 번 바뀐다**. 리듬이 그때마다 새로 잡혀야 한다.
      접영 → 배영 → 평영 → 자유형 (실제 순서) */
   { id:'swimMedley200',name:'개인혼영 200m', short:'200IM', unit:'s', higher:false, qualify:126.0, parS:112.0, rivalPar:102.88,
-    distanceM:200, kind:'swim', stroke:'fly', medley:true , tip:'접영→배영→평영→자유형 · 좌·우 번갈아 · 벽에서 액션 = 턴' },
+    distanceM:200, kind:'swim', stroke:'fly', medley:true , tip:'접영→배영→평영→자유형 · 좌·우 번갈아 · 액션 = 턴 · 숨' },
   /* 탁구 — 이 게임에 없던 **랠리** 장르. 상대를 어디로 뛰게 만드느냐가 축이다. */
   { id:'tableTennis',  name:'탁구',         short:'TT',    unit:'s', higher:false, qualify:140.0, parS:110.0, kind:'rally', tip:'←→ 로 설 자리와 코스를 정하고, 공이 올 때 액션' },
   /* 유도 — 격투기가 통째로 비어 있었다. 붙잡고 버티다 한순간에 뒤집는 종목. */
@@ -503,7 +503,7 @@ const EVENTS = [
   { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2983, parS:4062, cuts:{silver:4062, gold:4630}, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
   /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */
   { id:'swimRelay4x100', name:'계영 4×100m', short:'4×100F', unit:'s', higher:false,
-    qualify:220.0, parS:205.0, rivalPar:201.57, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'좌·우 번갈아 · 벽에서 액션 = 턴 · ▲ 인계는 벽 찍기 직전에' , legs:4, legEvent:'swimFree100'},
+    qualify:220.0, parS:205.0, rivalPar:201.57, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'좌·우 번갈아 · 액션 = 턴 · 숨 · ▲ 인계는 벽 찍기 직전에' , legs:4, legEvent:'swimFree100'},
 ];
 /* tip = 종목 선택 화면에서 미리 보여 주는 조작 한 줄.
    ⚠ 46종목이 각기 다른 조작인데, 시작한 뒤 잠깐 뜨는 한 줄이 설명의 전부였다 —

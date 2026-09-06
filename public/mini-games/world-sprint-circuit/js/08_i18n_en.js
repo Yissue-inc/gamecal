@@ -935,10 +935,10 @@ const I18N_EN = {
     'Run ◀▶, Action just before the board · hold-release in the air',
   '좌·우로 달려 홉·스텝·점프 — 정점마다 액션 · 공중에서 쥐었다 놓기':
     'Run ◀▶ — hop/step/jump, Action at each peak · hold-release in air',
-  '좌·우로 달려 액션으로 뛰고, 공중에서 액션을 쥐었다 놓는다':
-    'Run ◀▶, Action to jump, then hold and release Action in the air',
-  '액션으로 폴을 꽂고 좌·우로 몸을 끌어올린다':
-    'Action to plant the pole, ◀ ▶ to haul yourself up',
+  '타이밍 맞춰 액션 = 발구름 · 공중에서 좌·우 연타 + 액션을 쥐었다 놓는다':
+    'Time Action to plant · in the air mash ◀▶, hold-release Action',
+  '좌·우로 달려 박스에서 액션 = 꽂기 · 공중에서 좌·우로 끌어올린다':
+    'Run with ◀▶ · Action at the box · ◀▶ in the air to pull up',
   '좌·우로 몸통을 돌리고 액션을 눌러 힘을 모아 가득 찼을 때 놓는다':
     'Turn with ◀▶ · hold Action to build power, release when full',
   '좌·우 번갈아 회전을 올리고 액션으로 놓는다':
@@ -949,12 +949,12 @@ const I18N_EN = {
     'Alternate ◀▶ to spin · Action to release — more spins, riskier',
   '좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴':
     'Alternate ◀▶ · Action to breathe · Action at the wall = turn',
-  '좌·우 번갈아 · 벽에서 액션 = 턴 · 배영은 벽이 안 보인다':
-    'Alternate ◀▶ · Action at wall = turn · backstroke hides the wall',
-  '좌·우 번갈아 · 벽에서 액션 = 턴 · 평영은 리듬 창이 넓다':
-    'Alternate ◀▶ · Action at wall = turn · breaststroke, wide window',
-  '좌·우 번갈아 · 벽에서 액션 = 턴 · 접영은 가장 빨리 지친다':
-    'Alternate ◀▶ · Action at wall = turn · butterfly tires fastest',
+  '좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 배영은 벽이 안 보인다':
+    'Alternate ◀▶ · Action = wall turn, else breathe · wall unseen',
+  '좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 평영은 리듬 창이 넓다':
+    'Alternate ◀▶ · Action = wall turn, else breathe · wide window',
+  '좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 접영은 숨이 가장 급하다':
+    'Alternate ◀▶ · Action = wall turn, else breathe · tires fastest',
   '좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다':
     '◀▶ to bounce → Action off the board → ◀▶ to spin → Action to open',
   '좌·우로 자세를 잡고 액션을 길게 눌러 든다 · 기우는 반대쪽을 누른다':
@@ -979,8 +979,8 @@ const I18N_EN = {
     '←→ aim · hold Action for breath, release when steady · ▲ again',
   '일곱 종목을 이어서 · 각 종목의 조작 그대로':
     'Seven events back to back · each keeps its own controls',
-  '접영→배영→평영→자유형 · 좌·우 번갈아 · 벽에서 액션 = 턴':
-    'Fly→back→breast→free · alternate ◀▶ · Action at the wall = turn',
+  '접영→배영→평영→자유형 · 좌·우 번갈아 · 액션 = 턴 · 숨':
+    'Fly→back→breast→free · alternate ◀▶ · Action = turn / breathe',
   '←→ 로 설 자리와 코스를 정하고, 공이 올 때 액션':
     '←→ to place your feet and the course, Action as the ball arrives',
   '좌·우 번갈아 깃 싸움 · 저울이 기울면 액션으로 메친다':
@@ -997,8 +997,8 @@ const I18N_EN = {
     'Swing ◀▶, Action to release · Action again to catch · ▲ dismount',
   '펜싱·수영·승마·사격·달리기 다섯 종목':
     'Five events: fencing · swimming · riding · shooting · running',
-  '좌·우 번갈아 · 벽에서 액션 = 턴 · ▲ 인계는 벽 찍기 직전에':
-    'Alternate ◀▶ · Action at wall = turn · ▲ exchange at the touch',
+  '좌·우 번갈아 · 액션 = 턴 · 숨 · ▲ 인계는 벽 찍기 직전에':
+    'Alternate ◀▶ · Action = turn / breathe · ▲ hand off at the wall',
 
   /* ── 부팅 화면(HTML) · 화면 버튼 ── */
   '좌·우를 번갈아 — 빠를수록 빠르다': 'Alternate ◀ ▶ — the faster you tap, the faster you run',
