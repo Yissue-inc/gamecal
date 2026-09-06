@@ -494,7 +494,7 @@ const EVENTS = [
   /* 승마 장애물 — 허들과 달리 간격이 제각각이다. 축은 **보폭 계산**(라인 보기). */
   { id:'equestrian',   name:'승마 장애물',   short:'JUMP',  unit:'벌점', higher:false, qualify:8.0, parS:0.0, cuts:{silver:4, gold:0}, kind:'ride', tip:'▲▼ 보폭 · 좌·우 한 걸음 · 도약대에 발이 맞으면 액션' },
   /* 철봉 — 이 게임에서 유일하게 **놓았다가 다시 잡는** 종목. 스윙이 난도를 허락한다. */
-  { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym', tip:'좌·우로 흔들어 액션으로 이탈 · 다시 액션으로 잡기 · ▲ 내리기' },
+  { id:'highBar',      name:'철봉',         short:'HB',    unit:'점', higher:true,  qualify:10.50, parS:11.80, kind:'gym', tip:'좌·우로 흔들어 액션 = 이탈 · 공중 좌·우 = 비틀기 → 펴고 잡기 · ▲ 내리기' },
   /* 링 — 이 게임에서 유일하게 '누르지 않는 것'이 잘하는 종목 */
   { id:'rings', name:'링', short:'RG', unit:'점', higher:true, qualify:11.7,
     parS:12.4, kind:'gym',

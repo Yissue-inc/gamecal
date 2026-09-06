@@ -993,8 +993,8 @@ const I18N_EN = {
     '←→ aim · ▲▼ club · Action three times (start · power · accuracy)',
   '▲▼ 보폭 · 좌·우 한 걸음 · 도약대에 발이 맞으면 액션':
     '▲▼ stride · ◀ ▶ one step · Action when the take-off lands right',
-  '좌·우로 흔들어 액션으로 이탈 · 다시 액션으로 잡기 · ▲ 내리기':
-    'Swing ◀▶, Action to release · Action again to catch · ▲ dismount',
+  '좌·우로 흔들어 액션 = 이탈 · 공중 좌·우 = 비틀기 → 펴고 잡기 · ▲ 내리기':
+    '◀▶ swing · Action = release · air ◀▶ twist, open, catch · ▲ down',
   '펜싱·수영·승마·사격·달리기 다섯 종목':
     'Five events: fencing · swimming · riding · shooting · running',
   '좌·우 번갈아 · 액션 = 턴 · 숨 · ▲ 인계는 벽 찍기 직전에':
