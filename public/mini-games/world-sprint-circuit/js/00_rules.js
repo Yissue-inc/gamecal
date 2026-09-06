@@ -413,7 +413,7 @@ const EVENTS = [
     hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'좌·우로 달리고 액션으로 넘는다 · 물 앞에서는 일찍 뛴다' },
   /* ── 트랙: 중·장거리 ── */
   { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회' },
-  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 배분이 전부 · 액션 = 승부 1회' },
+  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 = 승부' },
   { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:1027}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션은 마지막에 딱 한 번' },
   { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'좌·우 번갈아 · ▲▼ 페이스가 전부 — 액션 스퍼트는 없다 · 빠르면 경고 3회 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
@@ -421,7 +421,7 @@ const EVENTS = [
         거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
   { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:20700,
     parS:6720, rivalPar:16490, distanceM:42195, cuts:{silver:18450, gold:17400}, kind:'middle',
-    tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션 스퍼트 · 초반에 지르면 뒤가 없다' },
+    tip:'좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 스퍼트' },
   /* ── 트랙: 계주 ── */
   { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:38.00, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 빠르게 번갈아 · 인계 구역에서 액션(속도가 비슷할 때)' },
   { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:174.2, parS:147.5, distanceM:1600, rivalPar:152.40, cuts:{silver:161.9, gold:153.9}, kind:'relay', legs:4, tip:'좌·우 번갈아 · 인계 구역에서 액션 · 한 바퀴씩 네 명' },

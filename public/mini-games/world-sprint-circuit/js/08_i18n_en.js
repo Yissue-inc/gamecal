@@ -928,8 +928,8 @@ const I18N_EN = {
     'Run ◀▶, Action to clear · take off early before the water',
   '좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회':
     'Alternate ◀▶ to run, ▲▼ pace · Action = one spurt',
-  '좌·우 번갈아 · ▲▼ 페이스 배분이 전부 · 액션 = 승부 1회':
-    'Alternate ◀▶ · ▲▼ pacing is everything · Action = one push',
+  '좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 = 승부':
+    'Alternate ◀▶ · ▲▼ pace — faster burns stamina · Action = one push',
   '좌·우 번갈아 · ▲▼ 페이스 · 액션은 마지막에 딱 한 번':
     'Alternate ◀▶ · ▲▼ pace · save the Action for the very end',
   '좌·우 번갈아 · ▲▼ 페이스가 전부 — 액션 스퍼트는 없다 · 빠르면 경고 3회 실격':
@@ -1014,8 +1014,8 @@ const I18N_EN = {
   '화면 버튼으로': 'On-screen buttons', '손가락이나 마우스로': 'Finger or mouse',
   '%1종목 더': '%1 more events',
   '마라톤': 'Marathon',
-  '좌·우 번갈아 · ▲▼ 페이스 · 액션 스퍼트 · 초반에 지르면 뒤가 없다':
-    'Alternate ◀▶ · ▲▼ pace · Action spurt · go out hard and you fade',
+  '좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 스퍼트':
+    'Alternate ◀▶ · ▲▼ pace — faster burns stamina · Action = spurt',
   '남은 %1km': '%1km to go',
 
   /* ── 링 ── */
