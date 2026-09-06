@@ -769,7 +769,14 @@ const I18N_EN = {
   '도약은 한 번뿐':'Only one dyno', '손이 꼬였다':'Hands crossed',
   '리듬이 어긋났다':'Rhythm broke', '도약이 빗나갔다':'Dyno missed',
   '추락 — 실격':'Fell — disqualified',
-  '좌·우를 고르게 번갈아 — 서두르면 미끄러진다':'Alternate evenly — rushing makes you slip',
+  '좌·우를 번갈아 빠르게 — 같은 손으로 두 번이면 미끄러진다':
+    'Alternate ◀▶ fast — same hand twice and you slip',
+  '봉에 닿을 때 액션으로 잡기':
+    'Action to catch as the bar comes',
+  '액션으로 펴고, 봉에 닿을 때 다시 액션':
+    'Action to open, then Action again to catch',
+  '좌·우 = 비틀기(난도) · 액션으로 펴기':
+    '◀▶ = twist (difficulty) · Action to open',
 
   /* 펜싱 */
   '펜싱 에페':'Fencing (Épée)', '앙 갸르드':'En garde', '굳음':'Frozen',
@@ -1411,8 +1418,8 @@ const I18N_EN = {
   '아직 여지가 있다': 'Still some room',
   '거의 다 자랐다': 'Nearly fully grown',
   '더 볼 것이 없다': 'Nothing more to see',
-  '좌·우를 빠르고 고르게 — 간격이 일정할수록 빨라진다':
-    'Alternate ◀▶ fast and evenly — steadier spacing is faster',
+  '좌·우를 빠르게 번갈아 — 젓는 횟수가 그대로 속도다':
+    'Alternate ◀▶ fast — stroke count is your speed',
   '이미 저장된 클럽이 있습니다':'You already have a saved club',
   '새로 시작하면 그 클럽은 사라집니다':'Starting over deletes that club',
   '확인 다시 누르면 새로 시작 · 취소로 돌아가기':'Confirm again to start over · Cancel to go back',

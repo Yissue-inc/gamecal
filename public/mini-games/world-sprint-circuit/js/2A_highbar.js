@@ -264,6 +264,14 @@ class HighBarEvent {
     if(this.releases>0) txt(u,'▲ '+K('내려서기'), 8, 36, 9, PAL.gold,'left');
     if(this.phase==='SWING' && this.releases===0 && this.amp<BAR.releaseMin)
       txt(u,'좌·우를 리듬에 맞춰 — 스윙이 커지면 액션으로 이탈', VW/2, Track.tipY(), 10, PAL.white,'center');
+    /* ⛔ 공중엔 안내가 **아예 없었다**(2026-09-05). 그런데 공중 좌·우가 난도의 1.35점을 만들고
+       (`D = 1+이탈×0.62+비틀기×0.45`), 비틀고 안 펴면 착지가 반토막 난다(land 의 landQ*=0.5).
+       모르는 사람은 그 점수에 영영 못 닿는다 — 팁만 고치고 화면을 안 고치면 반만 고친 것이다. */
+    if(this.phase==='AIR')
+      txt(u, this.opened ? '봉에 닿을 때 액션으로 잡기'
+           : (this.twist>0 ? '액션으로 펴고, 봉에 닿을 때 다시 액션'
+                           : '좌·우 = 비틀기(난도) · 액션으로 펴기'),
+          VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.phase==='MARK' && this.mark!=null){
       u.fillStyle='rgba(5,6,10,.72)'; u.fillRect(0,72,VW,54);
       txt(u, this.mark.toFixed(2), VW/2, 78, 24, this.fell?PAL.red:PAL.gold,'center',700);

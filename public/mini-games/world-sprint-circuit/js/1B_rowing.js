@@ -238,9 +238,16 @@ class RowingEvent {
     HUD.race(u, { def:this.def, timeS:Math.max(0,this.elapsed), speed:this.speed,
                   distM:this.dist, trackM:this.trackM, qualify:this.qualify,
                   best:Save.data.best[this.def.id] });
-    /* 일정함 — 이 종목의 핵심 지표 */
-    /* ⛔ 물 위에 어두운 글씨·가는 막대라 안 읽혔다(실측 스크린샷).
-       이 종목의 **전부**가 이 값인데 제일 안 보였다 — 받침을 깔고 상태를 말로 붙인다. */
+    /* 일정함 — 이 종목의 핵심 지표 *였다*.
+       ⛔ 연타 모드에선 `smooth` 의 **소비자가 통째로 빠져** 1.0 에 박혀 있다(2026-09-05 실측).
+          `ivs` 는 매 스트로크 모으고 피치 때 비우기까지 하는데 **읽는 데가 없다** —
+          즉 이 게이지는 영원히 초록 '좋다' 였다. **안 움직이는 계기는 계기가 아니다.**
+       ⚠ 되살려 봤다가 되돌렸다: 계수 3.2 는 목표 간격이 고정이던 리듬 모델에서 잡은 값이라
+          연타 규모에 그대로 안 옮겨진다(실측 — 고른 손 74.30s · ±40ms 흔들림 92.83s ·
+          ±110ms **완주 실패**). 사람은 메트로놈이 아니다. 계수를 새로 잡는 건 난이도 결정이라
+          CK 몫으로 남긴다 → 지금은 **화면이 코드를 따라가게** 한다.
+       ⛔ 물 위에 어두운 글씨·가는 막대라 안 읽혔다(실측 스크린샷) — 되살릴 땐 받침도 함께. */
+    if(!RULES.mashMode){
     const bw=120, bx=VW/2-bw/2, by=Track.botY(26);
     plate(u, bx-8, by-15, bw+16, 27, 0.74);
     const sc = this.smooth>0.75?PAL.green:this.smooth>0.5?PAL.gold:PAL.red;
@@ -250,12 +257,13 @@ class RowingEvent {
     u.fillStyle='rgba(255,255,255,.18)'; u.fillRect(bx,by,bw,8);
     u.fillStyle = sc;
     u.fillRect(bx,by,Math.round(bw*this.smooth),8);
+    }
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
     /* ⛔ **'천천히'** 라고 적혀 있었다. 위 연타 갈래의 주석은 정반대를 말한다 —
        *"노도 빨리 저을수록 빠르다"*. 조정에서 살아 있는 건 **고름**이지 느림이 아니다
        (smooth 가 배 속도의 상한을 정한다). 연타 모델로 바꿀 때 이 줄만 옛 말로 남았다
        (2026-09-05, 드라이버를 고친 뒤 다시 훑다가 잡혔다). ⚠ VH-42(228)는 '일정함' 줄과 문다 */
-    else if(this.strokes<3) txtOn(u,'좌·우를 빠르고 고르게 — 간격이 일정할수록 빨라진다', VW/2, Track.botY(56), 10, PAL.white,'center');
+    else if(this.strokes<3) txtOn(u,'좌·우를 빠르게 번갈아 — 젓는 횟수가 그대로 속도다', VW/2, Track.botY(56), 10, PAL.white,'center');
     else if(!this.pitchUsed) txt(u,'액션 = 피치 업 (한 번)', 8, Track.botY(24), 9, PAL.gold,'left');
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 46, 12, this.msgBad?PAL.red:PAL.green,'center',700);

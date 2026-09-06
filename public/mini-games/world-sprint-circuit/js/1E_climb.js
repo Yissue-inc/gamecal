@@ -331,7 +331,7 @@ class ClimbEvent {
     if(!me.dynoUsed) txt(u,'액션 = 도약 1회 (두 칸)', VW-10, Track.botY(28), 9, PAL.gold,'right');
     txt(u, me.hold+' / '+CLIMB.holds+' 홀드', VW-10, Track.botY(40), 10, PAL.white,'right',700);
     if(this.phase==='SET') txt(u,'총성을 기다리세요', VW/2, 46, 12, PAL.white,'center',700);
-    else if(me.hold<3) txt(u,'좌·우를 고르게 번갈아 — 서두르면 미끄러진다', VW/2, Track.tipY(), 10, PAL.white,'center');
+    else if(me.hold<3) txt(u,'좌·우를 번갈아 빠르게 — 같은 손으로 두 번이면 미끄러진다', VW/2, Track.tipY(), 10, PAL.white,'center');
     if(this.t-me.msgAt<900)
       txt(u, me.msg, VW/2, 60, 12, me.msgBad?PAL.red:PAL.green,'center',700);
   }
