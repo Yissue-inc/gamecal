@@ -30,11 +30,18 @@ const RULES = {
   spamWindowMs: 60,            // 이보다 빠르면 강한 연타 페널티
   perfectWindowPct: 0.08,      // 목표 간격 대비 오차 8% 이내 = PERFECT
   goodWindowPct: 0.18,
-  earlyLateWindowPct: 0.35,
+  /* ⚠ earlyLateWindowPct(0.35) 는 지웠다 — **없는 4단계**였다(2026-09-07).
+     `02_runner.js:158` 은 goodWindowPct 를 넘으면 무조건 EARLY/LATE 로 간다. 문턱이 없다. */
   fatiguePerSpam: 0.01,
 
   /* ── 출발 ── */
-  falseStartThresholdMs: 100,  // 총성 전 100ms 안쪽 입력 = 부정출발
+  /* ⛔ 이 값은 **100 이라고 적혀 있었고 아무도 안 읽었다**(2026-09-07 `deadconst` 로 잡음).
+     실제 코드는 종목마다 리터럴로 박혀 있었다 — 1200(단거리·계주·조정·수영·사이클) ·
+     1100(중장거리) · 1000(클라이밍·카누). 규칙 파일이 **12배 틀린 값**을 말하고 있었다.
+     다수값 1200 을 정본으로 삼고 그 다섯 종목을 여기로 잇는다.
+     ⚠ 1100·1000 두 갈래는 **손대지 않았다** — 의도인지 표류인지 모른다(CK 확인 대기).
+        `deadconst` 가 이 상수를 다시 죽은 것으로 잡으면 배선이 끊긴 것이다. */
+  falseStartThresholdMs: 1200, // 총성 전 이 안쪽에 누르면 부정출발
 
   /* ── 속도 ── */
   baseSpeed: 11.25,              // m/s
@@ -90,7 +97,8 @@ const RULES = {
   hammerMinSpin: 2.2, hammerOptSpin: 7.0, hammerMaxSpin: 8.5,
   hammerAutoReleaseMs: 5200,
   hammerMinAngleDeg: 24.0, hammerMaxAngleDeg: 66.0, hammerOptAngleDeg: 45.0,
-  hammerSectorWindowDeg: 22.0,
+  /* ⚠ hammerSectorWindowDeg(22.0) 는 아무도 안 읽어 지웠다 — 실제 섹터는
+     hammerMinAngleDeg 24 ~ hammerMaxAngleDeg 66 이다(반폭 21). 두 벌로 두면 어긋난다. */
 
   /* ── 높이뛰기 ── */
   /* 시작 높이·간격 — 실측으로 조정: 1.50/0.05 로는 잘하는 플레이어가

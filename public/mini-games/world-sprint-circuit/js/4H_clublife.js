@@ -33,7 +33,6 @@ function evText(pat, vals){
 }
 
 const CLUBLIFE = {
-  KEY_COH: 'cohesion',
   /* 사건이 뜰 확률 — 대회 주에는 안 뜬다(그 주는 이미 할 일이 있다) */
   CHANCE: 0.62,
 

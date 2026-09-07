@@ -172,7 +172,11 @@ class Season {
     const picked = home.slice(0, cap);
     picked.forEach(a=>{
       a.national = true;
-      a.morale = clamp(a.morale + 10, 0, 100);
+      /* ⛔ 여기 10 이 리터럴로 박혀 있었고, `NATIONAL.CALLUP_MORALE` 은 같은 값을 들고
+         **아무도 안 읽는 거울 상수**로 앉아 있었다(2026-09-07 `deadconst` 로 잡음).
+         상수를 바꿔도 아무 일이 안 일어나는 상태 — `hammerOptSpin` 과 같은 모양이다.
+         값은 그대로 두고 **정본을 하나로** 만든다. */
+      a.morale = clamp(a.morale + ((typeof NATIONAL!=='undefined') ? NATIONAL.CALLUP_MORALE : 10), 0, 100);
     });
     /* ⛔ 여기까지가 예전 전부였다 — `a.national` 을 찍고 끝. 그 값을 읽는 곳이
        선수단 목록의 ★ 하나뿐이라 **뽑혀도 아무 일이 안 일어났다.**

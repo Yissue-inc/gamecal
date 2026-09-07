@@ -78,7 +78,7 @@ class RelayEvent extends SprintEvent {
   onStride(side, tMs){
     if(this.phase==='DONE') return;
     if(this.phase!=='RUN'){
-      if(tMs < this.gunMs && tMs > this.gunMs-1200){
+      if(tMs < this.gunMs && tMs > this.gunMs - RULES.falseStartThresholdMs){
         this.legs[0].falseStart=true; this.phase='DONE'; this.doneAt=this.t;
         this.result={ status:'FALSE_START', value:DNF, rank:3 }; Sfx.fail();
       }

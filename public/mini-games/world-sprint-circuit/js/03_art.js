@@ -6,7 +6,7 @@
 
 /* 팔레트 — 레퍼런스(Atari 8bit)의 대비를 따르되 눈이 덜 아프게 */
 const PAL = {
-  sky1:'#0b1026', sky2:'#1b2a5e', sky3:'#3a5aa8',
+  sky1:'#0b1026', sky2:'#1b2a5e',   /* sky3 은 아무도 안 써서 지웠다(2026-09-07) */
   crowdA:'#2a2f52', crowdB:'#3b4270', crowdSkin:'#c98b64',
   wall:'#8a90a6', wallDark:'#5f6478', wallLine:'#c9cede',
   grass:'#1f6b34', grassLine:'#2c8a44',

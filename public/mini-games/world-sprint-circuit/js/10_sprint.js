@@ -132,7 +132,7 @@ class SprintEvent {
     if(this.phase!=='RUN'){
       /* 총성 전 입력 = 부정출발.
          ⚠ 여러 명일 땐 **누른 사람만** 실격이다 — 남의 실수로 내가 죽으면 안 된다. */
-      if(!this.noFalseStart && tMs < this.gunMs && tMs > this.gunMs - 1200){
+      if(!this.noFalseStart && tMs < this.gunMs && tMs > this.gunMs - RULES.falseStartThresholdMs){
         P.falseStart = true; P.dq = true;
         Sfx.fail();
         /* 혼자면 그대로 경기 종료(예전과 같다) */

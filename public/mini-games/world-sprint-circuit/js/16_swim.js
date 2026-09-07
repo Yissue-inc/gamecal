@@ -101,7 +101,7 @@ class SwimEvent {
     if(this.phase==='DONE') return;
     if(this.phase!=='RUN'){
       /* ⚠ 부정출발은 누른 사람만 — 여럿일 때 남의 실수로 내가 죽으면 안 된다 */
-      if(tMs<this.gunMs && tMs>this.gunMs-1200){
+      if(tMs<this.gunMs && tMs>this.gunMs - RULES.falseStartThresholdMs){
         S.dq = true; Sfx.fail();
         if(this.swimmers.length<2){
           this.phase='DONE'; this.doneAt=this.t;
