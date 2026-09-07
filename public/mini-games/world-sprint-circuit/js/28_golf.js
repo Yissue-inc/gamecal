@@ -257,7 +257,10 @@ class GolfEvent {
     }
     /* 바람 */
     const wdir=this.wind>0?'▶':'◀';
-    txt(u, K('바람')+' '+wdir+' '+Math.abs(this.wind).toFixed(1),
+    /* ⚠ 배경이 계속 바뀌는 자리다 — 페어웨이 초록 · 벙커 모래 · 러프 · 그린.
+       `PAL.dim` 을 그대로 놓으면 어떤 홀에서는 2.99(임계 3.0 바로 아래)가 나온다.
+       색을 흔들지 않고 **받침을 깐다**(다이빙 안내와 같은 처방, 2026-09-07). */
+    txtOn(u, K('바람')+' '+wdir+' '+Math.abs(this.wind).toFixed(1),
         VW-8, 38, 10, Math.abs(this.wind)>0.5?PAL.red:PAL.dim,'right',700);
     /* 게이지 — 세기와 정확도를 한 막대에서 본다 */
     if(this.phase==='POWER'||this.phase==='ACC'){
