@@ -116,7 +116,14 @@ class RingsEvent {
     }
   }
   onActionUp(){}
-  onUp(){}
+  /* ⛔ 여기 `onUp(){}` 빈 껍데기가 있었다(2026-09-07 제거).
+     라우터는 `if(ev.onUp && …)` 로 존재만 보고, 패드도 같은 판정으로 ▲▼ 를 띄운다
+     (`Ctrl.playPad`: `toggle('noud', !ev.onUp && !ev.onDown)`).
+     그래서 **링에서만 ▲▼ 두 개가 뜨는데 아무 일도 안 했고**, 모바일에서는
+     그 버튼들이 화면 바닥 자리(`padInset`)까지 먹었다.
+     RingsEvent 는 상위 클래스가 없다 — 막을 대상이 없으니 껍데기는 순전한 군더더기다.
+     ⚠ `onActionUp(){}` 은 남긴다: 라우터가 `ev.onActionUp` 존재를 보고 부르지만
+        패드 판정에는 안 쓰이고, 액션 뗌을 조용히 삼키는 역할이 있다. */
 
   finishHold(){
     const q = this._frames ? clamp(this._acc/this._frames, 0, 1) : 0;
