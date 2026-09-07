@@ -169,7 +169,10 @@ class DivingEvent {
     });
 
     if(this.phase==='BOUNCE'){
-      txt(u,'좌·우를 번갈아 눌러 반동을 키우세요', VW/2, Track.tipY(), 10, PAL.white, 'center');
+      /* ⛔ 흰 글자를 **수영장 파랑**(rgb 94,166,212) 위에 그대로 놓아 대비가 2.42 였다
+         (WCAG 최소 3.0). 다이빙에서 제일 먼저 읽어야 하는 안내인데 물에 묻혔다.
+         받침을 까는 `txtOn` 으로 옮긴다 — 배경이 어떤 색이든 읽힌다(2026-09-07). */
+      txtOn(u,'좌·우를 번갈아 눌러 반동을 키우세요', VW/2, Track.tipY(), 10, PAL.white, 'center');
       const bw=140, bx=VW/2-bw/2, by=VH-28;
       u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(bx,by,bw,7);
       u.fillStyle=PAL.green; u.fillRect(bx,by,Math.round(bw*this.power),7);
