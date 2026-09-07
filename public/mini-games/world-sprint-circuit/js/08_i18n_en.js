@@ -82,10 +82,12 @@ const I18N_EN = {
   '훈련 효율이 크게 오른다':'Trains far more efficiently',
   '모든 면이 조금씩 낫다':'A little better at everything',
   '좌·우를 **번갈아** 빠르게 — 규칙은 교대 하나뿐이다':'**Alternate** left/right, fast — that is the only rule',
-  '개인 최고를 깨면 커리어가 오릅니다':'Beat your personal best to raise your career',
+  '뛸 때마다 커리어가 오릅니다 — 개인 최고를 깨면 더 크게':
+    'Every race raises your career — a personal best raises it more',
   '최고 선수들을 맡았습니다. 매주 **세 명까지** 직접 지도합니다':'You have the best squad. Coach **up to three** each week',
   '세 명을 고르고 확인 — 나머지는 팀 프로그램대로 훈련합니다':'Pick three and confirm — the rest follow the team programme',
-  '주를 넘기면 대회 주가 옵니다. 출전표를 짜고 결과를 봅니다':'Advance the week to reach a meet. Set entries and watch',
+  '「다음 주로」가 대회까지 몇 주인지 알려 줍니다 — 대회 주에 출전표를 짭니다':
+    'The Next week row shows how many weeks to the meet — then you pick entries',
   '전원 사기':'Squad morale',
   '조용히 넘어갔다':'It passed quietly',
   '부상 해소':'injury cleared',
