@@ -451,11 +451,15 @@ class SwimEvent {
         const hz = S0.ivEma ? 1000 / S0.ivEma : 0;
         const advise = SWIM.noTempoAdvice.indexOf(this.def.id) < 0;
         const lineFree = this.tempoWarnFree !== false;
-        if(hz > 0.5 && lineFree) txtOn(u, hz.toFixed(1) + K('/초'), 94, Track.GAUGE_Y-54, 9,
+        const hzTxt = hz.toFixed(1) + K('/초');
+        if(hz > 0.5 && lineFree) txtOn(u, hzTxt, 94, Track.GAUGE_Y-54, 9,
                            advise && hz > SWIM.fastWarnHz ? PAL.gold : PAL.dim, 'left', 700);
+        /* ⚠ 경고 자리를 130 에 박았더니 '17.2/초' 판과 **맞닿아** 한 덩어리로 읽혔다(라이브 스크린샷) — 숫자 폭을 재서 띄운다 */
+        let warnX = 130;
+        try{ u.font='700 9px "Galmuri11","Nanum Gothic Coding",monospace'; warnX = 94 + Math.ceil(u.measureText(hzTxt).width) + 10; }catch(e){}
         /* ⚠ 계영 인계 안내(VH-76, 가운데 — 영어는 230px)와 같은 줄이다 — 하위 종목이 자리를 쓰면 박자 숫자·경고 둘 다 비킨다 */
         if(advise && hz > SWIM.fastWarnHz && this.breath >= 0.3 && lineFree)
-          txtOn(u, '너무 빨라 — 팔이 풀린다', 130, Track.GAUGE_Y-54, 9, PAL.gold, 'left', 700);
+          txtOn(u, '너무 빨라 — 팔이 풀린다', warnX, Track.GAUGE_Y-54, 9, PAL.gold, 'left', 700);
       }
       /* 턴 안내 */
       const laps=Math.floor(this.trackM/SWIM.poolM);
