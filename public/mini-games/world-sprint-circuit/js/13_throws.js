@@ -84,7 +84,7 @@ class JavelinEvent extends FieldEvent {
     ctx.fillStyle=PAL.white; ctx.fillRect(fx, GROUND-34, 2, 34);
     ctx.fillStyle=PAL.red;   ctx.fillRect(fx, GROUND-40, 2, 6);
     // 10m 눈금
-    for(let m=10;m<=100;m+=10){ const x=px(RULES.javelinFoulLineM+m); if(x<=0||x>=VW) continue;
+    for(const T of realTicks(this.def, 10, 10, 100)){ const m=T.r, x=px(RULES.javelinFoulLineM+T.g); if(x<=0||x>=VW) continue;
       ctx.fillStyle='rgba(242,245,250,.4)'; ctx.fillRect(x,GROUND-8,1,8);
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
     /* 선수 — ⛔ 이 파일(창·해머·원반)만 **HD 캐릭터를 아예 안 쓰고** 있었다.
@@ -127,21 +127,21 @@ class JavelinEvent extends FieldEvent {
     SB.tally(uctx, {
       name: this.def.name,
       progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
-      mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
+      mine: this.best, fmt: v => v > 0 ? realV(this.def, v).toFixed(1)+'m' : '--.--',
       cuts: Field.rail(this), higher: !!this.def.higher,
       /* 파울은 'F' 로 — 칩 한 칸에 '파울' 두 글자는 안 들어간다 */
       history: (this.marks||[]).filter(m => m !== undefined)
-                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+                 .map(m => m === null ? 'F' : +(+realV(this.def, m)).toFixed(2)),
     });
     /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
-    txt(uctx, K('속도')+' '+(this.runner.speed.toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
+    txt(uctx, K('속도')+' '+((realV(this.def, 1)*this.runner.speed).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
     /* ⛔ 옛 '시기별 기록' 루프 제거 — SB.tally 의 칩과 중복이고 메달 레일을 덮었다 */
 
     if(this.phase==='RUNUP'){
       const left = RULES.javelinFoulLineM - this.runner.distM;
       plate(uctx,0,Track.GAUGE_Y,VW,Track.GAUGE_H,0.82);
       if(this.holdStart<0){
-        txt(uctx, left<8?'액션을 쥐어 힘을 모으세요':`파울선까지 ${Math.max(0,left).toFixed(1)}m`,
+        txt(uctx, left<8?'액션을 쥐어 힘을 모으세요':`파울선까지 ${realV(this.def, Math.max(0,left)).toFixed(1)}m`,
             VW/2,44,13,left<8?PAL.gold:PAL.white,'center',700);
         const now=this.t,tg=this.runner.targetIntervalMs();
         const err=this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tg)/tg,-1,1);
@@ -155,14 +155,14 @@ class JavelinEvent extends FieldEvent {
         uctx.fillRect(x,y,Math.round(w*p),10);
         uctx.fillStyle=PAL.white; uctx.fillRect(x+Math.round(w/1.4)-1,y-3,2,16);
         txt(uctx,'가득 찼을 때 놓으세요',VW/2,y+12,8,PAL.dim,'center');
-        txt(uctx, left<0.5&&left>-0.5?'지금 놓아!':`파울선까지 ${Math.max(0,left).toFixed(1)}m`,
+        txt(uctx, left<0.5&&left>-0.5?'지금 놓아!':`파울선까지 ${realV(this.def, Math.max(0,left)).toFixed(1)}m`,
             VW/2,44,14,Math.abs(left)<1?PAL.green:PAL.gold,'center',700);
       }
     } else if(this.phase==='FLIGHT'){
-      txt(uctx, this.px.toFixed(1)+'m', VW/2, 44, 20, PAL.gold,'center',700);
+      txt(uctx, realV(this.def, this.px).toFixed(1)+'m', VW/2, 44, 20, PAL.gold,'center',700);
     } else if(this.phase==='RESULT'){
       const m=this.pending;
-      txt(uctx, m===null?'파울':m.toFixed(2)+'m', VW/2, 92, 28, m===null?PAL.red:PAL.gold,'center',700);
+      txt(uctx, m===null?'파울':fmtRec(this.def, m), VW/2, 92, 28, m===null?PAL.red:PAL.gold,'center',700);
     }
     if(this.msg && this.t-this.msgAt<900){ const a=1-(this.t-this.msgAt)/900;
       uctx.save(); uctx.globalAlpha=a;
@@ -275,7 +275,7 @@ class HammerEvent extends FieldEvent {
     // 서클(콘크리트)
     ctx.fillStyle=PAL.wallDark; ctx.fillRect(CX-24, GROUND-4, 48, 4);
     ctx.fillStyle=PAL.wall;     ctx.fillRect(CX-24, GROUND-4, 48, 2);
-    for(let m=10;m<=90;m+=10){ const x=px(m); if(x<=CX||x>=VW) continue;
+    for(const T of realTicks(this.def, 10, 10, 90)){ const m=T.r, x=px(T.g); if(x<=CX||x>=VW) continue;
       ctx.fillStyle='rgba(242,245,250,.4)';  ctx.fillRect(x,GROUND-8,1,8);
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
     /* 해머·원반 — 위와 같은 이유. 회전 종목이라 곰처럼 무거운 종족을 쓴다. */
@@ -332,10 +332,10 @@ class HammerEvent extends FieldEvent {
     SB.tally(uctx, {
       name: this.def.name,
       progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
-      mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
+      mine: this.best, fmt: v => v > 0 ? realV(this.def, v).toFixed(1)+'m' : '--.--',
       cuts: Field.rail(this), higher: !!this.def.higher,
       history: (this.marks||[]).filter(m => m !== undefined)
-                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+                 .map(m => m === null ? 'F' : +(+realV(this.def, m)).toFixed(2)),
     });
     txt(uctx, K('회전')+' '+(this.spin.toFixed(1)), 8, 36, 9, this.spin>=RULES.hammerOptSpin?PAL.green:(this.spin>=RULES.hammerMinSpin?PAL.gold:PAL.red), 'left');
 
@@ -370,10 +370,10 @@ class HammerEvent extends FieldEvent {
       const left=Math.max(0,(RULES.hammerAutoReleaseMs-(this.spinStart<0?0:this.t-this.spinStart))/1000);
       txt(uctx,left.toFixed(1)+'초',VW-8,44,12,left<1.5?PAL.red:PAL.dim,'right',700);
     } else if(this.phase==='FLIGHT'){
-      txt(uctx,this.px.toFixed(1)+'m',VW/2,44,20,PAL.gold,'center',700);
+      txt(uctx,realV(this.def, this.px).toFixed(1)+'m',VW/2,44,20,PAL.gold,'center',700);
     } else if(this.phase==='RESULT'){
       const m=this.pending;
-      txt(uctx,m===null?'파울':m.toFixed(2)+'m',VW/2,92,28,m===null?PAL.red:PAL.gold,'center',700);
+      txt(uctx,m===null?'파울':fmtRec(this.def, m),VW/2,92,28,m===null?PAL.red:PAL.gold,'center',700);
       if(this.releaseAngle) txtOn(uctx,`릴리스 ${this.releaseAngle.toFixed(0)}°  (최적 45°)`,VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){ const a=1-(this.t-this.msgAt)/900;

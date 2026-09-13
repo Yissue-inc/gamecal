@@ -245,7 +245,7 @@ const SB = {
 
   /* ══ ③ 순위가 있는 종목 (트랙·수영·사이클…) ══
      rows = [{name, col, prog(0~1), timeS, mine}] — 진행 순으로 정렬해서 넘길 것 */
-  standings(u, rows, x, y){
+  standings(u, rows, x, y, def){
     if(!rows || !rows.length) return;
     const W = 116, RH = 9, H = rows.length * RH + 6;
     x = (x === undefined) ? this.RX - W : x;
@@ -260,7 +260,7 @@ const SB = {
       txt(u, String(i + 1), x + 5, ry, 8, col, 'left', 700);
       txt(u, r.name || '', x + 14, ry, 8, col, 'left', r.mine ? 700 : 400);
       /* 선두와의 차 — 미터로. 시간 차는 아직 안 끝난 사람에게 뜻이 없다 */
-      if(i === 0) txt(u, r.timeS ? fmtTime(r.timeS) : '선두', x + W - 5, ry, 8, col, 'right', 700);
+      if(i === 0) txt(u, r.timeS ? (def ? fmtRec(def, r.timeS) : fmtTime(r.timeS)) : '선두', x + W - 5, ry, 8, col, 'right', 700);
       else {
         const d = (lead.prog - r.prog) * (r.trackM || 100);
         txt(u, '−' + (d >= 100 ? Math.round(d) : d.toFixed(1)) + 'm', x + W - 5, ry, 8, col, 'right');

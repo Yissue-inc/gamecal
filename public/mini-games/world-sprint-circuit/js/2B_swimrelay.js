@@ -139,10 +139,10 @@ class SwimRelayEvent extends SwimEvent {
     plate(u, 0, 30, VW, 22, .74);
     txt(u, K('%1번 주자').replace('%1', this.legIndex+1)+' / '+SWIMRELAY.legs,
         8, 34, 11, PAL.gold,'left',700);
-    txt(u, K('팀 기록')+' '+fmtTime(this.teamTime), VW/2, 34, 12,
+    txt(u, K('팀 기록')+' '+fmtRec(this.def, this.teamTime), VW/2, 34, 12,
         this.teamTime<=this.qualify?PAL.green:PAL.white,'center',700);
     if(this.teamBonus>0)
-      txt(u, '−'+this.teamBonus.toFixed(2)+K('초'), VW-8, 34, 10, PAL.green,'right',700);
+      txt(u, '−'+realV(this.def, this.teamBonus).toFixed(2)+K('초'), VW-8, 34, 10, PAL.green,'right',700);
     /* 인계 창 — 마지막 주자가 아니면 언제 뛸지 보여 준다 */
     const last=this.legIndex>=SWIMRELAY.legs-1;
     if(!last && this.phase==='RUN' && !this.armed){

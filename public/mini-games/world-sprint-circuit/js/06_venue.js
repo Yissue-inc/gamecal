@@ -227,8 +227,8 @@ const Venue = {
       ctx.fillStyle=PAL.wall;     ctx.fillRect(CX-24, GROUND-4, 48, 2);
     }
     /* 거리 호 */
-    for(let m=20;m<=100;m+=20){
-      const x=px(m); if(x<=CX||x>=VW) continue;
+    for(const T of realTicks(ev, 20, 20, 100)){
+      const m=T.r, x=px(T.g); if(x<=CX||x>=VW) continue;
       ctx.strokeStyle='rgba(242,245,250,.14)';
       ctx.beginPath(); ctx.ellipse(CX, GROUND, x-CX, 26, 0, -Math.PI*0.42, Math.PI*0.08); ctx.stroke();
       ctx.fillStyle='rgba(242,245,250,.55)'; Track.num(ctx, x-6, GROUND-24, m);
@@ -260,8 +260,8 @@ const Venue = {
       ctx.fillStyle='#d9c48f'; ctx.fillRect(sx,GROUND-5,sw,4);
     }
     const step = ev&&ev.id==='tripleJump' ? 2 : 1;
-    for(let m=step;m<=far;m+=step){
-      const x=px(RULES.boardPositionM+m); if(x<-4||x>VW+4) continue;
+    for(const T of realTicks(ev, step, step, far)){
+      const m=T.r, x=px(RULES.boardPositionM+T.g); if(x<-4||x>VW+4) continue;
       ctx.fillStyle='rgba(5,6,10,.45)'; ctx.fillRect(x,GROUND-6,1,6);
       if(m%(step*2)===0){ ctx.fillStyle='rgba(5,6,10,.6)'; Track.num(ctx,x+2,GROUND-14,m); }
     }
@@ -299,8 +299,8 @@ const Venue = {
       ctx.fillStyle=PAL.gold, ctx.fillRect(BAR_X,barY,104,3);
     /* 높이 눈금 */
     ctx.fillStyle='rgba(242,245,250,.35)';
-    for(let m=1;m<=(ev&&ev.id==='poleVault'?7:3);m++){
-      const y=GROUND-m*PXPM; if(y<20) break;
+    for(const T of realTicks(ev, 1, 1, ev&&ev.id==='poleVault'?7:3)){
+      const m=T.r, y=GROUND-T.g*PXPM; if(y<20) break;
       ctx.fillRect(BAR_X-16, y, 6, 1);
       ctx.fillStyle='rgba(242,245,250,.55)'; Track.num(ctx, BAR_X-30, y-3, m);
       ctx.fillStyle='rgba(242,245,250,.35)';

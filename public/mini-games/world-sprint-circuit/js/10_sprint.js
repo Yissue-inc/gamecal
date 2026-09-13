@@ -431,7 +431,7 @@ class SprintEvent {
           return { nextSide: -r.lastSide||1,
                    phaseErr: r.lastInputMs<-1e8 ? 0 : clamp((sinceR-tgt)/tgt, -1, 1),
                    form: r.form, done: !!r.finished,
-                   timeText: r.finishTimeS ? fmtTime(r.finishTimeS) : '' };
+                   timeText: r.finishTimeS ? fmtRec(this.def, r.finishTimeS) : '' };
         }));
       } else
       HUD.rhythm(uctx, { strides:(this.player&&this.player.combo)||0, nextSide: -this.player.lastSide||1, phaseErr: err, form:this.player.form, rate:(this.player.strideRate||0)});

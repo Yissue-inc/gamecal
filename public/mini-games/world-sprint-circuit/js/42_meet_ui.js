@@ -402,7 +402,7 @@ class MeetWatchScreen extends Screen0 {
     }
     if(this.isTrack && this.phase==='RUN'){
       plate(u, VW/2-40, 24, 80, 18, .82);
-      txt(u, this.raceT.toFixed(2)+'초', VW/2, 26, 15, PAL.gold,'center',700);
+      { const rt = fmtRec(this.ev, this.raceT); txt(u, rt + (needsSec(rt) ? '초' : ''), VW/2, 26, 15, PAL.gold,'center',700); }
       // 실시간 순위 — 거리순으로 다시 정렬해야 '순위'다
       const order=this.lanes.slice().sort((a,b)=>b.dist-a.dist);
       plate(u, 6, 46, 150, 6+order.length*11, .82);

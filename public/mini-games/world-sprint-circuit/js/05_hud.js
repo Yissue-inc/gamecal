@@ -55,6 +55,9 @@ function needsSec(str){ return str.indexOf(':')<0 && str!=='--.--'; }
 const INT_UNITS = new Set(['kg','벌점','타']);
 function fmtRec(def, v){
   if(v===undefined || v===null || !isFinite(v) || v>=DNF) return '--.--';
+  /* ⛔ 화면 기록은 **현실 척도**다(CK 2026-09-12 · 0G_records). 저장·물리·컷은 게임 단위 그대로.
+     기록을 적는 곳은 전부 여기를 지난다 — 여기서 안 옮기면 결과 화면과 경기 중 숫자가 갈린다. */
+  if(typeof Real !== 'undefined') v = Real.v(def, v);
   if(def.unit==='s') return fmtTime(v);   // 초 단위는 부르는 쪽이 붙인다
   /* 복합종목 점수는 네 자리다 — 소수 둘까지 쓰면 'Target 6500.00 pts' 가 칸을 넘는다 */
   /* ⛔ 소수를 붙일지를 **값의 크기**로 정하고 있었다. 그래서 정수로만 세는 단위가
@@ -81,6 +84,12 @@ function fmtTime(s){
   return m + ':' + (r<10?'0':'') + r.toFixed(2);
 }
 function fmtDist(m){ return m<=0 ? '--.--' : m.toFixed(2); }
+/* 현실 척도 도우미 — 0G_records 가 없는 자리(노드 하네스 일부)에서도 죽지 않게 한 겹 싼다 */
+function realV(def, v){ return (typeof Real !== 'undefined') ? Real.v(def, v) : v; }
+function realTicks(def, step, fromG, toG){
+  if(typeof Real !== 'undefined') return Real.ticks(def, step, fromG, toG);
+  const out = []; for(let m = Math.ceil(fromG/step)*step; m <= toG + 1e-9; m += step) out.push({ g:m, r:m }); return out;
+}
 
 const HUD = {
   /* 경기 중 상단 바 */
@@ -105,7 +114,7 @@ const HUD = {
       if(typeof UIK!=='undefined' && UIK.iconTint(ctx, name, x, y-1, 9, PAL.dim)) return 11;
       txt(ctx, txt0, x, y, 8, PAL.dim); return 0;
     };
-    const ts = fmtTime(o.timeS);
+    const ts = fmtTime(typeof Real!=='undefined' ? Real.v(o.def, o.timeS) : o.timeS);   /* 시계도 현실 척도 */
     /* 라벨도 한국어를 원문으로 — 아이콘이 없을 때만 나오는 대비책이지만
        그때 한국어 화면에 영어가 뜨면 안 된다(위 QUALIFY 와 같은 사고다). */
     lab(this.RACE_ICON.time, '시간', 8, 3);
@@ -117,7 +126,7 @@ const HUD = {
     const multi = o.party && o.party.length > 1;
     if(!multi){
       lab(this.RACE_ICON.speed, '속도', 76, 3);
-      txt(ctx, o.speed.toFixed(1), 76, 13, 11, PAL.white);
+      txt(ctx, (typeof Real!=='undefined' ? Real.speed(o.def, o.speed) : o.speed).toFixed(1), 76, 13, 11, PAL.white);
       /* 거리도 마찬가지 — '17616 / 42195' 는 11px 로 칸을 넘는다. km 로 줄인다. */
       lab(this.RACE_ICON.dist, '거리', 150, 3);
       const dist = o.trackM > 10000
@@ -142,7 +151,7 @@ const HUD = {
         ctx.fillStyle='rgba(242,245,250,.16)'; ctx.fillRect(x0, y, wAll, bh);
         ctx.fillStyle=col;
         ctx.fillRect(x0, y, Math.round(wAll*clamp((p.distM||0)/(o.trackM||1),0,1)), bh);
-        if(p.done && p.timeS) txt(ctx, fmtTime(p.timeS), x0+wAll+4, y-1, 9, col, 'left', 700);
+        if(p.done && p.timeS) txt(ctx, fmtRec(o.def, p.timeS), x0+wAll+4, y-1, 9, col, 'left', 700);
       });
     }
 
@@ -166,7 +175,7 @@ const HUD = {
       const d = proj - o.qualify;
       const ahead = d <= 0;
       txt(ctx, K(ahead?'통과 페이스':'기준 미달'), RX, 3, 8, ahead?PAL.green:PAL.red, 'right');
-      txt(ctx, (d<=0?'−':'+')+Math.abs(d).toFixed(2), RX, 12, 13,
+      txt(ctx, (d<=0?'−':'+')+Math.abs(typeof Real!=='undefined' ? Real.v(o.def, d) : d).toFixed(2), RX, 12, 13,
           ahead?PAL.green:PAL.red, 'right', 700);
     } else {
       /* ⛔ 여기 'QUALIFY' 와 아래 'BEST' 가 **영어 원문**으로 박혀 있었다.
@@ -175,12 +184,12 @@ const HUD = {
          지나면 같은 자리가 K('통과 페이스') 로 바뀌어 **경기 도중에 언어가 갈렸다.**
          한국어를 원문으로 쓰고 영어는 표가 만든다 — 두 낱말 다 이미 표에 있다. */
       txt(ctx, K('기준'), RX, 3, 8, PAL.dim, 'right');
-      txt(ctx, fmtTime(o.qualify), RX, 12, 13, PAL.dim, 'right', 700);
+      txt(ctx, fmtRec(o.def, o.qualify), RX, 12, 13, PAL.dim, 'right', 700);
     }
 
     if(o.best!==undefined){
       txt(ctx, K('최고'), RX-76, 3, 8, PAL.dim, 'right');
-      txt(ctx, fmtTime(o.best), RX-76, 13, 11, PAL.blue, 'right');
+      txt(ctx, fmtRec(o.def, o.best), RX-76, 13, 11, PAL.blue, 'right');
     }
 
     /* ── 메달 레일 ────────────────────────────────────────────
@@ -234,7 +243,7 @@ const HUD = {
       /* ⛔ 계주·계영은 **자기 주자 패널을 (6,34) 에 그린다** — 여기에 고스트 순위표를
          또 그리면 두 패널이 같은 자리에서 겹친다('My best' 위에 '1 Cheetah').
          상대를 세워 주는 게 목적인데 이미 팀 구성이 그 자리에 있다. 종목이 끄게 한다. */
-      if(rows && rows.length > 1 && !o.noStandings) SB.standings(ctx, rows, 6, 34);
+      if(rows && rows.length > 1 && !o.noStandings) SB.standings(ctx, rows, 6, 34, o.def);
     }
   },
 

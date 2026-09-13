@@ -146,8 +146,8 @@ class LongJumpEvent extends FieldEvent {
       ctx.fillStyle='#b09a66'; ctx.fillRect(sx, GROUND-6, sw, 1);
     }
     // 1m 눈금 + 숫자
-    for(let m=1;m<=10;m++){
-      const x=px(RULES.boardPositionM+m); if(x<-4||x>VW+4) continue;
+    for(const T of realTicks(this.def, 1, 1, 10)){
+      const m=T.r, x=px(RULES.boardPositionM+T.g); if(x<-4||x>VW+4) continue;
       ctx.fillStyle='rgba(5,6,10,.45)'; ctx.fillRect(x, GROUND-6, 1, 6);
       if(m%2===0){ ctx.fillStyle='rgba(5,6,10,.6)'; Track.num(ctx, x+2, GROUND-14, m); }
     }
@@ -185,14 +185,14 @@ class LongJumpEvent extends FieldEvent {
     SB.tally(uctx, {
       name: this.def.name,
       progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
-      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      mine: this.best, fmt: v => v > 0 ? fmtRec(this.def, v) : '--.--',
       cuts: Field.rail(this), higher: !!this.def.higher,
       /* 파울은 'F' 로 — 칩 한 칸에 '파울' 두 글자는 안 들어간다 */
       history: (this.marks||[]).filter(m => m !== undefined)
-                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+                 .map(m => m === null ? 'F' : +(+realV(this.def, m)).toFixed(2)),
     });
     /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
-    txt(uctx, K('속도')+' '+((this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
+    txt(uctx, K('속도')+' '+((realV(this.def, 1)*(this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed)).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
     /* ⛔ 여기 있던 '시기별 기록' 루프를 지웠다(2026-08-31 캡처).
        SB.tally 의 칩이 같은 것을 이미 보여 주는데 **옛 줄이 살아 남아** x=250·320·390 에
        겹쳐 그렸고, 390 은 메달 레일(350~454) 위였다. 한 화면에 같은 정보가 두 벌 있으면
@@ -201,7 +201,7 @@ class LongJumpEvent extends FieldEvent {
     if(this.phase==='RUNUP'){
       const left = RULES.boardPositionM - this.runner.distM;
       const near = left < 4 && left > -0.5;
-      txt(uctx, near?'지금 도약!':`구름판까지 ${Math.max(0,left).toFixed(1)}m`,
+      txt(uctx, near?'지금 도약!':`구름판까지 ${realV(this.def, Math.max(0,left)).toFixed(1)}m`,
           VW/2, 44, near?16:12, near?PAL.green:PAL.white,'center',700);
       if(!near) txt(uctx,'기록은 구름판부터 잽니다 — 일찍 뛰면 손해', VW/2, 62, 9, PAL.dim,'center');
       const now=this.t, tgt=this.runner.targetIntervalMs();
@@ -224,7 +224,7 @@ class LongJumpEvent extends FieldEvent {
       }
     } else if(this.phase==='RESULT'){
       const m=this.pending;
-      txt(uctx, m===null?'파울':m.toFixed(2)+'m', VW/2, 100, 28, m===null?PAL.red:PAL.gold,'center',700);
+      txt(uctx, m===null?'파울':fmtRec(this.def, m), VW/2, 100, 28, m===null?PAL.red:PAL.gold,'center',700);
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; uctx.save(); uctx.globalAlpha=a;
@@ -346,11 +346,11 @@ class HighJumpEvent extends FieldEvent {
        ⚠ 이 종목의 진행은 '몇 차' 가 아니라 **지금 바 높이**다. */
     SB.tally(uctx, {
       name: this.def.name,
-      progress: K('바 높이')+' '+this.bar.toFixed(2)+'m',
-      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      progress: K('바 높이')+' '+fmtRec(this.def, this.bar),
+      mine: this.best, fmt: v => v > 0 ? fmtRec(this.def, v) : '--.--',
       cuts: Field.rail(this), higher: !!this.def.higher,
       history: (this.marks||[]).filter(m => m !== undefined)
-                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+                 .map(m => m === null ? 'F' : +(+realV(this.def, m)).toFixed(2)),
     });
     txt(uctx, K('무효')+' '+'●'.repeat(this.misses)+'○'.repeat(RULES.hjMaxMisses-this.misses),
         8, 36, 10, this.misses ? PAL.red : PAL.dim, 'left');
@@ -375,7 +375,7 @@ class HighJumpEvent extends FieldEvent {
       txt(uctx,`${this.airTaps} / 6`, VW/2, 62, 15, this.airTaps>=6?PAL.green:PAL.white,'center',700);
     } else if(this.phase==='RESULT'){
       txt(uctx, this.cleared?'성공!':'넘지 못했다', VW/2, 92, 26, this.cleared?PAL.green:PAL.red,'center',700);
-      if(this.reachM) txtOn(uctx, `도달 ${this.reachM.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`, VW/2,124,11,PAL.dim,'center');
+      if(this.reachM) txtOn(uctx, `도달 ${fmtRec(this.def, this.reachM)} / 바 ${fmtRec(this.def, this.bar)}`, VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; uctx.save(); uctx.globalAlpha=a;

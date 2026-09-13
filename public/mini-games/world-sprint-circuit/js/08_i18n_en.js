@@ -729,7 +729,8 @@ const I18N_EN = {
   '놓을 타이밍':'Release timing', '가득 찼을 때 놓으세요':'Release when the bar fills',
   '힘을 모으는 중…':'Gathering power…', '너무 일찍 뛰었다':'Took off too early',
   '회전이 부족하다':'Not enough spin', '릴리스 %1°  (최적 %2°)':'Release %1°  (best %2°)',
-  '도달 %1m / 바 %2m':'Reached %1m / Bar %2m',
+  /* 현실 척도로 옮기며 단위('m')가 fmtRec 안으로 들어갔다(2026-09-12) */
+  '도달 %1 / 바 %2':'Reached %1 / Bar %2',
   '좌·우를 두드려 몸을 넘기세요':'Alternate to carry yourself over',
   '좌·우를 두드려 몸을 끌어올리세요':'Alternate to haul yourself up',
   '꽂기 %1%':'Plant %1%', '폴을 꽂았다':'Pole planted',
@@ -1606,6 +1607,14 @@ const I18N_EN = {
 
   /* 결과 화면 보조 줄 — 조각마다(20_screens) */
   '반응 %1ms':'reaction %1ms', '순위 %1위':'rank %1',
+  /* 실제 기록(0G_records · 2026-09-12) — 결과 화면 왼쪽 패널 폭 112px 에 들어가게 짧게 */
+  '실제 기록':'Real records', '세계기록':'World record', '올림픽 기록':'Olympic rec.', '여':'W',
+  '세계기록 경신!':'World record!', '올림픽 기록 경신!':'Olympic record!', '게임 규격과 달라 견주지 않는다':'Not comparable',
+  '10m 플랫폼 결선':'10m platform final', '최중량급 용상':'Heaviest class C&J', '리커브 72발 랭킹라운드':'Recurve 72-arrow round',
+  '남 1km · 여 500m 독주':'M 1km · W 500m TT', '싱글스컬 2000m':'Single sculls 2000m', '올림픽 개인 결선':'Olympic final',
+  '에페 — 기록 종목 아님':'Épée — no records', '경기 종목 — 기록 없음':'Match play — no records', '올림픽 코스':'Olympic distance',
+  '10m 공기소총 결선':'10m air rifle final', '올림픽 결선 최고점':'Best Olympic final', '코스마다 달라 기록 없음':'Course varies — no records',
+  '올림픽 72홀':'Olympic 72 holes', '감점+점프오프 — 기록 없음':'Faults + jump-off — none', '근대5종 점수(옛 승마 규격)':'Pentathlon pts (old format)',
   '결선':'Final', '결선 %1위':'Final #%1', '금메달':'gold medal', '1위까지 %1':'%1 behind 1st', '허들 %1/%2':'hurdles %1/%2',
 
   /* ⛔ 튜토리얼(4G) 의 say·wait — **새 플레이가 제일 먼저 보는 여섯 줄**인데

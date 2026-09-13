@@ -294,7 +294,9 @@ const G = {
         this.final = (ev.field && typeof Field!=='undefined') ? Field.final(this.def, ev, r, { hidden: ev.field }) : null;
         const med = this.final ? this.final.medal : null;
         if(med) Save.medal(this.def.id, med);
-        if(this.newRecord){ Sfx.record(); Sfx.roar(); }
+        /* 실제 세계·올림픽 기록을 넘으면 개인 최고와 같은 크기로 운다(0G_records) */
+        const broke = (r.status==='OK' && typeof Real!=='undefined') ? Real.broke(this.def, r.value) : null;
+        if(this.newRecord || (broke && (broke.wr || broke.or))){ Sfx.record(); Sfx.roar(); }
         else if(med){ Sfx.medal(med); if(r.rank===1) Sfx.roar(); }
         else if(r.rank===1) Sfx.roar();
       } else {
@@ -984,10 +986,14 @@ const G = {
     if(def){
       txt(uctx, def.name, 10, VH-55, 13, PAL.gold,'left',700);
       const bst=Save.data.best[def.id];
-      txt(uctx, bst!==undefined
-            ? K('최고')+' '+fmtRec(def, bst)
-            : K('기록 없음'),
-          10, VH-42, 9, bst!==undefined?PAL.blue:PAL.dim,'left');
+      const bLine = bst!==undefined ? K('최고')+' '+fmtRec(def, bst)+(def.unit==='s'&&needsSec(fmtRec(def,bst))?K('초'):'') : K('기록 없음');
+      txt(uctx, bLine, 10, VH-42, 9, bst!==undefined?PAL.blue:PAL.dim,'left');
+      /* 실제 세계기록 — 같은 줄 뒤에(CK 2026-09-12 '종목별 세계/올림픽 기록 기재') */
+      if(typeof Real!=='undefined'){
+        const rl = Real.line(def);
+        if(rl){ uctx.font = '400 9px "Galmuri11","Nanum Gothic Coding",monospace';
+          txt(uctx, '·  ' + rl, 10 + uctx.measureText(K(bLine)).width + 8, VH-42, 9, PAL.gold, 'left'); }
+      }
       /* ⚠ 46종목이 각기 다른 조작인데 설명이 '시작한 뒤 잠깐 뜨는 한 줄'뿐이었다.
          고르는 자리에서 미리 보여 준다 — 무엇을 누를지 모른 채 시작하게 두지 않는다. */
       /* ⛔ 설명과 오른쪽 라벨(N 난이도)이 **같은 줄**이다. 한국어에선 안 겹쳤는데
@@ -1115,6 +1121,57 @@ const G = {
     return '아래 게이지의 초록 칸에서 두드리면 빨라집니다';
   },
 
+  /* 실제 기록 — 결과 화면 **왼쪽 빈 칸**(x 4~120 · y 60~120). 오른쪽 결선 표와 짝이다.
+     ⚠ 아래로 판정 줄(y139, 가운데 ~200px → x 140~340)이 지나간다 — 패널은 y 120 위에서 끝낸다.
+     ⚠ 값은 이미 현실 척도라 Real.fmt 로 적는다(fmtRec 은 한 번 더 환산한다). */
+  drawRealPanel(uctx, d, r){
+    if(typeof Real === 'undefined') return;
+    const R = Real.of(d); if(!R) return;
+    const X = 6, Y = 64, W = 112, RH = 11;
+    const sec = s => (d.unit === 's' && needsSec(s)) ? K('초') : '';
+    const val = rec => { const s = Real.fmt(d, rec[0]); return s + sec(s); };
+    const rows = [];
+    if(R.cmp){
+      const w = Real.wr(d), o = R.or[w[4]];
+      const br = (r && r.status === 'OK') ? Real.broke(d, r.value) : null;
+      rows.push({ l: '세계기록', short: 'WR', v: val(w), hot: br && br.wr });
+      if(o) rows.push({ l: '올림픽 기록', short: 'OR', v: val(o), hot: br && br.or && !br.wr });
+      rows.push({ note: String(w[1] || ''), tail: (w[2] ? " '" + String(w[2]).slice(2) : '') + (w[3] ? ' *' : '') });
+      if(br && (br.wr || br.or)) rows.push({ big: K(br.wr ? '세계기록 경신!' : '올림픽 기록 경신!') });
+    } else {
+      rows.push({ note: R.ko });
+      const rec = R.or.m || R.wr.m || R.or.w || R.wr.w;
+      if(rec) rows.push(R.or.m || R.or.w ? { l: '올림픽 기록', short: 'OR', v: val(rec) } : { l: '세계기록', short: 'WR', v: val(rec) });
+      rows.push({ note: K('게임 규격과 달라 견주지 않는다') });
+    }
+    const H = 14 + rows.length * RH;
+    plate(uctx, X - 3, Y - 4, W + 6, H + 2, .72);
+    txt(uctx, K('실제 기록'), X, Y - 1, 9, PAL.dim, 'left', 700);
+    rows.forEach((row, i) => {
+      const y = Y + 13 + i * RH;
+      if(row.big){ txt(uctx, row.big, X, y, 9, PAL.gold, 'left', 700); return; }
+      if(row.note !== undefined){
+        /* ⚠ **번역한 뒤에** 자른다 — 한국어를 자르고 K() 에 넘기면 표에 없는 키가 된다 */
+        /* ⚠ 뒤꼬리(연도·비공인 표시)는 지키고 **이름 쪽을** 자른다 — 'Jackie Joyner-Kersee '…' 로 연도가 날아갔다 */
+        const tail = row.tail || '';
+        let s = K(row.note); uctx.font = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+        while(s.length > 3 && uctx.measureText(s + tail).width > W) s = s.slice(0, -2) + '…';
+        txt(uctx, s + tail, X, y + 1, 8, PAL.dim, 'left'); return;
+      }
+      /* ⛔ 라벨과 값이 한 줄에서 맞붙는다 — 영어 다이빙 'Olympic rec.' 과 '585.3 pts' 가 겹쳤다(2026-09-12 겹침 검사).
+         모자라면 짧은 라벨(WR·OR)로 바꾼다.
+         ⛔ 짧은 라벨을 '세계'·'올림픽' 으로 번역표에 넣었다가 뺐다 — 두 낱말은 이미 표에 **다른 뜻**
+            ('세계':'Worldwide' 국가 범위 · '올림픽':'Olympics')으로 있어서, 뒤에 적은 키가 앞을 **조용히 덮었다.** */
+      uctx.font = '700 9px "Galmuri11","Nanum Gothic Coding",monospace';
+      const vw = uctx.measureText(row.v).width;
+      uctx.font = `${row.hot?700:400} 9px "Galmuri11","Nanum Gothic Coding",monospace`;
+      let lab = K(row.l);
+      if(uctx.measureText(lab).width + vw + 6 > W) lab = K(row.short || row.l);
+      txt(uctx, lab, X, y, 9, row.hot ? PAL.gold : PAL.white, 'left', row.hot ? 700 : 400);
+      txt(uctx, row.v, X + W, y, 9, row.hot ? PAL.gold : PAL.white, 'right', 700);
+    });
+  },
+
   /* 결선 8명 표 — 결과 화면 **오른쪽 빈 칸**(x 360~476 · y 60~). 가운데 줄들과 안 겹친다.
      ⚠ 가운데에서 가장 넓은 줄은 판정 줄(10px, ~200px → x 140~340)이다. 표는 그 오른쪽에서 시작한다. */
   drawFinalTable(uctx, d, fin){
@@ -1205,7 +1262,7 @@ const G = {
            높이뛰기 결과에서 이 줄이 −175~655px, 즉 화면(0~480) **양쪽으로 넘쳤다**
            (2026-08-31 넘침 감시). 붙여 쓰는 줄에는 언제나 '몇 개까지'가 있어야 한다.
            경기 중 점수판과 같은 얼굴(칩)로 그린다 — 폭이 값에 맞춰 잡히고 개수도 잘린다. */
-        const chips = ev.marks.map(m => m === null ? 'F' : +(+m).toFixed(2));
+        const chips = ev.marks.map(m => m === null ? 'F' : +(+realV(d, m)).toFixed(2));
         if(typeof SB !== 'undefined' && SB.chips){
           let cw = 21;
           try{ uctx.font = '700 8px "Galmuri11","Nanum Gothic Coding",monospace';
@@ -1247,6 +1304,7 @@ const G = {
         }
         this.drawFinalTable(uctx, d, fin);
       }
+      if(!void_) this.drawRealPanel(uctx, d, r);
       if(this.newRecord){
         /* 신기록 — 띠 그림 위에 한 번만 쓴다(위쪽 중복 띠는 없앴다) */
         /* ⚠ 자리를 정확히 나눈다 — 위는 sub 줄(150~160), 아래는 커리어 팝업(VH-80=190).

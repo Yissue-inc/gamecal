@@ -102,8 +102,8 @@ class TripleJumpEvent extends LongJumpEvent {
       ctx.fillStyle='#c4ae78'; ctx.fillRect(sx, GROUND-6, sw, 6);
       ctx.fillStyle='#d9c48f'; ctx.fillRect(sx, GROUND-5, sw, 4);
     }
-    for(let m=2;m<=22;m+=2){
-      const x=px(RULES.boardPositionM+m); if(x<-4||x>VW+4) continue;
+    for(const T of realTicks(this.def, 2, 2, 22)){
+      const m=T.r, x=px(RULES.boardPositionM+T.g); if(x<-4||x>VW+4) continue;
       ctx.fillStyle='rgba(5,6,10,.45)'; ctx.fillRect(x, GROUND-6, 1, 6);
       if(m%4===0){ ctx.fillStyle='rgba(5,6,10,.6)'; Track.num(ctx, x+2, GROUND-14, m); }
     }
@@ -140,20 +140,20 @@ class TripleJumpEvent extends LongJumpEvent {
     SB.tally(u, {
       name: this.def.name,
       progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
-      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      mine: this.best, fmt: v => v > 0 ? fmtRec(this.def, v) : '--.--',
       cuts: Field.rail(this), higher: !!this.def.higher,
       /* 파울은 'F' 로 — 칩 한 칸에 '파울' 두 글자는 안 들어간다 */
       history: (this.marks||[]).filter(m => m !== undefined)
-                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+                 .map(m => m === null ? 'F' : +(+realV(this.def, m)).toFixed(2)),
     });
     /* 속도는 점수가 아니라 **조작 정보**다 — 점수판 아래 한 줄로 내린다 */
-    txt(u, K('속도')+' '+((this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
+    txt(u, K('속도')+' '+((realV(this.def, 1)*(this.phase==='RUNUP'?this.runner.speed:this.takeoffSpeed)).toFixed(1)+' m/s'), 8, 36, 9, PAL.dim, 'left');
     /* ⛔ 옛 '시기별 기록' 루프 제거 — SB.tally 의 칩과 중복이고 메달 레일을 덮었다 */
 
     if(this.phase==='RUNUP'){
       const left = RULES.boardPositionM - this.runner.distM;
       const near = left < 4 && left > -0.5;
-      txt(u, near?'지금 홉!':`구름판까지 ${Math.max(0,left).toFixed(1)}m`,
+      txt(u, near?'지금 홉!':`구름판까지 ${realV(this.def, Math.max(0,left)).toFixed(1)}m`,
           VW/2, 44, near?16:12, near?PAL.green:PAL.white,'center',700);
       const now=this.t, tgt=this.runner.targetIntervalMs();
       const err = this.runner.lastInputMs<-1e8?0:clamp(((now-this.runner.lastInputMs)-tgt)/tgt,-1,1);
@@ -178,7 +178,7 @@ class TripleJumpEvent extends LongJumpEvent {
       });
     } else if(this.phase==='RESULT'){
       const m=this.pending;
-      txt(u, m===null?'파울':m.toFixed(2)+'m', VW/2, 100, 28, m===null?PAL.red:PAL.gold,'center',700);
+      txt(u, m===null?'파울':fmtRec(this.def, m), VW/2, 100, 28, m===null?PAL.red:PAL.gold,'center',700);
       txtOn(u, this.hops.map((q,i)=>K(hopName(i))+' '+Math.round(q*100)+'%').join('  ·  '),
           VW/2, 132, 10, PAL.dim,'center');
     }
@@ -252,7 +252,7 @@ class ShotPutEvent extends JavelinEvent {
     const px=(m)=>Math.round(CX + m/this.mPerPx);
     ctx.fillStyle=PAL.wallDark; ctx.fillRect(CX-22, GROUND-4, 44, 4);
     ctx.fillStyle=PAL.wall;     ctx.fillRect(CX-22, GROUND-4, 44, 2);
-    for(let m=5;m<=25;m+=5){ const x=px(m); if(x<=CX||x>=VW) continue;
+    for(const T of realTicks(this.def, 5, 5, 25)){ const m=T.r, x=px(T.g); if(x<=CX||x>=VW) continue;
       ctx.fillStyle='rgba(242,245,250,.4)';  ctx.fillRect(x,GROUND-8,1,8);
       ctx.fillStyle='rgba(242,245,250,.65)'; Track.num(ctx,x+2,GROUND-16,m); }
     /* 포환은 제자리 종목이라 달리진 않지만 **힘을 모으는 동안 몸이 움츠러든다.**
@@ -275,10 +275,10 @@ class ShotPutEvent extends JavelinEvent {
     SB.tally(u, {
       name: this.def.name,
       progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
-      mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
+      mine: this.best, fmt: v => v > 0 ? realV(this.def, v).toFixed(1)+'m' : '--.--',
       cuts: Field.rail(this), higher: !!this.def.higher,
       history: (this.marks||[]).filter(m => m !== undefined)
-                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+                 .map(m => m === null ? 'F' : +(+realV(this.def, m)).toFixed(2)),
     });
     txt(u, K('회전')+' '+String(this.spinWork||0), 8, 36, 9, PAL.dim, 'left');
 
@@ -301,9 +301,9 @@ class ShotPutEvent extends JavelinEvent {
       }
       txt(u,'힘',x,y+12,8,PAL.dim);
     } else if(this.phase==='FLIGHT'){
-      txt(u,this.px.toFixed(1)+'m',VW/2,44,20,PAL.gold,'center',700);
+      txt(u,realV(this.def, this.px).toFixed(1)+'m',VW/2,44,20,PAL.gold,'center',700);
     } else if(this.phase==='RESULT'){
-      txt(u,(this.pending||0).toFixed(2)+'m',VW/2,92,28,PAL.gold,'center',700);
+      txt(u,fmtRec(this.def, this.pending||0),VW/2,92,28,PAL.gold,'center',700);
     }
   }
 }
@@ -462,11 +462,11 @@ class PoleVaultEvent extends FieldEvent {
        ⚠ 진행은 '몇 차' 가 아니라 **지금 바 높이**다. */
     SB.tally(u, {
       name: this.def.name,
-      progress: K('바 높이')+' '+this.bar.toFixed(2)+'m',
-      mine: this.best, fmt: v => v > 0 ? v.toFixed(2)+'m' : '--.--',
+      progress: K('바 높이')+' '+fmtRec(this.def, this.bar),
+      mine: this.best, fmt: v => v > 0 ? fmtRec(this.def, v) : '--.--',
       cuts: Field.rail(this), higher: !!this.def.higher,
       history: (this.marks||[]).filter(m => m !== undefined)
-                 .map(m => m === null ? 'F' : +(+m).toFixed(2)),
+                 .map(m => m === null ? 'F' : +(+realV(this.def, m)).toFixed(2)),
     });
     txt(u, K('무효')+' '+'●'.repeat(this.misses)+'○'.repeat(3-this.misses),
         8, 36, 10, this.misses ? PAL.red : PAL.dim, 'left');
@@ -474,7 +474,7 @@ class PoleVaultEvent extends FieldEvent {
     if(this.phase==='RUNUP'){
       const left=34-this.runner.distM;
       const near=left<3 && left>-0.5;
-      txt(u, near?'지금 꽂아!':`박스까지 ${Math.max(0,left).toFixed(1)}m`,
+      txt(u, near?'지금 꽂아!':`박스까지 ${realV(this.def, Math.max(0,left)).toFixed(1)}m`,
           VW/2,44,near?16:12,near?PAL.green:PAL.white,'center',700);
       txt(u,'속도가 곧 높이입니다',VW/2,60,9,PAL.dim,'center');
       const now=this.t,tg=this.runner.targetIntervalMs();
@@ -488,7 +488,7 @@ class PoleVaultEvent extends FieldEvent {
     } else if(this.phase==='RESULT'){
       txt(u,this.cleared?'성공!':'넘지 못했다',VW/2,92,26,this.cleared?PAL.green:PAL.red,'center',700);
       /* ⚠ 같은 문구가 높이뛰기(12_jumps)에도 있다 — 한쪽만 고쳐서 한 번 놓쳤다 */
-      if(this.reach) txtOn(u,`도달 ${this.reach.toFixed(2)}m / 바 ${this.bar.toFixed(2)}m`,VW/2,124,11,PAL.dim,'center');
+      if(this.reach) txtOn(u,`도달 ${fmtRec(this.def, this.reach)} / 바 ${fmtRec(this.def, this.bar)}`,VW/2,124,11,PAL.dim,'center');
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; u.save(); u.globalAlpha=a;
