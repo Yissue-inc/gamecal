@@ -58,15 +58,15 @@
     },
     "walk20k": {
       "higher": false,
-      "min": 16900,
-      "max": 31900,
-      "scale": 10
+      "min": 7675,
+      "max": 14488,
+      "scale": 100
     },
     "marathon": {
       "higher": false,
-      "min": 10800,
-      "max": 20700,
-      "scale": 10
+      "min": 6079,
+      "max": 11653,
+      "scale": 100
     },
     "relay4x100": {
       "higher": false,
