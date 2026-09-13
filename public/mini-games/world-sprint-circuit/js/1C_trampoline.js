@@ -230,7 +230,7 @@ class TrampolineEvent {
       progress: (this.bounce||0)+' / '+TRAMP.bounces+'회',
       mine: +(this.phase==='DONE' ? this.result.value : (cur||0)).toFixed(1),
       fmt: v => (+v).toFixed(1),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
     });
     /* ⚠ 가운데(VW/2)는 '회전' 값이 쓰는 자리였다 — 오른쪽 빈 칸으로 옮긴다 */
     if(this.combo>=2) txt(u, this.combo+'연속 완벽', VW-14, y0+13, 12, PAL.gold,'right',700);

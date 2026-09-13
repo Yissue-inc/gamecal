@@ -195,7 +195,7 @@ class TriathlonEvent {
     /* 총 시간만으로는 좋은지 알 수 없다 — 동–은–금 자리를 같이 보인다(05_scoreboard).
        ⚠ 상단은 하위 종목이 쓴다. 하단 띠에만 얹는다. */
     if(typeof SB !== 'undefined' && this.total > 0)
-      SB.rail(u, VW-84, BY+15, 62, this.total, medalCuts(this.def), !!this.def.higher);  /* ⚠ VW-70 이면 오른쪽 끝 472 가 일시정지 버튼(461~480) 밑이다 */
+      SB.rail(u, VW-84, BY+15, 62, this.total, Field.rail(this), !!this.def.higher);  /* ⚠ VW-70 이면 오른쪽 끝 472 가 일시정지 버튼(461~480) 밑이다 */
     /* 누적 피로 — 이 종목의 정체성이라 항상 보인다 */
     if(this.carry>0){
       const bw=54, bx=VW-80-bw;

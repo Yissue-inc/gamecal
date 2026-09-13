@@ -80,6 +80,12 @@ const G = {
     this.newRecord = false;
     /* 종목이 지금 누구 것인지 알려 준다 — 캐릭터·색을 그 사람 것으로 */
     this.event.pIndex = (Party.on && Party.modeFor(def)==='turn') ? Party.turn : 0;
+    /* 결선의 화면 밖 진출자 — **출발 전에** 뽑아 둔다. 경기 중 메달 레일과 결과 표가
+       같은 사람들을 말해야 한다(끝나고 뽑으면 레일이 말한 선과 결과가 어긋난다). */
+    this.final = null;
+    /* ⚠ 감독 모드 '직접 뛰기'(mgHook)는 결선이 따로 있다(32_season) — 아케이드 메달을 쓰면 안 된다 */
+    this.event.field = (!Party.on && !this.mgHook && typeof Field !== 'undefined')
+      ? Field.hidden(def, 0) : null;
     this.state = ST.PLAY;
   },
   backToSelect(){
@@ -263,6 +269,7 @@ const G = {
     }
     if(Input.pressed('pause')||Input.pressed('back')){ this.backToSelect(); Sfx.ui(); return; }
     ev.update(dt);
+    if(ev.result && ev.field && !ev.fieldSnap && typeof Field!=='undefined') ev.fieldSnap = Field.snap(ev);
     if(ev.phase==='DONE' && now - ev.doneAt > 1100){
       // 기록 갱신 확인
       const r=ev.result;
@@ -283,7 +290,10 @@ const G = {
         /* 관중은 한 겹이 아니다 — 신기록엔 함성, 실패엔 탄식. 소리 정체성의 절반이 관중이다.
            ⛔ 여기에 **메달이 빠져 있었다** — 금과 동이 같은 소리로 끝났다.
               신기록은 여전히 제일 큰 순간이고, 그 아래를 메달이 나눈다. */
-        const med = (typeof medalOf==='function') ? medalOf(this.def, r.value) : null;
+        /* 메달은 결선 순위다(0F_field) — 기록 값만으로 정하지 않는다 */
+        this.final = (ev.field && typeof Field!=='undefined') ? Field.final(this.def, ev, r, { hidden: ev.field }) : null;
+        const med = this.final ? this.final.medal : null;
+        if(med) Save.medal(this.def.id, med);
         if(this.newRecord){ Sfx.record(); Sfx.roar(); }
         else if(med){ Sfx.medal(med); if(r.rank===1) Sfx.roar(); }
         else if(r.rank===1) Sfx.roar();
@@ -951,7 +961,7 @@ const G = {
            점 밑으로 들어가 끝이 가려졌다(실측 스크린샷: LIFT·ARCH·CYCL).
            ⚠ 화면 밖으로 나가는 게 아니라 **겹치는** 것이라 경계 감시로는 안 잡힌다.
            메달이 있으면 그만큼 자리를 비우고, 좁으면 글씨를 줄인다. */
-        const mHere = (typeof medalOf==='function') ? medalOf(e, Save.data.best[e.id]) : null;
+        const mHere = Save.bestMedal(e);
         const qLine = K('기준')+' '+q+unit;
         const qMax  = cw - 6 - (mHere ? 20 : 6);
         uctx.font = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
@@ -1105,6 +1115,27 @@ const G = {
     return '아래 게이지의 초록 칸에서 두드리면 빨라집니다';
   },
 
+  /* 결선 8명 표 — 결과 화면 **오른쪽 빈 칸**(x 360~476 · y 60~). 가운데 줄들과 안 겹친다.
+     ⚠ 가운데에서 가장 넓은 줄은 판정 줄(10px, ~200px → x 140~340)이다. 표는 그 오른쪽에서 시작한다. */
+  drawFinalTable(uctx, d, fin){
+    const X = 364, W = 110, Y = 64, RH = 11;
+    plate(uctx, X - 4, Y - 4, W + 4, 14 + fin.rows.length * RH + 4, .72);
+    txt(uctx, K('결선'), X, Y - 1, 9, PAL.dim, 'left', 700);
+    fin.rows.forEach((row, i) => {
+      const y = Y + 13 + i * RH, me = row.who === 'me';
+      const col = me ? PAL.gold : (i < 3 ? PAL.white : PAL.dim);
+      if(me){ uctx.fillStyle = 'rgba(255,215,94,.14)'; uctx.fillRect(X - 3, y - 1, W + 2, RH); }
+      if(i < 3){
+        uctx.fillStyle = MEDAL_COLOR[['gold','silver','bronze'][i]];
+        uctx.beginPath(); uctx.arc(X + 3, y + 4, 3, 0, Math.PI*2); uctx.fill();
+      } else txt(uctx, String(i + 1), X + 3, y, 8, PAL.dim, 'center');
+      const name = me ? K('나') : String(row.name || '').slice(0, 8);
+      txt(uctx, name, X + 11, y, 9, col, 'left', me ? 700 : 400);
+      const v = fmtRec(d, row.value);
+      txt(uctx, v, X + W - 2, y, 9, col, 'right', me ? 700 : 400);
+    });
+  },
+
   drawResult(uctx){
     const ev=this.event, r=ev.result, d=this.def;
     uctx.fillStyle='rgba(5,6,10,.82)'; uctx.fillRect(0,0,VW,VH);
@@ -1163,7 +1194,8 @@ const G = {
            (2026-08-31 감독 모드 '직접 뛰기' 경로에서 처음 봤다 — 이 경로는
             그때까지 한 번도 안 밟혔다). 조각마다 번역하고 붙인다. */
         let sub = p.reactionMs>=0 ? K('반응 %1ms').replace('%1', Math.round(p.reactionMs)) : '';
-        if(ev.marks===undefined && r.rank)
+        /* 결선 표가 있으면 경기 안 순위는 적지 않는다 — '순위 1위' 옆에 '결선 3위' 가 같이 뜨면 어느 쪽인지 모른다 */
+        if(ev.marks===undefined && r.rank && !this.final)
           sub += (sub?'  ·  ':'') + K('순위 %1위').replace('%1', r.rank);
         if(p.hurdlesClean!==undefined && ev.marks===undefined && this.def.id==='hurdles110')
           sub += '  ·  ' + K('허들 %1/%2').replace('%1', p.hurdlesClean).replace('%2', RULES.hurdleCount);
@@ -1187,27 +1219,33 @@ const G = {
       }
       /* ⛔ 결과가 '통과/미달' 둘뿐이라 **얼마나 잘했는지**가 안 보였다.
          메달과 **다음 칸까지 남은 거리**를 적는다 — 그게 다시 뛸 이유다. */
-      if(!void_ && typeof medalOf==='function'){
-        const m = medalOf(d, r.value), cuts = medalCuts(d);
+      /* ⛔ 메달은 **결선 순위**다(CK 2026-09-12 · 0F_field). 옛 코드는 기록이 컷을 넘었나로
+         메달을 그렸다 — 라이벌 둘에게 지고 들어와도 금이 떴다. 이제 순위와 표로 말한다. */
+      const fin = this.final;
+      if(!void_ && fin){
+        /* ⚠ y=128 · 원 반지름 5(127~137) — 위 '기준' 줄(116)과 아래 판정 줄(139) 사이에 딱 든다.
+           124·126 에서 두 번 겹쳤다(유도 결과 캡처 2026-08-31: '銀' 배지가 '기준 45.00s' 를 물었다). */
+        /* ⛔ 첫 판은 x=VW/2−44 에서 시작해 영어 'Final: #2 · 0.08s behind 1st' 의 끝이
+           **오른쪽 결선 표 밑으로 들어갔다**(스크린샷 2026-09-12). 줄을 왼쪽으로 당기고 표는 좁혔다. */
+        const my = 128, m = fin.medal;
+        let tx = VW/2 - 64;
         if(m){
-          /* ⚠ y=124 는 '기준 11.30초'(y=116) 줄과 겹쳤다(실측). 그 아래 빈 칸으로 내린다.
-             ⛔ 126 으로 내려 놓고 **동그라미는 안 옮겼다** — 원은 my+4 에 반지름 6 이라
-                위쪽 끝이 124 다. 글자만 내리고 그림은 그대로 두면 겹침이 그대로 남는다.
-                유도 결과 캡처(2026-08-31)에서 '銀' 배지가 '기준 45.00s' 를 물고 있었다.
-                글자 128(9px→137) · 원 반지름 5 로 127~137. 판정 줄(139) 바로 위에 딱 든다. */
-          const my = 128;
           uctx.fillStyle = MEDAL_COLOR[m];
-          uctx.beginPath(); uctx.arc(VW/2-56, my+4, 5, 0, Math.PI*2); uctx.fill();
-          txt(uctx, MEDAL_MARK[m], VW/2-56, my, 9, '#2a2010', 'center', 700);
-          const nextKey = m==='bronze' ? 'silver' : m==='silver' ? 'gold' : null;
-          if(nextKey){
-            const need = cuts[nextKey];
-            const gap = d.higher ? need - r.value : r.value - need;
-            txt(uctx, K('%1 까지 %2').replace('%1', K(nextKey==='gold'?'금':'은'))
-                  .replace('%2', fmtRec(d, Math.abs(gap)) + (d.unit==='s'?K('초'):'')),
-                VW/2-44, my, 9, PAL.dim, 'left');
-          } else txt(uctx, K('최고 등급입니다'), VW/2-44, my, 9, PAL.gold, 'left', 700);
+          uctx.beginPath(); uctx.arc(VW/2-76, my+4, 5, 0, Math.PI*2); uctx.fill();
+          txt(uctx, MEDAL_MARK[m], VW/2-76, my, 9, '#2a2010', 'center', 700);
+        } else tx = VW/2 - 80;
+        const head = K('결선 %1위').replace('%1', fin.rank);
+        if(fin.rank === 1){
+          txt(uctx, head + ' — ' + K('금메달'), tx, my, 9, PAL.gold, 'left', 700);
+        } else {
+          const gap = Math.abs(fin.lead - fin.rows.find(x => x.who === 'me').value);
+          const line = K(head) + ' · ' + K('1위까지 %1').replace('%1', fmtRec(d, gap) + (d.unit==='s'?K('초'):''));
+          /* 표(x 360~)까지 남은 폭 — 장거리 차이('4:05.00초')는 길다. 넘치면 한 치수 줄인다 */
+          uctx.font = '400 9px "Galmuri11","Nanum Gothic Coding",monospace';
+          const fs = uctx.measureText(line).width > (356 - tx) ? 8 : 9;
+          txt(uctx, line, tx, my, fs, m ? PAL.dim : PAL.white, 'left');
         }
+        this.drawFinalTable(uctx, d, fin);
       }
       if(this.newRecord){
         /* 신기록 — 띠 그림 위에 한 번만 쓴다(위쪽 중복 띠는 없앴다) */

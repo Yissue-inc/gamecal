@@ -270,7 +270,7 @@ class VaultEvent {
       name: this.def.name,
       progress: this.attempt+' / '+VAULT.attempts+'차',
       mine: this.best || 0, fmt: v => v ? (+v).toFixed(2) : '—',
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       history: (this.marks||[]).map(m => +(+m).toFixed(1)),
     });
 

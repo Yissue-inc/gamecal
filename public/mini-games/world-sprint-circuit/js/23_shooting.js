@@ -226,7 +226,7 @@ class ShootingEvent {
       progress: this.shot+' / '+SHOOT.shots+'발',
       mine: +this.total.toFixed(1), unit: K('점'),
       fmt: v => v.toFixed(1),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       pace: this.shot > 0 ? this.total / this.shot * SHOOT.shots : undefined,
       history: this.scores.map(v => +(+v).toFixed(1)),
     });

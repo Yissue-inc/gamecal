@@ -259,7 +259,7 @@ class HighBarEvent {
       name: this.def.name,
       progress: K('이탈')+' '+this.releases+' / '+BAR.maxRelease,
       mine: this.mark, fmt: v => (v==null? '—' : (+v).toFixed(2)),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
     });
     if(this.releases>0) txt(u,'▲ '+K('내려서기'), 8, 36, 9, PAL.gold,'left');
     if(this.phase==='SWING' && this.releases===0 && this.amp<BAR.releaseMin)

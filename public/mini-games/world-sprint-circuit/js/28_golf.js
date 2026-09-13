@@ -288,7 +288,7 @@ class GolfEvent {
       name: this.def.name,
       progress: K('%1번 홀').replace('%1', this.hole+1)+' · '+K('파')+' '+H.par,
       mine: rel, fmt: relS,
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       /* 홀별 결과가 곧 시기별 기록이다 — 칩으로 */
       history: this.scores.map(s => relS(s.strokes-s.par)),
       foe: { label: K('타수'), value: String(this.strokes) },

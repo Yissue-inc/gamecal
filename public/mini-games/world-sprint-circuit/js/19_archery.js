@@ -203,7 +203,7 @@ class ArcheryEvent {
       name: this.def.name,
       progress: `${this.arrow} / ${ARCH.arrows}발`,
       mine: this.total, unit: K('점'),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       /* 지금 페이스로 끝까지 가면 몇 점인가 — 진행 중엔 이게 유일하게 쓸모 있는 비교다 */
       pace: this.arrow > 0 ? this.total / this.arrow * ARCH.arrows : undefined,
       history: this.scores,

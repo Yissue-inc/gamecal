@@ -270,7 +270,7 @@ class RingsEvent {
       name: this.def.name,
       progress: Math.min(this.idx+1, RING.holds.length)+' / '+RING.holds.length,
       mine: this.mark, fmt: v => (v==null? '—' : (+v).toFixed(2)),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
     });
     /* 지금 잡고 있는 자세 이름은 이 종목의 진행 그 자체다 — 점수판 아래 한 줄로 */
     txt(u, this.idx < RING.holds.length ? K(this.hold.name) : K('내리기'),

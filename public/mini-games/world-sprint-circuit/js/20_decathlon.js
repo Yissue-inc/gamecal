@@ -186,7 +186,7 @@ class DecathlonEvent {
        ⛔ x 는 VW-80(=400~468) 이 아니다 — **468 은 일시정지 버튼(461~480) 밑**이다.
        ⛔ y 는 BY+H-2 가 아니다 — 바늘 끝이 240 까지 내려가 중거리 페이스 버튼(VH-30=240)에 닿았다. */
     if(typeof SB !== 'undefined')
-      SB.rail(u, VW-84, BY+15, 62, this.total, medalCuts(this.def), !!this.def.higher);  /* ⚠ VW-70 이면 오른쪽 끝 472 가 일시정지 버튼(461~480) 밑이다 */
+      SB.rail(u, VW-84, BY+15, 62, this.total, Field.rail(this), !!this.def.higher);  /* ⚠ VW-70 이면 오른쪽 끝 472 가 일시정지 버튼(461~480) 밑이다 */
     }
 
     if(this.phase==='INTRO'){

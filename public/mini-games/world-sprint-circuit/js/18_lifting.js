@@ -196,7 +196,7 @@ class LiftingEvent {
       /* 지금 드는 무게가 진행 상황이다 — 시기와 함께 보여 준다 */
       progress: `${this.kg}kg · ${this.attempt}/${this.attemptsTotal}차`,
       mine: this.best, unit: 'kg',
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       history: this.marks || [],
     });
 

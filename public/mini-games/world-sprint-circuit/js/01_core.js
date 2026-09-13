@@ -332,7 +332,7 @@ const Save = {
      ⛔ 이걸 보고 잠금 시스템을 새로 얹지 말 것. 얹으려면 READY 쪽에서 시작한다.
      ⚠ tools/deadvalues.js 는 `x.foo =` 꼴만 본다 — 이런 리터럴 속성은 못 잡는다.
         리터럴까지 훑어 봤더니 1226개 중 258개가 걸려(국가코드·상태키 등) 게이트로 못 쓴다. */
-  data:{ best:{}, unlocked:['sprint100'], lastEvent:'sprint100' },
+  data:{ best:{}, medals:{}, unlocked:['sprint100'], lastEvent:'sprint100' },
   load(){ try{ const s=localStorage.getItem(SAVE_KEY); if(s) Object.assign(this.data, JSON.parse(s)); }catch(_){} },
   write(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); }catch(_){} },
   /* 기록 갱신됐으면 true */
@@ -341,5 +341,21 @@ const Save = {
     const better = cur===undefined || (higherIsBetter ? value>cur : value<cur);
     if(better){ this.data.best[eventId]=value; this.write(); }
     return better;
+  },
+  /* 딴 메달 중 가장 좋은 것 — 메달은 **결선 순위**라 기록만으로는 다시 계산할 수 없다(0F_field).
+     ⚠ 옛 세이브엔 이 칸이 없다 → 카드는 `bestMedal` 로 읽는다(없으면 옛 컷으로 추정). */
+  medal(eventId, m){
+    if(!m) return false;
+    const R = { gold:3, silver:2, bronze:1 };
+    this.data.medals = this.data.medals || {};
+    const cur = this.data.medals[eventId];
+    if(cur && R[cur] >= R[m]) return false;
+    this.data.medals[eventId] = m; this.write();
+    return true;
+  },
+  bestMedal(def){
+    const m = (this.data.medals || {})[def.id];
+    if(m) return m;
+    return (typeof medalOf === 'function') ? medalOf(def, this.data.best[def.id]) : null;
   },
 };

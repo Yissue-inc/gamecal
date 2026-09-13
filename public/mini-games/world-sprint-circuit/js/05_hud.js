@@ -191,7 +191,10 @@ const HUD = {
           '점수판 48/48' 이라고 적어 놓고 정작 제일 많이 하는 종목이 빠져 있었다.
        ⚠ 바늘은 **통과 예측**으로 찍는다(합계가 아니라). 20% 전에는 예측이 요동쳐서 안 찍는다 —
           tally 가 '기록 없으면 바늘 없음' 으로 가는 것과 같은 이유다. */
-    const cuts = o.cuts || ((typeof medalCuts==='function' && o.def) ? medalCuts(o.def) : null);
+    /* 결선 필드가 있으면 그 사람들의 기록으로 긋는다(0F_field.rail) — 메달이 순위라서 */
+    const cuts = o.cuts || ((typeof G!=='undefined' && G.event && G.event.def===o.def && G.event.field && typeof Field!=='undefined')
+                 ? Field.rail(G.event)
+                 : ((typeof medalCuts==='function' && o.def) ? medalCuts(o.def) : null));
     if(cuts && typeof SB !== 'undefined'){
       const projected = (prog >= 0.2 && mt > 0) ? (mt / prog) : undefined;
       /* ⚠ 띠(0~30) 안에는 자리가 없다 — 기준 숫자가 13px 로 y 12~25 를 쓴다.

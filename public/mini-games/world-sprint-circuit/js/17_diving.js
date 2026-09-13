@@ -164,7 +164,7 @@ class DivingEvent {
       name: this.def.name,
       progress: `${this.attempt} / ${this.attemptsTotal}차`,
       mine: this.best, fmt: v => (+v).toFixed(2),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       history: (this.marks || []).map(v => +(+v).toFixed(1)),
     });
 

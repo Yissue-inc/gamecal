@@ -128,7 +128,7 @@ class JavelinEvent extends FieldEvent {
       name: this.def.name,
       progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
       mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       /* 파울은 'F' 로 — 칩 한 칸에 '파울' 두 글자는 안 들어간다 */
       history: (this.marks||[]).filter(m => m !== undefined)
                  .map(m => m === null ? 'F' : +(+m).toFixed(2)),
@@ -333,7 +333,7 @@ class HammerEvent extends FieldEvent {
       name: this.def.name,
       progress: `${Math.min(this.attempt+1,3)} / 3` + K('차'),
       mine: this.best, fmt: v => v > 0 ? v.toFixed(1)+'m' : '--.--',
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
       history: (this.marks||[]).filter(m => m !== undefined)
                  .map(m => m === null ? 'F' : +(+m).toFixed(2)),
     });

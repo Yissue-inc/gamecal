@@ -234,7 +234,7 @@ class EquestrianEvent {
       name: this.def.name,
       progress: this.cleared+' / '+this.fences.length,
       mine: this.total || 0, unit: K('벌점'),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
     });
     txt(u, fmtTime(this.elapsed), 8, 36, 10,
         this.elapsed>EQU.timeAllowed?PAL.red:PAL.dim, 'left');

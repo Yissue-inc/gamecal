@@ -232,7 +232,7 @@ class CanoeEvent {
       name: this.def.name,
       progress: doneG+' / '+this.gates.length+K('문'),
       mine: Math.max(0, this.total), fmt: v => fmtTime(v),
-      cuts: medalCuts(this.def), higher: !!this.def.higher,
+      cuts: Field.rail(this), higher: !!this.def.higher,
     });
     /* 기록과 벌점을 갈라 보여 준다 — 합계만 보면 왜 나빠졌는지 모른다 */
     txt(u, fmtTime(Math.max(0,this.raw)) + '  ' + (this.penalty? '+'+this.penalty : '+0'),
