@@ -38,8 +38,32 @@ const MID = {
   goodMs: 72,            // 판정 창 — 스프린트(±19ms)보다 훨씬 넓다
   perfectMs: 26,
   maxSpeed: 8.4,         // 유지 페이스 최고속(m/s) — 종목별로 곱해진다
+  /* ══ 전략 층 (CK 결정 2026-09-12 "전략으로 가보죠") ══════════════════════
+     ⛔ 이전엔 **끝까지 승부가 늘 최적**이었다 — 네 거리 실측(사람 기준 타수):
+          800m 배분 우위 2.1% · 1500m 1.5% · 5000m **0%** · 마라톤 **0%**
+        원인: 상한이 `P.spd × (0.55+0.45×체력)` 라 **탈진해도 승부의 1.16배가 남았다.**
+        스퍼트는 해로웠다 — 유지로 가도 82% 에서 탈진해 켜지자마자 꺼졌다.
+     ⚠ 2026-09-06 에 적은 원인('연타 모드에서 ivMul 이 죽었다')은 틀렸다 — ivMul 은 overCost 로 산다.
+     바꾼 것(tools/strategy_browser.js 로 5거리 × 15전략 훑음):
+       · pushNeed 0.4        승부 가산은 체력 0.4 아래로 내려가면 줄어든다(탈진한 승부는 빠르지 않다)
+       · spurtDrain 2.0→0.8  아껴 둔 체력으로 **막판을 달릴 수 있게**
+       · spurtStopAt 0.08→0.02
+       · overCostScalePow 0.4 · Cap 2.8   장거리의 필수 타수를 과속으로 벌하지 않게(onStride)
+     결과(최선 전략 = '여유/유지로 순항 → 막판 스퍼트'):
+                배분 우위     스퍼트 이득   최선 기록 변화
+        800m    10.6%        +9.3초        +0.6%
+        1500m    9.5%        +11.1초        0.0%
+        5000m    6.4%        +13.9초       +0.1%
+        마라톤    4.2%        +90.9초        0.0%
+        경보      3.0%        (스퍼트 없음)  −0.3%
+     ⚠ 금메달 난이도는 그대로 두는 게 조건이었다 — 최선 기록이 거리마다 ±0.6% 안이다. */
   spurtMul: 1.22,
-  spurtDrain: 2.0,
+  spurtDrain: 0.8,
+  spurtStopAt: 0.02,     // 체력이 이 아래로 떨어지면 스퍼트가 끝난다
+  bonkFloor: 0.55,       // 체력 0 일 때 속도 상한의 바닥(× 페이스 속도)
+  pushNeed: 0.4,         // 승부 페이스 가산이 온전히 붙는 체력 — 이 아래면 줄어든다(0=제한 없음)
+  overCostScalePow: 0.4, // 연타 체력 대가를 시간 압축 배율^이 값으로 나눈다(0=정규화 없음)
+  overCostScaleCap: 2.8, // 위 정규화의 상한 — 사람 손엔 한계가 있다
   targetWallSec: 110,    // 어느 거리든 한 판이 이 정도가 되도록 시간을 압축한다
   cruiseRun: 7.14,       // 실측 순항 속도(m/s) — 압축비 계산에만 쓴다
   walkMinIvMs: 111,     // 연타 모드 걷기 한계 — 초당 9타를 넘으면 '뛴 것'
@@ -192,8 +216,12 @@ class MiddleEvent {
        181초로 무너졌다. 중장거리는 스프린트만큼 정밀할 이유가 없다. */
     const gain={PERFECT:1.0,GOOD:0.80,MISS:0.46,REPEAT:0.12}[j];
     const P = MID.PACE[r.pace];
-    const top = MID.maxSpeed*P.spd*(this.walk?0.42:1)
-              * (0.55+0.45*r.stamina) * (r.spurting?MID.spurtMul:1);
+    /* 승부 페이스의 가산은 **체력이 있어야** 유지된다(pushNeed 아래로 내려가면 줄어든다).
+       ⚠ pushNeed 0 이면 예전과 같다 — 탈진해도 승부의 1.16배가 남아 '처음부터 끝까지 민다'가 이긴다. */
+    const push = (P.spd > 1 && MID.pushNeed > 0) ? clamp(r.stamina / MID.pushNeed, 0, 1) : 1;
+    const spdEff = P.spd > 1 ? 1 + (P.spd - 1) * push : P.spd;
+    const top = MID.maxSpeed*spdEff*(this.walk?0.42:1)
+              * (MID.bonkFloor + (1-MID.bonkFloor)*r.stamina) * (r.spurting?MID.spurtMul:1);
     /* 연타 추진 — 남은 여유에 비례해 더한다(단거리와 같은 규칙) */
     const room = Math.max(0, 1 - r.speed/Math.max(top, 0.1));
     r.speed = Math.min(top, r.speed + top*MID.mashKick*gain*room);
@@ -201,7 +229,14 @@ class MiddleEvent {
        over 1.0 = 페이스가 정한 박자의 두 배로 치는 중. 페이스가 셀수록 대가도 크다. */
     const natIv = MID.baseIv*P.ivMul;
     const over = clamp(natIv/Math.max(dt, 40) - 1, 0, 2);
-    if(over > 0) r.stamina = Math.max(0, r.stamina - MID.overCost*over*P.drain);
+    /* ⚠ 장거리는 시간을 압축한다(마라톤 scale≈54) — 감속이 그만큼 빨라 **빨리 치는 게 필수**다.
+       그 필수 타수까지 '과속' 으로 벌하면 장거리만 부당하게 어려워진다. 압축 배율로 나눠 정규화한다
+       (overCostScalePow 0 이면 예전과 같다). */
+    /* ⚠ 그런데 **사람 손엔 한계가 있다** — 압축이 아무리 커도 필요 타수가 끝없이 늘지는 않는다.
+       지수만 쓰면 마라톤(scale 54)만 과보정돼 쉬워졌다(실측 −9.4%). 상한을 둔다. */
+    const overScale = Math.min(MID.overCostScaleCap,
+                               Math.pow(Math.max(1, this.scale || 1), MID.overCostScalePow));
+    if(over > 0) r.stamina = Math.max(0, r.stamina - MID.overCost*over*P.drain/overScale);
     /* ⚠ 리듬을 놓치면 '느려질' 뿐 아니라 **체력이 더 샌다**. 넓은 창을 준 대신
        엉망으로 달리면 대가를 치른다 — 안 그러면 아무렇게나 눌러도 완주한다. */
     if(j==='MISS'||j==='REPEAT') r.stamina=Math.max(0, r.stamina-0.006);
@@ -255,7 +290,7 @@ class MiddleEvent {
       const frac = (r.speed*sdt)/this.trackM;
       r.stamina = Math.max(0, r.stamina
         - frac*(0.78*MID.PACE[r.pace].drain + (r.spurting?MID.spurtDrain:0)));
-      if(r.spurting && r.stamina<=0.08){ r.spurting=false; r.msg='힘이 다 떨어졌다'; r.msgAt=this.t; r.msgBad=true; }
+      if(r.spurting && r.stamina<=MID.spurtStopAt){ r.spurting=false; r.msg='힘이 다 떨어졌다'; r.msgAt=this.t; r.msgBad=true; }
       const nl=Math.floor(r.dist/this.lapM);
       if(nl>r.lap){ r.lap=nl; if(r===this.runners[0]) Sfx.beep(880,0.06,'sine',0.10); }
       if(r.dist>=this.trackM){
@@ -385,9 +420,19 @@ class MiddleEvent {
        띠가 두 줄(22px)로 커지면서 한 번 더 올렸다. 단독 종목에선 한 칸 더 뜰 뿐이다. */
     const sw=110, sx=VW/2-sw/2, sy=y-38;
     u.fillStyle='rgba(255,255,255,.14)'; u.fillRect(sx,sy,sw,6);
-    u.fillStyle=me.stamina>0.5?PAL.green:me.stamina>0.22?PAL.gold:PAL.red;
+    /* ⛔ 전략 층(2026-09-12)이 들어오면서 **체력 0.4 가 규칙의 문턱**이 됐다 — 그 아래에선
+       승부 페이스 가산이 줄어든다(MID.pushNeed). 막대 색이 옛 기준(0.22)으로 칠해져 있으면
+       플레이어는 그 문턱을 영영 모른다. 색 기준을 문턱에 맞추고 막대에 눈금을 긋는다. */
+    u.fillStyle=me.stamina>0.5?PAL.green:me.stamina>MID.pushNeed?PAL.gold:PAL.red;
     u.fillRect(sx,sy,Math.round(sw*me.stamina),6);
+    if(MID.pushNeed > 0){
+      u.fillStyle='rgba(255,255,255,.75)';
+      u.fillRect(sx+Math.round(sw*MID.pushNeed), sy-2, 1, 10);
+    }
     txtOn(u,'체력', sx-8, sy-1, 9, PAL.dim,'right');
+    /* 승부인데 체력이 문턱 아래 — 지금 누르는 ▲ 가 거의 안 먹힌다는 걸 그 자리에서 말한다 */
+    if(me.pace===2 && MID.pushNeed>0 && me.stamina<MID.pushNeed && !this.walk)
+      txtOn(u,'체력 부족 — 승부가 안 먹힌다', sx+sw+8, sy-1, 9, PAL.red,'left',700);
     /* 랩 · 스퍼트 — 좌우로 갈라 놓는다 */
     if(this.road){
       const km = (v)=> (v/1000).toFixed(1);

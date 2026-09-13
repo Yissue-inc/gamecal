@@ -420,16 +420,16 @@ const EVENTS = [
   { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:451, distanceM:3000, cuts:{silver:403, gold:380}, kind:'hurdles',
     hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'좌·우로 달리고 액션으로 넘는다 · 28개, 물웅덩이도 판정은 같다' },
   /* ── 트랙: 중·장거리 ── */
-  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회' },
-  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 = 승부' },
-  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:1027}, kind:'middle', tip:'좌·우 번갈아 · ▲▼ 페이스 · 액션은 마지막에 딱 한 번' },
-  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'좌·우 번갈아 · ▲▼ 페이스가 전부 — 액션 스퍼트는 없다 · 빠르면 경고 3회 실격' },
+  { id:'run800',     name:'800m 달리기',  short:'800M',  unit:'s', higher:false, qualify:172, parS:127.0, rivalPar:139.3, distanceM:800,  cuts:{silver:154, gold:145}, kind:'middle', tip:'좌·우 — 순항은 천천히 쳐야 체력이 남는다 · ▲▼ 페이스 · 막판에 액션 스퍼트' },
+  { id:'run1500',    name:'1500m 달리기', short:'1500M', unit:'s', higher:false, qualify:329, parS:238.0, rivalPar:270.0, distanceM:1500, cuts:{silver:294, gold:277}, kind:'middle', tip:'좌·우 — 순항은 천천히 쳐야 체력이 남는다 · ▲▼ 배분 · 막판에 액션 스퍼트' },
+  { id:'run5000',    name:'5000m 달리기', short:'5000M', unit:'s', higher:false, qualify:1179, parS:792.0, rivalPar:1011.0, distanceM:5000, cuts:{silver:1053, gold:1027}, kind:'middle', tip:'좌·우 번갈아 · 여유로 순항하다 ▲▼ 올리고 막판에 액션 스퍼트' },
+  { id:'walk20k',    name:'20km 경보',    short:'20KW',  unit:'s', higher:false, qualify:31900, parS:7800.0, rivalPar:23700, distanceM:20000, cuts:{silver:28500, gold:26900}, kind:'walk', tip:'좌·우 번갈아 · ▲▼ 배분 — 초반에 쏟으면 뒤가 없다 · 액션 스퍼트 없음 · 경고 3회 실격' },
   /* 마라톤 — 거리가 한 자릿수 더 크다. 압축비는 MiddleEvent 가 스스로 계산한다.
      ⚠ par 는 다른 거리처럼 6.3m/s 로 잡으면 1시간51분이 된다(사람 세계기록보다 빠르다).
         거리가 늘면 페이스는 떨어진다 — 5.34m/s 로 잡아 2시간12분에 둔다. */
   { id:'marathon', name:'마라톤', short:'MAR', unit:'s', higher:false, qualify:20700,
     parS:6720, rivalPar:16490, distanceM:42195, cuts:{silver:18450, gold:17400}, kind:'middle',
-    tip:'좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 스퍼트' },
+    tip:'좌·우 번갈아 · 초반에 쏟으면 뒤가 없다 — ▲▼ 여유로 가다 막판에 액션 스퍼트' },
   /* ── 트랙: 계주 ── */
   { id:'relay4x100', name:'4×100m 계주',  short:'4×100', unit:'s', higher:false, qualify:43.8, distanceM:400, rivalPar:38.00, parS:36.75, cuts:{silver:40.5, gold:38.2}, kind:'relay', legs:4, tip:'좌·우를 빠르게 번갈아 · 인계 구역에서 액션(속도가 비슷할 때)' },
   { id:'relay4x400', name:'4×400m 계주',  short:'4×400', unit:'s', higher:false, qualify:174.2, parS:147.5, distanceM:1600, rivalPar:152.40, cuts:{silver:161.9, gold:153.9}, kind:'relay', legs:4, tip:'좌·우 번갈아 · 인계 구역에서 액션 · 한 바퀴씩 네 명' },
@@ -460,7 +460,7 @@ const EVENTS = [
      **틀렸다.** 실측(2026-09-04): 같은 평균 간격에서 흔들림을 ±0/±120/±300ms 로 바꿔도
      83.20 / 83.21 / 83.74 — 차이가 없다. 반면 간격을 1050ms(자연 박자) → 60ms 로 줄이면
      83.20 → **75.98**. 젓는 횟수가 속도다. 연타 모델로 바꾼 뒤 문구만 남아 있었다. */
-  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, rivalPar:73.4, distanceM:500, cuts:{silver:79, gold:76.5}, kind:'row', tip:'좌·우를 빠르게 번갈아 — 젓는 횟수가 속도 · 액션 = 피치 업 1회' },
+  { id:'rowing',       name:'조정 500m',     short:'ROW',   unit:'s', higher:false, qualify:87, parS:77.7, rivalPar:73.4, distanceM:500, cuts:{silver:79, gold:76.5}, kind:'row', tip:'좌·우를 빠르고 고르게 — 간격이 흔들리면 느려진다 · 액션 = 피치 업 1회' },
   /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
   { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:70, cuts:{silver:82, gold:91.5}, kind:'tramp', tip:'매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다' },
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */

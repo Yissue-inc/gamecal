@@ -22,6 +22,13 @@ const TRI = {
   ],
   transitionMs: 2600,     // T1·T2 — 장비를 바꾸는 시간
   fatiguePerLeg: 0.30,    // 한 구간을 마칠 때 다음 구간에 넘기는 피로
+  /* ⛔ 0.55 였다 — 중거리 전략 층(2026-09-12, 1D_middle MID.pushNeed)이 들어오자 **효과가 두 배**가 됐다.
+     달리기 구간은 체력 0.67 로 출발해 금방 0.4 아래로 내려가고, 거기선 승부가 안 먹힌다 →
+     어떤 전략도 통하지 않고 최선이 241.98 → **262.97초**(금 243 불가)로 무너졌다.
+     옛 난이도로 되돌리는 값을 훑었다(드라이버 95ms · 5전략):
+        0.35 → 249.75   0.30 → 245.88   0.27 → 243.47   **0.25 → 241.85**   0.20 → 237.52
+     ⚠ 난이도를 새로 정한 게 아니라 **물리가 바뀐 만큼 되돌린** 값이다. */
+  carryStamina: 0.25,     // 넘어온 피로가 체력을 깎는 비율(체력 × (1 − 피로×이 값))
 };
 
 class TriathlonEvent {
@@ -62,11 +69,11 @@ class TriathlonEvent {
     /* 종목마다 '지친 상태'를 담는 이름이 다르다 — 있는 것에만 건다 */
     const R = sub.people || sub.runners || sub.swimmers || null;
     if(R) for(const r of R){
-      if(r.stamina!==undefined) r.stamina = Math.max(0.25, r.stamina*(1-c*0.55));
+      if(r.stamina!==undefined) r.stamina = Math.max(0.25, r.stamina*(1-c*TRI.carryStamina));
       if(r.form!==undefined)    r.form    = Math.max(0.3,  r.form*(1-c*0.35));
       if(r.fatigue!==undefined) r.fatigue = Math.min(1, (r.fatigue||0) + c*0.5);
     }
-    if(sub.stamina!==undefined) sub.stamina = Math.max(0.25, sub.stamina*(1-c*0.55));
+    if(sub.stamina!==undefined) sub.stamina = Math.max(0.25, sub.stamina*(1-c*TRI.carryStamina));
     sub.triCarry = c;      // 화면에 보여 주려고
   }
 

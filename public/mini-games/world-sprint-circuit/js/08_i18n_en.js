@@ -928,14 +928,14 @@ const I18N_EN = {
     'Run ◀▶, Action to clear · 10 hurdles, stride is everything',
   '좌·우로 달리고 액션으로 넘는다 · 28개, 물웅덩이도 판정은 같다':
     'Run with ◀▶ · Action to clear · 28 of them, water is the same',
-  '좌·우 번갈아 달리고 ▲▼ 페이스 · 액션 = 스퍼트 1회':
-    'Alternate ◀▶ to run, ▲▼ pace · Action = one spurt',
-  '좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 = 승부':
-    'Alternate ◀▶ · ▲▼ pace — faster burns stamina · Action = one push',
-  '좌·우 번갈아 · ▲▼ 페이스 · 액션은 마지막에 딱 한 번':
-    'Alternate ◀▶ · ▲▼ pace · save the Action for the very end',
-  '좌·우 번갈아 · ▲▼ 페이스가 전부 — 액션 스퍼트는 없다 · 빠르면 경고 3회 실격':
-    'Alternate ◀▶ · ▲▼ pace is all · no Action spurt · 3 warnings = DQ',
+  '좌·우 — 순항은 천천히 쳐야 체력이 남는다 · ▲▼ 페이스 · 막판에 액션 스퍼트':
+    '◀▶ — cruise at a calm beat to save energy · ▲▼ pace · spurt late',
+  '좌·우 — 순항은 천천히 쳐야 체력이 남는다 · ▲▼ 배분 · 막판에 액션 스퍼트':
+    '◀▶ — cruise at a calm beat to save energy · ▲▼ pace · spurt late',
+  '좌·우 번갈아 · 여유로 순항하다 ▲▼ 올리고 막판에 액션 스퍼트':
+    'Alternate ◀▶ · cruise easy, push with ▲▼, spurt late',
+  '좌·우 번갈아 · ▲▼ 배분 — 초반에 쏟으면 뒤가 없다 · 액션 스퍼트 없음 · 경고 3회 실격':
+    'Alternate ◀▶ · pace with ▲▼ · no Action spurt · 3 warnings = DQ',
   '좌·우로 달리고 인계 구역에서 액션 · 속도가 비슷할 때 넘긴다':
     'Run with ◀ ▶, Action in the exchange zone · hand over at matched speed',
   '좌·우 번갈아 · 인계 구역에서 액션 · 한 바퀴씩 네 명':
@@ -1016,8 +1016,8 @@ const I18N_EN = {
   '화면 버튼으로': 'On-screen buttons', '손가락이나 마우스로': 'Finger or mouse',
   '%1종목 더': '%1 more events',
   '마라톤': 'Marathon',
-  '좌·우 번갈아 · ▲▼ 페이스 — 높을수록 빠르고 체력이 빨리 준다 · 액션 스퍼트':
-    'Alternate ◀▶ · ▲▼ pace — faster burns stamina · Action = spurt',
+  '좌·우 번갈아 · 초반에 쏟으면 뒤가 없다 — ▲▼ 여유로 가다 막판에 액션 스퍼트':
+    'Alternate ◀▶ · going out hard fades — ▲▼ ease off, spurt late',
   '남은 %1km': '%1km to go',
 
   /* ── 링 ── */
@@ -1061,8 +1061,8 @@ const I18N_EN = {
     'Alternate ◀ ▶ fast, then Action at each hurdle',
   '좌·우를 빠르게 번갈아 · 인계 구역에서 액션(속도가 비슷할 때)':
     'Alternate ◀▶ fast · Action in the zone when speeds match',
-  '좌·우를 빠르게 번갈아 — 젓는 횟수가 속도 · 액션 = 피치 업 1회':
-    'Alternate ◀▶ fast — strokes are speed · Action = one pitch-up',
+  '좌·우를 빠르고 고르게 — 간격이 흔들리면 느려진다 · 액션 = 피치 업 1회':
+    '◀▶ fast and even — uneven beats slow you · Action = pitch-up',
   '좌·우를 빠르게 번갈아 — 손이 빠를수록 빨리 오른다 · 액션 = 도약 1회':
     'Alternate ◀▶ fast — faster hands climb faster · Action = one dyno',
   '좌·우 빠르게 번갈아 — 타수가 곧 속도 · 막판 액션 = 기울이기':
@@ -1422,8 +1422,8 @@ const I18N_EN = {
   '아직 여지가 있다': 'Still some room',
   '거의 다 자랐다': 'Nearly fully grown',
   '더 볼 것이 없다': 'Nothing more to see',
-  '좌·우를 빠르게 번갈아 — 젓는 횟수가 그대로 속도다':
-    'Alternate ◀▶ fast — stroke count is your speed',
+  '좌·우를 빠르고 고르게 — 간격이 흔들리면 배가 느려진다':
+    'Alternate ◀▶ fast and even — an uneven beat slows the boat',
   '이미 저장된 클럽이 있습니다':'You already have a saved club',
   '새로 시작하면 그 클럽은 사라집니다':'Starting over deletes that club',
   '확인 다시 누르면 새로 시작 · 취소로 돌아가기':'Confirm again to start over · Cancel to go back',
@@ -1649,4 +1649,5 @@ const I18N_EN = {
   '99 가 한계입니다':'99 is the ceiling',
   '돌파 −%1':'Break −%1',
   '최대':'Max',
+  '체력 부족 — 승부가 안 먹힌다': 'Low energy — push fades',
 };

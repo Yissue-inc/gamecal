@@ -18,6 +18,13 @@ const ROW = {
   catchMin: 520,       // 이보다 빨리 저으면 캐치가 얕다
   pitchMs: 15000,      // 피치 지속 — 8초로는 88초 레이스에서 0.5초밖에 못 벌어 죽은 장치였다
   smoothN: 6,          // 분산을 보는 최근 스트로크 수
+  /* 연타 모드에서 간격 흔들림이 '일정함'을 깎는 계수(0=끔). 실측(2026-09-12, 95ms · 금 76.5):
+       k      메트로놈  ±10ms  ±20ms  ±35ms  ±60ms
+       0      73.38     +0.0%  +0.0%  +0.0%  +0.1%   ← 고름이 아무 뜻이 없었다
+       0.4    73.38     +1.1%  +2.3%  +3.8%  +6.6%
+       0.8    73.38     +2.3%  +4.6%  +7.9%  +14%    ← ±20ms 가 금을 놓친다
+     0.6 — 흔들림이 기록에 보이되(±35ms ≈ +6%) 적당히 고른 손(±20ms)은 금에 닿는다. */
+  mashSmoothK: 0.6,
 };
 
 class RowingEvent {
@@ -70,7 +77,17 @@ class RowingEvent {
     if(RULES.mashMode){
       if(this.side===side) j='REPEAT';
       else if(this.lastStroke<-1e8) j='GOOD';
-      else { j='PERFECT'; this.ivs.push(dt); if(this.ivs.length>ROW.smoothN) this.ivs.shift(); }
+      else { j='PERFECT'; this.ivs.push(dt); if(this.ivs.length>ROW.smoothN) this.ivs.shift();
+        /* ⛔ 연타 모드로 옮길 때 smooth 의 **소비자만 빠져** 1.0 에 박혀 있었다(2026-09-05 발견).
+           CK 결정(2026-09-12 "전략으로"): 되살린다. 단 옛 리듬 모델의 계수(3.2)는 쓰지 않는다 —
+           사람은 메트로놈이 아니라서 ±40ms 흔들림에 25% 가 느려지고 ±110ms 는 완주를 못 했다.
+           연타 규모에 맞춘 계수는 ROW.mashSmoothK(실측으로 잡음). */
+        if(ROW.mashSmoothK > 0 && this.ivs.length >= 3){
+          const mean = this.ivs.reduce((a,b)=>a+b,0)/this.ivs.length;
+          const varc = this.ivs.reduce((a,b)=>a+Math.abs(b-mean),0)/this.ivs.length;
+          this.smooth = clamp(1 - (varc/Math.max(mean,1))*ROW.mashSmoothK, 0, 1);
+        }
+      }
     }
     else if(this.side===side){ j='REPEAT'; }
     else if(this.lastStroke<-1e8){ j='GOOD'; }
@@ -247,7 +264,8 @@ class RowingEvent {
           ±110ms **완주 실패**). 사람은 메트로놈이 아니다. 계수를 새로 잡는 건 난이도 결정이라
           CK 몫으로 남긴다 → 지금은 **화면이 코드를 따라가게** 한다.
        ⛔ 물 위에 어두운 글씨·가는 막대라 안 읽혔다(실측 스크린샷) — 되살릴 땐 받침도 함께. */
-    if(!RULES.mashMode){
+    /* ⛔ 연타 모드에서 이 게이지를 숨겼었다(죽은 계기였으니까). 2026-09-12 에 고름을 되살려 다시 그린다. */
+    if(!RULES.mashMode || ROW.mashSmoothK > 0){
     const bw=120, bx=VW/2-bw/2, by=Track.botY(26);
     plate(u, bx-8, by-15, bw+16, 27, 0.74);
     const sc = this.smooth>0.75?PAL.green:this.smooth>0.5?PAL.gold:PAL.red;
@@ -263,7 +281,7 @@ class RowingEvent {
        *"노도 빨리 저을수록 빠르다"*. 조정에서 살아 있는 건 **고름**이지 느림이 아니다
        (smooth 가 배 속도의 상한을 정한다). 연타 모델로 바꿀 때 이 줄만 옛 말로 남았다
        (2026-09-05, 드라이버를 고친 뒤 다시 훑다가 잡혔다). ⚠ VH-42(228)는 '일정함' 줄과 문다 */
-    else if(this.strokes<3) txtOn(u,'좌·우를 빠르게 번갈아 — 젓는 횟수가 그대로 속도다', VW/2, Track.botY(56), 10, PAL.white,'center');
+    else if(this.strokes<3) txtOn(u,'좌·우를 빠르고 고르게 — 간격이 흔들리면 배가 느려진다', VW/2, Track.botY(56), 10, PAL.white,'center');
     else if(!this.pitchUsed) txt(u,'액션 = 피치 업 (한 번)', 8, Track.botY(24), 9, PAL.gold,'left');
     if(this.t-this.msgAt<900)
       txt(u, this.msg, VW/2, 46, 12, this.msgBad?PAL.red:PAL.green,'center',700);
