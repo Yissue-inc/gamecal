@@ -1,0 +1,294 @@
+{
+  "generatedBy": "sprint-game/tools/export_tracks.js",
+  "note": "game units; do not edit by hand",
+  "tracks": {
+    "sprint100": {
+      "higher": false,
+      "min": 7.05,
+      "max": 11.4,
+      "scale": 100
+    },
+    "sprint200": {
+      "higher": false,
+      "min": 14.7,
+      "max": 23.1,
+      "scale": 100
+    },
+    "sprint400": {
+      "higher": false,
+      "min": 32.7,
+      "max": 48.6,
+      "scale": 100
+    },
+    "hurdles110": {
+      "higher": false,
+      "min": 7.8,
+      "max": 13.8,
+      "scale": 100
+    },
+    "hurdles400": {
+      "higher": false,
+      "min": 31.6,
+      "max": 48.7,
+      "scale": 100
+    },
+    "steeple3000": {
+      "higher": false,
+      "min": 238,
+      "max": 451,
+      "scale": 100
+    },
+    "run800": {
+      "higher": false,
+      "min": 91,
+      "max": 172,
+      "scale": 100
+    },
+    "run1500": {
+      "higher": false,
+      "min": 173,
+      "max": 329,
+      "scale": 100
+    },
+    "run5000": {
+      "higher": false,
+      "min": 723,
+      "max": 1179,
+      "scale": 100
+    },
+    "walk20k": {
+      "higher": false,
+      "min": 16900,
+      "max": 31900,
+      "scale": 10
+    },
+    "marathon": {
+      "higher": false,
+      "min": 10800,
+      "max": 20700,
+      "scale": 10
+    },
+    "relay4x100": {
+      "higher": false,
+      "min": 27,
+      "max": 43.8,
+      "scale": 100
+    },
+    "relay4x400": {
+      "higher": false,
+      "min": 113.3,
+      "max": 174.2,
+      "scale": 100
+    },
+    "longJump": {
+      "higher": true,
+      "min": 5.9,
+      "max": 8.66,
+      "scale": 100
+    },
+    "tripleJump": {
+      "higher": true,
+      "min": 11,
+      "max": 18.389,
+      "scale": 100
+    },
+    "highJump": {
+      "higher": true,
+      "min": 1.7,
+      "max": 2.449,
+      "scale": 100
+    },
+    "poleVault": {
+      "higher": true,
+      "min": 5.4,
+      "max": 7.82,
+      "scale": 100
+    },
+    "shotPut": {
+      "higher": true,
+      "min": 18.65,
+      "max": 26.772,
+      "scale": 100
+    },
+    "discus": {
+      "higher": true,
+      "min": 59,
+      "max": 84.041,
+      "scale": 100
+    },
+    "javelin": {
+      "higher": true,
+      "min": 69.9,
+      "max": 99.567,
+      "scale": 100
+    },
+    "hammer": {
+      "higher": true,
+      "min": 56,
+      "max": 79.768,
+      "scale": 100
+    },
+    "swimFree100": {
+      "higher": false,
+      "min": 34.467,
+      "max": 43,
+      "scale": 100
+    },
+    "swimBack100": {
+      "higher": false,
+      "min": 38.199,
+      "max": 47,
+      "scale": 100
+    },
+    "swimBreast100": {
+      "higher": false,
+      "min": 45.73,
+      "max": 56,
+      "scale": 100
+    },
+    "swimFly100": {
+      "higher": false,
+      "min": 38.709,
+      "max": 48,
+      "scale": 100
+    },
+    "diving": {
+      "higher": true,
+      "min": 60,
+      "max": 85.465,
+      "scale": 100
+    },
+    "lifting": {
+      "higher": true,
+      "min": 140,
+      "max": 199.419,
+      "scale": 100
+    },
+    "archery": {
+      "higher": true,
+      "min": 51,
+      "max": 61.5,
+      "scale": 100
+    },
+    "cycling": {
+      "higher": false,
+      "min": 13.954,
+      "max": 34,
+      "scale": 100
+    },
+    "rowing": {
+      "higher": false,
+      "min": 55.5,
+      "max": 87,
+      "scale": 100
+    },
+    "trampoline": {
+      "higher": true,
+      "min": 70,
+      "max": 134.5,
+      "scale": 100
+    },
+    "climbSpeed": {
+      "higher": false,
+      "min": 1.3,
+      "max": 4.6,
+      "scale": 100
+    },
+    "fencing": {
+      "higher": false,
+      "min": 0.5,
+      "max": 52,
+      "scale": 100
+    },
+    "decathlon": {
+      "higher": true,
+      "min": 7578,
+      "max": 13944,
+      "scale": 100
+    },
+    "triathlon": {
+      "higher": false,
+      "min": 159,
+      "max": 285,
+      "scale": 100
+    },
+    "shooting": {
+      "higher": true,
+      "min": 90,
+      "max": 123,
+      "scale": 100
+    },
+    "heptathlon": {
+      "higher": true,
+      "min": 5853,
+      "max": 11304,
+      "scale": 100
+    },
+    "swimMedley200": {
+      "higher": false,
+      "min": 64.512,
+      "max": 126,
+      "scale": 100
+    },
+    "tableTennis": {
+      "higher": false,
+      "min": 30.86,
+      "max": 140,
+      "scale": 100
+    },
+    "judo": {
+      "higher": false,
+      "min": 0.5,
+      "max": 45,
+      "scale": 100
+    },
+    "vault": {
+      "higher": true,
+      "min": 10.5,
+      "max": 15.9,
+      "scale": 100
+    },
+    "canoe": {
+      "higher": false,
+      "min": 35,
+      "max": 68,
+      "scale": 100
+    },
+    "golf": {
+      "higher": false,
+      "min": -12,
+      "max": 0,
+      "scale": 100
+    },
+    "equestrian": {
+      "higher": false,
+      "min": 0,
+      "max": 8,
+      "scale": 100
+    },
+    "highBar": {
+      "higher": true,
+      "min": 10.5,
+      "max": 14.956,
+      "scale": 100
+    },
+    "rings": {
+      "higher": true,
+      "min": 11.7,
+      "max": 16.666,
+      "scale": 100
+    },
+    "pentathlon": {
+      "higher": true,
+      "min": 2983,
+      "max": 7924,
+      "scale": 100
+    },
+    "swimRelay4x100": {
+      "higher": false,
+      "min": 170.094,
+      "max": 220,
+      "scale": 100
+    }
+  }
+}

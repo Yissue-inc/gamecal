@@ -86,6 +86,8 @@ const G = {
     /* ⚠ 감독 모드 '직접 뛰기'(mgHook)는 결선이 따로 있다(32_season) — 아케이드 메달을 쓰면 안 된다 */
     this.event.field = (!Party.on && !this.mgHook && typeof Field !== 'undefined')
       ? Field.hidden(def, 0) : null;
+    this.event.fieldSource = this.event.field ? Field.sourceOf(def) : null;
+    if(typeof Online !== 'undefined') Online.refresh();           // 오래됐으면 새로 받는다(다음 판부터 반영)
     this.state = ST.PLAY;
   },
   backToSelect(){
@@ -294,6 +296,9 @@ const G = {
         this.final = (ev.field && typeof Field!=='undefined') ? Field.final(this.def, ev, r, { hidden: ev.field }) : null;
         const med = this.final ? this.final.medal : null;
         if(med) Save.medal(this.def.id, med);
+        /* 결선에 든 판을 사람들 기록으로 올린다 — 쉬움(아이용)은 빼고(0H_online 머리말) */
+        if(this.final && r.status === 'OK' && typeof Online !== 'undefined' && this.final.level !== 'easy')
+          Online.submit(this.def, r.value, this.final.level);
         /* 실제 세계·올림픽 기록을 넘으면 개인 최고와 같은 크기로 운다(0G_records) */
         const broke = (r.status==='OK' && typeof Real!=='undefined') ? Real.broke(this.def, r.value) : null;
         if(this.newRecord || (broke && (broke.wr || broke.or))){ Sfx.record(); Sfx.roar(); }
@@ -1177,7 +1182,10 @@ const G = {
   drawFinalTable(uctx, d, fin){
     const X = 364, W = 110, Y = 64, RH = 11;
     plate(uctx, X - 4, Y - 4, W + 4, 14 + fin.rows.length * RH + 4, .72);
-    txt(uctx, K('결선'), X, Y - 1, 9, PAL.dim, 'left', 700);
+    /* 필드가 어디서 왔나 — 사람들의 실제 기록이면 인원을 적는다. 추정이면 그렇다고 말한다(숨기지 않는다) */
+    const src = this.event && this.event.fieldSource;
+    const head = (src && src.kind === 'players') ? K('결선 · 플레이어 %1명').replace('%1', src.n) : K('결선 · 추정 선수');
+    txt(uctx, head, X, Y - 1, 8, PAL.dim, 'left', 700);
     fin.rows.forEach((row, i) => {
       const y = Y + 13 + i * RH, me = row.who === 'me';
       const col = me ? PAL.gold : (i < 3 ? PAL.white : PAL.dim);
@@ -1191,6 +1199,17 @@ const G = {
       const v = fmtRec(d, row.value);
       txt(uctx, v, X + W - 2, y, 9, col, 'right', me ? 700 : 400);
     });
+    /* 내 기록이 사람들 필드에 들어갔나 — 게스트에게는 왜 로그인하는지 한 줄로 */
+    const sub = (typeof Online !== 'undefined') ? Online.lastSubmit : null;
+    if(sub && sub.id === d.id){
+      const line = sub.state === 'guest' ? K('로그인하면 내 기록도 결선에') : sub.state === 'saved' ? K('결선 기록 저장됨') : '';
+      /* ⚠ 영어 첫 문구('Sign in to join the field')가 화면 오른쪽 끝을 4px 넘었다 — 폭을 재서 한 치수 줄인다 */
+      if(line){
+        uctx.font = '400 8px "Galmuri11","Nanum Gothic Coding",monospace';
+        const fs = uctx.measureText(line).width > W + 2 ? 7 : 8;
+        txt(uctx, line, X, Y + 14 + fin.rows.length * RH + 4, fs, sub.state === 'saved' ? PAL.green : PAL.dim, 'left');
+      }
+    }
   },
 
   drawResult(uctx){

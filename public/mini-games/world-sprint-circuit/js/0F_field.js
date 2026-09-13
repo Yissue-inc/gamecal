@@ -51,6 +51,9 @@ const FIELD = {
   HARD_SHIFT: 0.08, HARD_CAP: 1.10,
   EASY_LADDER: -2.5,                 // 0 을 지나는 단위에서만
   ZERO_CROSS_UNITS: ['타', '벌점'],
+  /* 사람 기록 분포를 믿기 시작하는 인원 — 그 아래는 추정 필드(PROFILE)를 쓴다.
+     ⚠ 30 은 분위수(5%~95%, 19점)가 한 사람씩 널뛰지 않을 최소한으로 잡았다 — 실측이 아니라 판단이다. */
+  MIN_PLAYERS: 30,
   /* 결과가 '맞붙어 이긴 시간' 인 종목 — 지면 결선 순위가 없다 */
   DUEL_KINDS: ['fence', 'rally', 'grap'],
 };
@@ -79,10 +82,35 @@ const Field = {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   },
 
+  /* 이 종목의 필드는 어디서 오나 — { kind:'players', n } · { kind:'estimate' } */
+  sourceOf(def){
+    const P = def && this.players[def.id];
+    return (P && P.n >= FIELD.MIN_PLAYERS && this.level() !== 'easy') ? { kind: 'players', n: P.n } : { kind: 'estimate' };
+  },
+
   /* 화면 밖 결선 진출자 기록 — 좋은 순으로 정렬해 돌려준다 */
   hidden(def, nVisible, rng){
     rng = rng || Math.random;
     const lv = this.level();
+    /* ── 사람들의 실제 기록(0H_online) ─────────────────────
+       q = 오름차순 값의 5%~95% 분위. 진출자 7명을 그 분포에서 뽑는다 — **평균 선수는 평균 기록으로 뛴다.**
+       어려움은 위쪽 절반에서만 뽑는다. 쉬움(아이용)은 사람 분포를 안 쓴다(아이가 어른 기록과 겨루지 않게).
+       ⛔ 이때부터는 '옛 금컷 = 반드시 금' 약속이 **풀린다** — 사람들이 그보다 잘하면 금은 더 멀다(CK 결정의 뜻).
+          대신 AI 는 **세계기록 자리를 넘지 못한다**(0G_records 앵커) — 세계기록은 사람만 깬다. */
+    if(this.sourceOf(def).kind === 'players'){
+      const q = this.players[def.id].q;
+      const at = u => { const pos = clamp(u, 0, 1) * (q.length - 1), lo = Math.floor(pos), hi = Math.min(q.length - 1, lo + 1);
+                        return q[lo] + (q[hi] - q[lo]) * (pos - lo); };
+      const cap = this.wrGameValue(def);
+      const out = [];
+      for(let i = 0; i < FIELD.PROFILE.length - Math.min(nVisible || 0, FIELD.PROFILE.length); i++){
+        const good = lv === 'hard' ? 0.5 + 0.5 * rng() : rng();
+        let v = at(def.higher ? good : 1 - good);
+        if(cap !== null) v = def.higher ? Math.min(v, cap) : Math.max(v, cap);
+        out.push(this.round(def, v));
+      }
+      return out.sort((a, b) => def.higher ? b - a : a - b);
+    }
     const slots = FIELD.PROFILE.slice(Math.min(nVisible || 0, FIELD.PROFILE.length));
     const zeroCross = FIELD.ZERO_CROSS_UNITS.includes(def.unit);
     const easyK = (typeof AI !== 'undefined' && AI.PAR_TARGET)
@@ -193,6 +221,17 @@ const Field = {
     const medal = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : null;
     const lead = rank > 1 ? rows[0].value : null;
     return { rank, medal, rows, level: lv, lead };
+  },
+
+  /* AI 가 넘지 못하는 선(게임 단위) — 세계기록 자리에서 **0.5% 나쁜 쪽**. 규격이 다른 종목은 null
+     ⛔ 세계기록 자리 그대로 자르면, 분포 위쪽이 두꺼울 때 진출자 둘이 **정확히 세계기록 타이**(1:40.91 ×2)로 찍혔다
+        (2026-09-12 로컬 실측). AI 는 세계기록에 닿지도 않는다 — 닿는 건 사람뿐이다. */
+  wrGameValue(def){
+    if(typeof Real === 'undefined' || !Real.on(def)) return null;
+    const w = Real.wr(def);
+    if(!w) return null;
+    const at = w[0] / Real.k(def);
+    return def.higher ? at * 0.995 : at * 1.005;
   },
 
   /* 경기 중 메달 레일 — **화면 밖 결선 진출자의 1·2·3위 기록**을 선으로 긋는다.

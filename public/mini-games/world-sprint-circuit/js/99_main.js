@@ -89,6 +89,8 @@ function boot(){
   if(typeof Music!=='undefined') Music.loadPrefs();
   if(typeof CharMode!=='undefined') CharMode.load();
   if(typeof AI!=='undefined') AI.load();
+  /* 사람들의 실제 기록 분포(0H_online) — 게임을 막지 않게 늦게 · 실패하면 추정 필드 그대로 */
+  if(typeof Online!=='undefined') setTimeout(() => Online.refresh(true), 1200);
   /* 종족이 늘었는데 픽셀 갈래에 안 넣으면 조용히 기본 생김새가 된다 — 부팅 때 잡는다 */
   if(typeof CharPix!=='undefined') CharPix.verifyKinds();
   if(typeof Music!=='undefined') Music.verifyKinds();

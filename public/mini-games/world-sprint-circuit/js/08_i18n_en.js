@@ -1615,6 +1615,8 @@ const I18N_EN = {
   '에페 — 기록 종목 아님':'Épée — no records', '경기 종목 — 기록 없음':'Match play — no records', '올림픽 코스':'Olympic distance',
   '10m 공기소총 결선':'10m air rifle final', '올림픽 결선 최고점':'Best Olympic final', '코스마다 달라 기록 없음':'Course varies — no records',
   '올림픽 72홀':'Olympic 72 holes', '감점+점프오프 — 기록 없음':'Faults + jump-off — none', '근대5종 점수(옛 승마 규격)':'Pentathlon pts (old format)',
+  '결선 · 플레이어 %1명':'Final · %1 players', '결선 · 추정 선수':'Final · est. field',
+  '로그인하면 내 기록도 결선에':'Sign in to be ranked', '결선 기록 저장됨':'Saved to the field',
   '결선':'Final', '결선 %1위':'Final #%1', '금메달':'gold medal', '1위까지 %1':'%1 behind 1st', '허들 %1/%2':'hurdles %1/%2',
 
   /* ⛔ 튜토리얼(4G) 의 say·wait — **새 플레이가 제일 먼저 보는 여섯 줄**인데

@@ -11,6 +11,16 @@ import {
   isMiniGameSchemaMissing,
   miniGameScopeKey,
 } from '@/lib/minigames'
+import {
+  encodeTrackScore,
+  gameHasTracks,
+  getMiniGameTrack,
+  miniGameTrackScope,
+  TRACK_SCOPE_PREFIX,
+  trackIdFromScope,
+  trackQuantiles,
+  trackValueInBounds,
+} from '@/lib/minigame-tracks'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,10 +57,55 @@ async function getLeaderboard(miniGameSlug: string, eventScope: string): Promise
   }))
 }
 
+/**
+ * 종목(트랙)별 기록 분포 — 게임이 AI 결선 필드를 사람들의 실제 기록으로 뽑을 때 쓴다.
+ * 개인 기록·아이디는 내보내지 않고 분위수와 인원만 준다. 5분 캐시.
+ */
+async function getTrackDistribution(miniGameSlug: string) {
+  const empty = { tracks: {}, ready: false }
+  if (!isSupabaseConfigured()) return empty
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('mini_game_scores')
+    .select('event_scope, stats')
+    .eq('mini_game_slug', miniGameSlug)
+    .like('event_scope', `${TRACK_SCOPE_PREFIX}%`)
+    .limit(20000)
+  if (error) {
+    if (isMiniGameSchemaMissing(error)) return empty
+    throw error
+  }
+  const byTrack = new Map<string, number[]>()
+  for (const row of data ?? []) {
+    const trackId = trackIdFromScope(String(row.event_scope ?? ''))
+    const track = trackId ? getMiniGameTrack(miniGameSlug, trackId) : null
+    const value = (row.stats as Record<string, unknown> | null)?.v
+    // 범위표가 바뀐 뒤 옛 범위로 들어온 값은 분포에서 뺀다
+    if (!trackId || !track || !trackValueInBounds(track, value)) continue
+    const list = byTrack.get(trackId) ?? []
+    list.push(value)
+    byTrack.set(trackId, list)
+  }
+  const tracks: Record<string, { n: number; q: number[] }> = {}
+  byTrack.forEach((values, trackId) => {
+    tracks[trackId] = { n: values.length, q: trackQuantiles(values) }
+  })
+  return { tracks, ready: true }
+}
+
 export async function GET(request: NextRequest) {
   const miniGameSlug = cleanMiniGameText(request.nextUrl.searchParams.get('miniGameSlug'))
   if (!miniGameSlug || !getMiniGameBySlug(miniGameSlug)) {
     return NextResponse.json({ error: 'miniGameSlug is required' }, { status: 400 })
+  }
+  if (request.nextUrl.searchParams.get('dist') === 'all') {
+    if (!gameHasTracks(miniGameSlug)) return NextResponse.json({ error: 'This game has no tracks' }, { status: 400 })
+    try {
+      const body = await getTrackDistribution(miniGameSlug)
+      return NextResponse.json(body, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } })
+    } catch {
+      return NextResponse.json({ tracks: {}, ready: false })
+    }
   }
   if (!isSupabaseConfigured()) return NextResponse.json({ rows: [], me: null })
 
@@ -100,14 +155,28 @@ export async function POST(request: NextRequest) {
   if (!game) return NextResponse.json({ error: 'Unknown mini game' }, { status: 400 })
 
   const eventId = cleanMiniGameText(body.eventId) || null
-  const eventScope = miniGameScopeKey(eventId)
+  let eventScope = miniGameScopeKey(eventId)
   const gameSlug = cleanMiniGameText(body.gameSlug) || null
   const sessionId = cleanMiniGameText(body.sessionId)
   // 아이프레임 값은 서버가 자른다.
-  const score = clampMiniGameScore(miniGameSlug, body.score)
+  let score = clampMiniGameScore(miniGameSlug, body.score)
   const rankLabel = cleanMiniGameText(body.rankLabel).slice(0, 40) || null
   const durationMs = Math.min(cleanMiniGameNumber(body.durationMs, 0), 24 * 60 * 60 * 1000)
-  const stats = cleanMiniGameStats(body.stats)
+  let stats = cleanMiniGameStats(body.stats)
+
+  // 종목(트랙) 기록 — 소수·방향·단위가 종목마다 다르다. 범위 밖이면 저장하지 않는다.
+  const trackId = cleanMiniGameText(body.track)
+  if (trackId) {
+    const track = getMiniGameTrack(miniGameSlug, trackId)
+    if (!track) return NextResponse.json({ error: 'Unknown track' }, { status: 400 })
+    const value = Number(body.value)
+    if (!trackValueInBounds(track, value)) {
+      return NextResponse.json({ error: 'Record is outside the plausible range' }, { status: 422 })
+    }
+    eventScope = miniGameTrackScope(trackId)
+    score = clampMiniGameScore(miniGameSlug, encodeTrackScore(track, value))
+    stats = { ...stats, v: value }
+  }
 
   try {
     const admin = createAdminClient()
