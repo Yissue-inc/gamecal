@@ -6,11 +6,12 @@
 <title>World Sprint Circuit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Galmuri11:wght@400;700&display=swap">
+<!-- ⛔ 예전 요청(family=Galmuri11)은 HTTP 400 이었다 — Google Fonts 에 없는 글꼴. 정본은 js/00_rules.js UI_FONT -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800&family=Noto+Sans+KR:wght@500;700;900&display=swap">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{width:100%;height:100%;overflow:hidden;background:#05060a;
-    font-family:"Galmuri11","Nanum Gothic Coding",monospace;
+    font-family:"Barlow Condensed","Noto Sans KR",system-ui,sans-serif;
     -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
   #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
   #stack{position:relative;line-height:0;}
@@ -26,12 +27,19 @@
   .pgroup{display:flex;flex-direction:column;gap:6px;align-items:center;}
   .prow{display:flex;gap:6px;}
   .pbtn.sm{height:44px;min-width:52px;font-size:15px;padding:0 12px;}
+  /* ── 방송 중계형 버튼 (2026-09-13 CK 결정) — 유리 패널 · 위 1px 반사광 · 누르면 금색으로 찬다 ──
+     ⚠ 크기·위치 규칙(아래 play·가로 폰 미디어 쿼리)은 그대로다 — 여기는 **겉모습만** 바꾼다. */
   .pbtn{display:flex;align-items:center;justify-content:center;
-    height:56px;min-width:78px;border-radius:12px;cursor:pointer;padding:0 14px;
-    background:rgba(22,26,38,.78);border:2px solid #3a4258;
-    color:#e6edf7;font-family:inherit;font-size:19px;font-weight:700;
-    transition:transform .06s,background .06s;backdrop-filter:blur(2px);}
-  .pbtn.on{background:rgba(90,170,255,.5);border-color:#7fc0ff;transform:scale(.94);}
+    height:56px;min-width:78px;border-radius:16px;cursor:pointer;padding:0 14px;
+    background:linear-gradient(180deg,rgba(38,50,78,.88),rgba(12,17,30,.88));
+    border:1px solid rgba(150,180,235,.30);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 16px rgba(0,0,0,.38);
+    color:#eef3fb;font-family:inherit;font-size:19px;font-weight:700;letter-spacing:.02em;
+    transition:transform .06s,background .06s,box-shadow .06s;backdrop-filter:blur(3px);}
+  .pbtn.on{background:linear-gradient(180deg,#ffe07a,#f0b429);color:#11151f;border-color:#ffe9a8;
+    transform:scale(.94);box-shadow:0 0 0 3px rgba(255,215,94,.28),0 2px 6px rgba(0,0,0,.45);}
+  #p-act{color:#ffd75e;border-color:rgba(255,215,94,.55);}
+  #p-act.on{color:#11151f;}
   .pbtn.wide{grid-column:span 1;}
   #p-pause{position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;
     height:34px;width:46px;font-size:13px;z-index:6;}
@@ -73,8 +81,9 @@
         경기 중에만 그렇게 하고, 메뉴에서는 원래대로 또렷하게 둔다. */
   @media (max-height:460px) and (orientation:landscape){
     #pad.play{padding-bottom:calc(4px + env(safe-area-inset-bottom));}
-    #pad.play .pbtn{background:rgba(22,26,38,.42);border-color:rgba(120,140,180,.5);}
-    #pad.play .pbtn.on{background:rgba(90,170,255,.55);border-color:#7fc0ff;}
+    #pad.play .pbtn{background:linear-gradient(180deg,rgba(38,50,78,.46),rgba(12,17,30,.46));border-color:rgba(150,180,235,.34);}
+    #pad.play .pbtn.on{background:linear-gradient(180deg,rgba(255,224,122,.9),rgba(240,180,41,.9));border-color:#ffe9a8;}
+    #pad.play #p-act{border-color:rgba(255,215,94,.5);}
     #pad.play .prow .pbtn{height:64px;min-width:76px;}
     /* 844×390 에서 캔버스 옆 여백이 122px 인데 ◀▶(12+118px)가 **8px 캔버스를 덮었다**(출발선 선수 발) — 폭만 줄인다 */
     #pad.play #p-left, #pad.play #p-right{ min-width:104px; }
@@ -94,22 +103,42 @@
        .prow 는 그대로 두면 된다 — 자식이 전부 fixed 라 흐름에서 자리를 차지하지 않는다. */
   }
 
+  /* ⛔ 가로 폰 **메뉴**에서 [확인][취소] 무리가 가운데 바닥에 앉아 **언어 칩과 바닥 안내 글자를 덮었다**
+     (2026-09-13 화면 순회 캡처 — 폰 점검은 경기 순간만 봐서 못 잡았다). 캔버스 옆 여백(가로 844 에서 122px)으로 뺀다:
+     십자는 왼쪽 여백, 확인·취소는 오른쪽 여백. 경기(.play)는 위 규칙 그대로. */
+  @media (max-height:460px) and (orientation:landscape){
+    #pad:not(.play){ grid-template-columns:auto 1fr auto; }
+    #pad:not(.play) #pad-act{ grid-column:3; justify-self:end; }
+    #pad:not(.play) #pad-act .pbtn{ min-width:92px; }
+  }
+
   /* ── 시작 화면 ─────────────────────────────────────────── */
   #gate{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:18px;background:#05060a;
+    align-items:center;justify-content:center;gap:14px;
+    background:radial-gradient(ellipse 80% 60% at 50% 28%,#16264a 0%,#0a1020 55%,#04050a 100%);
     color:#e6edf7;text-align:center;padding:20px;}
-  #gate h1{font-size:26px;letter-spacing:.06em;color:#ffd75e;}
+  /* 제목 — 중계 그래픽의 굵은 기울임 대문자 + 아래 두 색 띠 */
+  #gate h1{font-size:clamp(28px,6vw,46px);font-weight:800;font-style:italic;letter-spacing:.04em;line-height:1;
+    background:linear-gradient(180deg,#ffffff 0%,#ffe7a3 55%,#ffc53d 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 3px 10px rgba(0,0,0,.5));}
+  #gate h1::after{content:'';display:block;width:84px;height:4px;margin:10px auto 0;border-radius:2px;
+    background:linear-gradient(90deg,#ffc53d 0 55%,#3fc8ff 55% 100%);}
   /* 첫 화면 마크 — 어셋이 없으면 onerror 로 스스로 사라진다(깨진 아이콘 금지) */
   #gate #g-mark{width:min(34vw,150px);height:auto;image-rendering:auto;
     filter:drop-shadow(0 6px 18px rgba(0,0,0,.55));margin-bottom:2px;}
-  #gate .sub{font-size:12px;color:#7d8699;letter-spacing:.05em;}
+  #gate .sub{font-size:14px;font-weight:500;color:#9aa7bf;letter-spacing:.02em;}
   #gate .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
-  .cbtn{display:flex;flex-direction:column;gap:5px;align-items:center;min-width:158px;
-    padding:15px 18px;cursor:pointer;background:rgba(22,26,38,.8);
-    border:2px solid #3a4258;border-radius:13px;color:#e6edf7;font-family:inherit;}
-  .cbtn b{font-size:16px;}
-  .cbtn i{font-style:normal;font-size:11px;color:#7d8699;}
-  .cbtn:hover,.cbtn.sel{border-color:#ffd75e;background:rgba(255,215,94,.16);}
+  .cbtn{display:flex;flex-direction:column;gap:4px;align-items:center;min-width:176px;
+    padding:16px 22px;cursor:pointer;
+    background:linear-gradient(180deg,rgba(38,50,78,.9),rgba(12,17,30,.9));
+    border:1px solid rgba(150,180,235,.30);border-radius:16px;color:#eef3fb;font-family:inherit;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 24px rgba(0,0,0,.4);
+    transition:transform .08s,border-color .08s,box-shadow .08s;}
+  .cbtn b{font-size:20px;font-weight:700;letter-spacing:.02em;}
+  .cbtn i{font-style:normal;font-size:12px;font-weight:500;color:#8d9ab3;}
+  .cbtn:hover,.cbtn.sel{border-color:#ffd75e;transform:translateY(-1px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 0 3px rgba(255,215,94,.22),0 12px 28px rgba(0,0,0,.45);}
+  .cbtn:focus-visible{outline:2px solid #3fc8ff;outline-offset:3px;}
 </style>
 </head>
 <body>
@@ -147,15 +176,15 @@
   </div>
 </div>
 
-<script src="js/00_rules.js?v=1789334980"></script>
+<script src="js/00_rules.js?v=1789338001"></script>
 <script src="js/01_core.js?v=1789274227"></script>
 <script src="js/02_runner.js?v=1789316202"></script>
-<script src="js/03_art.js?v=1788741287"></script>
+<script src="js/03_art.js?v=1789337897"></script>
 <script src="js/03B_preload.js?v=1789303064"></script>
 <script src="js/04_audio.js?v=1789305186"></script>
 <script src="js/4A_music.js?v=1789305139"></script>
-<script src="js/05_hud.js?v=1789311050"></script>
-<script src="js/05_scoreboard.js?v=1789276832"></script>
+<script src="js/05_hud.js?v=1789338461"></script>
+<script src="js/05_scoreboard.js?v=1789338939"></script>
 <script src="js/07_i18n.js?v=1788212438"></script>
 <script src="js/08_i18n_en.js?v=1789335397"></script>
 <script src="js/09_career.js?v=1788529249"></script>
@@ -167,13 +196,13 @@
 <script src="js/0G_records.js?v=1789323253"></script>
 <script src="js/0H_online.js?v=1789281533"></script>
 <script src="js/06_venue.js?v=1789276832"></script>
-<script src="js/10_sprint.js?v=1789333303"></script>
+<script src="js/10_sprint.js?v=1789337897"></script>
 <script src="js/11_hurdles.js?v=1789316232"></script>
-<script src="js/12_jumps.js?v=1789276832"></script>
+<script src="js/12_jumps.js?v=1789338939"></script>
 <script src="js/13_throws.js?v=1789276832"></script>
-<script src="js/14_more.js?v=1789276832"></script>
+<script src="js/14_more.js?v=1789338939"></script>
 <script src="js/15_relay.js?v=1789301733"></script>
-<script src="js/16_swim.js?v=1789284776"></script>
+<script src="js/16_swim.js?v=1789337897"></script>
 <script src="js/17_diving.js?v=1789274615"></script>
 <script src="js/18_lifting.js?v=1789274615"></script>
 <script src="js/19_archery.js?v=1789274615"></script>
@@ -204,13 +233,13 @@
 <script src="js/32_season.js?v=1788741214"></script>
 <script src="js/33_racesim.js?v=1788221187"></script>
 <script src="js/34_market.js?v=1788206193"></script>
-<script src="js/41_mgr_ui.js?v=1788601833"></script>
-<script src="js/42_meet_ui.js?v=1789276832"></script>
+<script src="js/41_mgr_ui.js?v=1789337897"></script>
+<script src="js/42_meet_ui.js?v=1789337897"></script>
 <script src="js/44_market_ui.js?v=1788600505"></script>
-<script src="js/45_share.js?v=1787894861"></script>
+<script src="js/45_share.js?v=1789337897"></script>
 <script src="js/43_manager.js?v=1788612480"></script>
-<script src="js/20_screens.js?v=1789318801"></script>
-<script src="js/48_ui_kit.js?v=1788595743"></script>
+<script src="js/20_screens.js?v=1789337897"></script>
+<script src="js/48_ui_kit.js?v=1789337897"></script>
 <script src="js/4C_master.js?v=1788109875"></script>
 <script src="js/46_rpg.js?v=1788213339"></script>
 <script src="js/49_depth.js?v=1788008854"></script>
@@ -227,7 +256,7 @@
 <script src="js/4M_identity.js?v=1788189520"></script>
 <script src="js/4N_national.js?v=1788196254"></script>
 <script src="js/50_power.js?v=1787984812"></script>
-<script src="js/47_rpg_ui.js?v=1788615842"></script>
-<script src="js/99_main.js?v=1789281048"></script>
+<script src="js/47_rpg_ui.js?v=1789337897"></script>
+<script src="js/99_main.js?v=1789338461"></script>
 </body>
 </html>
