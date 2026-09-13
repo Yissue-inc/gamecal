@@ -80,7 +80,11 @@ const RULES = {
   hurdleSpacingM: 9.14,
   hurdleCleanWindowM: 0.35,    // 이 안에서 누르면 Clean
   hurdleSafeWindowM: 0.65,
-  hurdleClipLoss: 0.18,
+  /* ⛔ 사다리가 거꾸로였다(2026-09-12 조작 깊이 실측): 깨끗이 넘기(CLEAN) 10.5% · 대충 넘기(SAFE) **6%** —
+     화면은 'CLEAN!' 을 칭찬하는데 **엉성하게 뛴 쪽이 빨랐다**(110mH 정확히 11.59 · 0.5m 늦게 11.46).
+     CLEAN 을 내리면 허들이 평지보다 빨라진다(11_hurdles 주석) — 그래서 **나머지를 올린다**: CLEAN < SAFE < CLIP < CRASH */
+  hurdleSafeLoss: 0.16,
+  hurdleClipLoss: 0.26,
   hurdleCrashLoss: 0.45,
 
   /* ── 멀리뛰기 ── */
@@ -444,10 +448,10 @@ const EVENTS = [
   { id:'javelin',    name:'창던지기',      short:'JAV',   unit:'m', higher:true,  qualify:69.9,  kind:'throw', tip:'좌·우로 달려 파울선 직전에 액션을 쥐었다 놓는다 — 선에 가까울수록 멀리' },
   { id:'hammer',     name:'해머던지기',    short:'HAM',   unit:'m', higher:true,  qualify:56.0,  kind:'throw', tip:'좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다' },
   /* ── 수영 ── */
-  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:40.44, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴'  },
-  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.56, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 배영은 벽이 안 보인다'  },
-  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:53.34, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 평영은 리듬 창이 넓다'},
-  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:45.26, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 접영은 숨이 가장 급하다'   },
+  { id:'swimFree100',  name:'자유형 100m',  short:'100FR', unit:'s', higher:false, qualify:43.0, distanceM:100, rivalPar:40.44, cuts:{silver:42.0, gold:40.9}, kind:'swim', stroke:'free', tip:'좌·우 초당 6~7번 — 연타하면 팔이 풀린다 · 액션 = 숨 · 벽 앞 턴'  },
+  { id:'swimBack100',  name:'배영 100m',    short:'100BK', unit:'s', higher:false, qualify:47.0, distanceM:100, rivalPar:44.56, cuts:{silver:46.2, gold:45.1}, kind:'swim', stroke:'back', tip:'좌·우 초당 6번 · 액션 = 벽에선 턴, 그 밖엔 숨 · 배영은 벽이 안 보인다'  },
+  { id:'swimBreast100',name:'평영 100m',    short:'100BR', unit:'s', higher:false, qualify:56.0, distanceM:100, rivalPar:53.34, cuts:{silver:55.0, gold:54.1}, kind:'swim', stroke:'breast', tip:'좌·우 초당 7번 — 연타하면 팔이 풀린다 · 액션 = 벽에선 턴, 그 밖엔 숨'},
+  { id:'swimFly100',   name:'접영 100m',    short:'100FL', unit:'s', higher:false, qualify:48.0, distanceM:100, rivalPar:45.26, cuts:{silver:47.0, gold:46.0}, kind:'swim', stroke:'fly', tip:'좌·우 초당 6~8번 · 액션 = 벽에선 턴, 그 밖엔 숨 · 접영은 숨이 가장 급하다'   },
   /* 다이빙 — 이 게임 유일의 '점수' 종목. 3시기 중 최고점. */
   { id:'diving',       name:'다이빙',       short:'DIVE',  unit:'점', higher:true,  qualify:60.0, kind:'dive', tip:'좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다' },
   /* 역도 — 힘 종목. 성공하면 무게가 오르고, 실패해야 시기를 쓴다. */
@@ -464,7 +468,7 @@ const EVENTS = [
   /* 트램폴린 — 10회를 끊지 않고 잇는다. 실수 한 번의 비용이 남은 회차 내내 따라온다. */
   { id:'trampoline',   name:'트램폴린',     short:'TRAM',  unit:'점', higher:true,  qualify:70, cuts:{silver:82, gold:91.5}, kind:'tramp', tip:'매트에 닿는 순간 액션 · 좌·우 회전 · 착지 전에 액션으로 편다' },
   /* 스피드 클라이밍 — 실제 형식이 이미 1대1이다. 한 판 7초, 이 게임에서 가장 짧다. */
-  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:4.6, parS:3.9, rivalPar:3.36, cuts:{silver:3.9, gold:3.5}, kind:'climb', tip:'좌·우를 빠르게 번갈아 — 손이 빠를수록 빨리 오른다 · 액션 = 도약 1회' },
+  { id:'climbSpeed',   name:'스피드 클라이밍', short:'CLMB', unit:'s', higher:false, qualify:4.6, parS:3.9, rivalPar:3.36, cuts:{silver:3.9, gold:3.5}, kind:'climb', tip:'좌·우 번갈아 — 초당 6번이면 끝까지 오른다 · 잡는 박자에 액션 = 도약 1회' },
   /* 펜싱 — 이 게임에서 유일하게 '리듬'이 아니라 '거리'가 축인 종목. 5투셰 선취까지의 시간. */
   { id:'fencing',      name:'펜싱 에페',    short:'FENC', unit:'s', higher:false, qualify:52.0, cuts:{silver:18, gold:13}, parS:42.0, kind:'fence', tip:'← 물러서기 · → 다가가기 · 액션 = 런지 · 뻗을 때 물러서면 받아넘긴다' },
   /* 10종 경기 — 새 물리가 아니라 **그릇**이다. 있는 열 종목을 이어 뛰고 IAAF 표로 합산한다. */
@@ -511,7 +515,7 @@ const EVENTS = [
   { id:'pentathlon',   name:'근대5종',      short:'PENT',  unit:'점', higher:true,  qualify:2983, parS:4062, cuts:{silver:4062, gold:4630}, kind:'combined', tip:'펜싱·수영·승마·사격·달리기 다섯 종목' },
   /* 수영 계영 — 앞 주자가 **벽을 찍는 순간**이 출발 신호다. 먼저 뛰면 실격. */
   { id:'swimRelay4x100', name:'계영 4×100m', short:'4×100F', unit:'s', higher:false,
-    qualify:220.0, parS:205.0, rivalPar:201.57, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'좌·우 번갈아 · 액션 = 턴 · 숨 · ▲ 인계는 벽 찍기 직전에' , legs:4, legEvent:'swimFree100'},
+    qualify:220.0, parS:205.0, rivalPar:201.57, distanceM:400, cuts:{silver:212, gold:207.5}, kind:'swim', stroke:'free' , tip:'좌·우 초당 7번 · 액션 = 턴 · 숨 · ▲ 인계는 벽 찍기 직전에' , legs:4, legEvent:'swimFree100'},
 ];
 /* tip = 종목 선택 화면에서 미리 보여 주는 조작 한 줄.
    ⚠ 46종목이 각기 다른 조작인데, 시작한 뒤 잠깐 뜨는 한 줄이 설명의 전부였다 —

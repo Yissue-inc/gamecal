@@ -46,10 +46,10 @@ class HurdlesEvent extends SprintEvent {
       q='CLEAN'; r.hurdlesClean++; done.add(bi); r.speedLoss(0.105, 150, nowMs); r.airUntil = nowMs+280;
       if(r.isPlayer){ Sfx.beep(1320,0.10,'square',0.13); this.hurdleMsg='CLEAN!'; }
     } else if(bd <= RULES.hurdleSafeWindowM){
-      q='SAFE'; done.add(bi); r.speedLoss(0.06,200,nowMs); r.airUntil = nowMs+280;
+      q='SAFE'; done.add(bi); r.speedLoss(RULES.hurdleSafeLoss,260,nowMs); r.airUntil = nowMs+280;
       if(r.isPlayer){ Sfx.beep(880,0.08,'square',0.10); this.hurdleMsg='SAFE'; }
     } else if(bd <= RULES.hurdleSafeWindowM*1.6){
-      q='CLIP'; r.hurdlesClip++; done.add(bi); r.speedLoss(RULES.hurdleClipLoss,400,nowMs);
+      q='CLIP'; r.hurdlesClip++; done.add(bi); r.speedLoss(RULES.hurdleClipLoss,500,nowMs);
       if(r.isPlayer){ Sfx.beep(220,0.16,'sawtooth',0.14); this.hurdleMsg='걸렸다!'; }
     } else {
       q='EARLY_JUMP';                        // 허들과 상관없는 곳에서 뛴 것 — 속도만 조금 잃는다

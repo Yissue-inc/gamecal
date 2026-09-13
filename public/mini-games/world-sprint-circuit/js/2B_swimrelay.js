@@ -131,7 +131,14 @@ class SwimRelayEvent extends SwimEvent {
   }
 
   /* ⛔ 구간 띠(y30~52)와 주자 정보가 상단을 쓰므로, 부모의 레일과 순위표를 비켜 준다 */
-  get hudExtra(){ return { railY: 54, noStandings: true }; }
+  /* ⚠ turnsY — 부모의 턴 기록(y44)이 이 띠(30~52) **밑에 깔려** 안 보였고 팀 이득 '−1.13초'(y34~44)와도 물렸다.
+     레일(54~65) 아래로 내린다(2026-09-13 겹침 검사) */
+  get hudExtra(){ return { railY: 54, noStandings: true, turnsY: 68 }; }
+  /* 인계 안내가 떠 있으면 부모의 '너무 빨라' 경고가 같은 줄을 비워 준다 */
+  get tempoWarnFree(){
+    const last = this.legIndex >= SWIMRELAY.legs - 1;
+    return !(!last && this.phase === 'RUN' && !this.armed && this.toWall * 1000 < 1400);
+  }
 
   drawUI(u){
     super.drawUI(u);

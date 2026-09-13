@@ -251,20 +251,38 @@ const HUD = {
      ① 다음에 칠 발 ② 지금 타수(막대가 즉시 반응) ③ 그 결과인 속도 */
   mashGauge(ctx, o, GY, GH){
     const nextL = o.nextSide < 0;
-    txt(ctx, nextL?'◀ 왼발':'오른발 ▶', 10, GY+8, 13, nextL?PAL.gold:PAL.blue, 'left', 700);
+    /* ⛔ 수영에서도 '오른발 ▶' 이라고 했다(2026-09-13 스크린샷) — 팔로 젓는 종목은 o.limb='arm' */
+    const arm = o.limb === 'arm';
+    txt(ctx, nextL ? (arm?'◀ 왼팔':'◀ 왼발') : (arm?'오른팔 ▶':'오른발 ▶'), 10, GY+8, 13, nextL?PAL.gold:PAL.blue, 'left', 700);
     const w=190, h=10, x=(VW-w)/2, y=GY+9;
     /* 타수 — 초당 몇 번 치고 있나(0~14 을 막대 전체로) */
     const tps = clamp((o.rate||0)*2, 0, 14);      // strideRate 는 바퀴/초 → 타/초는 ×2
     ctx.fillStyle='rgba(242,245,250,.14)'; ctx.fillRect(x,y,w,h);
+    /* o.band = [lo, hi] 초당 타 — **그 종목에서 가장 빠른 박자**. 있으면 칸을 깔고 색도 그 칸 기준으로.
+       ⛔ 수영은 연타가 손해인데(16_swim.js SWIM 표의 실측) 이 막대가 '빠를수록 빠르다' 고 말하고 있었다 */
+    const band = Array.isArray(o.band) ? o.band : null;
+    if(band){
+      ctx.fillStyle='rgba(92,255,156,.22)';
+      ctx.fillRect(x + w*(band[0]/14), y-2, w*((band[1]-band[0])/14), h+4);
+    }
     const fw = w*(tps/14);
-    /* 빠를수록 뜨겁게 — 손의 노력이 색으로 보인다 */
-    ctx.fillStyle = tps>=10 ? 'rgba(255,120,90,.92)' : tps>=6 ? 'rgba(255,215,94,.9)' : 'rgba(92,255,156,.75)';
+    /* 빠를수록 뜨겁게 — 손의 노력이 색으로 보인다 (칸이 있으면: 칸 안 초록 · 넘치면 빨강) */
+    ctx.fillStyle = band
+      ? (tps > band[1] + 1.5 ? 'rgba(255,120,90,.92)' : tps >= band[0] ? 'rgba(92,255,156,.85)' : 'rgba(255,215,94,.9)')
+      : (tps>=10 ? 'rgba(255,120,90,.92)' : tps>=6 ? 'rgba(255,215,94,.9)' : 'rgba(92,255,156,.75)');
     ctx.fillRect(x, y, fw, h);
+    /* 칸의 **테두리는 채움 위에** 긋는다 — 먼저 깔기만 하면 연타하는 순간 빨간 막대에 덮여 목표가 사라진다(2026-09-13 스크린샷) */
+    if(band){
+      const bx0 = Math.round(x + w*(band[0]/14)), bx1 = Math.round(x + w*(band[1]/14));
+      ctx.fillStyle = 'rgba(92,255,156,.95)';
+      ctx.fillRect(bx0-1, y-3, 2, h+6); ctx.fillRect(bx1-1, y-3, 2, h+6);
+      ctx.fillRect(bx0, y-3, bx1-bx0, 1); ctx.fillRect(bx0, y+h+2, bx1-bx0, 1);
+    }
     /* ⛔ 여기서 '타수' 를 쓰면 안 된다 — 골프의 '타수'(Strokes) 와 **같은 낱말**이라
        영어판 멀리뛰기 화면에 'Strokes 0.0' 이 떴다(2026-08-31 캡처). 뜻은 초당 연타수인데
        화면은 골프 타수라고 말하고 있었다. 한 낱말이 두 뜻이면 키를 갈라야 한다. */
     txt(ctx, K('연타수')+' '+tps.toFixed(1), x-2, y+h+1, 7, PAL.dim, 'right');
-    txt(ctx, K('빠를수록 빠르다'), x+w+2, y+h+1, 7, PAL.dim, 'left');
+    txt(ctx, K(band ? '초록 칸이 가장 빠르다' : '빠를수록 빠르다'), x+w+2, y+h+1, 7, PAL.dim, 'left');
   },
 
   /* 리듬 게이지 — "언제 눌러야 하나"를 눈으로 보여준다.

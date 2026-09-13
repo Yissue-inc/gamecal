@@ -12,6 +12,26 @@ const SWIM = {
   mashKick: 0.42,                // 연타 한 번이 남은 여유의 몇 할을 채우나
   turnWindowM: 1.6,              // 벽 앞 이 거리 안에서 눌러야 턴
   breathEvery: 2600,             // 이 간격마다 숨을 쉬어야 한다(ms)
+  /* 팔 피로 — 저을 때마다 차고(armPerStroke) 시간이 지나도 찬다(armPerS), 쉬면 풀린다(armRecoverPerS).
+     속도에 (1 − 피로×armCost) 로 곱해진다. 조율 기록은 아래 '팔 피로' 절(onStride 위) */
+  armPerStroke: 0.0016,
+  armPerS: 0.0075,
+  armRecoverPerS: 0,
+  armCost: 0.3,
+  /* 연타가 손해가 되는 박자(초당 타) — 이보다 빠르면 HUD 가 '너무 빨라' 라고 말한다.
+     실측 2026-09-13(드라이버, 게이지 숨): 박자별 기록
+       자유형 50ms 43.52 · 110 40.82 · **140 40.51** · 170 40.57 · 250 41.66   (기준 43.0 — 연타는 **기준 미달**)
+       배영   50ms 48.61 · 140 45.04 · **170 44.95** · 250 45.72                (기준 47.0 — 연타는 기준 미달)
+       평영   50ms 55.26 · **140 53.57** · 250 55.47 · 접영 50ms 47.68 · **110~170 45.7~45.8**
+       계영   60ms 211.49 · **140 199.84** · 250 205.68
+       개인혼영 60ms **103.04** · 140 104.00 · 250 110.05 — **200m 는 어느 박자든 피로가 상한(1)에 닿아 박자가 안 갈린다**
+     ⚠ 그래서 혼영은 박자 조언을 안 한다(거짓 조언이 된다).
+     ⛔ 박자를 바꾸는 물리(회복 등)는 시험만 하고 **넣지 않았다** — 회복을 주면 모두가 3초 빨라져 금이 무너지고
+        '아꼈다 막판에 연타' 이득도 커지지 않았다(0.25 → 0.03~0.22초). 이미 있는 깊이를 **보이게** 하는 게 먼저다. */
+  fastWarnHz: 10,
+  /* HUD 박자 막대의 '가장 빠른 칸'(초당 타) — 위 실측의 최선 구간을 덮는다(자유 5.9~7.1 · 배영 5.9 · 평영 7.1 · 접영 5.9~9 · 계영 7.1) */
+  tempoBand: [5.5, 8.0],
+  noTempoAdvice: ['swimMedley200'],
   stroke: {
     free  :{ name:'자유형', speed:1.00, tech:1.00, breath:0.55, color:'#5aaaff' },
     back  :{ name:'배영',   speed:0.90, tech:1.10, breath:0.15, color:'#7fc0ff' },
@@ -113,15 +133,15 @@ class SwimEvent {
     if(S.dq || S.finished) return;
     const dt=tMs-S.lastStroke;
     let j='GOOD';
-    /* ⛔ 연타 모드 — 물에서도 **빨리 저을수록 빠르다.** 박자로 벌하지 않는다.
-       실측(고치기 전): 초당 5타 이상이면 **완주 자체가 불가능**했다(3타에서만 됐다).
-       단거리에서 "연타하라" 고 가르쳐 놓고 수영은 연타하면 못 끝내는 게임이었다.
-       규칙은 하나만 남는다: 좌·우 교대. 제한은 **숨**이 맡는다 —
-       빨리 저을수록 숨이 빨리 차고(아래 fatigue), 숨을 안 쉬면 속도가 60% 로 깎인다. */
+    /* ⛔ 연타 모드 — 박자 판정으로 벌하지 않는다(좌·우 교대만 본다).
+       실측(연타 모드 도입 전): 초당 5타 이상이면 **완주 자체가 불가능**했다(3타에서만 됐다).
+       ⚠ 2026-09-13 정정: 여기 적혀 있던 '물에서도 빨리 저을수록 빠르다' 는 **틀렸다.**
+          저을 때마다 팔 피로(SWIM.armPerStroke)가 차서 **초당 6~7타가 가장 빠르고 연타는 기준 미달**이다
+          (SWIM 표의 실측). 규칙은 맞았고 설명이 틀렸다 — 그래서 HUD 에 팔 게이지를 달았다. */
     if(RULES.mashMode){
       if(S.side===side){ j='REPEAT'; S.form=Math.max(0.6,S.form-0.035); }
       else { j='PERFECT'; S.form=Math.min(1.12,S.form+0.02);
-             S.fatigue=Math.min(1, S.fatigue+0.0016); }   // 한 번 저을 때마다 조금씩 찬다
+             S.fatigue=Math.min(1, S.fatigue+SWIM.armPerStroke); }   // 한 번 저을 때마다 조금씩 찬다
     }
     else if(dt < 70){ j='SPAM'; S.fatigue=Math.min(1,S.fatigue+0.02); }
     else if(S.side===side){ j='REPEAT'; S.form=Math.max(0.6,S.form-0.07); }
@@ -137,6 +157,8 @@ class SwimEvent {
       else { j='LATE'; S.form=Math.max(0.62,S.form-0.035); }
     }
     S.judge[j]++; S.lastJudge=j; S.lastJudgeMs=tMs;
+    /* 박자(초당 타) — 최근 몇 타의 평균. HUD 의 '너무 빨라' 판단에 쓴다 */
+    if(dt > 30 && dt < 1500) S.ivEma = S.ivEma ? S.ivEma*0.75 + dt*0.25 : dt;
     S.side=side; S.prevStroke=S.lastStroke; S.lastStroke=tMs;
     /* 콤보 단계는 없지만 연속 PERFECT 를 세면 같은 '쌓이는 소리'를 줄 수 있다 */
     S.streak = (j==='PERFECT'||j==='GOOD') ? Math.min(60,(S.streak||0)+1) : 0;
@@ -146,7 +168,7 @@ class SwimEvent {
     /* ⚠ 2.35 로는 완벽하게 저어도 100m 62초였다(세계기록 46.4초).
        아케이드는 감독 모드와 별도 물리라 따로 맞춰야 한다. */
     const base = 2.72 * this.strokeFor(S).speed;
-    const target = base * S.form * (1-S.fatigue*0.3) * (0.6+S.breath*0.4) * mult;
+    const target = base * S.form * (1-S.fatigue*SWIM.armCost) * (0.6+S.breath*0.4) * mult;
     if(RULES.mashMode){
       /* 남은 여유에 비례해 더한다 — 빨리 저을수록 평형 속도가 올라간다.
          물 저항(update 의 -dt*0.55)이 감속을 맡으므로 안 저으면 곧 느려진다. */
@@ -193,7 +215,7 @@ class SwimEvent {
         const since=now-S.lastBreath;
         S.breath = clamp(1 - (since/SWIM.breathEvery)*this.strokeFor(S).breath, 0, 1);
         S.speed = Math.max(0, S.speed - dt*0.55);     // 물 저항
-        S.fatigue = Math.min(1, S.fatigue + dt*0.0075);
+        S.fatigue = clamp(S.fatigue + dt*(SWIM.armPerS - SWIM.armRecoverPerS), 0, 1);
         S.dist += S.speed*dt;
         /* 턴을 놓치면 벽에 부딪힌다 */
         const wall=SWIM.poolM*(S.lap+1);
@@ -366,7 +388,9 @@ class SwimEvent {
     HUD.race(u, Object.assign({ def:this.def, timeS:Math.max(0,this.elapsed), speed:this.speed,
       distM:this.dist, trackM:this.trackM, qualify:this.qualify,
       best:Save.data.best[this.def.id] }, this.hudExtra || {}));
-    txt(u, this.S.name, VW/2, 4, 12, this.S.color, 'center', 700);
+    /* ⚠ 가운데(VW/2)에 두면 영어 'Breaststroke'(84px)가 거리 칸 '100 / 200'(150~210) 끝을 문다
+       (2026-09-13 겹침 검사, 개인혼영 영어). 거리 칸 오른쪽에서 왼쪽 정렬로 시작한다. */
+    txt(u, this.S.name, 222, 4, 12, this.S.color, 'left', 700);
 
     if(this.phase==='SET'){
       plate(u,VW/2-76,VH/2-24,152,42,.72);
@@ -383,7 +407,9 @@ class SwimEvent {
       const sIv = (S0 && S0.lastStroke>-1e8 && S0.prevStroke>-1e8)
         ? Math.max(40, S0.lastStroke - S0.prevStroke) : 0;
       const sRate = sIv ? (0.5/(sIv/1000)) : 0;
-      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.side||1,
+      const bandOK = SWIM.noTempoAdvice.indexOf(this.def.id) < 0;
+      HUD.rhythm(u, { strides:(this.player&&this.player.combo)||0, nextSide:-this.side||1, limb:'arm',
+                      band: bandOK ? SWIM.tempoBand : null,
                       phaseErr:err, form:this.form, rate:sRate });
       /* 한 타의 피드백 — 판정 수명·타격 고리·자리 기준은 HUD.tap 한 곳에 있다.
          ⚠ 620ms 고정이면 다음 타 전에 안 사라져 매 타가 뭉갠다(달리기 실측: 2.6타 겹침). */
@@ -410,6 +436,27 @@ class SwimEvent {
       u.fillStyle = this.breath>0.55?PAL.blue : this.breath>0.25?PAL.gold:PAL.red;
       u.fillRect(dotX2,Track.GAUGE_Y-36,Math.round(bw*this.breath),6);
       if(this.breath<0.3) txt(u,'액션으로 숨쉬기', 94, Track.GAUGE_Y-38, 9, PAL.red);
+      /* 팔 게이지 — ⛔ 팔 피로는 속도를 30% 까지 깎는데 **화면 어디에도 없었다.**
+         그래서 사람은 단거리처럼 연타하고 기준 미달로 끝났다(자유형·배영 실측).
+         막대 = 남은 팔 힘 · 숫자 = 지금 박자(초당 타). 숨 게이지 바로 위 한 줄. */
+      if(S0 && !S0.finished){
+        const arm = 1 - (S0.fatigue || 0);
+        plate(u, 6, Track.GAUGE_Y-57, 84, 14, 0.72);
+        txt(u, '팔', 10, Track.GAUGE_Y-54, 8, arm < 0.35 ? PAL.red : PAL.dim);
+        let ax = 26;
+        try{ u.font='400 8px "Galmuri11","Nanum Gothic Coding",monospace'; ax = 10 + Math.ceil(u.measureText(K('팔')).width) + 5; }catch(e){}
+        u.fillStyle='rgba(242,245,250,.18)'; u.fillRect(ax, Track.GAUGE_Y-52, bw, 6);
+        u.fillStyle = arm > 0.6 ? PAL.green : arm > 0.35 ? PAL.gold : PAL.red;
+        u.fillRect(ax, Track.GAUGE_Y-52, Math.round(bw*clamp(arm,0,1)), 6);
+        const hz = S0.ivEma ? 1000 / S0.ivEma : 0;
+        const advise = SWIM.noTempoAdvice.indexOf(this.def.id) < 0;
+        const lineFree = this.tempoWarnFree !== false;
+        if(hz > 0.5 && lineFree) txtOn(u, hz.toFixed(1) + K('/초'), 94, Track.GAUGE_Y-54, 9,
+                           advise && hz > SWIM.fastWarnHz ? PAL.gold : PAL.dim, 'left', 700);
+        /* ⚠ 계영 인계 안내(VH-76, 가운데 — 영어는 230px)와 같은 줄이다 — 하위 종목이 자리를 쓰면 박자 숫자·경고 둘 다 비킨다 */
+        if(advise && hz > SWIM.fastWarnHz && this.breath >= 0.3 && lineFree)
+          txtOn(u, '너무 빨라 — 팔이 풀린다', 130, Track.GAUGE_Y-54, 9, PAL.gold, 'left', 700);
+      }
       /* 턴 안내 */
       const laps=Math.floor(this.trackM/SWIM.poolM);
       if(this.lap < laps-1){
@@ -421,7 +468,7 @@ class SwimEvent {
         }
       }
       if(this.turns.length)
-        txtOn(u, '턴 '+this.turns.map(q=>Math.round(q*100)+'%').join(' · '), VW-8, 44, 9, PAL.dim, 'right');  /* ⚠ 40 은 메달 레일 받침(30~41)에 물린다 */
+        txtOn(u, '턴 '+this.turns.map(q=>Math.round(q*100)+'%').join(' · '), VW-8, (this.hudExtra && this.hudExtra.turnsY) || 44, 9, PAL.dim, 'right');  /* ⚠ 40 은 메달 레일 받침(30~41)에 물린다 */
     }
     if(this.msg && this.t-this.msgAt<900){
       const a=1-(this.t-this.msgAt)/900; u.save(); u.globalAlpha=a;

@@ -957,14 +957,14 @@ const I18N_EN = {
     'Run ◀▶ · hold Action, release at the line — closer flies further',
   '좌·우 번갈아 회전 · 액션으로 놓는다 — 많이 돌수록 놓치기 쉽다':
     'Alternate ◀▶ to spin · Action to release — more spins, riskier',
-  '좌·우 번갈아 젓고, 제때 액션으로 숨 쉬고, 벽 앞에서 액션으로 턴':
-    'Alternate ◀▶ · Action to breathe · Action at the wall = turn',
-  '좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 배영은 벽이 안 보인다':
-    'Alternate ◀▶ · Action = wall turn, else breathe · wall unseen',
-  '좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 평영은 리듬 창이 넓다':
-    'Alternate ◀▶ · Action = wall turn, else breathe · wide window',
-  '좌·우 번갈아 · 액션 = 벽에선 턴, 그 밖엔 숨 · 접영은 숨이 가장 급하다':
-    'Alternate ◀▶ · Action = wall turn, else breathe · tires fastest',
+  '좌·우 초당 6~7번 — 연타하면 팔이 풀린다 · 액션 = 숨 · 벽 앞 턴':
+    '◀▶ 6–7 a second — mashing tires arms · Action = breathe / turn',
+  '좌·우 초당 6번 · 액션 = 벽에선 턴, 그 밖엔 숨 · 배영은 벽이 안 보인다':
+    '◀▶ 6 a second · Action = wall turn, else breathe · wall unseen',
+  '좌·우 초당 7번 — 연타하면 팔이 풀린다 · 액션 = 벽에선 턴, 그 밖엔 숨':
+    '◀▶ 7 a second — mashing tires arms · Action = turn / breathe',
+  '좌·우 초당 6~8번 · 액션 = 벽에선 턴, 그 밖엔 숨 · 접영은 숨이 가장 급하다':
+    '◀▶ 6–8 a second · Action = wall turn, else breathe · short breath',
   '좌·우로 반동 → 액션으로 도약 → 좌·우 회전 → 액션으로 편다':
     '◀▶ to bounce → Action off the board → ◀▶ to spin → Action to open',
   '좌·우로 자세를 잡고 액션을 길게 눌러 든다 · 기우는 반대쪽을 누른다':
@@ -1007,8 +1007,8 @@ const I18N_EN = {
     '◀▶ swing · Action = release · air ◀▶ twist, open, catch · ▲ down',
   '펜싱·수영·승마·사격·달리기 다섯 종목':
     'Five events: fencing · swimming · riding · shooting · running',
-  '좌·우 번갈아 · 액션 = 턴 · 숨 · ▲ 인계는 벽 찍기 직전에':
-    'Alternate ◀▶ · Action = turn / breathe · ▲ hand off at the wall',
+  '좌·우 초당 7번 · 액션 = 턴 · 숨 · ▲ 인계는 벽 찍기 직전에':
+    '◀▶ 7 a second · Action = turn / breathe · ▲ hand off at the wall',
 
   /* ── 부팅 화면(HTML) · 화면 버튼 ── */
   '좌·우를 번갈아 — 빠를수록 빠르다': 'Alternate ◀ ▶ — the faster you tap, the faster you run',
@@ -1064,8 +1064,9 @@ const I18N_EN = {
     'Alternate ◀▶ fast · Action in the zone when speeds match',
   '좌·우를 빠르고 고르게 — 간격이 흔들리면 느려진다 · 액션 = 피치 업 1회':
     '◀▶ fast and even — uneven beats slow you · Action = pitch-up',
-  '좌·우를 빠르게 번갈아 — 손이 빠를수록 빨리 오른다 · 액션 = 도약 1회':
-    'Alternate ◀▶ fast — faster hands climb faster · Action = one dyno',
+  /* ⛔ '손이 빠를수록 빨리 오른다' 는 거짓이었다 — 잡기 한 번이 min(1, 간격/170ms) 홀드라 초당 5.9타 위로는 안 빨라진다(2026-09-13 실측: 45~130ms 전부 3.35~3.37초) */
+  '좌·우 번갈아 — 초당 6번이면 끝까지 오른다 · 잡는 박자에 액션 = 도약 1회':
+    '◀▶ 6 a second is top speed · Action on the grab beat = dyno',
   '좌·우 빠르게 번갈아 — 타수가 곧 속도 · 막판 액션 = 기울이기':
     'Alternate ◀▶ fast — taps are speed · Action late = lean',
   '좌·우를 일정한 박자로 — 곡선에서도 그 박자를 잃지 않는다':
@@ -1617,6 +1618,8 @@ const I18N_EN = {
   '올림픽 72홀':'Olympic 72 holes', '감점+점프오프 — 기록 없음':'Faults + jump-off — none', '근대5종 점수(옛 승마 규격)':'Pentathlon pts (old format)',
   '결선 · 플레이어 %1명':'Final · %1 players', '결선 · 추정 선수':'Final · est. field',
   '로그인하면 내 기록도 결선에':'Sign in to be ranked', '결선 기록 저장됨':'Saved to the field',
+  '◀ 왼팔':'◀ Left', '오른팔 ▶':'Right ▶', '초록 칸이 가장 빠르다':'green band is fastest',
+  '팔':'Arms', '/초':'/s', '너무 빨라 — 팔이 풀린다':'Too fast — arms tiring',
   '결선':'Final', '결선 %1위':'Final #%1', '금메달':'gold medal', '1위까지 %1':'%1 behind 1st', '허들 %1/%2':'hurdles %1/%2',
 
   /* ⛔ 튜토리얼(4G) 의 say·wait — **새 플레이가 제일 먼저 보는 여섯 줄**인데
