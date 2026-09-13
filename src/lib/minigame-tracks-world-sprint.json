@@ -34,8 +34,8 @@
     },
     "steeple3000": {
       "higher": false,
-      "min": 238,
-      "max": 451,
+      "min": 406,
+      "max": 700,
       "scale": 100
     },
     "run800": {
