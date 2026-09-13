@@ -419,7 +419,7 @@ const EVENTS = [
     hurdle:{ count:10, first:13.72, spacing:9.14 } , tip:'좌·우를 빠르게 번갈아 달리다 허들 앞에서 액션' },
   /* 400m 허들 — 허들이 낮고 간격이 넓다. 지구력 종목에 가깝다. */
   { id:'hurdles400', name:'400m 허들',    short:'400MH', unit:'s', higher:false, qualify:48.7, distanceM:400, cuts:{silver:45.2, gold:43.0}, kind:'hurdles',
-    hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'좌·우로 달리고 액션으로 넘는다 · 허들 10개, 보폭이 관건' },
+    hurdle:{ count:10, first:45.0, spacing:35.0 } , tip:'좌·우로 달리고 허들 바로 앞에서 액션 · 10개 — 일찍·늦게 뛰면 속도를 잃는다' },
   /* 3000m 장애물 — 고정 장애물과 물웅덩이. 5번째마다 물이다. */
   { id:'steeple3000',name:'3000m 장애물', short:'3000SC',unit:'s', higher:false, qualify:451, distanceM:3000, cuts:{silver:403, gold:380}, kind:'hurdles',
     hurdle:{ count:28, first:80.0, spacing:100.0, waterEvery:5 } , tip:'좌·우로 달리고 액션으로 넘는다 · 28개, 물웅덩이도 판정은 같다' },

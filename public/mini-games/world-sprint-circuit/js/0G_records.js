@@ -78,7 +78,7 @@ const REAL = { WR_T: 1.25 };
 const REAL_ANCHOR_BEST = {
   sprint100: 9.78, sprint200: 19.9, sprint400: 41.81, hurdles110: 11.56, hurdles400: 42.7, steeple3000: 366.85,
   run800: 141.08, run1500: 270.86, run5000: 1010.94, walk20k: 23004.04, marathon: 16084.48,
-  relay4x100: 37.87, relay4x400: 152.26,
+  relay4x100: 37.46, relay4x400: 151.35,   // 2026-09-13 다시 잼 — 드라이버가 속도비로 인계(q≈0.9)하게 바뀌었다
   longJump: 7.53, tripleJump: 15.99, highJump: 2.13, poleVault: 6.8,
   shotPut: 23.28, discus: 70.75, javelin: 85.04, hammer: 66.61,
   swimFree100: 40.55, swimBack100: 44.94, swimBreast100: 53.8, swimFly100: 45.54,

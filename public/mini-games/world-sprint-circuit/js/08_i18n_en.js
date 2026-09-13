@@ -925,8 +925,9 @@ const I18N_EN = {
     'Alternate ◀ ▶ · a full lap — spend it all early and you fall apart',
   '좌·우 번갈아 달리다 허들 앞에서 액션으로 넘는다':
     'Alternate ◀ ▶, then Action to clear each hurdle',
-  '좌·우로 달리고 액션으로 넘는다 · 허들 10개, 보폭이 관건':
-    'Run ◀▶, Action to clear · 10 hurdles, stride is everything',
+  /* ⛔ '보폭이 관건' 은 없는 장치를 가르쳤다 — 보폭(스트라이드 수) 판정이 코드에 없다(2026-09-13) */
+  '좌·우로 달리고 허들 바로 앞에서 액션 · 10개 — 일찍·늦게 뛰면 속도를 잃는다':
+    'Run ◀▶, Action right at the hurdle · early or late costs speed',
   '좌·우로 달리고 액션으로 넘는다 · 28개, 물웅덩이도 판정은 같다':
     'Run with ◀▶ · Action to clear · 28 of them, water is the same',
   '좌·우 — 순항은 천천히 쳐야 체력이 남는다 · ▲▼ 페이스 · 막판에 액션 스퍼트':
