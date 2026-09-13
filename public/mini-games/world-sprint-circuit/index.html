@@ -76,6 +76,8 @@
     #pad.play .pbtn{background:rgba(22,26,38,.42);border-color:rgba(120,140,180,.5);}
     #pad.play .pbtn.on{background:rgba(90,170,255,.55);border-color:#7fc0ff;}
     #pad.play .prow .pbtn{height:64px;min-width:76px;}
+    /* 844×390 에서 캔버스 옆 여백이 122px 인데 ◀▶(12+118px)가 **8px 캔버스를 덮었다**(출발선 선수 발) — 폭만 줄인다 */
+    #pad.play #p-left, #pad.play #p-right{ min-width:104px; }
     #pad.play .pgroup{gap:3px;}
     /* ⛔ 가운데 무리가 **세로 3층**이었다(▲ / ▼ / 액션) — 812×375 가로 폰에서
        화면 높이의 **40%** 를 덮어 결과 문구가 'retry ▼use: event list' 로 읽혔다
@@ -85,7 +87,11 @@
     #pad.play{ grid-auto-flow:column; grid-template-columns:auto auto;
                justify-content:center; align-items:end; gap:10px; }
     #pad.play #pad-dir{ flex-direction:row; align-items:end; }
-    #pad.play #pad-dir .prow{ display:none; }   /* 좌·우는 이미 양 끝으로 빠져 있다 */
+    /* ⛔⛔ 여기 `#pad.play #pad-dir .prow{display:none}` 가 있었다('좌·우는 이미 양 끝으로 빠져 있다').
+       그런데 ◀▶ 는 **그 .prow 의 자식**이다 — position:fixed 여도 부모가 display:none 이면 같이 사라진다.
+       2026-08-31 부터 **가로 폰(높이 460 이하)에서 경기 중 ◀▶ 가 0×0** 이었다 — 이 게임의 핵심 조작을 누를 수가 없었다.
+       tools/mobile_audit.mjs 는 0×0 버튼을 '안 보이는 버튼' 으로 걸러 **말없이 건너뛰었다**(2026-09-13 화면 순회 캡처로 발견).
+       .prow 는 그대로 두면 된다 — 자식이 전부 fixed 라 흐름에서 자리를 차지하지 않는다. */
   }
 
   /* ── 시작 화면 ─────────────────────────────────────────── */
