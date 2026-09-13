@@ -162,7 +162,10 @@ const Field = {
     const rank = raceRank + hiddenAhead;
 
     /* 표 — 화면 라이벌은 엔진 순위를 지키도록 추정값을 자른다 */
-    const rows = [{ who: 'me', value: me }];
+    /* ⛔ 표의 내 줄은 **날값**을 든다 — 비교만 반올림값으로 한다.
+       반올림한 게임값(19.95)을 현실 척도로 옮기면 19.53, 결과 큰 숫자는 날값(19.9497)을 옮겨 19.54 —
+       **같은 화면에 내 기록이 둘** 떴다(라이브 2026-09-12, 200m). */
+    const rows = [{ who: 'me', value: result.value }];
     if(isRace){
       const order = ev.rivals.map((r, i) => ({ r, v: est[i] }))
         .sort((a, b) => (a.v === null) - (b.v === null) || (def.higher ? b.v - a.v : a.v - b.v));
