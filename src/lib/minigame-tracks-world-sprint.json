@@ -250,7 +250,7 @@
     },
     "canoe": {
       "higher": false,
-      "min": 60.8,
+      "min": 59,
       "max": 68,
       "scale": 100
     },
