@@ -226,8 +226,8 @@
     },
     "swimMedley200": {
       "higher": false,
-      "min": 64.512,
-      "max": 126,
+      "min": 72.5,
+      "max": 104,
       "scale": 100
     },
     "tableTennis": {
