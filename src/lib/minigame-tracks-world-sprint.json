@@ -167,7 +167,7 @@
     "archery": {
       "higher": true,
       "min": 51,
-      "max": 63,
+      "max": 64.5,
       "scale": 100
     },
     "cycling": {
