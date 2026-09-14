@@ -58,7 +58,7 @@
     },
     "walk20k": {
       "higher": false,
-      "min": 7675,
+      "min": 5164,
       "max": 14488,
       "scale": 100
     },
@@ -83,31 +83,31 @@
     "longJump": {
       "higher": true,
       "min": 5.9,
-      "max": 8.66,
+      "max": 9.65,
       "scale": 100
     },
     "tripleJump": {
       "higher": true,
       "min": 11,
-      "max": 18.389,
+      "max": 22.52,
       "scale": 100
     },
     "highJump": {
       "higher": true,
       "min": 1.7,
-      "max": 2.449,
+      "max": 2.69,
       "scale": 100
     },
     "poleVault": {
       "higher": true,
       "min": 5.4,
-      "max": 7.82,
+      "max": 8.64,
       "scale": 100
     },
     "shotPut": {
       "higher": true,
       "min": 18.65,
-      "max": 26.772,
+      "max": 30.02,
       "scale": 100
     },
     "discus": {
@@ -161,7 +161,7 @@
     "lifting": {
       "higher": true,
       "min": 140,
-      "max": 199.419,
+      "max": 215,
       "scale": 100
     },
     "archery": {
@@ -221,7 +221,7 @@
     "heptathlon": {
       "higher": true,
       "min": 5853,
-      "max": 11304,
+      "max": 12444,
       "scale": 100
     },
     "swimMedley200": {
@@ -250,7 +250,7 @@
     },
     "canoe": {
       "higher": false,
-      "min": 35,
+      "min": 60.8,
       "max": 68,
       "scale": 100
     },
