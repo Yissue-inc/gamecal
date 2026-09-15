@@ -21,11 +21,13 @@
   #ui{position:absolute;left:0;top:0;z-index:2;pointer-events:none;}
 
   /* ── 화면 조작 패드 ─────────────────────────────────────── */
-  #pad{display:none;position:fixed;inset:auto 0 0 0;z-index:5;
+  /* ⚠ 패드 틀은 화면 바닥 전폭(가로 폰 y 236~390)을 덮는다 — 버튼 사이 빈 가운데가 **아래쪽 목록 줄 탭을 삼켰다**(9/15). 틀은 통과, 버튼만 받는다 */
+  #pad{display:none;position:fixed;inset:auto 0 0 0;z-index:5;pointer-events:none;
     padding:0 12px calc(10px + env(safe-area-inset-bottom)) 12px;
     grid-template-columns:auto 1fr auto;gap:10px;align-items:end;justify-content:space-between;}
   .pgroup{display:flex;flex-direction:column;gap:6px;align-items:center;}
   .prow{display:flex;gap:6px;}
+  .pbtn{pointer-events:auto;}
   .pbtn.sm{height:44px;min-width:52px;font-size:15px;padding:0 12px;}
   /* ── 방송 중계형 버튼 (2026-09-13 CK 결정) — 유리 패널 · 위 1px 반사광 · 누르면 금색으로 찬다 ──
      ⚠ 크기·위치 규칙(아래 play·가로 폰 미디어 쿼리)은 그대로다 — 여기는 **겉모습만** 바꾼다. */
@@ -183,7 +185,7 @@
 <script src="js/01_core.js?v=1789435262"></script>
 <script src="js/02_runner.js?v=1789404257"></script>
 <script src="js/03_art.js?v=1789337897"></script>
-<script src="js/03B_preload.js?v=1789489835"></script>
+<script src="js/03B_preload.js?v=1789491711"></script>
 <script src="js/04_audio.js?v=1789305186"></script>
 <script src="js/4A_music.js?v=1789305139"></script>
 <script src="js/05_hud.js?v=1789389891"></script>
@@ -236,11 +238,11 @@
 <script src="js/32_season.js?v=1789487288"></script>
 <script src="js/33_racesim.js?v=1788221187"></script>
 <script src="js/34_market.js?v=1789454750"></script>
-<script src="js/41_mgr_ui.js?v=1789462920"></script>
+<script src="js/41_mgr_ui.js?v=1789491554"></script>
 <script src="js/42_meet_ui.js?v=1789487102"></script>
-<script src="js/44_market_ui.js?v=1789455307"></script>
+<script src="js/44_market_ui.js?v=1789491554"></script>
 <script src="js/45_share.js?v=1789337897"></script>
-<script src="js/43_manager.js?v=1789489880"></script>
+<script src="js/43_manager.js?v=1789491554"></script>
 <script src="js/20_screens.js?v=1789485459"></script>
 <script src="js/48_ui_kit.js?v=1789451620"></script>
 <script src="js/4C_master.js?v=1788109875"></script>
@@ -260,6 +262,6 @@
 <script src="js/4N_national.js?v=1789455307"></script>
 <script src="js/50_power.js?v=1787984812"></script>
 <script src="js/47_rpg_ui.js?v=1789487239"></script>
-<script src="js/99_main.js?v=1789489776"></script>
+<script src="js/99_main.js?v=1789491554"></script>
 </body>
 </html>
