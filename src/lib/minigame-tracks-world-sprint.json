@@ -184,8 +184,8 @@
     },
     "trampoline": {
       "higher": true,
-      "min": 70,
-      "max": 134.5,
+      "min": 50,
+      "max": 174.5,
       "scale": 100
     },
     "climbSpeed": {
@@ -256,8 +256,8 @@
     },
     "golf": {
       "higher": false,
-      "min": -12,
-      "max": 0,
+      "min": -24,
+      "max": 6,
       "scale": 100
     },
     "equestrian": {
