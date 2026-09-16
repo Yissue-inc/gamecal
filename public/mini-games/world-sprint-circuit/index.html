@@ -16,6 +16,10 @@
   #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
   #stack{position:relative;line-height:0;}
   canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+  /* ⛔ 폰에서 **연타하면 화면이 커졌다**(CK 2026-09-15 모바일 플레이). iOS 는 `user-scalable=no` 를 무시한다 —
+     빠른 두 번 누름이 더블탭 확대로 먹힌다. 요소마다 touch-action 을 못 박고(캔버스는 none), 확대 제스처도 막는다. */
+  html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;}
+  #bg,#game,#ui,#stack{touch-action:none;}
   #bg{position:absolute;left:0;top:0;z-index:0;image-rendering:auto;}
   #game{position:relative;z-index:1;}
   #ui{position:absolute;left:0;top:0;z-index:2;pointer-events:none;}
@@ -202,7 +206,7 @@
 <script src="js/0G_records.js?v=1789371855"></script>
 <script src="js/0H_online.js?v=1789281533"></script>
 <script src="js/06_venue.js?v=1789276832"></script>
-<script src="js/10_sprint.js?v=1789528974"></script>
+<script src="js/10_sprint.js?v=1789535188"></script>
 <script src="js/11_hurdles.js?v=1789426367"></script>
 <script src="js/12_jumps.js?v=1789529115"></script>
 <script src="js/13_throws.js?v=1789529132"></script>
@@ -211,7 +215,7 @@
 <script src="js/16_swim.js?v=1789420803"></script>
 <script src="js/17_diving.js?v=1789529083"></script>
 <script src="js/18_lifting.js?v=1789531337"></script>
-<script src="js/19_archery.js?v=1789528473"></script>
+<script src="js/19_archery.js?v=1789536111"></script>
 <script src="js/1A_cycling.js?v=1789415455"></script>
 <script src="js/1B_rowing.js?v=1789415553"></script>
 <script src="js/1C_trampoline.js?v=1789416078"></script>
@@ -262,6 +266,6 @@
 <script src="js/4M_identity.js?v=1788189520"></script>
 <script src="js/50_power.js?v=1789500366"></script>
 <script src="js/47_rpg_ui.js?v=1789502217"></script>
-<script src="js/99_main.js?v=1789526324"></script>
+<script src="js/99_main.js?v=1789535188"></script>
 </body>
 </html>
