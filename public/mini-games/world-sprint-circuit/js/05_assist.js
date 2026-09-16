@@ -1,0 +1,1 @@
+"use strict";const ASSIST={on(){return typeof AI<"u"&&AI.level==="easy"},win(ms){return this.on()?ms*1.6:ms},sway(v){return this.on()?v*.55:v},aim(err){return this.on()?err*.3:err},k(easyVal,normalVal){return this.on()?easyVal:normalVal},tol(base,easyAdd){return this.on()?base+easyAdd:base}};
