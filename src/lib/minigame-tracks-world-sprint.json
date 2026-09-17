@@ -286,8 +286,8 @@
     },
     "swimRelay4x100": {
       "higher": false,
-      "min": 170.094,
-      "max": 220,
+      "min": 136.748,
+      "max": 176.9,
       "scale": 100
     }
   }
