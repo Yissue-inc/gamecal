@@ -13,6 +13,7 @@
 - Responsive frame avoids the old600px minimum on short landscape screens only for this game.
 - English story option follows initial browser locale when no saved language preference exists; tycoon UI is Korean.
 - v28 adds an optional mini-game after a treasure ambush (70% roll when an ambush occurs): free best-of-three rock-paper-scissors or a 50-credit slot. The choice dialog pauses play and discloses every probability, reward and loss before play. Arcade and Open Graph thumbnail use the new original `clean-keep-cover.svg` illustration.
+- v29 protects the three opening queue guests until the first product is stocked. Nexus recovery now preserves the wave and remaining reinforcements, charges 15% cash (minimum 25; below that it also consumes 10% of available cores and raw supplies), restores at 65% base/75% player HP, and applies a 12 reputation loss plus 25 seconds of production downtime.
 - Contract cards disclose bond and losses including spent upkeep; active contracts show currently available stock and remaining shortage. The story language picker explains Korean-only workshop support.
 
 ## Regeneration
@@ -32,7 +33,7 @@ Catalog/version and arcade card are in `src/lib/minigames.ts` and `src/app/mini-
 - `corepack pnpm exec tsc --noEmit`
 - `corepack pnpm lint`
 - `corepack pnpm build`
-- `scripts/qa-clean-keep-v28.cjs`:375/390/430×844 and844×390, actual movement and rare encounter actions, bridge completion, guest score401, save download, original card/OG thumbnail, arcade/catalog and existing story/fishing route smoke checks.
+- `scripts/qa-clean-keep-v28.cjs` and `scripts/qa-clean-keep-v29.cjs`:375/390/430×844 and844×390, actual movement and rare encounter actions, guest score401, save download, original card/OG thumbnail, arcade/catalog and existing story/fishing route checks; v29 also checks the opening customer grace and paid defeat recovery.
 - Existing other-game source modifications were left intact and are not part of this integration commit.
 
 Deploy through the repository's existing main→Vercel Production integration. Production status and public checks are recorded in the task worklog after deployment.
