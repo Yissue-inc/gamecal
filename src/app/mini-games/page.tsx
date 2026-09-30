@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 const gameCardDetails = {
   'clean-keep': {
     eyebrow: 'CLEAN · BUILD · DEFEND',
-    image: '/mini-games/assets/clean-keep-card-v1.webp',
+    image: '/mini-games/assets/clean-keep-cover.svg',
     imageAlt: 'An illustrated welcoming home from Clean & Keep',
     badge: 'NEW TYCOON + STORY',
     accent: 'from-emerald-200 via-teal-400 to-violet-500',

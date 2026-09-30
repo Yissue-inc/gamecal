@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+<title id="title">Clean &amp; Keep — 마음의 집</title><desc id="desc">A cleaner protects a glowing tree nexus in a colorful neighborhood.</desc>
+<defs>
+ <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#c9f5ee"/><stop offset=".58" stop-color="#eff8dc"/><stop offset="1" stop-color="#d2e7c5"/></linearGradient>
+ <linearGradient id="tile" x2=".8" y2="1"><stop stop-color="#f6f2de"/><stop offset="1" stop-color="#bdcdb0"/></linearGradient>
+ <linearGradient id="trunk" x2="1" y2="1"><stop stop-color="#93603b"/><stop offset="1" stop-color="#513d34"/></linearGradient>
+ <radialGradient id="crown"><stop stop-color="#d9ff9c"/><stop offset=".52" stop-color="#50d68f"/><stop offset="1" stop-color="#087a66"/></radialGradient>
+ <linearGradient id="hero" x2="0" y2="1"><stop stop-color="#33c4ae"/><stop offset="1" stop-color="#087565"/></linearGradient>
+ <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#ffe992"/><stop offset="1" stop-color="#f7a928"/></linearGradient>
+ <filter id="shadow" x="-40%" y="-40%" width="180%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+ <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="15" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <pattern id="grid" width="110" height="64" patternUnits="userSpaceOnUse"><path d="M55 0 110 32 55 64 0 32Z" fill="none" stroke="#617d68" stroke-opacity=".15" stroke-width="2"/></pattern>
+</defs>
+<rect width="1200" height="630" fill="url(#sky)"/>
+<circle cx="1000" cy="95" r="82" fill="#fff5b5" opacity=".66"/><circle cx="1000" cy="95" r="112" fill="#fff6bc" opacity=".23"/>
+<!-- cozy town silhouettes -->
+<g opacity=".96"><path d="M660 250v-94l69-54 72 54v94Z" fill="#f9d795"/><path d="m645 161 84-70 88 70-14 14-74-58-70 58Z" fill="#e28d58"/><path d="M696 190h28v44h-28zm54-3h33v24h-33z" fill="#fff2ca"/><path d="M890 232v-96l62-47 67 47v96Z" fill="#e8a58a"/><path d="m877 143 75-61 80 61-13 14-67-51-61 51Z" fill="#8d6ca8"/><path d="M925 169h26v39h-26zm49-2h29v23h-29z" fill="#fff4ce"/><path d="M505 276v-74l49-37 51 37v74Z" fill="#9acbc0"/><path d="m493 207 61-52 67 52-12 12-55-43-50 43Z" fill="#447e79"/></g>
+<!-- isometric plaza -->
+<path d="M95 392 695 227l427 141-616 209Z" fill="#91ad91" opacity=".4"/>
+<path d="M77 369 684 205l432 140-621 222Z" fill="url(#tile)" stroke="#789078" stroke-opacity=".38" stroke-width="4"/>
+<path d="M77 369 684 205l432 140-621 222Z" fill="url(#grid)"/>
+<path d="m250 439 376-101 171 56-383 105Z" fill="#69bea0" opacity=".46" stroke="#268c76" stroke-width="5"/>
+<!-- nexus base and roots -->
+<ellipse cx="655" cy="394" rx="153" ry="39" fill="#34434a" opacity=".3" filter="url(#shadow)"/>
+<path d="M528 373q127 81 255 0l-10 31q-114 67-236 0Z" fill="#d7c38f" stroke="#9b875b" stroke-width="5"/>
+<ellipse cx="655" cy="371" rx="128" ry="43" fill="#f8e8b6" stroke="#b29b66" stroke-width="6"/>
+<path d="M642 355q-7-74 8-129h31q14 60 8 129Z" fill="url(#trunk)" stroke="#4c4639" stroke-width="5"/>
+<path d="M649 299q-61-56-73-92m92 81q61-71 72-98m-83 108q-3-74-42-107m44 100q34-66 56-78" fill="none" stroke="#715039" stroke-width="16" stroke-linecap="round"/>
+<g filter="url(#glow)"><circle cx="593" cy="190" r="61" fill="url(#crown)"/><circle cx="678" cy="156" r="80" fill="url(#crown)"/><circle cx="750" cy="196" r="60" fill="url(#crown)"/><circle cx="657" cy="217" r="70" fill="url(#crown)"/></g>
+<g fill="#efffb5"><circle cx="655" cy="128" r="8"/><circle cx="716" cy="176" r="7"/><circle cx="604" cy="204" r="6"/><circle cx="674" cy="235" r="7"/><path d="m788 143 6 15 15 6-15 6-6 15-6-15-15-6 15-6z"/></g>
+<path d="M625 318q31 17 66 0" fill="none" stroke="#ffd66d" stroke-width="6" stroke-linecap="round"/>
+<!-- recycler -->
+<ellipse cx="371" cy="456" rx="82" ry="24" fill="#42584d" opacity=".27"/>
+<path d="M303 385h132v68l-132 35Z" fill="#087a58" stroke="#073f3c" stroke-width="6"/><path d="m303 385 61-27 132 8-63 28Z" fill="#35d27d" stroke="#073f3c" stroke-width="6"/><path d="M326 406h83v16h-83z" fill="#c9ffe0"/><path d="m344 434 19-13 19 13-7 4-12-8-12 8Z" fill="none" stroke="#e5fff0" stroke-width="6" stroke-linejoin="round"/>
+<!-- little conveyor and sorted resources -->
+<path d="m416 479 115-31 33 12-118 35Z" fill="#172f48"/><path d="m429 478 96-26 11 4-96 27Z" fill="#ffd65c"/><g fill="#f7ca4e" stroke="#a77829" stroke-width="3"><path d="m456 465 19-8 15 6-19 9Z"/><path d="m484 457 18-7 15 5-18 8Z"/></g>
+<g><path d="m446 428 33-12 28 10-34 13Z" fill="#66d27c"/><path d="m446 428 27 11v22l-27-11Z" fill="#188a55"/><path d="m473 439 34-13v22l-34 13Z" fill="#0c694b"/></g>
+<!-- cleaner hero -->
+<ellipse cx="436" cy="457" rx="48" ry="17" fill="#34434a" opacity=".25" filter="url(#shadow)"/>
+<path d="M392 304q-22 9-23 38l14 37 33-1 8-54-14-20Z" fill="#273d4b" stroke="#102a3a" stroke-width="5"/>
+<rect x="389" y="322" width="23" height="51" rx="9" fill="#d64551" stroke="#772e48" stroke-width="4"/><path d="m394 331 13-5m-12 17 13-5m-12 17 13-5" stroke="#ffd776" stroke-width="4"/>
+<path d="M423 307q-24 9-24 39l8 47h57l9-44q2-28-25-41Z" fill="url(#hero)" stroke="#104a4a" stroke-width="5"/><path d="M411 330q17 10 40 0" fill="none" stroke="#9cf1d7" stroke-width="5"/>
+<circle cx="438" cy="286" r="27" fill="#e6b991" stroke="#765b4a" stroke-width="4"/><path d="M411 283q2-34 34-35 26 2 29 29l-15-8-35 8Z" fill="#087c69" stroke="#075448" stroke-width="5"/><path d="M421 289h5m19 0h5" stroke="#263d42" stroke-width="4" stroke-linecap="round"/><path d="M431 301q7 6 14 0" fill="none" stroke="#aa5652" stroke-width="3"/>
+<path d="m411 389-16 38 11 5 28-32m47-4 22 30-9 8-37-22" fill="none" stroke="#e6b991" stroke-width="12" stroke-linecap="round"/><path d="m418 392-3 35m36-34 4 34" stroke="#f5f3dd" stroke-width="12"/><path d="m415 427-2 27 23 0 3-28m12 0 4 28 25 0-11-30" fill="#f8f0d9" stroke="#6a715f" stroke-width="4"/>
+<!-- vacuum wand -->
+<path d="M483 408q48-20 48 20l-3 23" fill="none" stroke="#263c4c" stroke-width="8" stroke-linecap="round"/><path d="m515 448 32 3-2 11-38 2Z" fill="#faaf31" stroke="#493f37" stroke-width="4"/><path d="m520 449 20-1" stroke="#fff2b2" stroke-width="4"/>
+<!-- cute dust monsters -->
+<g transform="translate(877 362)"><ellipse cx="0" cy="32" rx="39" ry="11" fill="#263847" opacity=".2"/><path d="M-38 11q-4-29 20-31 10-22 28-5 27-2 27 23 21 11 3 29-8 20-33 16-23 13-38-4-22-3-7-28Z" fill="#7139bc" stroke="#291a57" stroke-width="6"/><circle cx="-12" cy="10" r="5" fill="#fff"/><circle cx="13" cy="10" r="5" fill="#fff"/><circle cx="-11" cy="11" r="2.5" fill="#15283d"/><circle cx="14" cy="11" r="2.5" fill="#15283d"/><path d="M-4 25q8 7 15 0" fill="none" stroke="#f8adf5" stroke-width="4" stroke-linecap="round"/></g>
+<g transform="translate(968 436) scale(.68)"><path d="M-38 11q-4-29 20-31 10-22 28-5 27-2 27 23 21 11 3 29-8 20-33 16-23 13-38-4-22-3-7-28Z" fill="#f05d83" stroke="#8e2557" stroke-width="6"/><circle cx="-12" cy="10" r="5" fill="#fff"/><circle cx="13" cy="10" r="5" fill="#fff"/><circle cx="-11" cy="11" r="2.5" fill="#15283d"/><circle cx="14" cy="11" r="2.5" fill="#15283d"/><path d="M-4 25q8 7 15 0" fill="none" stroke="#ffe8bb" stroke-width="4"/></g>
+<g fill="#8738c5"><circle cx="823" cy="414" r="9"/><circle cx="847" cy="431" r="6"/><circle cx="791" cy="389" r="5"/></g>
+<!-- title badge, restrained and readable -->
+<g><rect x="47" y="43" width="420" height="112" rx="25" fill="#17354a" opacity=".94"/><path d="M70 71h24v27H70z" fill="none" stroke="#ffe18a" stroke-width="5"/><path d="m68 72 14-15 15 15" fill="none" stroke="#ffe18a" stroke-width="5" stroke-linecap="round"/><text x="113" y="91" fill="#fff9e6" font-family="system-ui, sans-serif" font-size="37" font-weight="900" letter-spacing="-1">CLEAN &amp; KEEP</text><text x="114" y="125" fill="#79e3c5" font-family="system-ui, sans-serif" font-size="12" font-weight="800" letter-spacing="1">마음의 집 · CLEAN · BUILD · DEFEND</text></g>
+<g fill="#ffe084" opacity=".9"><path d="m520 116 5 12 12 5-12 5-5 12-5-12-12-5 12-5z"/><circle cx="811" cy="274" r="5"/><circle cx="1022" cy="301" r="4"/><circle cx="560" cy="260" r="4"/></g>
+</svg>

@@ -1,10 +1,10 @@
 # Clean & Keep — GamerClock integration
 
-2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version27.0.
+2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version28.0.
 
 - Public route: `/play/clean-keep`; arcade: `/mini-games`; generic catalog: `/api/minigames/catalog`.
 - Uses the current shared iframe bridge and session/score APIs already used by Pilgrim’s Path and Wave Village Fishing, not the older draft API spec.
-- HTML, 3 scripts, stylesheet and 129 WebP images copied from the hash-addressed mobile release. Only deploy-manifest release files are exported. No master art, local QA files or secrets.
+- HTML, 3 scripts, stylesheet and 129 WebP images copied from the hash-addressed mobile release. Only deploy-manifest release files are exported. The bridge adapter is appended to the game script so it shares the game's lexical scope. No master art, local QA files or secrets.
 - No service worker registered in the GamerClock iframe. Existing standalone PWA remains separate.
 - Adapter sends READY, STARTED, SCORE_CHANGED and COMPLETED. Story room completion and city contract completion report results. Menu also has an explicit record submission action.
 - Metric: `dust_cleaned`, total cleaned piles capped at the generic API maximum5,000,000. Scalar stats include mode/wave/chapter/contracts. No GP, claims or new reward policy.
@@ -12,6 +12,8 @@
 - Sandbox downloads are enabled only for Clean & Keep so users can export their save. Origin/source checks remain in shared bridge and shell.
 - Responsive frame avoids the old600px minimum on short landscape screens only for this game.
 - English story option follows initial browser locale when no saved language preference exists; tycoon UI is Korean.
+- v28 adds an optional mini-game after a treasure ambush (70% roll when an ambush occurs): free best-of-three rock-paper-scissors or a 50-credit slot. The choice dialog pauses play and discloses every probability, reward and loss before play. Arcade and Open Graph thumbnail use the new original `clean-keep-cover.svg` illustration.
+- Contract cards disclose bond and losses including spent upkeep; active contracts show currently available stock and remaining shortage. The story language picker explains Korean-only workshop support.
 
 ## Regeneration
 
@@ -30,7 +32,7 @@ Catalog/version and arcade card are in `src/lib/minigames.ts` and `src/app/mini-
 - `corepack pnpm exec tsc --noEmit`
 - `corepack pnpm lint`
 - `corepack pnpm build`
-- `scripts/qa-clean-keep.cjs`:375/390/430×844 and844×390, actual mode-selection button clicks, iframe and parent no horizontal overflow, same-origin bridge context/start/results, result panel, guest score401, save download, arcade/catalog links. No page exceptions.
+- `scripts/qa-clean-keep-v28.cjs`:375/390/430×844 and844×390, actual movement and rare encounter actions, bridge completion, guest score401, save download, original card/OG thumbnail, arcade/catalog and existing story/fishing route smoke checks.
 - Existing other-game source modifications were left intact and are not part of this integration commit.
 
 Deploy through the repository's existing main→Vercel Production integration. Production status and public checks are recorded in the task worklog after deployment.

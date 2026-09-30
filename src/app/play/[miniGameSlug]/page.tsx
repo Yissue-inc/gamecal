@@ -14,6 +14,16 @@ export function generateMetadata({ params }: PlayPageProps): Metadata {
   return {
     title: `${game.title} | GamerClock`,
     description: game.description,
+    ...(game.slug === 'clean-keep'
+      ? {
+          openGraph: {
+            title: game.title,
+            description: game.description,
+            images: [{ url: game.thumbnail, width: 1200, height: 630, alt: 'Clean & Keep key art' }],
+          },
+          twitter: { card: 'summary_large_image' as const, images: [game.thumbnail] },
+        }
+      : {}),
   }
 }
 

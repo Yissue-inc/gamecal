@@ -26,10 +26,10 @@ export const MINI_GAMES: MiniGameManifest[] = [
   {
     slug: 'clean-keep',
     title: 'Clean & Keep · 마음의 집',
-    description: 'Clean, recycle, build a city and defend its nexus. Eight story rooms and repeatable tycoon contracts. Korean tycoon UI; English story option.',
-    version: '27.0.0',
+    description: 'Clean and recycle, build a city, and defend its heart tree. Play eight story rooms, repeatable tycoon contracts, and rare monster duels.',
+    version: '28.0.0',
     entry: '/mini-games/clean-keep/index.html',
-    thumbnail: '/mini-games/assets/clean-keep-card-v1.webp',
+    thumbnail: '/mini-games/assets/clean-keep-cover.svg',
     orientation: 'responsive',
     input: ['tap', 'keyboard', 'pointer'],
     supportsGuest: true,
