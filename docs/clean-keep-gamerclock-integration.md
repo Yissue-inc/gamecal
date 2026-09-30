@@ -41,13 +41,13 @@ Deploy through the repository's existing main→Vercel Production integration. P
 
 ## v30 — Mobile rendering budget (2026-09-29)
 
-- Touch devices default to 1× DPR, low-power WebGL, no antialiasing/shadow pass, and a 30fps cap; idle world rendering is 1fps. Quality presets: battery 0.85×/30fps, sharp 1.25×/60fps (touch shadows stay off).
+- Touch devices default to 1× DPR, low-power WebGL, no antialiasing/shadow pass, and a 30fps cap; idle world rendering is 1fps. Quality presets: battery 0.85×/30fps, sharp 1.25×/30fps on touch (shadows stay off) and 2×/60fps on desktop.
 - The standalone local HTML, PWA and GamerClock iframe export come from the same source.
 - `scripts/qa-clean-keep-v30.cjs` includes the v29 public flow and asserts touch renderer settings. Source performance pacing is also checked by `qa/v30/performance.cjs` in the clean-house-defense repo.
 
 
 ## v30 — Mobile rendering budget (2026-09-29)
 
-- Touch devices default to 1× DPR, low-power WebGL, no antialiasing/shadow pass, and a 30fps cap; idle world rendering is 1fps. Quality presets: battery 0.85×/30fps, sharp 1.25×/60fps (touch shadows stay off).
+- Touch devices default to 1× DPR, low-power WebGL, no antialiasing/shadow pass, and a 30fps cap; idle world rendering is 1fps. Quality presets: battery 0.85×/30fps, sharp 1.25×/30fps on touch (shadows stay off) and 2×/60fps on desktop.
 - The standalone local HTML, PWA and GamerClock iframe export come from the same source.
 - `scripts/qa-clean-keep-v30.cjs` includes the v29 public flow and asserts touch renderer settings. Source performance pacing is also checked by `qa/v30/performance.cjs` in the clean-house-defense repo.
