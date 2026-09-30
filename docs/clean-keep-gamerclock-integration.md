@@ -1,6 +1,6 @@
 # Clean & Keep — GamerClock integration
 
-2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version28.0.
+2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version33.0.
 
 - Public route: `/play/clean-keep`; arcade: `/mini-games`; generic catalog: `/api/minigames/catalog`.
 - Uses the current shared iframe bridge and session/score APIs already used by Pilgrim’s Path and Wave Village Fishing, not the older draft API spec.
@@ -56,3 +56,7 @@ Deploy through the repository's existing main→Vercel Production integration. P
 ## v31 — Safari focus behavior
 
 Temporary `window.blur` only releases input. When the document actually goes to the background, the simulation saves and pauses quietly; returning to the visible page resumes without opening the save/settings panel. Manual pause still opens settings. Focus/lifecycle regressions are covered in `scripts/qa-clean-keep-v31.cjs`.
+
+## v33 — manual recycling core
+
+The base dust economy is now player-driven again: walk/suction dust into the backpack, press F at the recycler to deposit it, press F again to convert the visible raw pile into green recycled material, and press F at the output pad to pick it up. Dock unload is also explicit. Standing on a pad no longer silently consumes cargo. Constructed high-speed sorting and vacuum buildings remain opt-in automation rewards. Source verification: `qa/v33/manual-recycling.cjs`.
