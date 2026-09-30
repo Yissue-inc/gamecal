@@ -27,7 +27,7 @@ export const MINI_GAMES: MiniGameManifest[] = [
     slug: 'clean-keep',
     title: 'Clean & Keep · 마음의 집',
     description: 'Clean and recycle, build a city, and defend its heart tree. Play eight story rooms, repeatable tycoon contracts, and rare monster duels.',
-    version: '30.0.0',
+    version: '31.0.0',
     entry: '/mini-games/clean-keep/index.html',
     thumbnail: '/mini-games/assets/clean-keep-cover.svg',
     orientation: 'responsive',
