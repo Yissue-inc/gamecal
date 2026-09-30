@@ -23,6 +23,15 @@ export const metadata: Metadata = {
 }
 
 const gameCardDetails = {
+  'clean-keep': {
+    eyebrow: 'CLEAN · BUILD · DEFEND',
+    image: '/mini-games/assets/clean-keep-card-v1.webp',
+    imageAlt: 'An illustrated welcoming home from Clean & Keep',
+    badge: 'NEW TYCOON + STORY',
+    accent: 'from-emerald-200 via-teal-400 to-violet-500',
+    label: 'Play Clean & Keep',
+    order: -1,
+  },
   'world-sprint-circuit': {
     eyebrow: 'PIXEL ATHLETICS CIRCUIT',
     image: '/mini-games/assets/world-sprint-circuit-card-v1.webp',

@@ -24,6 +24,21 @@ export type MiniGameManifest = {
 
 export const MINI_GAMES: MiniGameManifest[] = [
   {
+    slug: 'clean-keep',
+    title: 'Clean & Keep · 마음의 집',
+    description: 'Clean, recycle, build a city and defend its nexus. Eight story rooms and repeatable tycoon contracts. Korean tycoon UI; English story option.',
+    version: '27.0.0',
+    entry: '/mini-games/clean-keep/index.html',
+    thumbnail: '/mini-games/assets/clean-keep-card-v1.webp',
+    orientation: 'responsive',
+    input: ['tap', 'keyboard', 'pointer'],
+    supportsGuest: true,
+    requiresAuthFor: ['save_score'],
+    score: { primaryMetric: 'dust_cleaned', higherIsBetter: true, unit: 'piles' },
+    calendar: { allowedGameSlugs: [], eventScoped: false },
+    analyticsPrefix: 'minigame_clean_keep',
+  },
+  {
     slug: 'paint-world',
     title: 'Paint World',
     description: 'Colour a creature, send it in, and watch your drawing come alive — swimming, walking, flying. Five worlds and 229 creatures: sea, jungle, dinosaurs, robots and bugs. Open treasure chests for hats and 10-second powers, feed everyone, and watch the world grow as more children play.',

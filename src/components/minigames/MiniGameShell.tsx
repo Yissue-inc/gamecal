@@ -286,8 +286,8 @@ export function MiniGameShell({ game, eventId, source }: MiniGameShellProps) {
         <section className="relative overflow-hidden bg-[#06182a] shadow-2xl sm:rounded-2xl sm:border sm:border-white/10" aria-label={`${game.title} game`}>
           <div className={game.orientation === 'landscape'
             ? 'aspect-video w-full'
-            : 'h-[calc(100dvh-58px)] min-h-[600px] max-h-[1040px] sm:h-[calc(100dvh-114px)]'}>
-            <MiniGameFrame key={frameKey} ref={frameRef} src={frameSrc} title={game.title} onLoad={handleFrameLoad} />
+            : game.slug === 'clean-keep' ? 'h-[calc(100dvh-64px)] min-h-[240px] sm:h-[calc(100dvh-114px)]' : 'h-[calc(100dvh-58px)] min-h-[600px] max-h-[1040px] sm:h-[calc(100dvh-114px)]'}>
+            <MiniGameFrame key={frameKey} ref={frameRef} src={frameSrc} title={game.title} onLoad={handleFrameLoad} allowDownloads={game.slug === 'clean-keep'} />
           </div>
           {!bridgeReady ? <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#06182a] text-sm text-cyan-100">Preparing your journey…</div> : null}
           {needsLandscape ? (

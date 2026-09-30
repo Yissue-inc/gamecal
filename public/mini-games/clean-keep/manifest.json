@@ -1,0 +1,28 @@
+{
+  "slug": "clean-keep",
+  "title": "Clean & Keep · 마음의 집",
+  "description": "Clean, recycle, build a city and defend its nexus. Eight story rooms and repeatable tycoon contracts. Korean tycoon UI; English story option.",
+  "version": "27.0.0",
+  "entry": "/mini-games/clean-keep/index.html",
+  "thumbnail": "/mini-games/assets/clean-keep-card-v1.webp",
+  "orientation": "responsive",
+  "input": [
+    "tap",
+    "keyboard",
+    "pointer"
+  ],
+  "supportsGuest": true,
+  "requiresAuthFor": [
+    "save_score"
+  ],
+  "score": {
+    "primaryMetric": "dust_cleaned",
+    "higherIsBetter": true,
+    "unit": "piles"
+  },
+  "calendar": {
+    "allowedGameSlugs": [],
+    "eventScoped": false
+  },
+  "analyticsPrefix": "minigame_clean_keep"
+}
