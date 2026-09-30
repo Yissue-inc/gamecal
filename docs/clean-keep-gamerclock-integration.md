@@ -60,3 +60,7 @@ Temporary `window.blur` only releases input. When the document actually goes to 
 ## v33 — manual recycling core
 
 The base dust economy is now player-driven again: walk/suction dust into the backpack, press F at the recycler to deposit it, press F again to convert the visible raw pile into green recycled material, and press F at the output pad to pick it up. Dock unload is also explicit. Standing on a pad no longer silently consumes cargo. Constructed high-speed sorting and vacuum buildings remain opt-in automation rewards. Source verification: `qa/v33/manual-recycling.cjs`.
+
+### v33 interaction clarification
+
+Factory interaction uses the visible contextual screen button only; F is not bound to actions. Depositing a gathered load, converting the visible raw pile, and picking up green material each have a clear on-screen action and paced visual feedback. Movement and dust collection remain continuous while walking; optional built automation remains an earned later-game convenience.
