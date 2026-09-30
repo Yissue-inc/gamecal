@@ -1,6 +1,6 @@
 # Clean & Keep — GamerClock integration
 
-2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version33.0.
+2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version34.0.
 
 - Public route: `/play/clean-keep`; arcade: `/mini-games`; generic catalog: `/api/minigames/catalog`.
 - Uses the current shared iframe bridge and session/score APIs already used by Pilgrim’s Path and Wave Village Fishing, not the older draft API spec.
@@ -57,10 +57,14 @@ Deploy through the repository's existing main→Vercel Production integration. P
 
 Temporary `window.blur` only releases input. When the document actually goes to the background, the simulation saves and pauses quietly; returning to the visible page resumes without opening the save/settings panel. Manual pause still opens settings. Focus/lifecycle regressions are covered in `scripts/qa-clean-keep-v31.cjs`.
 
-## v33 — manual recycling core
+## v34 — visible recycling action and staged rails
 
-The base dust economy is now player-driven again: walk/suction dust into the backpack, press F at the recycler to deposit it, press F again to convert the visible raw pile into green recycled material, and press F at the output pad to pick it up. Dock unload is also explicit. Standing on a pad no longer silently consumes cargo. Constructed high-speed sorting and vacuum buildings remain opt-in automation rewards. Source verification: `qa/v33/manual-recycling.cjs`.
+The base dust economy is now player-driven again: walk/suction dust into the backpack, then use the contextual on-screen button at the recycler to deposit and convert it into green recycled material. The green output pad and purple dock also use visible on-screen actions. F is not bound to actions. Standing on a pad no longer silently consumes cargo. Constructed high-speed sorting and vacuum buildings remain opt-in automation rewards. Source verification: `qa/v33/manual-recycling.cjs`.
 
 ### v33 interaction clarification
 
 Factory interaction uses the visible contextual screen button only; F is not bound to actions. Depositing a gathered load, converting the visible raw pile, and picking up green material each have a clear on-screen action and paced visual feedback. Movement and dust collection remain continuous while walking; optional built automation remains an earned later-game convenience.
+
+## v34 — progressive rail learning
+
+The early game keeps factory output manual so players feel the carrying friction before they build the central line. Rail pads now surface one nearby, actually built machine connection at a time; later district and farm loops require city-stage and connected-branch milestones.
