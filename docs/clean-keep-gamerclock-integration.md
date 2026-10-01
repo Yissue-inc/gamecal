@@ -1,6 +1,10 @@
 # Clean & Keep — GamerClock integration
 
-2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version35.0.
+2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version35.1.
+
+### v35.1
+
+- Entering the recycler input, a matching sales counter zone, or the purple dock now unloads matching carried resources automatically. Construction and repair remain explicit actions because they spend currency.
 
 ## v35 — explicit core actions and early defense
 
