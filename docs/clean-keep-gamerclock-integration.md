@@ -1,6 +1,13 @@
 # Clean & Keep — GamerClock integration
 
-2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version34.0.
+2026-09-30. Source: `/Users/ck/Yissue_Brain/Output/clean-house-defense`, version35.0.
+
+## v35 — explicit core actions and early defense
+
+- Sales counters, construction pads, and the purple dock change inventory or money only after the visible on-screen action is pressed.
+- The first defense tower costs 60 and precedes the toy workshop in the guided work plan, so the opening sales cycle funds defense before the 150-second first raid.
+- Purification cores can fund an emergency nexus repair when cash is below 20.
+- Mobile menu and panel controls no longer overlap, stale F-key guidance is removed, and the dock label unloads directly when the player is standing on its pad.
 
 - Public route: `/play/clean-keep`; arcade: `/mini-games`; generic catalog: `/api/minigames/catalog`.
 - Uses the current shared iframe bridge and session/score APIs already used by Pilgrim’s Path and Wave Village Fishing, not the older draft API spec.

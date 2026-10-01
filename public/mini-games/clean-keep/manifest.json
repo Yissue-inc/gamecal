@@ -1,8 +1,8 @@
 {
   "slug": "clean-keep",
   "title": "Clean & Keep · 마음의 집",
-  "description": "Clean and recycle, build a city, and defend its heart tree. Play eight story rooms, repeatable tycoon contracts, and rare monster duels.",
-  "version": "34.0.0",
+  "description": "Gather dust by hand, recycle it into useful materials, serve neighbors, grow a workshop, and defend its nexus.",
+  "version": "35.0.0",
   "entry": "/mini-games/clean-keep/index.html",
   "thumbnail": "/mini-games/assets/clean-keep-cover.svg",
   "orientation": "responsive",
